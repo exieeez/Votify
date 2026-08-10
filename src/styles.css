@@ -2519,35 +2519,36 @@ body[data-track-card-style="flat"] .track-item {
 .pl-play-btn:hover { background: var(--accent-hover); transform: scale(1.06); box-shadow: 0 6px 24px rgba(var(--accent-rgb),0.5); }
 .pl-play-btn .material-icons { font-size: 28px; }
 .pl-shuffle-btn.active { color: var(--accent); }
-.pl-download-btn.is-downloaded {
+.pl-download-btn.is-downloaded,
+#lib-download-active-btn.is-downloaded {
   color: var(--accent);
   background: rgba(var(--accent-rgb),0.12);
 }
-.pl-download-btn.is-downloading {
+.pl-download-btn.is-downloading,
+#lib-download-active-btn.is-downloading {
   color: var(--accent);
   animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .pl-download-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
   width: 100%;
   height: 4px;
   background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
 }
 .pl-download-progress {
   height: 100%;
+  width: 0%;
   background: var(--accent);
   transition: width 0.3s ease;
-  border-radius: 0 2px 2px 0;
+  border-radius: 2px;
 }
 .pl-download-text {
-  position: absolute;
-  right: 8px;
-  top: -20px;
   font-size: 11px;
   color: var(--accent);
+  margin-top: 4px;
 }
 /* Responsive playlist header — the app window has a hard minWidth of 900px, so this
    range (900–1050px, e.g. a "half-screen" window) needs its own breakpoint; the
