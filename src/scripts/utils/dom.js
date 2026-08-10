@@ -13,7 +13,8 @@ export function create(tag, attrs = {}, children = []) {
   Object.entries(attrs).forEach(([key, val]) => {
     if (key === 'class') el.className = val;
     else if (key === 'style' && typeof val === 'object') Object.assign(el.style, val);
-    else if (key.startsWith('on') && typeof val === 'function') el.addEventListener(key.slice(2).toLowerCase(), val);
+    else if (key.startsWith('on') && typeof val === 'function')
+      el.addEventListener(key.slice(2).toLowerCase(), val);
     else if (key === 'dataset') Object.assign(el.dataset, val);
     else el.setAttribute(key, val);
   });
@@ -93,7 +94,9 @@ export function style(el, styles) {
 }
 
 // Dimensions
-export function rect(el) { return el.getBoundingClientRect(); }
+export function rect(el) {
+  return el.getBoundingClientRect();
+}
 export function offset(el) {
   const r = el.getBoundingClientRect();
   return { top: r.top + window.scrollY, left: r.left + window.scrollX };
@@ -107,33 +110,50 @@ export function scrollTo(el, options = {}) {
 // Visibility
 export function isVisible(el) {
   const r = el.getBoundingClientRect();
-  return r.width > 0 && r.height > 0 && 
-         r.top < window.innerHeight && r.bottom > 0 &&
-         r.left < window.innerWidth && r.right > 0;
+  return (
+    r.width > 0 &&
+    r.height > 0 &&
+    r.top < window.innerHeight &&
+    r.bottom > 0 &&
+    r.left < window.innerWidth &&
+    r.right > 0
+  );
 }
 
 // Focus management
 export function trapFocus(el) {
-  const focusable = el.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  const focusable = el.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
   const first = focusable[0];
   const last = focusable[focusable.length - 1];
-  
+
   function handleTab(e) {
     if (e.key !== 'Tab') return;
     if (e.shiftKey) {
-      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
     } else {
-      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
   }
-  
+
   el.addEventListener('keydown', handleTab);
   return () => el.removeEventListener('keydown', handleTab);
 }
 
 // Animation frame
-export function raf(fn) { return requestAnimationFrame(fn); }
-export function caf(id) { cancelAnimationFrame(id); }
+export function raf(fn) {
+  return requestAnimationFrame(fn);
+}
+export function caf(id) {
+  cancelAnimationFrame(id);
+}
 
 // Ready
 export function ready(fn) {
@@ -141,4 +161,26 @@ export function ready(fn) {
   else document.addEventListener('DOMContentLoaded', fn);
 }
 
-export default { $, $$, create, html, on, debounce, throttle, toggleClass, addClass, removeClass, attr, data, style, rect, offset, scrollTo, isVisible, trapFocus, raf, caf, ready };
+export default {
+  $,
+  $$,
+  create,
+  html,
+  on,
+  debounce,
+  throttle,
+  toggleClass,
+  addClass,
+  removeClass,
+  attr,
+  data,
+  style,
+  rect,
+  offset,
+  scrollTo,
+  isVisible,
+  trapFocus,
+  raf,
+  caf,
+  ready,
+};

@@ -1,11 +1,16 @@
 const http = require('http');
-const { sendJson, serveStatic, parseBody, saveNetworkConfig, getNetworkConfig } = require('./routes/utils.js');
+const {
+  sendJson,
+  serveStatic,
+  parseBody,
+  saveNetworkConfig,
+  getNetworkConfig,
+} = require('./routes/utils.js');
 const { handleAuthRoutes } = require('./routes/auth.js');
 const { handleMusicRoutes } = require('./routes/music.js');
 const { handleDiscordRoutes } = require('./routes/discord.js');
 const { handleSmtpRoutes } = require('./routes/smtp.js');
 const { handleSyncRoutes } = require('./routes/sync.js');
-
 
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,13 +21,13 @@ function setCorsHeaders(res) {
 
 const server = http.createServer(async (req, res) => {
   setCorsHeaders(res);
-  
+
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
     return;
   }
-  
+
   const u = new URL(req.url, `http://${req.headers.host}`);
   try {
     // --- NETWORK ENDPOINTS ---

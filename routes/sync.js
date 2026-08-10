@@ -5,7 +5,7 @@ async function handleSyncRoutes(req, res, u) {
   if (u.pathname === '/api/sync/get' && req.method === 'GET') {
     sendJson(res, 200, {
       settings: {},
-      playlists: {}
+      playlists: {},
     });
     return true;
   }

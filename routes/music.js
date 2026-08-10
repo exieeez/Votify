@@ -35,7 +35,6 @@ async function handleMusicRoutes(req, res, u) {
     return true;
   }
 
-
   // --- ARTIST ---
   if (u.pathname === '/api/artist') {
     const name = u.searchParams.get('name')?.trim();
@@ -82,7 +81,7 @@ async function handleMusicRoutes(req, res, u) {
       // Exact "artist title" seeds: keeps the wave anchored to songs you actually have
       ...trackSeeds.map(seed => searchTracks(seed, perSeedLimit, false)),
     ]);
-    const allTracks = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+    const allTracks = results.flatMap(r => (r.status === 'fulfilled' ? r.value : []));
     const seen = new Set();
     const unique = allTracks.filter(t => {
       if (!t || !t.id) return false;
@@ -92,13 +91,20 @@ async function handleMusicRoutes(req, res, u) {
       return true;
     });
     // Shuffle
-    for (let i = unique.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [unique[i], unique[j]] = [unique[j], unique[i]]; }
+    for (let i = unique.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [unique[i], unique[j]] = [unique[j], unique[i]];
+    }
     sendJson(res, 200, { tracks: unique.slice(0, limit) });
     return true;
   }
 
   // Shared keep-alive agents for stream proxying
-  const proxyHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 32, keepAliveMsecs: 2000 });
+  const proxyHttpsAgent = new https.Agent({
+    keepAlive: true,
+    maxSockets: 32,
+    keepAliveMsecs: 2000,
+  });
   const proxyHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 32, keepAliveMsecs: 2000 });
 
   // --- STREAM PROXY (NEW) ---
@@ -135,20 +141,21 @@ async function handleMusicRoutes(req, res, u) {
       const remote = new URL(url);
       const transport = remote.protocol === 'https:' ? https : http;
       const agent = remote.protocol === 'https:' ? proxyHttpsAgent : proxyHttpAgent;
-      
-      const headers = { 
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': '*/*',
+
+      const headers = {
+        'User-Agent':
+          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        Accept: '*/*',
         'Accept-Encoding': 'identity',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.youtube.com/',
-        'Origin': 'https://www.youtube.com',
+        Referer: 'https://www.youtube.com/',
+        Origin: 'https://www.youtube.com',
         'Sec-Fetch-Dest': 'audio',
         'Sec-Fetch-Mode': 'cors',
         'Sec-Fetch-Site': 'cross-site',
       };
       if (req.headers.range) headers.Range = req.headers.range;
-      
+
       const upstream = transport.request(remote, { method: 'GET', headers, agent }, upRes => {
         const sc = upRes.statusCode || 500;
         if ([301, 302, 303, 307, 308].includes(sc) && upRes.headers.location) {
@@ -198,7 +205,10 @@ async function handleMusicRoutes(req, res, u) {
     if (id.startsWith('sc_')) {
       try {
         const streamUrl = await fetchStreamUrl(id);
-        if (!streamUrl) { sendJson(res, 502, { error: 'No stream' }); return true; }
+        if (!streamUrl) {
+          sendJson(res, 502, { error: 'No stream' });
+          return true;
+        }
         sendJson(res, 200, { url: streamUrl });
         return true;
       } catch (e) {
@@ -220,9 +230,12 @@ async function handleMusicRoutes(req, res, u) {
           '--no-warnings',
           '--quiet',
           '-g',
-          '-f', 'ba/b',
-          '--socket-timeout', '15',
-          '--max-filesize', '50M',
+          '-f',
+          'ba/b',
+          '--socket-timeout',
+          '15',
+          '--max-filesize',
+          '50M',
           'https://www.youtube.com/watch?v=' + id,
         ],
         { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }
@@ -310,10 +323,16 @@ async function handleMusicRoutes(req, res, u) {
   // --- STREAM URL (returns direct URL for fast download) ---
   if (u.pathname === '/api/stream-url') {
     const id = u.searchParams.get('id')?.trim();
-    if (!id) { sendJson(res, 400, { error: 'No id' }); return true; }
+    if (!id) {
+      sendJson(res, 400, { error: 'No id' });
+      return true;
+    }
     try {
       const streamUrl = await fetchStreamUrl(id);
-      if (!streamUrl) { sendJson(res, 502, { error: 'No stream' }); return true; }
+      if (!streamUrl) {
+        sendJson(res, 502, { error: 'No stream' });
+        return true;
+      }
       sendJson(res, 200, { url: streamUrl });
     } catch (e) {
       sendJson(res, 502, { error: e.message });
@@ -353,13 +372,14 @@ async function handleMusicRoutes(req, res, u) {
               nextData?.props?.pageProps?.tracks?.items ||
               nextData?.props?.pageProps?.state?.data?.playlist?.trackList ||
               nextData?.props?.pageProps?.data?.playlist?.trackList ||
-              nextData?.props?.pageProps?.entity?.trackList || [];
+              nextData?.props?.pageProps?.entity?.trackList ||
+              [];
             for (const item of trackList) {
               const track = item.track || item;
               const title = track.title || track.name || '';
               const artist = track.subtitle || track.artists?.map(a => a.name).join(', ') || '';
-              const cover = track.coverArt?.sources?.[0]?.url ||
-                           track.album?.images?.[0]?.url || '';
+              const cover =
+                track.coverArt?.sources?.[0]?.url || track.album?.images?.[0]?.url || '';
               if (title) {
                 tracks.push({ title, artist, cover, id: '', duration: track.duration || 0 });
               }
@@ -372,7 +392,9 @@ async function handleMusicRoutes(req, res, u) {
         // Approach 2: Also try the official oembed + search API
         if (tracks.length === 0) {
           // Extract track data from meta tags in the embed page
-          const metaMatches = html.matchAll(/<meta[^>]*property="og:description"[^>]*content="([^"]*)"/gi);
+          const metaMatches = html.matchAll(
+            /<meta[^>]*property="og:description"[^>]*content="([^"]*)"/gi
+          );
           for (const m of metaMatches) {
             const desc = m[1];
             // Format: "Playlist · Artist · 93 songs"
@@ -386,20 +408,30 @@ async function handleMusicRoutes(req, res, u) {
             const apiUrl = `https://open.spotify.com/playlist/${playlistId}`;
             const mainHtml = await httpGet(apiUrl, 15000);
             // Extract from the main page's embedded JSON
-            const mainJsonMatch = mainHtml.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+            const mainJsonMatch = mainHtml.match(
+              /<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/
+            );
             if (mainJsonMatch) {
               const mainData = JSON.parse(mainJsonMatch[1]);
               const items =
                 mainData?.props?.pageProps?.playlist?.tracks?.items ||
                 mainData?.props?.pageProps?.state?.data?.playlist?.tracks?.items ||
-                mainData?.props?.pageProps?.initialData?.playlist?.tracks?.items || [];
+                mainData?.props?.pageProps?.initialData?.playlist?.tracks?.items ||
+                [];
               for (const item of items) {
                 const track = item.track || item;
                 const title = track.name || track.title || '';
                 const artist = track.artists?.map(a => a.name).join(', ') || track.subtitle || '';
-                const cover = track.album?.images?.[0]?.url || track.coverArt?.sources?.[0]?.url || '';
+                const cover =
+                  track.album?.images?.[0]?.url || track.coverArt?.sources?.[0]?.url || '';
                 if (title && !tracks.find(t => t.title === title && t.artist === artist)) {
-                  tracks.push({ title, artist, cover, id: '', duration: (track.duration_ms || track.duration || 0) / 1000 });
+                  tracks.push({
+                    title,
+                    artist,
+                    cover,
+                    id: '',
+                    duration: (track.duration_ms || track.duration || 0) / 1000,
+                  });
                 }
               }
             }
@@ -409,11 +441,15 @@ async function handleMusicRoutes(req, res, u) {
         }
 
         if (!tracks.length) {
-          sendJson(res, 502, { error: 'Не удалось извлечь треки из Spotify плейлиста. Попробуйте YouTube ссылку.' });
+          sendJson(res, 502, {
+            error: 'Не удалось извлечь треки из Spotify плейлиста. Попробуйте YouTube ссылку.',
+          });
           return true;
         }
 
-        console.log(`[spotify] Extracted ${tracks.length} tracks from metadata, searching YouTube...`);
+        console.log(
+          `[spotify] Extracted ${tracks.length} tracks from metadata, searching YouTube...`
+        );
 
         // Search each track on YouTube to get IDs — batch 5 at a time
         const results = [];
@@ -421,27 +457,34 @@ async function handleMusicRoutes(req, res, u) {
         const BATCH = 5;
         for (let i = 0; i < tracks.length; i += BATCH) {
           const batch = tracks.slice(i, i + BATCH);
-          const batchResults = await Promise.allSettled(batch.map(async (track) => {
-            const query = track.artist ? track.artist + ' - ' + track.title : track.title;
-            const ytResults = await searchTracks(query, 1, false);
-            if (ytResults && ytResults.length > 0) {
-              const yt = ytResults[0];
-              return {
-                id: yt.id,
-                title: track.title || yt.title,
-                artist: track.artist || yt.artist || '',
-                duration: yt.duration || track.duration || 0,
-                cover: track.cover || yt.cover || 'https://img.youtube.com/vi/' + yt.id + '/hqdefault.jpg',
-              };
-            }
-            return null;
-          }));
+          const batchResults = await Promise.allSettled(
+            batch.map(async track => {
+              const query = track.artist ? track.artist + ' - ' + track.title : track.title;
+              const ytResults = await searchTracks(query, 1, false);
+              if (ytResults && ytResults.length > 0) {
+                const yt = ytResults[0];
+                return {
+                  id: yt.id,
+                  title: track.title || yt.title,
+                  artist: track.artist || yt.artist || '',
+                  duration: yt.duration || track.duration || 0,
+                  cover:
+                    track.cover ||
+                    yt.cover ||
+                    'https://img.youtube.com/vi/' + yt.id + '/hqdefault.jpg',
+                };
+              }
+              return null;
+            })
+          );
           for (const r of batchResults) {
             if (r.status === 'fulfilled' && r.value) results.push(r.value);
           }
           // Log progress
           if ((i + BATCH) % 20 === 0 || i + BATCH >= tracks.length) {
-            console.log(`[spotify] YouTube search: ${Math.min(i + BATCH, tracks.length)}/${tracks.length}`);
+            console.log(
+              `[spotify] YouTube search: ${Math.min(i + BATCH, tracks.length)}/${tracks.length}`
+            );
           }
         }
 
@@ -464,16 +507,22 @@ async function handleMusicRoutes(req, res, u) {
           '--no-warnings',
           '--quiet',
           '--flat-playlist',
-          '--print', '%(id)s\t%(title)s\t%(duration)s\t%(thumbnail)s',
-          '--playlist-end', '200',
+          '--print',
+          '%(id)s\t%(title)s\t%(duration)s\t%(thumbnail)s',
+          '--playlist-end',
+          '200',
           url,
         ],
         { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }
       );
       const result = await new Promise((resolve, reject) => {
         let out = '';
-        proc.stdout.on('data', d => { out += d; });
-        proc.stderr.on('data', d => { console.error('[playlist]', d.toString().trim()); });
+        proc.stdout.on('data', d => {
+          out += d;
+        });
+        proc.stderr.on('data', d => {
+          console.error('[playlist]', d.toString().trim());
+        });
         proc.on('error', reject);
         proc.on('close', code => {
           if (out.trim()) resolve(out.trim());
@@ -485,17 +534,23 @@ async function handleMusicRoutes(req, res, u) {
         }, 120000);
       });
 
-      const tracks = result.split('\n').filter(Boolean).map(line => {
-        const [id, title, duration, thumbnail] = line.split('\t');
-        if (!id || id === 'NA') return null;
-        return {
-          id: id.trim(),
-          title: (title || '').trim() || 'Unknown',
-          duration: parseInt(duration) || 0,
-          cover: thumbnail ? thumbnail.trim() : 'https://img.youtube.com/vi/' + id.trim() + '/hqdefault.jpg',
-          artist: '',
-        };
-      }).filter(Boolean);
+      const tracks = result
+        .split('\n')
+        .filter(Boolean)
+        .map(line => {
+          const [id, title, duration, thumbnail] = line.split('\t');
+          if (!id || id === 'NA') return null;
+          return {
+            id: id.trim(),
+            title: (title || '').trim() || 'Unknown',
+            duration: parseInt(duration) || 0,
+            cover: thumbnail
+              ? thumbnail.trim()
+              : 'https://img.youtube.com/vi/' + id.trim() + '/hqdefault.jpg',
+            artist: '',
+          };
+        })
+        .filter(Boolean);
 
       sendJson(res, 200, { tracks });
       return true;

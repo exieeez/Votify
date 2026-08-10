@@ -15,25 +15,27 @@ const ytDlpPath = path.join(BIN_DIR, 'yt-dlp');
 async function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
-    const request = (url) => {
-      https.get(url, (response) => {
-        if (response.statusCode === 301 || response.statusCode === 302) {
-          if (response.headers.location) {
-            request(response.headers.location);
+    const request = url => {
+      https
+        .get(url, response => {
+          if (response.statusCode === 301 || response.statusCode === 302) {
+            if (response.headers.location) {
+              request(response.headers.location);
+              return;
+            }
+          }
+          if (response.statusCode !== 200) {
+            reject(new Error(`Failed to download: ${response.statusCode}`));
             return;
           }
-        }
-        if (response.statusCode !== 200) {
-          reject(new Error(`Failed to download: ${response.statusCode}`));
-          return;
-        }
-        response.pipe(file);
-        file.on('finish', () => file.close(resolve));
-        file.on('error', (err) => {
-          fs.unlink(dest, () => {});
-          reject(err);
-        });
-      }).on('error', reject);
+          response.pipe(file);
+          file.on('finish', () => file.close(resolve));
+          file.on('error', err => {
+            fs.unlink(dest, () => {});
+            reject(err);
+          });
+        })
+        .on('error', reject);
     };
     request(url);
   });
@@ -45,7 +47,7 @@ async function main() {
     await downloadFile(YT_DLP_URL, ytDlpPath);
     fs.chmodSync(ytDlpPath, 0o755);
     console.log('yt-dlp downloaded and made executable:', ytDlpPath);
-    
+
     // Verify it works
     try {
       execSync(`${ytDlpPath} --version`, { stdio: 'pipe' });

@@ -17,7 +17,10 @@ const port = Number(process.env.VOTIFY_PORT || process.env.PORT || 17217);
 const os = require('os');
 function getConfigDir() {
   if (process.platform === 'win32') {
-    return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'Votify');
+    return path.join(
+      process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
+      'Votify'
+    );
   }
   if (process.platform === 'darwin') {
     return path.join(os.homedir(), 'Library', 'Application Support', 'Votify');
@@ -90,7 +93,8 @@ function loadNetworkConfig() {
 loadNetworkConfig();
 
 function saveNetworkConfig(config) {
-  const sourceChanged = config && config.streamSource && config.streamSource !== networkConfig.streamSource;
+  const sourceChanged =
+    config && config.streamSource && config.streamSource !== networkConfig.streamSource;
   networkConfig = { ...networkConfig, ...config };
   if (sourceChanged) {
     // Stream URLs and search results are source-specific. Never reuse a URL
@@ -304,7 +308,6 @@ function httpGet(url, timeout) {
   });
 }
 
-
 function pipedGet(url, timeout, redirects = 0) {
   if (redirects > 5) return Promise.reject(new Error('too many redirects'));
   return new Promise((resolve, reject) => {
@@ -313,40 +316,55 @@ function pipedGet(url, timeout, redirects = 0) {
       reject(new Error('timeout'));
     }, timeout);
     const parsed = new URL(url);
-    const req = https.get(url, {
-      agent: new https.Agent({
-        keepAlive: false,
-        minVersion: 'TLSv1.2',
-        maxVersion: 'TLSv1.3',
-        ALPNProtocols: ['http/1.1'],
-      }),
-      headers: { 'User-Agent': YT_UA, Accept: 'application/json' },
-      servername: parsed.hostname,
-    }, res => {
-      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
-        res.resume();
-        clearTimeout(timer);
-        let location = String(res.headers.location).trim();
-        // Some public Piped proxies currently emit a malformed absolute
-        // redirect such as https://adminforge.desearch?... (missing slash).
-        location = location.replace(/(\.[a-z]{2,})(search|streams)(?=[/?])/i, '$1/$2');
-        const next = new URL(location, url).toString();
-        console.log('[piped] Redirect:', parsed.hostname, '->', next);
-        pipedGet(next, timeout, redirects + 1).then(resolve).catch(reject);
-        return;
-      }
-      let data = '';
-      res.on('data', c => { data += c; });
-      res.on('end', () => {
-        clearTimeout(timer);
-        if (res.statusCode < 200 || res.statusCode >= 300) {
-          reject(new Error(`HTTP ${res.statusCode}`));
+    const req = https.get(
+      url,
+      {
+        agent: new https.Agent({
+          keepAlive: false,
+          minVersion: 'TLSv1.2',
+          maxVersion: 'TLSv1.3',
+          ALPNProtocols: ['http/1.1'],
+        }),
+        headers: { 'User-Agent': YT_UA, Accept: 'application/json' },
+        servername: parsed.hostname,
+      },
+      res => {
+        if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+          res.resume();
+          clearTimeout(timer);
+          let location = String(res.headers.location).trim();
+          // Some public Piped proxies currently emit a malformed absolute
+          // redirect such as https://adminforge.desearch?... (missing slash).
+          location = location.replace(/(\.[a-z]{2,})(search|streams)(?=[/?])/i, '$1/$2');
+          const next = new URL(location, url).toString();
+          console.log('[piped] Redirect:', parsed.hostname, '->', next);
+          pipedGet(next, timeout, redirects + 1)
+            .then(resolve)
+            .catch(reject);
           return;
         }
-        try { resolve(JSON.parse(data)); } catch { resolve(data); }
-      });
+        let data = '';
+        res.on('data', c => {
+          data += c;
+        });
+        res.on('end', () => {
+          clearTimeout(timer);
+          if (res.statusCode < 200 || res.statusCode >= 300) {
+            reject(new Error(`HTTP ${res.statusCode}`));
+            return;
+          }
+          try {
+            resolve(JSON.parse(data));
+          } catch {
+            resolve(data);
+          }
+        });
+      }
+    );
+    req.on('error', e => {
+      clearTimeout(timer);
+      reject(e);
     });
-    req.on('error', e => { clearTimeout(timer); reject(e); });
   });
 }
 
@@ -459,7 +477,9 @@ async function ytInnerTubeSearch(query, limit) {
 }
 
 async function ytSearchScrape(query, limit) {
-  console.log(`[search] Searching for: "${query}" (limit: ${limit}) using ${networkConfig.streamSource}`);
+  console.log(
+    `[search] Searching for: "${query}" (limit: ${limit}) using ${networkConfig.streamSource}`
+  );
   const cacheKey = query.toLowerCase().trim() + ':' + networkConfig.streamSource;
   const cached = searchCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
@@ -495,14 +515,16 @@ async function ytSearchScrape(query, limit) {
         10000
       );
       if (Array.isArray(data)) {
-        tracks = data.slice(0, limit).map(v =>
-          makeTrack(
-            v.videoId,
-            v.title,
-            v.author,
-            v.videoThumbnails?.find(t => t.quality === 'high')?.url || v.videoThumbnails?.[0]?.url
-          )
-        );
+        tracks = data
+          .slice(0, limit)
+          .map(v =>
+            makeTrack(
+              v.videoId,
+              v.title,
+              v.author,
+              v.videoThumbnails?.find(t => t.quality === 'high')?.url || v.videoThumbnails?.[0]?.url
+            )
+          );
         console.log(`[search] Invidious found ${tracks.length} tracks`);
       }
     } catch (e) {
@@ -518,49 +540,52 @@ async function ytSearchScrape(query, limit) {
         console.error(`[search] InnerTube fallback error:`, e.message);
       }
       if (tracks.length < 3) {
-      console.log(`[search] Falling back to HTML scraping...`);
-      try {
-        const html = await httpGet(
-          'https://www.youtube.com/results?search_query=' +
-            encodeURIComponent(query + ' music') +
-            '&sp=EgIQAQ%3D%3D',
-          8000
-        );
-        if (typeof html === 'string') {
-          let m = html.match(/var ytInitialData\s*=\s*(\{.+?\});\s*<\/script>/s);
-          if (!m) {
-            m = html.match(/ytInitialData\s*=\s*(\{.+?\});\s*<\/script>/s);
-          }
-          if (m) {
-            let data;
-            try {
-              data = JSON.parse(m[1]);
-            } catch (e) {
-              console.error(`[search] HTML parse error:`, e.message);
-              data = null;
+        console.log(`[search] Falling back to HTML scraping...`);
+        try {
+          const html = await httpGet(
+            'https://www.youtube.com/results?search_query=' +
+              encodeURIComponent(query + ' music') +
+              '&sp=EgIQAQ%3D%3D',
+            8000
+          );
+          if (typeof html === 'string') {
+            let m = html.match(/var ytInitialData\s*=\s*(\{.+?\});\s*<\/script>/s);
+            if (!m) {
+              m = html.match(/ytInitialData\s*=\s*(\{.+?\});\s*<\/script>/s);
             }
-            if (data) {
-              const contents =
-                data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer
-                  ?.contents?.[0]?.itemSectionRenderer?.contents;
-              if (Array.isArray(contents)) {
-                tracks = extractYTTracksFromContents(contents, limit);
-                console.log(`[search] HTML scrape fallback found ${tracks.length} tracks`);
-              } else {
-                console.warn(`[search] No valid contents found in HTML data`);
+            if (m) {
+              let data;
+              try {
+                data = JSON.parse(m[1]);
+              } catch (e) {
+                console.error(`[search] HTML parse error:`, e.message);
+                data = null;
               }
+              if (data) {
+                const contents =
+                  data?.contents?.twoColumnSearchResultsRenderer?.primaryContents
+                    ?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents;
+                if (Array.isArray(contents)) {
+                  tracks = extractYTTracksFromContents(contents, limit);
+                  console.log(`[search] HTML scrape fallback found ${tracks.length} tracks`);
+                } else {
+                  console.warn(`[search] No valid contents found in HTML data`);
+                }
+              }
+            } else {
+              console.warn(`[search] Could not find ytInitialData in HTML`);
+              console.log(
+                `[search] Available patterns:`,
+                html.match(/ytInitialData/g)?.length || 0
+              );
             }
           } else {
-            console.warn(`[search] Could not find ytInitialData in HTML`);
-            console.log(`[search] Available patterns:`, html.match(/ytInitialData/g)?.length || 0);
+            console.warn(`[search] Invalid HTML response type:`, typeof html);
           }
-        } else {
-          console.warn(`[search] Invalid HTML response type:`, typeof html);
+        } catch (e) {
+          console.error(`[search] HTML scrape fallback error:`, e.message);
         }
-      } catch (e) {
-        console.error(`[search] HTML scrape fallback error:`, e.message);
       }
-    }
     }
   } else {
     try {
@@ -668,12 +693,8 @@ async function getRecommendations(limit = RECOMMENDATION_LIMIT) {
   // a varied home page without making launch depend on a long network chain.
   const seedCount = Math.min(6, RECOMMENDATION_SEEDS.length);
   const seeds = RECOMMENDATION_SEEDS.slice(0, seedCount);
-  const results = await Promise.allSettled(
-    seeds.map(seed => searchTracks(seed, 3, false))
-  );
-  const allTracks = results.flatMap(result =>
-    result.status === 'fulfilled' ? result.value : []
-  );
+  const results = await Promise.allSettled(seeds.map(seed => searchTracks(seed, 3, false)));
+  const allTracks = results.flatMap(result => (result.status === 'fulfilled' ? result.value : []));
   const seen = new Set();
   const unique = allTracks.filter(t => {
     if (seen.has(t.id)) return false;
@@ -720,7 +741,8 @@ async function fetchStreamUrl(videoId) {
       try {
         const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 12000);
         const streams = (data?.audioStreams || []).filter(s => s?.url);
-        const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
+        const stream =
+          streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
         if (stream?.url) {
           streamCache.set(cacheKey, { url: stream.url, expires: Date.now() + STREAM_CACHE_TTL });
           return stream.url;
@@ -741,15 +763,21 @@ async function fetchStreamUrl(videoId) {
       '--no-playlist',
       '--quiet',
       '-g',
-      '-f', AUDIO_QUALITY_FORMATS[quality] || 'ba/b',
-      '--socket-timeout', '10',
-      '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      '-f',
+      AUDIO_QUALITY_FORMATS[quality] || 'ba/b',
+      '--socket-timeout',
+      '10',
+      '--user-agent',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     ];
     if (networkConfig.httpProxy) {
       ytdlpArgs.push('--proxy', networkConfig.httpProxy);
     }
     ytdlpArgs.push('https://www.youtube.com/watch?v=' + videoId);
-    const proc = spawn(ytdlpPath, ytdlpArgs, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    const proc = spawn(ytdlpPath, ytdlpArgs, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
     const url = await new Promise((resolve, reject) => {
       let out = '';
       proc.stdout.on('data', d => {
@@ -819,13 +847,22 @@ async function scGetClientId() {
     if (typeof html !== 'string') return '';
     // SoundCloud changes asset names and client_id syntax regularly. Search
     // several current bundles instead of relying on one exact filename.
-    const scriptUrls = [...html.matchAll(/(?:src|href)="(https?:\/\/[^" ]+\.js[^" ]*)"/gi)].map(m => m[1]);
-    const scripts = await Promise.all([Promise.resolve(html), ...scriptUrls.slice(-10).map(url => httpGet(url, 10000).catch(() => ''))]);
+    const scriptUrls = [...html.matchAll(/(?:src|href)="(https?:\/\/[^" ]+\.js[^" ]*)"/gi)].map(
+      m => m[1]
+    );
+    const scripts = await Promise.all([
+      Promise.resolve(html),
+      ...scriptUrls.slice(-10).map(url => httpGet(url, 10000).catch(() => '')),
+    ]);
     for (const script of scripts) {
       if (typeof script !== 'string') continue;
-      const idMatch = script.match(/client_id["']?\s*[:=]\s*["']([a-zA-Z0-9_-]{16,})["']/)
-        || script.match(/client_id(?:=|%3D|["':])([a-zA-Z0-9_-]{16,})/i);
-      if (idMatch) { scClientId = idMatch[1]; break; }
+      const idMatch =
+        script.match(/client_id["']?\s*[:=]\s*["']([a-zA-Z0-9_-]{16,})["']/) ||
+        script.match(/client_id(?:=|%3D|["':])([a-zA-Z0-9_-]{16,})/i);
+      if (idMatch) {
+        scClientId = idMatch[1];
+        break;
+      }
     }
     if (!scClientId) return '';
     scClientIdExpiry = Date.now() + 3600000;
@@ -911,7 +948,12 @@ async function pipedSearch(query, limit = 12) {
         }
       } catch (e) {
         console.log('[piped] Search failed:', instance, filter, e.message);
-        if (/HTTP (301|401|403|404|429|500|502|503)|EPROTO|handshake|certificate|ENOTFOUND|ECONNREFUSED|timeout/i.test(e.message)) break;
+        if (
+          /HTTP (301|401|403|404|429|500|502|503)|EPROTO|handshake|certificate|ENOTFOUND|ECONNREFUSED|timeout/i.test(
+            e.message
+          )
+        )
+          break;
       }
     }
   }
@@ -935,8 +977,9 @@ async function scGetStreamUrl(trackId) {
       10000
     );
     const transcodings = track?.media?.transcodings || [];
-    const progressive = transcodings.find(t => t?.format?.protocol === 'progressive')
-      || transcodings.find(t => t?.format?.mime_type?.includes('audio/mpeg'));
+    const progressive =
+      transcodings.find(t => t?.format?.protocol === 'progressive') ||
+      transcodings.find(t => t?.format?.mime_type?.includes('audio/mpeg'));
     if (progressive?.url) {
       const separator = progressive.url.includes('?') ? '&' : '?';
       const resolved = await httpGet(`${progressive.url}${separator}client_id=${clientId}`, 10000);

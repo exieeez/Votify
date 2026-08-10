@@ -10,12 +10,12 @@ export class Router {
     this.options = {
       defaultRoute: '/',
       notFoundRoute: '/404',
-      ...options
+      ...options,
     };
     this.currentRoute = null;
     this.currentParams = {};
     this._guards = new Map();
-    
+
     this._bindEvents();
     this._handleHashChange();
   }
@@ -36,7 +36,7 @@ export class Router {
 
   async navigate(path, options = {}) {
     const { replace = false, state = {} } = options;
-    
+
     // Parse route and params
     const { route, params } = this._matchRoute(path);
     if (!route) {
@@ -62,7 +62,7 @@ export class Router {
     await this._render(route, params, state);
     this.currentRoute = route;
     this.currentParams = params;
-    
+
     // Emit event
     import('./EventBus.js').then(({ eventBus, EVENTS }) => {
       eventBus.emit(EVENTS.ROUTE_CHANGE, { route, params, state });
@@ -75,7 +75,7 @@ export class Router {
     // Split path and query
     const [pathname, search] = path.split('?');
     const params = new URLSearchParams(search);
-    
+
     // Find matching route
     for (const [pattern, route] of Object.entries(this.routes)) {
       const match = this._matchPattern(pattern, pathname);
@@ -98,7 +98,7 @@ export class Router {
     for (let i = 0; i < patternParts.length; i++) {
       const p = patternParts[i];
       const actual = pathParts[i];
-      
+
       if (p.startsWith(':')) {
         params[p.slice(1)] = actual;
       } else if (p !== actual) {
@@ -118,7 +118,7 @@ export class Router {
 
   async _render(route, params, state) {
     if (!this.outlet) return;
-    
+
     // Show loading
     this.outlet.innerHTML = '<div class="page-loading">Загрузка...</div>';
     this.outlet.classList.add('page-transition');
@@ -141,7 +141,6 @@ export class Router {
 
       // Initialize component scripts if needed
       this._initComponents(this.outlet);
-      
     } catch (e) {
       console.error('Route render error:', e);
       this.outlet.innerHTML = `<div class="page-error">Ошибка загрузки: ${e.message}</div>`;
@@ -162,12 +161,24 @@ export class Router {
   }
 
   // Convenience methods
-  go(path) { return this.navigate(path); }
-  back() { history.back(); }
-  forward() { history.forward(); }
-  reload() { return this.navigate(this.currentRoute.path, { replace: true }); }
-  getParams() { return { ...this.currentParams }; }
-  getRoute() { return this.currentRoute; }
+  go(path) {
+    return this.navigate(path);
+  }
+  back() {
+    history.back();
+  }
+  forward() {
+    history.forward();
+  }
+  reload() {
+    return this.navigate(this.currentRoute.path, { replace: true });
+  }
+  getParams() {
+    return { ...this.currentParams };
+  }
+  getRoute() {
+    return this.currentRoute;
+  }
 }
 
 export default Router;

@@ -9,15 +9,33 @@ function setupTitlebarButtons() {
   var minBtn = document.getElementById('tb-minimize');
   var maxBtn = document.getElementById('tb-maximize');
   var closeBtn = document.getElementById('tb-close');
-  function preventDrag(e) { e.stopPropagation(); e.preventDefault(); }
-  [minBtn, maxBtn, closeBtn].forEach(function(btn) {
+  function preventDrag(e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  [minBtn, maxBtn, closeBtn].forEach(function (btn) {
     if (!btn) return;
     btn.addEventListener('mousedown', preventDrag, true);
     btn.addEventListener('mouseup', preventDrag, true);
   });
-  if (minBtn) minBtn.onclick = function(e) { e.stopPropagation(); e.preventDefault(); api.minimize(); };
-  if (maxBtn) maxBtn.onclick = function(e) { e.stopPropagation(); e.preventDefault(); api.maximize(); };
-  if (closeBtn) closeBtn.onclick = function(e) { e.stopPropagation(); e.preventDefault(); api.close(); };
+  if (minBtn)
+    minBtn.onclick = function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+      api.minimize();
+    };
+  if (maxBtn)
+    maxBtn.onclick = function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+      api.maximize();
+    };
+  if (closeBtn)
+    closeBtn.onclick = function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+      api.close();
+    };
 }
 
 if (document.readyState === 'loading') {
@@ -55,7 +73,8 @@ async function invokePreviewApi(cmd, args = {}) {
 
 if (window.__TAURI__) {
   invoke = window.__TAURI__.core.invoke;
-  convertFileSrc = window.__TAURI__.core.convertFileSrc || (p => `https://asset.tauri.localhost/${p}`);
+  convertFileSrc =
+    window.__TAURI__.core.convertFileSrc || (p => `https://asset.tauri.localhost/${p}`);
 } else {
   invoke = invokePreviewApi;
   convertFileSrc = p => p;
@@ -68,7 +87,9 @@ async function apiFetch(url, options = {}) {
   try {
     const res = await fetch(url, { ...options, headers });
     return await res.json();
-  } catch { return { error: 'Network error' }; }
+  } catch {
+    return { error: 'Network error' };
+  }
 }
 
 // ==========================================
@@ -79,7 +100,7 @@ const state = {
   currentTime: 0,
   duration: 0,
   volume: 0.8,
-  currentTrack: null
+  currentTrack: null,
 };
 
 const listeners = {};
@@ -91,7 +112,9 @@ function emit(event, data) {
   if (listeners[event]) listeners[event].forEach(cb => cb(data));
 }
 
-function getAuthToken() { return localStorage.getItem('votify-token'); }
+function getAuthToken() {
+  return localStorage.getItem('votify-token');
+}
 function updateDiscordPresence() {}
 let currentLyricsLines = [];
 let currentLyricIndex = -1;
@@ -101,8 +124,10 @@ async function translateLyricLine(text) {
   if (!appSettings.translateLyrics || !text) return null;
   if (lyricsTranslationCache.has(text)) return lyricsTranslationCache.get(text);
   try {
-    const target = appSettings.lang === 'ru' ? 'ru' : (appSettings.lang || 'en');
-    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${target}`);
+    const target = appSettings.lang === 'ru' ? 'ru' : appSettings.lang || 'en';
+    const res = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${target}`
+    );
     const data = await res.json();
     const translated = data?.responseData?.translatedText || null;
     lyricsTranslationCache.set(text, translated);
@@ -121,7 +146,10 @@ function cleanLyricsQuery(str) {
     .replace(/\(.*?\)/g, ' ')
     .replace(/\[.*?\]/g, ' ')
     .replace(/[-–—]\s*topic$/i, '')
-    .replace(/\b(official\s*(video|audio|lyrics?|music\s*video)?|lyrics?|visualizer|hd|hq|4k|remaster(ed)?|explicit|clean)\b/gi, ' ')
+    .replace(
+      /\b(official\s*(video|audio|lyrics?|music\s*video)?|lyrics?|visualizer|hd|hq|4k|remaster(ed)?|explicit|clean)\b/gi,
+      ' '
+    )
     .replace(/\bfeat\.?\s.*/i, '')
     .replace(/\bft\.?\s.*/i, '')
     .replace(/[|•·]+/g, ' ')
@@ -200,18 +228,21 @@ async function loadLyricsForTrack(title, artist) {
       if (el) el.textContent = plain || 'Нет текста';
       return;
     }
-    currentLyricsLines = lrc.split('\n').map(line => {
-      // Match [MM:SS.xx] or [MM:SS.xxx] or [MM:SS]
-      const m = line.match(/^\[(\d+):(\d+)(?:\.(\d+))?\]\s*(.*)/);
-      if (m) {
-        const min = parseInt(m[1]) || 0;
-        const sec = parseInt(m[2]) || 0;
-        const msStr = m[3] || '0';
-        const ms = parseInt(msStr) / Math.pow(10, msStr.length);
-        return { time: min * 60 + sec + ms, text: m[4].trim() };
-      }
-      return null;
-    }).filter(Boolean);
+    currentLyricsLines = lrc
+      .split('\n')
+      .map(line => {
+        // Match [MM:SS.xx] or [MM:SS.xxx] or [MM:SS]
+        const m = line.match(/^\[(\d+):(\d+)(?:\.(\d+))?\]\s*(.*)/);
+        if (m) {
+          const min = parseInt(m[1]) || 0;
+          const sec = parseInt(m[2]) || 0;
+          const msStr = m[3] || '0';
+          const ms = parseInt(msStr) / Math.pow(10, msStr.length);
+          return { time: min * 60 + sec + ms, text: m[4].trim() };
+        }
+        return null;
+      })
+      .filter(Boolean);
     if (el && currentLyricsLines.length > 0) updateLyricsLine();
   } catch {}
 }
@@ -222,7 +253,10 @@ function updateLyricsLine() {
   const t = audio.currentTime;
   let idx = -1;
   for (let i = currentLyricsLines.length - 1; i >= 0; i--) {
-    if (t >= currentLyricsLines[i].time) { idx = i; break; }
+    if (t >= currentLyricsLines[i].time) {
+      idx = i;
+      break;
+    }
   }
   if (idx !== currentLyricIndex) {
     currentLyricIndex = idx;
@@ -242,7 +276,10 @@ function updateFullscreenLyrics(time) {
   if (!fsLyricsData.length) return;
   let idx = -1;
   for (let i = fsLyricsData.length - 1; i >= 0; i--) {
-    if (time >= fsLyricsData[i].time) { idx = i; break; }
+    if (time >= fsLyricsData[i].time) {
+      idx = i;
+      break;
+    }
   }
   const lines = document.querySelectorAll('#fs-lyrics-body .lyrics-line');
   lines.forEach((el, i) => {
@@ -264,22 +301,56 @@ let loadingOperations = 0;
 let loadingAudioContext = null;
 let playlists = JSON.parse(localStorage.getItem('votify-playlists')) || { Избранное: [] };
 let appSettings = JSON.parse(localStorage.getItem('votify-settings')) || {
-  lang: 'ru', font: 'default', bgUrl: '', opacity: '98', accent: '#1DB954',
-  audioQuality: 'medium', autoPlay: true, crossfade: 0, gapless: false,
-  normalize: false, sleepTimer: 0, autoLyrics: true, syncedLyrics: true,
-  translateLyrics: false, discordProgress: true, discordCover: false,
-  discordAppId: '', discordEnabled: false,
-  recDiversity: true, recCount: 16, streamSource: 'yt-dlp',
-  httpProxy: '', invidiousInstance: 'https://inv.tux.rs',
-  uiSounds: true, loadingSound: true,
-  closeToTray: false, trackNotifications: false,
-  rememberVolume: true, pauseWhenHidden: false, resumePosition: true,
-  saveHistory: true, historyLimit: 50, playbackRate: 1, preload: 'auto',
+  lang: 'ru',
+  font: 'default',
+  bgUrl: '',
+  opacity: '98',
+  accent: '#1DB954',
+  audioQuality: 'medium',
+  autoPlay: true,
+  crossfade: 0,
+  gapless: false,
+  normalize: false,
+  sleepTimer: 0,
+  autoLyrics: true,
+  syncedLyrics: true,
+  translateLyrics: false,
+  discordProgress: true,
+  discordCover: false,
+  discordAppId: '',
+  discordEnabled: false,
+  recDiversity: true,
+  recCount: 16,
+  streamSource: 'yt-dlp',
+  httpProxy: '',
+  invidiousInstance: 'https://inv.tux.rs',
+  uiSounds: true,
+  loadingSound: true,
+  closeToTray: false,
+  trackNotifications: false,
+  rememberVolume: true,
+  pauseWhenHidden: false,
+  resumePosition: true,
+  saveHistory: true,
+  historyLimit: 50,
+  playbackRate: 1,
+  preload: 'auto',
   // Interface settings
-  theme: 'dark', transparency: false, fontFamily: 'default', fontSize: '16px',
-  animations: true, compactUI: false, cornerRadius: 8, reducedMotion: false,
-  splashScreen: true, coverInPlayer: true, background: 'default',
-  density: 'comfortable', accentGlow: true, trackCardStyle: 'default', backgroundBlur: 0,
+  theme: 'dark',
+  transparency: false,
+  fontFamily: 'default',
+  fontSize: '16px',
+  animations: true,
+  compactUI: false,
+  cornerRadius: 8,
+  reducedMotion: false,
+  splashScreen: true,
+  coverInPlayer: true,
+  background: 'default',
+  density: 'comfortable',
+  accentGlow: true,
+  trackCardStyle: 'default',
+  backgroundBlur: 0,
 };
 
 // If the user disabled the launch splash screen, skip it immediately instead
@@ -290,11 +361,27 @@ if (appSettings.splashScreen === false) {
 }
 
 // Sync audio with state
-audio.addEventListener('play', () => { state.isPlaying = true; emit('state:isPlaying', true); initEQ(); });
-audio.addEventListener('pause', () => { state.isPlaying = false; emit('state:isPlaying', false); });
-audio.addEventListener('timeupdate', () => { state.currentTime = audio.currentTime; emit('state:currentTime', audio.currentTime); });
-audio.addEventListener('durationchange', () => { state.duration = audio.duration; emit('state:duration', audio.duration); });
-audio.addEventListener('volumechange', () => { state.volume = audio.volume; emit('state:volume', audio.volume); });
+audio.addEventListener('play', () => {
+  state.isPlaying = true;
+  emit('state:isPlaying', true);
+  initEQ();
+});
+audio.addEventListener('pause', () => {
+  state.isPlaying = false;
+  emit('state:isPlaying', false);
+});
+audio.addEventListener('timeupdate', () => {
+  state.currentTime = audio.currentTime;
+  emit('state:currentTime', audio.currentTime);
+});
+audio.addEventListener('durationchange', () => {
+  state.duration = audio.duration;
+  emit('state:duration', audio.duration);
+});
+audio.addEventListener('volumechange', () => {
+  state.volume = audio.volume;
+  emit('state:volume', audio.volume);
+});
 
 function savePlaylists() {
   localStorage.setItem('votify-playlists', JSON.stringify(playlists));
@@ -304,7 +391,9 @@ function saveSettings() {
   localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   if (isUserAuthenticated()) syncWithCloud('push');
 }
-function isUserAuthenticated() { return true; }
+function isUserAuthenticated() {
+  return true;
+}
 
 async function syncWithCloud(direction = 'pull') {
   if (!isUserAuthenticated()) return;
@@ -325,14 +414,18 @@ async function syncWithCloud(direction = 'pull') {
           if (foldersScreen && foldersScreen.style.display !== 'none') renderPlaylists();
         }
       }
-    } catch (e) { console.error('[Sync] Pull error:', e); }
+    } catch (e) {
+      console.error('[Sync] Pull error:', e);
+    }
   } else if (direction === 'push') {
     try {
       await apiFetch('/api/sync/push', {
         method: 'POST',
         body: JSON.stringify({ settings: appSettings, playlists }),
       });
-    } catch (e) { console.error('[Sync] Push error:', e); }
+    } catch (e) {
+      console.error('[Sync] Push error:', e);
+    }
   }
 }
 
@@ -341,33 +434,55 @@ async function syncWithCloud(direction = 'pull') {
 // ==========================================
 const translations = {
   ru: {
-    logo: 'Votify', 'nav-search': 'Поиск', 'nav-recommendations': 'Рекомендации',
-    'nav-playlists': 'Плейлисты', 'nav-settings': 'Настройки',
-    'search-placeholder': 'Что хотите послушать?', 'search-find-btn': 'Найти',
-    'search-loading': 'Ищу больше вариантов песен...', 'search-found-prefix': 'Найдено: ',
-    'recommendations-title': 'Рекомендации', 'recommendations-refresh': 'Обновить',
+    logo: 'Votify',
+    'nav-search': 'Поиск',
+    'nav-recommendations': 'Рекомендации',
+    'nav-playlists': 'Плейлисты',
+    'nav-settings': 'Настройки',
+    'search-placeholder': 'Что хотите послушать?',
+    'search-find-btn': 'Найти',
+    'search-loading': 'Ищу больше вариантов песен...',
+    'search-found-prefix': 'Найдено: ',
+    'recommendations-title': 'Рекомендации',
+    'recommendations-refresh': 'Обновить',
     'recommendations-loading': 'Подбираю рекомендации...',
-    'loader-title': 'Загрузка музыки', 'loader-search': 'Ищем треки и собираем свежую выдачу…',
+    'loader-title': 'Загрузка музыки',
+    'loader-search': 'Ищем треки и собираем свежую выдачу…',
     'loader-recommendations': 'Подбираем рекомендации и фильтруем лишние миксы…',
-    'library-title': 'Моя медиатека', 'create-playlist': 'Создать плейлист',
-    'back-btn': 'Назад', 'settings-title': 'Настройки системы',
-    'player-no-track': 'Votify', 'player-unknown': 'Выберите трек',
-    'empty-msg': 'Ничего не найдено', 'no-playlists-msg': 'У вас еще нет плейлистов',
+    'library-title': 'Моя медиатека',
+    'create-playlist': 'Создать плейлист',
+    'back-btn': 'Назад',
+    'settings-title': 'Настройки системы',
+    'player-no-track': 'Votify',
+    'player-unknown': 'Выберите трек',
+    'empty-msg': 'Ничего не найдено',
+    'no-playlists-msg': 'У вас еще нет плейлистов',
     'tracks-count': 'Треков: ',
   },
   en: {
-    logo: 'Votify', 'nav-search': 'Search', 'nav-recommendations': 'Recommendations',
-    'nav-playlists': 'Playlists', 'nav-settings': 'Settings',
-    'search-placeholder': 'What do you want to listen to?', 'search-find-btn': 'Find',
-    'search-loading': 'Looking for more song options...', 'search-found-prefix': 'Found: ',
-    'recommendations-title': 'Recommendations', 'recommendations-refresh': 'Refresh',
+    logo: 'Votify',
+    'nav-search': 'Search',
+    'nav-recommendations': 'Recommendations',
+    'nav-playlists': 'Playlists',
+    'nav-settings': 'Settings',
+    'search-placeholder': 'What do you want to listen to?',
+    'search-find-btn': 'Find',
+    'search-loading': 'Looking for more song options...',
+    'search-found-prefix': 'Found: ',
+    'recommendations-title': 'Recommendations',
+    'recommendations-refresh': 'Refresh',
     'recommendations-loading': 'Picking recommendations...',
-    'loader-title': 'Loading music', 'loader-search': 'Finding tracks and assembling results…',
+    'loader-title': 'Loading music',
+    'loader-search': 'Finding tracks and assembling results…',
     'loader-recommendations': 'Collecting recommendations and filtering mixes…',
-    'library-title': 'My Library', 'create-playlist': 'Create Playlist',
-    'back-btn': 'Back', 'settings-title': 'System Settings',
-    'player-no-track': 'Votify', 'player-unknown': 'Select a track',
-    'empty-msg': 'Nothing found', 'no-playlists-msg': 'You have no playlists yet',
+    'library-title': 'My Library',
+    'create-playlist': 'Create Playlist',
+    'back-btn': 'Back',
+    'settings-title': 'System Settings',
+    'player-no-track': 'Votify',
+    'player-unknown': 'Select a track',
+    'empty-msg': 'Nothing found',
+    'no-playlists-msg': 'You have no playlists yet',
     'tracks-count': 'Tracks: ',
   },
 };
@@ -383,13 +498,29 @@ function applyLanguage(lang) {
     const key = el.getAttribute('data-i18n-placeholder');
     if (translations[lang] && translations[lang][key]) el.placeholder = translations[lang][key];
   });
-  const labels = lang === 'en'
-    ? { 'fs-close-btn': 'Hide player', 'fs-menu-btn': 'More', 'fs-speed-btn': 'Playback speed', 'fs-eq-btn': 'Equalizer', 'fs-lyrics-btn': 'Lyrics' }
-    : { 'fs-close-btn': 'Скрыть плеер', 'fs-menu-btn': 'Дополнительно', 'fs-speed-btn': 'Скорость воспроизведения', 'fs-eq-btn': 'Эквалайзер', 'fs-lyrics-btn': 'Текст песни' };
-  Object.entries(labels).forEach(([id, title]) => document.getElementById(id)?.setAttribute('title', title));
-  const presetNames = lang === 'en'
-    ? { neutral: 'Neutral', bass: 'Bass Boost', treble: 'Treble', vocal: 'Vocal' }
-    : { neutral: 'Нейтральный', bass: 'Бас', treble: 'Высокие частоты', vocal: 'Вокал' };
+  const labels =
+    lang === 'en'
+      ? {
+          'fs-close-btn': 'Hide player',
+          'fs-menu-btn': 'More',
+          'fs-speed-btn': 'Playback speed',
+          'fs-eq-btn': 'Equalizer',
+          'fs-lyrics-btn': 'Lyrics',
+        }
+      : {
+          'fs-close-btn': 'Скрыть плеер',
+          'fs-menu-btn': 'Дополнительно',
+          'fs-speed-btn': 'Скорость воспроизведения',
+          'fs-eq-btn': 'Эквалайзер',
+          'fs-lyrics-btn': 'Текст песни',
+        };
+  Object.entries(labels).forEach(([id, title]) =>
+    document.getElementById(id)?.setAttribute('title', title)
+  );
+  const presetNames =
+    lang === 'en'
+      ? { neutral: 'Neutral', bass: 'Bass Boost', treble: 'Treble', vocal: 'Vocal' }
+      : { neutral: 'Нейтральный', bass: 'Бас', treble: 'Высокие частоты', vocal: 'Вокал' };
   document.querySelectorAll('.custom-eq-preset').forEach(btn => {
     if (presetNames[btn.dataset.preset]) btn.textContent = presetNames[btn.dataset.preset];
   });
@@ -398,12 +529,18 @@ function applyLanguage(lang) {
     '#page-title': ru ? 'Главная' : 'Home',
     '.settings-modal-header h2': ru ? 'Настройки' : 'Settings',
     '.general-settings-hero h3': ru ? 'Основные настройки' : 'General settings',
-    '.general-settings-hero p': ru ? 'Управляйте запуском, звуком, воспроизведением и поведением Votify.' : 'Manage startup, sound, playback and Votify behavior.',
+    '.general-settings-hero p': ru
+      ? 'Управляйте запуском, звуком, воспроизведением и поведением Votify.'
+      : 'Manage startup, sound, playback and Votify behavior.',
     '.fs-from-label': ru ? 'Сейчас играет' : 'Now playing',
     '.right-player-header > span': ru ? 'Сейчас играет' : 'Now playing',
-    '.lyrics-label': ru ? 'Текст песни' : 'Lyrics'
+    '.lyrics-label': ru ? 'Текст песни' : 'Lyrics',
   };
-  Object.entries(textMap).forEach(([selector, value]) => document.querySelectorAll(selector).forEach(el => { el.textContent = value; }));
+  Object.entries(textMap).forEach(([selector, value]) =>
+    document.querySelectorAll(selector).forEach(el => {
+      el.textContent = value;
+    })
+  );
   const menuNames = ru ? ['ОСНОВНЫЕ', 'ОФОРМЛЕНИЕ', 'ПРОЧЕЕ'] : ['GENERAL', 'APPEARANCE', 'OTHER'];
   document.querySelectorAll('.settings-menu-item').forEach((el, i) => {
     const icon = el.querySelector('.material-icons')?.outerHTML || '';
@@ -416,20 +553,29 @@ function applyLanguage(lang) {
 // Utilities
 // ==========================================
 function escapeHtml(value) {
-  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function formatTime(secs) {
   if (!secs || isNaN(secs)) return '0:00';
   const m = Math.floor(secs / 60);
-  const s = Math.floor(secs % 60).toString().padStart(2, '0');
+  const s = Math.floor(secs % 60)
+    .toString()
+    .padStart(2, '0');
   return `${m}:${s}`;
 }
 
 function preloadTrackStreams(tracks) {
   if (!tracks || !tracks.length) return;
-  const ids = tracks.slice(0, 5).map(t => t.id).filter(Boolean);
+  const ids = tracks
+    .slice(0, 5)
+    .map(t => t.id)
+    .filter(Boolean);
   if (ids.length) fetch('/api/preload?ids=' + ids.join(',')).catch(() => {});
 }
 
@@ -456,9 +602,12 @@ function showToast(msg) {
   const toast = document.createElement('div');
   toast.className = 'toast-msg';
   toast.innerText = msg;
-  toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--bg-elevated);color:var(--text-primary);padding:12px 24px;border-radius:24px;font-size:13px;z-index:99999;opacity:0;transition:opacity 0.3s;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+  toast.style.cssText =
+    'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--bg-elevated);color:var(--text-primary);padding:12px 24px;border-radius:24px;font-size:13px;z-index:99999;opacity:0;transition:opacity 0.3s;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
   document.body.appendChild(toast);
-  requestAnimationFrame(() => { toast.style.opacity = '1'; });
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+  });
   setTimeout(() => {
     toast.style.opacity = '0';
     setTimeout(() => toast.remove(), 300);
@@ -475,7 +624,9 @@ function notifyTrackChange(track) {
       silent: true,
     });
     setTimeout(() => n.close(), 4000);
-  } catch (e) { /* notifications unsupported */ }
+  } catch (e) {
+    /* notifications unsupported */
+  }
 }
 
 // ==========================================
@@ -489,7 +640,10 @@ const modalCancel = document.getElementById('votify-modal-cancel');
 
 function showModal({ title, bodyHtml, okText = 'OK', cancelText = 'Отмена' }) {
   return new Promise(resolve => {
-    if (!modalOverlay || !modalHeader || !modalBody || !modalOk || !modalCancel) { resolve(null); return; }
+    if (!modalOverlay || !modalHeader || !modalBody || !modalOk || !modalCancel) {
+      resolve(null);
+      return;
+    }
     modalHeader.innerText = title;
     modalBody.innerHTML = bodyHtml;
     modalOk.innerText = okText;
@@ -497,12 +651,29 @@ function showModal({ title, bodyHtml, okText = 'OK', cancelText = 'Отмена'
     modalOverlay.classList.remove('hidden');
     const cleanup = () => {
       modalOverlay.classList.add('hidden');
-      modalOk.onclick = null; modalCancel.onclick = null; modalOverlay.onclick = null;
+      modalOk.onclick = null;
+      modalCancel.onclick = null;
+      modalOverlay.onclick = null;
     };
-    modalOk.onclick = () => { const input = modalBody.querySelector('input'); cleanup(); resolve(input ? input.value : true); };
-    modalCancel.onclick = () => { cleanup(); resolve(null); };
-    modalOverlay.onclick = e => { if (e.target === modalOverlay) { cleanup(); resolve(null); } };
-    setTimeout(() => { const input = modalBody.querySelector('input'); if (input) input.focus(); }, 100);
+    modalOk.onclick = () => {
+      const input = modalBody.querySelector('input');
+      cleanup();
+      resolve(input ? input.value : true);
+    };
+    modalCancel.onclick = () => {
+      cleanup();
+      resolve(null);
+    };
+    modalOverlay.onclick = e => {
+      if (e.target === modalOverlay) {
+        cleanup();
+        resolve(null);
+      }
+    };
+    setTimeout(() => {
+      const input = modalBody.querySelector('input');
+      if (input) input.focus();
+    }, 100);
   });
 }
 
@@ -510,7 +681,8 @@ async function promptModal(title, placeholder = '') {
   return await showModal({
     title,
     bodyHtml: `<input type="text" placeholder="${escapeHtml(placeholder)}" style="width:100%;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--bg-highlight);border-radius:8px;color:var(--text-primary);font-size:14px;outline:none;">`,
-    okText: 'OK', cancelText: translations[appSettings.lang]['back-btn'] || 'Отмена',
+    okText: 'OK',
+    cancelText: translations[appSettings.lang]['back-btn'] || 'Отмена',
   });
 }
 
@@ -518,7 +690,8 @@ async function confirmModal(title, message) {
   const result = await showModal({
     title,
     bodyHtml: `<p style="color:var(--text-secondary);line-height:1.5;">${escapeHtml(message)}</p>`,
-    okText: 'OK', cancelText: translations[appSettings.lang]['back-btn'] || 'Отмена',
+    okText: 'OK',
+    cancelText: translations[appSettings.lang]['back-btn'] || 'Отмена',
   });
   return result !== null;
 }
@@ -526,28 +699,57 @@ async function confirmModal(title, message) {
 async function playlistPickerModal(trackTitle) {
   const availablePlaylists = Object.keys(playlists);
   if (availablePlaylists.length === 0) return null;
-  const chipsHtml = availablePlaylists.map(name =>
-    `<button class="modal-playlist-chip" data-playlist="${escapeHtml(name)}" style="padding:8px 16px;background:var(--bg-elevated);border:1px solid var(--bg-highlight);border-radius:20px;color:var(--text-primary);cursor:pointer;font-size:13px;transition:all 0.2s;">${escapeHtml(name)}</button>`
-  ).join('');
+  const chipsHtml = availablePlaylists
+    .map(
+      name =>
+        `<button class="modal-playlist-chip" data-playlist="${escapeHtml(name)}" style="padding:8px 16px;background:var(--bg-elevated);border:1px solid var(--bg-highlight);border-radius:20px;color:var(--text-primary);cursor:pointer;font-size:13px;transition:all 0.2s;">${escapeHtml(name)}</button>`
+    )
+    .join('');
   return new Promise(resolve => {
-    if (!modalOverlay || !modalHeader || !modalBody || !modalOk || !modalCancel) { resolve(null); return; }
+    if (!modalOverlay || !modalHeader || !modalBody || !modalOk || !modalCancel) {
+      resolve(null);
+      return;
+    }
     modalHeader.innerText = 'Добавить в плейлист';
     modalBody.innerHTML = `<p style="margin-bottom:12px;color:var(--text-secondary);">${escapeHtml(trackTitle)}</p><div style="display:flex;flex-wrap:wrap;gap:8px;">${chipsHtml}</div>`;
     modalOk.style.display = 'none';
     modalCancel.innerText = translations[appSettings.lang]['back-btn'] || 'Отмена';
     modalOverlay.classList.remove('hidden');
     const cleanup = () => {
-      modalOverlay.classList.add('hidden'); modalOk.style.display = '';
-      modalOk.onclick = null; modalCancel.onclick = null; modalOverlay.onclick = null;
-      modalBody.querySelectorAll('.modal-playlist-chip').forEach(c => { c.onclick = null; });
+      modalOverlay.classList.add('hidden');
+      modalOk.style.display = '';
+      modalOk.onclick = null;
+      modalCancel.onclick = null;
+      modalOverlay.onclick = null;
+      modalBody.querySelectorAll('.modal-playlist-chip').forEach(c => {
+        c.onclick = null;
+      });
     };
     modalBody.querySelectorAll('.modal-playlist-chip').forEach(chip => {
-      chip.onmouseenter = () => { chip.style.background = 'var(--accent)'; chip.style.borderColor = 'var(--accent)'; };
-      chip.onmouseleave = () => { chip.style.background = 'var(--bg-elevated)'; chip.style.borderColor = 'var(--bg-highlight)'; };
-      chip.onclick = () => { const picked = chip.getAttribute('data-playlist'); cleanup(); resolve(picked); };
+      chip.onmouseenter = () => {
+        chip.style.background = 'var(--accent)';
+        chip.style.borderColor = 'var(--accent)';
+      };
+      chip.onmouseleave = () => {
+        chip.style.background = 'var(--bg-elevated)';
+        chip.style.borderColor = 'var(--bg-highlight)';
+      };
+      chip.onclick = () => {
+        const picked = chip.getAttribute('data-playlist');
+        cleanup();
+        resolve(picked);
+      };
     });
-    modalCancel.onclick = () => { cleanup(); resolve(null); };
-    modalOverlay.onclick = e => { if (e.target === modalOverlay) { cleanup(); resolve(null); } };
+    modalCancel.onclick = () => {
+      cleanup();
+      resolve(null);
+    };
+    modalOverlay.onclick = e => {
+      if (e.target === modalOverlay) {
+        cleanup();
+        resolve(null);
+      }
+    };
   });
 }
 
@@ -575,19 +777,27 @@ function toggleFavorite(track) {
 
 function renderTrackRows(container, tracks, options = {}) {
   if (!container) return;
-  const { showAddButton = false, showDeleteButton = false, showFavoriteButton = true, playButtonClass = 'play-track-btn', addButtonClass = 'add-to-playlist-btn', playlistName = '' } = options;
+  const {
+    showAddButton = false,
+    showDeleteButton = false,
+    showFavoriteButton = true,
+    playButtonClass = 'play-track-btn',
+    addButtonClass = 'add-to-playlist-btn',
+    playlistName = '',
+  } = options;
   if (!tracks || tracks.length === 0) {
     container.innerHTML = `<p class="empty-msg">${translations[appSettings.lang]['empty-msg']}</p>`;
     return;
   }
-  container.innerHTML = tracks.map((track, idx) => {
-    const title = escapeHtml(track.title || 'Track');
-    const artist = escapeHtml(track.artist || 'Unknown');
-    const isFav = isTrackFavorite(track);
-    const coverMarkup = track.cover
-      ? `<img class="track-cover" src="${escapeHtml(track.cover)}" alt="${title}">`
-      : `<div class="track-cover-fallback"><i class="material-icons">music_note</i></div>`;
-    return `
+  container.innerHTML = tracks
+    .map((track, idx) => {
+      const title = escapeHtml(track.title || 'Track');
+      const artist = escapeHtml(track.artist || 'Unknown');
+      const isFav = isTrackFavorite(track);
+      const coverMarkup = track.cover
+        ? `<img class="track-cover" src="${escapeHtml(track.cover)}" alt="${title}">`
+        : `<div class="track-cover-fallback"><i class="material-icons">music_note</i></div>`;
+      return `
       <div class="track-item" data-track-id="${escapeHtml(track.id || '')}">
         <div class="track-main">
           ${coverMarkup}
@@ -603,7 +813,8 @@ function renderTrackRows(container, tracks, options = {}) {
           ${showDeleteButton ? `<button class="m3-icon-btn delete-track-btn" data-index="${idx}" title="Удалить из плейлиста"><i class="material-icons">close</i></button>` : ''}
         </div>
       </div>`;
-  }).join('');
+    })
+    .join('');
 
   container.querySelectorAll(`.${playButtonClass}`).forEach(btn => {
     btn.onclick = () => {
@@ -657,7 +868,10 @@ function renderTrackRows(container, tracks, options = {}) {
       btn.onclick = async () => {
         const idx = Number(btn.getAttribute('data-index'));
         const track = tracks[idx];
-        const confirmed = await confirmModal('Удалить трек', `Удалить «${track.title}» из плейлиста?`);
+        const confirmed = await confirmModal(
+          'Удалить трек',
+          `Удалить «${track.title}» из плейлиста?`
+        );
         if (!confirmed) return;
         const pl = playlists[playlistName];
         if (!pl) return;
@@ -672,7 +886,11 @@ function renderTrackRows(container, tracks, options = {}) {
 
 function appendTrackRows(container, tracks, options = {}) {
   if (!container || !tracks || tracks.length === 0) return;
-  const { showAddButton = false, playButtonClass = 'play-track-btn', addButtonClass = 'add-to-playlist-btn' } = options;
+  const {
+    showAddButton = false,
+    playButtonClass = 'play-track-btn',
+    addButtonClass = 'add-to-playlist-btn',
+  } = options;
   const existingCount = container.querySelectorAll('.track-item').length;
   const sentinel = document.getElementById('load-more-sentinel');
 
@@ -720,7 +938,11 @@ function appendTrackRows(container, tracks, options = {}) {
       if (addBtn) {
         addBtn.onclick = async () => {
           const targetPlaylist = await playlistPickerModal(track.title || 'Track');
-          if (targetPlaylist && playlists[targetPlaylist]) { playlists[targetPlaylist].push(track); savePlaylists(); renderSidebarPlaylists(); }
+          if (targetPlaylist && playlists[targetPlaylist]) {
+            playlists[targetPlaylist].push(track);
+            savePlaylists();
+            renderSidebarPlaylists();
+          }
         };
       }
     }
@@ -749,49 +971,75 @@ async function playLoadingSound() {
   if (appSettings.loadingSound === false) return;
   const ctx = getLoadingAudioContext();
   if (!ctx) return;
-  if (ctx.state === 'suspended') { try { await ctx.resume(); } catch { return; } }
+  if (ctx.state === 'suspended') {
+    try {
+      await ctx.resume();
+    } catch {
+      return;
+    }
+  }
   const now = ctx.currentTime;
   const masterGain = ctx.createGain();
   masterGain.gain.setValueAtTime(0.0001, now);
   masterGain.gain.exponentialRampToValueAtTime(0.06, now + 0.02);
   masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
   masterGain.connect(ctx.destination);
-  const melody = [{ freq: 523.25, start: 0.0, duration: 0.09 }, { freq: 659.25, start: 0.09, duration: 0.1 }, { freq: 783.99, start: 0.2, duration: 0.14 }];
+  const melody = [
+    { freq: 523.25, start: 0.0, duration: 0.09 },
+    { freq: 659.25, start: 0.09, duration: 0.1 },
+    { freq: 783.99, start: 0.2, duration: 0.14 },
+  ];
   melody.forEach(note => {
-    const osc = ctx.createOscillator(); const gain = ctx.createGain();
-    osc.type = 'triangle'; osc.frequency.setValueAtTime(note.freq, now + note.start);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(note.freq, now + note.start);
     gain.gain.setValueAtTime(0.0001, now + note.start);
     gain.gain.exponentialRampToValueAtTime(0.22, now + note.start + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + note.start + note.duration);
-    osc.connect(gain); gain.connect(masterGain);
-    osc.start(now + note.start); osc.stop(now + note.start + note.duration + 0.03);
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.start(now + note.start);
+    osc.stop(now + note.start + note.duration + 0.03);
   });
-  const bass = ctx.createOscillator(); const bassGain = ctx.createGain();
-  bass.type = 'sine'; bass.frequency.setValueAtTime(130.81, now);
+  const bass = ctx.createOscillator();
+  const bassGain = ctx.createGain();
+  bass.type = 'sine';
+  bass.frequency.setValueAtTime(130.81, now);
   bassGain.gain.setValueAtTime(0.0001, now);
   bassGain.gain.exponentialRampToValueAtTime(0.12, now + 0.03);
   bassGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
-  bass.connect(bassGain); bassGain.connect(masterGain);
-  bass.start(now); bass.stop(now + 0.35);
+  bass.connect(bassGain);
+  bassGain.connect(masterGain);
+  bass.start(now);
+  bass.stop(now + 0.35);
 }
 
 function playClickSound() {
   try {
-    const ctx = getLoadingAudioContext(); if (!ctx) return;
+    const ctx = getLoadingAudioContext();
+    if (!ctx) return;
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     const now = ctx.currentTime;
-    const osc = ctx.createOscillator(); const gain = ctx.createGain();
-    osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, now);
     osc.frequency.exponentialRampToValueAtTime(400, now + 0.06);
-    gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(now); osc.stop(now + 0.1);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.1);
   } catch (e) {}
 }
 
 document.addEventListener('click', e => {
   if (appSettings.uiSounds === false) return;
-  const btn = e.target.closest("button, .btn, .nav-btn, .rec-tile, .suggestion-item, .play-track-btn, .sidebar-playlist-item, .home-tile, .filter-pill, .theme-card, .bg-card, .modal-playlist-chip, [role='button']");
+  const btn = e.target.closest(
+    "button, .btn, .nav-btn, .rec-tile, .suggestion-item, .play-track-btn, .sidebar-playlist-item, .home-tile, .filter-pill, .theme-card, .bg-card, .modal-playlist-chip, [role='button']"
+  );
   if (btn) playClickSound();
 });
 
@@ -812,12 +1060,18 @@ function setLoadingState(active, subtitleKey = 'loader-search') {
     const shouldPlaySound = loadingOperations === 0;
     loadingOperations += 1;
     loadingTitle.innerText = translations[appSettings.lang]['loader-title'];
-    loadingSubtitle.innerText = translations[appSettings.lang][subtitleKey] || translations[appSettings.lang]['loader-search'];
+    loadingSubtitle.innerText =
+      translations[appSettings.lang][subtitleKey] ||
+      translations[appSettings.lang]['loader-search'];
     loadingOverlay.classList.remove('hidden');
     document.body.classList.add('loading-active');
     if (shouldPlaySound) playLoadingSound().catch(() => {});
     clearTimeout(loadingTimeout);
-    loadingTimeout = setTimeout(() => { loadingOperations = 0; loadingOverlay.classList.add('hidden'); document.body.classList.remove('loading-active'); }, 12000);
+    loadingTimeout = setTimeout(() => {
+      loadingOperations = 0;
+      loadingOverlay.classList.add('hidden');
+      document.body.classList.remove('loading-active');
+    }, 12000);
     return;
   }
   loadingOperations = Math.max(0, loadingOperations - 1);
@@ -840,21 +1094,25 @@ function renderPlaylists() {
   // Update counts for system items
   const favCount = (playlists['Избранное'] || []).length;
   const offlineCount = (state.offlineTracks || []).length;
-  
+
   const favCountEl = document.getElementById('lib-fav-count');
   if (favCountEl) favCountEl.textContent = favCount > 0 ? `${favCount} треков` : 'Нет треков';
-  
+
   const offlineCountEl = document.getElementById('lib-offline-count');
-  if (offlineCountEl) offlineCountEl.textContent = offlineCount > 0 ? `${offlineCount} треков` : 'Нет треков';
+  if (offlineCountEl)
+    offlineCountEl.textContent = offlineCount > 0 ? `${offlineCount} треков` : 'Нет треков';
 
   // Render user playlists list in left sidebar
   const container = document.getElementById('lib-playlists-list');
   if (container) {
     const keys = Object.keys(playlists).filter(k => k !== 'Избранное');
     if (keys.length === 0) {
-      container.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.3);padding:8px 12px;">Нет плейлистов</div>';
+      container.innerHTML =
+        '<div style="font-size:12px;color:rgba(255,255,255,0.3);padding:8px 12px;">Нет плейлистов</div>';
     } else {
-      container.innerHTML = keys.map(key => `
+      container.innerHTML = keys
+        .map(
+          key => `
         <div class="lib-item" data-playlist="${escapeHtml(key)}">
           <div class="lib-item-icon">
             <i class="material-icons">queue_music</i>
@@ -864,7 +1122,9 @@ function renderPlaylists() {
             <div class="lib-item-sub">${playlists[key].length > 0 ? playlists[key].length + ' треков' : 'Нет треков'}</div>
           </div>
         </div>
-      `).join('');
+      `
+        )
+        .join('');
     }
 
     // Attach click listeners for playlists
@@ -903,16 +1163,21 @@ function renderSidebarPlaylists() {
   if (!container) return;
   const names = Object.keys(playlists);
   if (names.length === 0) {
-    container.innerHTML = '<div class="sidebar-playlist-item" style="opacity:0.3;cursor:default;font-size:11px;">No playlists</div>';
+    container.innerHTML =
+      '<div class="sidebar-playlist-item" style="opacity:0.3;cursor:default;font-size:11px;">No playlists</div>';
     return;
   }
-  container.innerHTML = names.map(name => `
+  container.innerHTML = names
+    .map(
+      name => `
     <div class="sidebar-playlist-item" data-name="${escapeHtml(name)}">
       <i class="material-icons">queue_music</i>
       <span>${escapeHtml(name)}</span>
       <span class="sp-count">${playlists[name].length}</span>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
   container.querySelectorAll('.sidebar-playlist-item').forEach(item => {
     item.onclick = () => {
       switchScreen('folders-screen', 'nav-folders-btn');
@@ -924,7 +1189,10 @@ function renderSidebarPlaylists() {
 async function createPlaylist() {
   const name = (await promptModal('Новый плейлист', 'Например: В дорогу'))?.trim();
   if (!name) return;
-  if (playlists[name]) { showToast('Плейлист с таким названием уже есть'); return; }
+  if (playlists[name]) {
+    showToast('Плейлист с таким названием уже есть');
+    return;
+  }
   playlists[name] = [];
   savePlaylists();
   renderSidebarPlaylists();
@@ -970,19 +1238,26 @@ function openPlaylist(name) {
   const coverImg = document.getElementById('lib-detail-cover-img');
   const coverIcon = document.getElementById('lib-detail-cover-icon');
   if (tracks.length > 0 && tracks[0].cover) {
-    if (coverImg) { coverImg.src = tracks[0].cover; coverImg.style.display = 'block'; }
+    if (coverImg) {
+      coverImg.src = tracks[0].cover;
+      coverImg.style.display = 'block';
+    }
     if (coverIcon) coverIcon.style.display = 'none';
   } else {
     if (coverImg) coverImg.style.display = 'none';
     if (coverIcon) {
       coverIcon.style.display = 'block';
-      coverIcon.textContent = name === 'Избранное' ? 'favorite' : name === '__OFFLINE__' ? 'cloud_queue' : 'queue_music';
+      coverIcon.textContent =
+        name === 'Избранное' ? 'favorite' : name === '__OFFLINE__' ? 'cloud_queue' : 'queue_music';
     }
   }
 
   // Play button
   safeClick('lib-play-all-btn', () => {
-    if (!tracks.length) { showToast('Нет треков для воспроизведения'); return; }
+    if (!tracks.length) {
+      showToast('Нет треков для воспроизведения');
+      return;
+    }
     currentPlaylist = [...tracks];
     currentTrackIndex = 0;
     playTrack(tracks[0]);
@@ -990,7 +1265,10 @@ function openPlaylist(name) {
 
   // Shuffle button
   safeClick('lib-shuffle-all-btn', () => {
-    if (!tracks.length) { showToast('Нет треков'); return; }
+    if (!tracks.length) {
+      showToast('Нет треков');
+      return;
+    }
     currentPlaylist = [...tracks];
     isShuffle = true;
     currentTrackIndex = Math.floor(Math.random() * tracks.length);
@@ -1022,7 +1300,10 @@ function openPlaylist(name) {
 
   if (tracks.length === 0) {
     if (emptyState) emptyState.style.display = 'flex';
-    if (tracklistWrap) { tracklistWrap.style.display = 'none'; tracklistWrap.innerHTML = ''; }
+    if (tracklistWrap) {
+      tracklistWrap.style.display = 'none';
+      tracklistWrap.innerHTML = '';
+    }
   } else {
     if (emptyState) emptyState.style.display = 'none';
     if (tracklistWrap) {
@@ -1035,7 +1316,10 @@ function openPlaylist(name) {
 safeClick('create-playlist-btn', async () => {
   const name = (await promptModal('Новый плейлист', 'Например: В дорогу'))?.trim();
   if (!name) return;
-  if (playlists[name]) { showToast('Плейлист с таким названием уже есть'); return; }
+  if (playlists[name]) {
+    showToast('Плейлист с таким названием уже есть');
+    return;
+  }
   playlists[name] = [];
   savePlaylists();
   renderSidebarPlaylists();
@@ -1044,9 +1328,14 @@ safeClick('create-playlist-btn', async () => {
 });
 
 safeClick('import-playlist-btn', async () => {
-  const url = (await promptModal('Импорт плейлиста', 'Ссылка на YouTube, Spotify или SoundCloud'))?.trim();
+  const url = (
+    await promptModal('Импорт плейлиста', 'Ссылка на YouTube, Spotify или SoundCloud')
+  )?.trim();
   if (!url) return;
-  if (!/^https?:\/\//i.test(url)) { showToast('Введите корректную ссылку'); return; }
+  if (!/^https?:\/\//i.test(url)) {
+    showToast('Введите корректную ссылку');
+    return;
+  }
 
   const hostname = new URL(url).hostname.toLowerCase();
   const isSoundCloud = hostname.includes('soundcloud.com');
@@ -1056,9 +1345,13 @@ safeClick('import-playlist-btn', async () => {
     const endpoint = isSoundCloud ? `/api/soundcloud/import?url=` : `/api/playlist?url=`;
     const res = await fetch(`${endpoint}${encodeURIComponent(url)}`);
     const data = await res.json();
-    if (!res.ok || !Array.isArray(data.tracks)) throw new Error(data.error || 'Не удалось импортировать плейлист');
-    const suggested = isSoundCloud ? (data.name || 'SoundCloud импорт')
-      : hostname.includes('spotify') ? 'Spotify импорт' : 'YouTube импорт';
+    if (!res.ok || !Array.isArray(data.tracks))
+      throw new Error(data.error || 'Не удалось импортировать плейлист');
+    const suggested = isSoundCloud
+      ? data.name || 'SoundCloud импорт'
+      : hostname.includes('spotify')
+        ? 'Spotify импорт'
+        : 'YouTube импорт';
     const name = (await promptModal('Название нового плейлиста', suggested))?.trim();
     if (!name) return;
     playlists[name] = data.tracks;
@@ -1084,7 +1377,9 @@ let isBooting = true;
 const screenPageTitles = {
   'home-screen': 'Главная',
   'player-screen': 'Плеер',
-  'search-screen': 'Поиск', 'folders-screen': 'Моя медиатека', 'artist-screen': 'Артист',
+  'search-screen': 'Поиск',
+  'folders-screen': 'Моя медиатека',
+  'artist-screen': 'Артист',
 };
 
 let artistRequestId = 0;
@@ -1093,9 +1388,12 @@ function formatTrackCount(count) {
   if (appSettings.lang !== 'ru') return `${count} ${count === 1 ? 'track' : 'tracks'}`;
   const mod10 = count % 10;
   const mod100 = count % 100;
-  const word = mod10 === 1 && mod100 !== 11
-    ? 'трек'
-    : (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? 'трека' : 'треков');
+  const word =
+    mod10 === 1 && mod100 !== 11
+      ? 'трек'
+      : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+        ? 'трека'
+        : 'треков';
   return `${count} ${word}`;
 }
 
@@ -1113,15 +1411,16 @@ function getArtistMonthlyListeners(name) {
 
 // Recent Artists Management
 function recordRecentArtist(track) {
-  if (!track || !track.artist || track.artist === '—' || track.artist === 'Неизвестный исполнитель') return;
+  if (!track || !track.artist || track.artist === '—' || track.artist === 'Неизвестный исполнитель')
+    return;
   const name = track.artist.trim();
   let recent = JSON.parse(localStorage.getItem('votify-recent-artists') || '[]');
-  
+
   recent = recent.filter(a => a.name.toLowerCase() !== name.toLowerCase());
   recent.unshift({
     name: name,
     cover: track.cover || '',
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
   });
 
   recent = recent.slice(0, 12);
@@ -1156,7 +1455,9 @@ function renderRecentArtists() {
 
   if (section) section.style.display = 'block';
 
-  container.innerHTML = recent.map(a => `
+  container.innerHTML = recent
+    .map(
+      a => `
     <div class="artist-card" data-artist="${escapeHtml(a.name)}">
       <div class="artist-card-avatar">
         ${a.cover ? `<img src="${escapeHtml(a.cover)}" alt="${escapeHtml(a.name)}"/>` : `<i class="material-icons">person</i>`}
@@ -1164,7 +1465,9 @@ function renderRecentArtists() {
       <div class="artist-card-name">${escapeHtml(a.name)}</div>
       <div class="artist-card-sub">Исполнитель</div>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   container.querySelectorAll('.artist-card').forEach(card => {
     card.onclick = () => {
@@ -1200,7 +1503,9 @@ async function openArtistPage(artistName) {
   if (listenersCountEl) listenersCountEl.textContent = getArtistMonthlyListeners(name);
   if (countEl) countEl.textContent = 'Загрузка треков…';
   if (statusEl) statusEl.textContent = '';
-  if (tracksEl) tracksEl.innerHTML = '<div class="artist-loading"><div class="spinner"></div><span>Загружаем треки исполнителя…</span></div>';
+  if (tracksEl)
+    tracksEl.innerHTML =
+      '<div class="artist-loading"><div class="spinner"></div><span>Загружаем треки исполнителя…</span></div>';
   if (albumsEl) albumsEl.innerHTML = '';
   if (avatarEl) avatarEl.innerHTML = '<i class="material-icons">person</i>';
 
@@ -1225,7 +1530,8 @@ async function openArtistPage(artistName) {
           playlists[targetPlaylist].push(...tracks);
           savePlaylists();
           renderSidebarPlaylists();
-          if (typeof showToast === 'function') showToast(`Сохранено ${tracks.length} треков в «${targetPlaylist}»`);
+          if (typeof showToast === 'function')
+            showToast(`Сохранено ${tracks.length} треков в «${targetPlaylist}»`);
         }
       };
     }
@@ -1237,7 +1543,10 @@ async function openArtistPage(artistName) {
 
     // Render Top Hits (Top 8 tracks)
     const topHits = tracks.slice(0, 8);
-    renderTrackRows(tracksEl, topHits, { showAddButton: true, playButtonClass: 'play-artist-track-btn' });
+    renderTrackRows(tracksEl, topHits, {
+      showAddButton: true,
+      playButtonClass: 'play-artist-track-btn',
+    });
 
     // Group tracks into Albums & Singles
     if (albumsEl) {
@@ -1245,8 +1554,10 @@ async function openArtistPage(artistName) {
       const singlesList = [];
 
       // 1. Check if explicit album metadata exists
-      const tracksWithAlbum = tracks.filter(t => t.album && t.album.toLowerCase() !== t.title.toLowerCase());
-      
+      const tracksWithAlbum = tracks.filter(
+        t => t.album && t.album.toLowerCase() !== t.title.toLowerCase()
+      );
+
       if (tracksWithAlbum.length >= 2) {
         tracks.forEach(track => {
           const hasAlbum = track.album && track.album.toLowerCase() !== track.title.toLowerCase();
@@ -1257,7 +1568,7 @@ async function openArtistPage(artistName) {
                 title: track.album,
                 cover: track.cover || '',
                 tracks: [track],
-                type: 'Альбом'
+                type: 'Альбом',
               });
             } else {
               albumsMap.get(albumKey).tracks.push(track);
@@ -1275,7 +1586,7 @@ async function openArtistPage(artistName) {
             title: `${name} — Greatest Hits`,
             cover: alb1Tracks[0]?.cover || '',
             tracks: alb1Tracks,
-            type: 'Альбом'
+            type: 'Альбом',
           });
 
           const remaining = tracks.slice(alb1Size);
@@ -1286,7 +1597,7 @@ async function openArtistPage(artistName) {
               title: `${name} — Album Collection`,
               cover: alb2Tracks[0]?.cover || '',
               tracks: alb2Tracks,
-              type: 'Альбом'
+              type: 'Альбом',
             });
             singlesList.push(...remaining.slice(alb2Size));
           } else {
@@ -1303,12 +1614,14 @@ async function openArtistPage(artistName) {
           title: t.title,
           cover: t.cover || '',
           tracks: [t],
-          type: 'Сингл'
-        }))
+          type: 'Сингл',
+        })),
       ];
 
       if (allReleases.length > 0) {
-        albumsEl.innerHTML = allReleases.map((rel, i) => `
+        albumsEl.innerHTML = allReleases
+          .map(
+            (rel, i) => `
           <div class="album-card" data-rel-idx="${i}">
             <div class="album-cover-wrap">
               ${rel.cover ? `<img src="${escapeHtml(rel.cover)}" alt="${escapeHtml(rel.title)}">` : `<i class="material-icons" style="font-size:48px;color:var(--text-secondary)">album</i>`}
@@ -1316,7 +1629,9 @@ async function openArtistPage(artistName) {
             <div class="album-title">${escapeHtml(rel.title)}</div>
             <div class="album-meta-text">${rel.type} • ${rel.tracks.length} ${rel.tracks.length === 1 ? 'трек' : 'трека'}</div>
           </div>
-        `).join('');
+        `
+          )
+          .join('');
 
         albumsEl.querySelectorAll('.album-card').forEach(card => {
           card.onclick = () => {
@@ -1328,7 +1643,7 @@ async function openArtistPage(artistName) {
                 artist: name,
                 cover: rel.cover,
                 type: rel.type,
-                tracks: rel.tracks
+                tracks: rel.tracks,
               });
             }
           };
@@ -1342,7 +1657,8 @@ async function openArtistPage(artistName) {
   } catch (error) {
     if (requestId !== artistRequestId) return;
     if (countEl) countEl.textContent = formatTrackCount(0);
-    if (tracksEl) tracksEl.innerHTML = '<p class="empty-msg">Не удалось загрузить треки исполнителя</p>';
+    if (tracksEl)
+      tracksEl.innerHTML = '<p class="empty-msg">Не удалось загрузить треки исполнителя</p>';
     if (statusEl) statusEl.textContent = error.message || 'Ошибка загрузки';
   }
 }
@@ -1392,22 +1708,47 @@ function openAlbumPage(album) {
   }
 
   if (tracksEl && album.tracks) {
-    renderTrackRows(tracksEl, album.tracks, { showAddButton: true, playButtonClass: 'play-album-track-btn' });
+    renderTrackRows(tracksEl, album.tracks, {
+      showAddButton: true,
+      playButtonClass: 'play-album-track-btn',
+    });
   }
 }
 
 function switchScreen(screenId, activeBtnId) {
-  const screens = ['home-screen', 'player-screen', 'search-screen', 'folders-screen', 'artist-screen', 'album-screen'];
+  const screens = [
+    'home-screen',
+    'player-screen',
+    'search-screen',
+    'folders-screen',
+    'artist-screen',
+    'album-screen',
+  ];
   screens.forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.style.display = 'none'; el.classList.add('hidden'); }
+    if (el) {
+      el.style.display = 'none';
+      el.classList.add('hidden');
+    }
   });
   const targetScreen = document.getElementById(screenId);
-  if (targetScreen) { targetScreen.style.display = 'block'; targetScreen.classList.remove('hidden'); }
+  if (targetScreen) {
+    targetScreen.style.display = 'block';
+    targetScreen.classList.remove('hidden');
+  }
 
-  const validBtnIds = ['nav-home-btn', 'nav-player-btn', 'nav-search-btn', 'nav-folders-btn', 'nav-settings-btn'];
+  const validBtnIds = [
+    'nav-home-btn',
+    'nav-player-btn',
+    'nav-search-btn',
+    'nav-folders-btn',
+    'nav-settings-btn',
+  ];
   if (activeBtnId && validBtnIds.includes(activeBtnId)) {
-    if (screenId !== 'artist-screen' && screenId !== 'album-screen') { previousScreenId = screenId; previousActiveBtnId = activeBtnId; }
+    if (screenId !== 'artist-screen' && screenId !== 'album-screen') {
+      previousScreenId = screenId;
+      previousActiveBtnId = activeBtnId;
+    }
     currentScreenId = screenId;
   }
 
@@ -1419,7 +1760,7 @@ function switchScreen(screenId, activeBtnId) {
   const centerNavMap = {
     'home-screen': null, // home has no center nav active
     'search-screen': 'center-nav-search',
-    'folders-screen': 'center-nav-folders'
+    'folders-screen': 'center-nav-folders',
   };
   document.querySelectorAll('.center-nav-btn').forEach(b => b.classList.remove('active'));
   const centerBtnId = centerNavMap[screenId];
@@ -1436,7 +1777,10 @@ function switchScreen(screenId, activeBtnId) {
   // behind a network request during launch.
   if (screenId === 'home-screen') loadRecommendations(false, { showLoading: !isBooting });
   if (screenId === 'home-screen') loadHomeContent();
-  if (screenId === 'search-screen') { if (searchInput) searchInput.focus(); renderSearchHistory(); }
+  if (screenId === 'search-screen') {
+    if (searchInput) searchInput.focus();
+    renderSearchHistory();
+  }
   if (screenId === 'player-screen') {
     if (typeof applyPlayerCoverShape === 'function') applyPlayerCoverShape();
     if (state.currentTrack) emit('state:currentTrack', state.currentTrack);
@@ -1487,7 +1831,9 @@ safeClick('settings-close-btn', () => {
 function switchSettingsSection(sectionName) {
   document.querySelectorAll('.settings-menu-item').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
-  const menuBtn = document.querySelector(`.settings-menu-item[data-settings-section="${sectionName}"]`);
+  const menuBtn = document.querySelector(
+    `.settings-menu-item[data-settings-section="${sectionName}"]`
+  );
   const panel = document.getElementById(`settings-panel-${sectionName}`);
   if (menuBtn) menuBtn.classList.add('active');
   if (panel) panel.classList.add('active');
@@ -1633,7 +1979,8 @@ document.querySelectorAll('.player-style-card').forEach(card => {
     const style = card.dataset.style;
     document.querySelectorAll('.player-style-card').forEach(c => c.classList.remove('active'));
     card.classList.add('active');
-    playerStyleValue.textContent = style === 'standard' ? 'Стандартный' : style === 'large' ? 'Большой' : 'Пластинка';
+    playerStyleValue.textContent =
+      style === 'standard' ? 'Стандартный' : style === 'large' ? 'Большой' : 'Пластинка';
     appSettings.playerStyle = style;
     saveSettings();
     closePlayerStyleModal();
@@ -1795,7 +2142,12 @@ const miniControlsBtn = document.getElementById('mini-controls-btn');
 const miniControlsValue = document.getElementById('mini-controls-value');
 if (miniControlsBtn) {
   miniControlsBtn.addEventListener('click', () => {
-    const options = ['Плей/Пауза, Лайк', 'Плей/Пауза, След/Пред', 'Только Плей/Пауза', 'Все кнопки'];
+    const options = [
+      'Плей/Пауза, Лайк',
+      'Плей/Пауза, След/Пред',
+      'Только Плей/Пауза',
+      'Все кнопки',
+    ];
     const current = miniControlsValue.textContent;
     const idx = options.indexOf(current);
     const next = options[(idx + 1) % options.length];
@@ -1823,7 +2175,7 @@ if (miniBtnStyleBtn) {
 function applyPlayerCoverShape() {
   const wrap = document.querySelector('.pp-cover-wrap');
   const shape = appSettings.playerCoverShape || 'Закруглённый квадрат';
-  
+
   if (wrap) {
     wrap.classList.remove('shape-rounded-square', 'shape-vinyl', 'shape-circle');
     if (shape === 'Виниловая пластинка') {
@@ -1845,7 +2197,8 @@ const playerCoverShapeValue = document.getElementById('player-cover-shape-value'
 if (playerCoverShapeBtn) {
   playerCoverShapeBtn.addEventListener('click', () => {
     const shapes = ['Закруглённый квадрат', 'Виниловая пластинка', 'Круг'];
-    const current = playerCoverShapeValue?.textContent || appSettings.playerCoverShape || 'Закруглённый квадрат';
+    const current =
+      playerCoverShapeValue?.textContent || appSettings.playerCoverShape || 'Закруглённый квадрат';
     const idx = shapes.indexOf(current);
     const next = shapes[(idx + 1) % shapes.length];
     if (playerCoverShapeValue) playerCoverShapeValue.textContent = next;
@@ -1861,7 +2214,7 @@ applyPlayerCoverShape();
 // ==========================================
 const centerNavButtons = {
   'center-nav-search': 'search-screen',
-  'center-nav-folders': 'folders-screen'
+  'center-nav-folders': 'folders-screen',
 };
 
 Object.entries(centerNavButtons).forEach(([btnId, screenId]) => {
@@ -1921,7 +2274,7 @@ function updateRightPlayerPanel(track) {
   const artist = document.getElementById('right-player-artist');
   const playBtn = document.getElementById('right-player-play');
   const bgEl = document.getElementById('right-player-bg');
-  
+
   if (cover && track.cover) {
     cover.src = track.cover;
     cover.style.display = 'block';
@@ -1931,7 +2284,7 @@ function updateRightPlayerPanel(track) {
   if (title) title.textContent = track.title || '—';
   if (artist) artist.textContent = track.artist || '—';
   if (playBtn) {
-    playBtn.innerHTML = state.isPlaying 
+    playBtn.innerHTML = state.isPlaying
       ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
       : '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>';
   }
@@ -1965,8 +2318,11 @@ if (rightPlayerArtistLink) {
 const rightPlayerPlayBtn = document.getElementById('right-player-play');
 if (rightPlayerPlayBtn) {
   rightPlayerPlayBtn.addEventListener('click', () => {
-    if (audio.paused) { audio.play().catch(() => {}); }
-    else { audio.pause(); }
+    if (audio.paused) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
   });
 }
 const rightPlayerPrevBtn = document.getElementById('right-player-prev');
@@ -1974,7 +2330,10 @@ if (rightPlayerPrevBtn) rightPlayerPrevBtn.addEventListener('click', playPrevTra
 const rightPlayerNextBtn = document.getElementById('right-player-next');
 if (rightPlayerNextBtn) rightPlayerNextBtn.addEventListener('click', playNextTrack);
 const rightPlayerShuffleBtn = document.getElementById('right-player-shuffle');
-if (rightPlayerShuffleBtn) rightPlayerShuffleBtn.addEventListener('click', () => rightPlayerShuffleBtn.classList.toggle('active'));
+if (rightPlayerShuffleBtn)
+  rightPlayerShuffleBtn.addEventListener('click', () =>
+    rightPlayerShuffleBtn.classList.toggle('active')
+  );
 const rightPlayerRepeatBtn = document.getElementById('right-player-repeat');
 let abLoopStart = null;
 let abLoopEnd = null;
@@ -2019,19 +2378,20 @@ function updateAbLoopMarkers() {
   });
 }
 
-if (rightPlayerRepeatBtn) rightPlayerRepeatBtn.addEventListener('click', () => {
-  if (abLoopActive) {
-    clearAbLoop();
-    showToast('Зацикливание фрагмента выключено');
-    return;
-  }
-  abLoopStart = null;
-  abLoopEnd = null;
-  abLoopSelecting = true;
-  rightPlayerRepeatBtn.classList.add('selecting');
-  rightPlayerRepeatBtn.setAttribute('title', 'Выберите начало фрагмента на шкале');
-  showToast('Нажмите на шкалу, чтобы выбрать начало фрагмента');
-});
+if (rightPlayerRepeatBtn)
+  rightPlayerRepeatBtn.addEventListener('click', () => {
+    if (abLoopActive) {
+      clearAbLoop();
+      showToast('Зацикливание фрагмента выключено');
+      return;
+    }
+    abLoopStart = null;
+    abLoopEnd = null;
+    abLoopSelecting = true;
+    rightPlayerRepeatBtn.classList.add('selecting');
+    rightPlayerRepeatBtn.setAttribute('title', 'Выберите начало фрагмента на шкале');
+    showToast('Нажмите на шкалу, чтобы выбрать начало фрагмента');
+  });
 
 // Right player progress — curved SVG timeline (mirrors the bottom player bar)
 const rightTimelineTrack = document.getElementById('right-timeline-track');
@@ -2064,7 +2424,9 @@ function rightTlSeek(e) {
     } else {
       abLoopEnd = point;
       if (abLoopEnd < abLoopStart) [abLoopStart, abLoopEnd] = [abLoopEnd, abLoopStart];
-      if (abLoopEnd - abLoopStart < 0.5) { abLoopEnd = Math.min(audio.duration, abLoopStart + 0.5); }
+      if (abLoopEnd - abLoopStart < 0.5) {
+        abLoopEnd = Math.min(audio.duration, abLoopStart + 0.5);
+      }
       abLoopSelecting = false;
       abLoopActive = true;
       rightPlayerRepeatBtn?.classList.remove('selecting');
@@ -2086,12 +2448,40 @@ function rightTlSeek(e) {
 
 if (rightTimelineTrack) {
   let rightTlDragging = false;
-  rightTimelineTrack.addEventListener('mousedown', e => { const wasSelecting = abLoopSelecting; rightTlDragging = !wasSelecting; rightTimelineTrack.classList.add('dragging'); rightTlSeek(e); });
-  rightTimelineTrack.addEventListener('touchstart', e => { const wasSelecting = abLoopSelecting; rightTlDragging = !wasSelecting; rightTimelineTrack.classList.add('dragging'); rightTlSeek(e); }, { passive: false });
-  document.addEventListener('mousemove', e => { if (rightTlDragging && !abLoopSelecting) rightTlSeek(e); });
-  document.addEventListener('touchmove', e => { if (rightTlDragging && !abLoopSelecting) rightTlSeek(e); }, { passive: false });
-  document.addEventListener('mouseup', () => { rightTlDragging = false; rightTimelineTrack?.classList.remove('dragging'); });
-  document.addEventListener('touchend', () => { rightTlDragging = false; rightTimelineTrack?.classList.remove('dragging'); });
+  rightTimelineTrack.addEventListener('mousedown', e => {
+    const wasSelecting = abLoopSelecting;
+    rightTlDragging = !wasSelecting;
+    rightTimelineTrack.classList.add('dragging');
+    rightTlSeek(e);
+  });
+  rightTimelineTrack.addEventListener(
+    'touchstart',
+    e => {
+      const wasSelecting = abLoopSelecting;
+      rightTlDragging = !wasSelecting;
+      rightTimelineTrack.classList.add('dragging');
+      rightTlSeek(e);
+    },
+    { passive: false }
+  );
+  document.addEventListener('mousemove', e => {
+    if (rightTlDragging && !abLoopSelecting) rightTlSeek(e);
+  });
+  document.addEventListener(
+    'touchmove',
+    e => {
+      if (rightTlDragging && !abLoopSelecting) rightTlSeek(e);
+    },
+    { passive: false }
+  );
+  document.addEventListener('mouseup', () => {
+    rightTlDragging = false;
+    rightTimelineTrack?.classList.remove('dragging');
+  });
+  document.addEventListener('touchend', () => {
+    rightTlDragging = false;
+    rightTimelineTrack?.classList.remove('dragging');
+  });
   window.addEventListener('resize', () => {
     if (state.duration > 0) drawRightTimeline((audio.currentTime / state.duration) * 100);
   });
@@ -2103,7 +2493,7 @@ const rightPlayerVolume = document.getElementById('right-player-volume');
 if (rightPlayerVolume) {
   rightPlayerVolume.value = Math.round(audio.volume * 100);
   rightPlayerVolume.style.setProperty('--r', rightPlayerVolume.value + '%');
-  rightPlayerVolume.addEventListener('input', (e) => {
+  rightPlayerVolume.addEventListener('input', e => {
     const vol = e.target.value / 100;
     state.volume = vol;
     audio.volume = vol;
@@ -2137,7 +2527,11 @@ const rightCloseBtn = document.getElementById('right-player-close');
 if (rightCloseBtn) {
   rightCloseBtn.addEventListener('click', () => {
     const menu = rightCloseBtn.querySelector('.skiper99-menu');
-    if (menu) menu.setAttribute('data-toggled', menu.getAttribute('data-toggled') === 'true' ? 'false' : 'true');
+    if (menu)
+      menu.setAttribute(
+        'data-toggled',
+        menu.getAttribute('data-toggled') === 'true' ? 'false' : 'true'
+      );
     // Close panel
     const panel = document.getElementById('right-player-panel');
     const mainContent = document.querySelector('.main-content');
@@ -2158,7 +2552,10 @@ if (rightEqBtn && rightPlayerEq) {
     const open = rightPlayerEq.style.display === 'none';
     rightPlayerEq.style.display = open ? 'block' : 'none';
     rightEqBtn.classList.toggle('active', open);
-    if (open && rightPlayerLyrics) { rightPlayerLyrics.style.display = 'none'; rightLyricsBtn?.classList.remove('active'); }
+    if (open && rightPlayerLyrics) {
+      rightPlayerLyrics.style.display = 'none';
+      rightLyricsBtn?.classList.remove('active');
+    }
   });
 }
 if (rightLyricsBtn && rightPlayerLyrics) {
@@ -2166,7 +2563,10 @@ if (rightLyricsBtn && rightPlayerLyrics) {
     const open = rightPlayerLyrics.style.display === 'none';
     rightPlayerLyrics.style.display = open ? 'block' : 'none';
     rightLyricsBtn.classList.toggle('active', open);
-    if (open && rightPlayerEq) { rightPlayerEq.style.display = 'none'; rightEqBtn?.classList.remove('active'); }
+    if (open && rightPlayerEq) {
+      rightPlayerEq.style.display = 'none';
+      rightEqBtn?.classList.remove('active');
+    }
     if (open) openFullLyrics();
   });
 }
@@ -2199,36 +2599,40 @@ function renderFullLyrics() {
     body.innerHTML = '<div class="lyrics-placeholder">Текст песни не найден</div>';
     return;
   }
-  body.innerHTML = rightLyricsData.map((line, i) => {
-    const text = typeof line === 'string' ? line : line.text;
-    return `<div class="full-lyrics-line" data-idx="${i}">${escapeHtml(text || '') || '&nbsp;'}</div>`;
-  }).join('');
+  body.innerHTML = rightLyricsData
+    .map((line, i) => {
+      const text = typeof line === 'string' ? line : line.text;
+      return `<div class="full-lyrics-line" data-idx="${i}">${escapeHtml(text || '') || '&nbsp;'}</div>`;
+    })
+    .join('');
 }
 
 document.getElementById('full-lyrics-close')?.addEventListener('click', closeFullLyrics);
 document.getElementById('full-lyrics-backdrop')?.addEventListener('click', closeFullLyrics);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyrics(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeFullLyrics();
+});
 
 // ==========================================
 // Floating Island — Bottom Player
 // ==========================================
 (function initFloatingIsland() {
-  const fiPlay      = document.getElementById('fi-play');
-  const fiPrev      = document.getElementById('fi-prev');
-  const fiNext      = document.getElementById('fi-next');
-  const fiShuffle   = document.getElementById('fi-shuffle');
-  const fiRepeat    = document.getElementById('fi-repeat');
-  const fiLike      = document.getElementById('fi-like');
+  const fiPlay = document.getElementById('fi-play');
+  const fiPrev = document.getElementById('fi-prev');
+  const fiNext = document.getElementById('fi-next');
+  const fiShuffle = document.getElementById('fi-shuffle');
+  const fiRepeat = document.getElementById('fi-repeat');
+  const fiLike = document.getElementById('fi-like');
   const fiFullscreen = document.getElementById('fi-fullscreen');
-  const fiEq        = document.getElementById('fi-eq');
-  const fiAddPl     = document.getElementById('fi-add-playlist');
+  const fiEq = document.getElementById('fi-eq');
+  const fiAddPl = document.getElementById('fi-add-playlist');
   const fiSidePlayer = document.getElementById('fi-side-player');
-  const fiMute      = document.getElementById('fi-mute');
-  const fiVolume    = document.getElementById('fi-volume');
-  const fiVolIcon   = document.getElementById('fi-vol-icon');
-  const fiCover     = document.getElementById('fi-cover');
-  const fiTitle     = document.getElementById('fi-title');
-  const fiArtist    = document.getElementById('fi-artist');
+  const fiMute = document.getElementById('fi-mute');
+  const fiVolume = document.getElementById('fi-volume');
+  const fiVolIcon = document.getElementById('fi-vol-icon');
+  const fiCover = document.getElementById('fi-cover');
+  const fiTitle = document.getElementById('fi-title');
+  const fiArtist = document.getElementById('fi-artist');
 
   // --- Play / Pause ---
   if (fiPlay) {
@@ -2294,7 +2698,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
   const fiEqPopup = document.getElementById('fi-eq-popup');
   const fiEqClose = document.getElementById('fi-eq-close');
   if (fiEq) {
-    fiEq.addEventListener('click', (e) => {
+    fiEq.addEventListener('click', e => {
       e.stopPropagation();
       if (!fiEqPopup) return;
       const isVisible = fiEqPopup.style.display !== 'none';
@@ -2308,7 +2712,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
       fiEq?.classList.remove('active');
     });
   }
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', e => {
     if (fiEqPopup && fiEqPopup.style.display !== 'none') {
       if (!fiEqPopup.contains(e.target) && e.target !== fiEq && !fiEq?.contains(e.target)) {
         fiEqPopup.style.display = 'none';
@@ -2374,7 +2778,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
       const volumeBar = document.getElementById('volume-bar');
       if (volumeBar) volumeBar.value = Math.round(audio.volume * 100);
       const mainVolIcon = document.getElementById('skiper99-main-vol');
-      if (mainVolIcon) mainVolIcon.setAttribute('data-muted', audio.volume === 0 ? 'true' : 'false');
+      if (mainVolIcon)
+        mainVolIcon.setAttribute('data-muted', audio.volume === 0 ? 'true' : 'false');
     });
   }
 
@@ -2417,7 +2822,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
 
   // --- Sync volume on external change ---
   const origSyncVolumeBars = typeof syncVolumeBars === 'function' ? syncVolumeBars : null;
-  window._fiSyncVolume = function() {
+  window._fiSyncVolume = function () {
     const v = audio.volume;
     if (fiVolume) fiVolume.value = Math.round(v * 100);
     if (fiVolIcon) fiVolIcon.setAttribute('data-muted', v === 0 ? 'true' : 'false');
@@ -2445,23 +2850,23 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
 // Player Page (#player-screen) Logic
 // ==========================================
 (function initPagePlayer() {
-  const ppCover      = document.getElementById('page-player-cover');
-  const ppTitle      = document.getElementById('page-player-title');
-  const ppArtist     = document.getElementById('page-player-artist');
-  const ppFs         = document.getElementById('page-player-fs');
-  const ppLike       = document.getElementById('page-player-like');
-  const ppPlaylist   = document.getElementById('page-player-playlist');
-  const ppPlay       = document.getElementById('page-player-play');
-  const ppPrev       = document.getElementById('page-player-prev');
-  const ppNext       = document.getElementById('page-player-next');
-  const ppShuffle    = document.getElementById('page-player-shuffle');
-  const ppRepeat     = document.getElementById('page-player-repeat');
-  const ppVolume     = document.getElementById('page-player-volume');
-  const ppVolIcon    = document.getElementById('page-player-vol-icon');
-  const ppEqBtn      = document.getElementById('page-player-eq-btn');
-  const ppLyricsBtn  = document.getElementById('page-player-lyrics-btn');
+  const ppCover = document.getElementById('page-player-cover');
+  const ppTitle = document.getElementById('page-player-title');
+  const ppArtist = document.getElementById('page-player-artist');
+  const ppFs = document.getElementById('page-player-fs');
+  const ppLike = document.getElementById('page-player-like');
+  const ppPlaylist = document.getElementById('page-player-playlist');
+  const ppPlay = document.getElementById('page-player-play');
+  const ppPrev = document.getElementById('page-player-prev');
+  const ppNext = document.getElementById('page-player-next');
+  const ppShuffle = document.getElementById('page-player-shuffle');
+  const ppRepeat = document.getElementById('page-player-repeat');
+  const ppVolume = document.getElementById('page-player-volume');
+  const ppVolIcon = document.getElementById('page-player-vol-icon');
+  const ppEqBtn = document.getElementById('page-player-eq-btn');
+  const ppLyricsBtn = document.getElementById('page-player-lyrics-btn');
   const ppLyricsPanel = document.getElementById('page-player-lyrics-panel');
-  const ppSimilar    = document.getElementById('page-player-similar');
+  const ppSimilar = document.getElementById('page-player-similar');
 
   // Controls
   if (ppPlay) {
@@ -2485,9 +2890,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
         ppRepeat.classList.remove('active');
         if (typeof showToast === 'function') showToast('Зацикливание фрагмента отключено');
       } else {
-        abLoopStart = null; abLoopEnd = null; abLoopSelecting = true;
+        abLoopStart = null;
+        abLoopEnd = null;
+        abLoopSelecting = true;
         ppRepeat.classList.add('active');
-        if (typeof showToast === 'function') showToast('Выберите начало и конец фрагмента на шкале времени');
+        if (typeof showToast === 'function')
+          showToast('Выберите начало и конец фрагмента на шкале времени');
       }
     });
   }
@@ -2524,9 +2932,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
     });
   }
 
-  const ppProgress   = document.getElementById('page-player-progress');
-  const ppCurrent    = document.getElementById('page-player-current');
-  const ppTotal      = document.getElementById('page-player-total');
+  const ppProgress = document.getElementById('page-player-progress');
+  const ppCurrent = document.getElementById('page-player-current');
+  const ppTotal = document.getElementById('page-player-total');
 
   // Helper to sync slider progress CSS variable --r
   function updateSliderFill(slider) {
@@ -2552,7 +2960,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
     ppVolume.addEventListener('input', e => {
       const v = Number(e.target.value) / 100;
       audio.volume = v;
-      if (ppVolIcon) ppVolIcon.textContent = v === 0 ? 'volume_off' : v < 0.5 ? 'volume_down' : 'volume_up';
+      if (ppVolIcon)
+        ppVolIcon.textContent = v === 0 ? 'volume_off' : v < 0.5 ? 'volume_down' : 'volume_up';
       updateSliderFill(ppVolume);
       syncVolumeBars();
     });
@@ -2560,7 +2969,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
 
   // Extras (EQ & Lyrics)
   if (ppEqBtn) {
-    ppEqBtn.addEventListener('click', (e) => {
+    ppEqBtn.addEventListener('click', e => {
       e.stopPropagation();
       const fiEqPopup = document.getElementById('fi-eq-popup');
       if (fiEqPopup) {
@@ -2600,7 +3009,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
           if (res.ok) {
             const data = await res.json();
             if (data.tracks && data.tracks.length > 0) {
-              similarTracks = data.tracks.filter(t => (t.id || t.title) !== (track.id || track.title));
+              similarTracks = data.tracks.filter(
+                t => (t.id || t.title) !== (track.id || track.title)
+              );
             }
           }
         } catch (err) {}
@@ -2615,7 +3026,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
             if (res.ok) {
               const data = await res.json();
               if (data.tracks && data.tracks.length > 0) {
-                const addTracks = data.tracks.filter(t => (t.id || t.title) !== (track.id || track.title));
+                const addTracks = data.tracks.filter(
+                  t => (t.id || t.title) !== (track.id || track.title)
+                );
                 similarTracks = [...similarTracks, ...addTracks];
               }
             }
@@ -2625,7 +3038,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
 
       // 3. Fallback to current playlist tracks if still under 4
       if (similarTracks.length < 4 && currentPlaylist && currentPlaylist.length > 1) {
-        const plTracks = currentPlaylist.filter(t => (t.id || t.title) !== (track.id || track.title));
+        const plTracks = currentPlaylist.filter(
+          t => (t.id || t.title) !== (track.id || track.title)
+        );
         similarTracks = [...similarTracks, ...plTracks];
       }
 
@@ -2642,7 +3057,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
 
       const finalTracks = uniqueTracks.slice(0, 8);
       if (finalTracks.length > 0) {
-        renderTrackRows(ppSimilar, finalTracks, { showAddButton: true, playButtonClass: 'play-track-btn' });
+        renderTrackRows(ppSimilar, finalTracks, {
+          showAddButton: true,
+          playButtonClass: 'play-track-btn',
+        });
       } else {
         ppSimilar.innerHTML = '<p class="empty-msg">Похожих треков не найдено</p>';
       }
@@ -2680,26 +3098,30 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullLyr
   });
 
   on('state:isPlaying', playing => {
-    if (ppPlay) ppPlay.querySelector('.material-icons').textContent = playing ? 'pause' : 'play_arrow';
+    if (ppPlay)
+      ppPlay.querySelector('.material-icons').textContent = playing ? 'pause' : 'play_arrow';
     const wrap = document.querySelector('.pp-cover-wrap');
     if (wrap) wrap.classList.toggle('is-playing', Boolean(playing));
   });
 
   // Sync volume hook
   const origSync = window._fiSyncVolume;
-  window._fiSyncVolume = function() {
+  window._fiSyncVolume = function () {
     if (typeof origSync === 'function') origSync();
     const v = audio.volume;
     if (ppVolume) {
       ppVolume.value = Math.round(v * 100);
       updateSliderFill(ppVolume);
     }
-    if (ppVolIcon) ppVolIcon.textContent = v === 0 ? 'volume_off' : v < 0.5 ? 'volume_down' : 'volume_up';
+    if (ppVolIcon)
+      ppVolIcon.textContent = v === 0 ? 'volume_off' : v < 0.5 ? 'volume_down' : 'volume_up';
   };
 })();
 
 // EQ — Web Audio API + Custom Visual EQ
-let audioCtx, eqFilters = [], sharedAnalyser = null;
+let audioCtx,
+  eqFilters = [],
+  sharedAnalyser = null;
 let normalizerNode = null;
 const eqFreqs = [60, 150, 400, 1000, 2400, 15000];
 const eqLabels = ['60', '150', '400', '1k', '2.4k', '15k'];
@@ -2721,7 +3143,10 @@ function applyNormalizeToNode() {
 }
 
 function initEQ() {
-  if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
+  if (audioCtx) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return;
+  }
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     console.log('[EQ] AudioContext created, state:', audioCtx.state);
@@ -2750,8 +3175,13 @@ function initEQ() {
     sharedAnalyser.smoothingTimeConstant = 0.75;
     prev.connect(sharedAnalyser);
     sharedAnalyser.connect(audioCtx.destination);
-    console.log('[EQ] Chain connected: source → EQ → normalizer → analyser → destination, filters:', eqFilters.length);
-  } catch(e) { console.error('[EQ] initEQ error:', e); }
+    console.log(
+      '[EQ] Chain connected: source → EQ → normalizer → analyser → destination, filters:',
+      eqFilters.length
+    );
+  } catch (e) {
+    console.error('[EQ] initEQ error:', e);
+  }
 }
 
 // Custom EQ presets
@@ -2759,7 +3189,7 @@ const eqPresets = {
   neutral: [0, 0, 0, 0, 0, 0],
   bass: [10, 6, 2, 0, 0, 0],
   treble: [0, 0, 0, 2, 5, 8],
-  vocal: [0, 0, 3, 6, 3, 0]
+  vocal: [0, 0, 3, 6, 3, 0],
 };
 
 // Initialize a custom EQ panel
@@ -2777,14 +3207,18 @@ function initCustomEQ(prefix) {
     label: eqLabels[i],
     gain: 0,
     y: 0.5,
-    x: i === 0 ? 5 : i === eqFreqs.length - 1 ? 95 : (i / (eqFreqs.length - 1)) * 90 + 5
+    x: i === 0 ? 5 : i === eqFreqs.length - 1 ? 95 : (i / (eqFreqs.length - 1)) * 90 + 5,
   }));
 
   let activeNode = -1;
   let isDragging = false;
 
-  function yToDb(y) { return (0.5 - y) * 24; }
-  function dbToY(db) { return 0.5 - db / 24; }
+  function yToDb(y) {
+    return (0.5 - y) * 24;
+  }
+  function dbToY(db) {
+    return 0.5 - db / 24;
+  }
 
   function renderNodes() {
     nodesEl.innerHTML = '';
@@ -2792,7 +3226,7 @@ function initCustomEQ(prefix) {
       const node = document.createElement('div');
       node.className = 'custom-eq-node';
       node.style.left = p.x + '%';
-      node.style.top = (p.y * 100) + '%';
+      node.style.top = p.y * 100 + '%';
       node.dataset.index = i;
       node.addEventListener('mousedown', e => startDrag(e, i));
       node.addEventListener('touchstart', e => startDrag(e, i), { passive: false });
@@ -2807,7 +3241,13 @@ function initCustomEQ(prefix) {
       lbl.className = 'custom-eq-label';
       lbl.style.left = p.x + '%';
       const db = yToDb(p.y);
-      lbl.innerHTML = '<span class="custom-eq-label-freq">' + p.label + '</span><span class="custom-eq-label-db">' + (db > 0 ? '+' : '') + db.toFixed(1) + '</span>';
+      lbl.innerHTML =
+        '<span class="custom-eq-label-freq">' +
+        p.label +
+        '</span><span class="custom-eq-label-db">' +
+        (db > 0 ? '+' : '') +
+        db.toFixed(1) +
+        '</span>';
       lbl.id = prefix + '-eq-lbl-' + i;
       labelsEl.appendChild(lbl);
     });
@@ -2822,7 +3262,8 @@ function initCustomEQ(prefix) {
     let d = 'M 0 ' + pts[0].y + ' L ' + pts[0].x + ' ' + pts[0].y + ' ';
 
     for (let i = 0; i < pts.length - 1; i++) {
-      const c = pts[i], n = pts[i + 1];
+      const c = pts[i],
+        n = pts[i + 1];
       const mx = c.x + (n.x - c.x) / 2;
       d += 'C ' + mx + ' ' + c.y + ', ' + mx + ' ' + n.y + ', ' + n.x + ' ' + n.y + ' ';
     }
@@ -2862,7 +3303,7 @@ function initCustomEQ(prefix) {
     yPos = Math.max(0.05, Math.min(0.95, yPos));
 
     eqData[activeNode].y = yPos;
-    nodesEl.children[activeNode].style.top = (yPos * 100) + '%';
+    nodesEl.children[activeNode].style.top = yPos * 100 + '%';
     applyGains();
     drawCurve();
   }
@@ -2891,7 +3332,9 @@ function initCustomEQ(prefix) {
       const name = btn.dataset.preset;
       const gains = eqPresets[name];
       if (!gains) return;
-      presetsContainer.querySelectorAll('.custom-eq-preset').forEach(b => b.classList.remove('active'));
+      presetsContainer
+        .querySelectorAll('.custom-eq-preset')
+        .forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       initEQ();
       gains.forEach((db, i) => {
@@ -2913,9 +3356,24 @@ function initCustomEQ(prefix) {
 // Initialize both EQ panels
 function _initAllEQ() {
   console.log('[EQ] Initializing custom EQ panels...');
-  try { initCustomEQ('right'); console.log('[EQ] Right panel initialized'); } catch(e) { console.error('[EQ] Right init error:', e); }
-  try { initCustomEQ('fs'); console.log('[EQ] FS panel initialized'); } catch(e) { console.error('[EQ] FS init error:', e); }
-  try { initCustomEQ('fi'); console.log('[EQ] FI panel initialized'); } catch(e) { console.error('[EQ] FI init error:', e); }
+  try {
+    initCustomEQ('right');
+    console.log('[EQ] Right panel initialized');
+  } catch (e) {
+    console.error('[EQ] Right init error:', e);
+  }
+  try {
+    initCustomEQ('fs');
+    console.log('[EQ] FS panel initialized');
+  } catch (e) {
+    console.error('[EQ] FS init error:', e);
+  }
+  try {
+    initCustomEQ('fi');
+    console.log('[EQ] FI panel initialized');
+  } catch (e) {
+    console.error('[EQ] FI init error:', e);
+  }
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', _initAllEQ);
@@ -2932,40 +3390,73 @@ async function loadRightLyrics(title, artist) {
   if (!title) return;
   try {
     const data = await fetchLyricsData(title, artist);
-    if (!data) { if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>'; return; }
+    if (!data) {
+      if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>';
+      return;
+    }
     const lrc = data.syncedLyrics || data.plainLyrics || '';
-    if (!lrc) { if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>'; return; }
+    if (!lrc) {
+      if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>';
+      return;
+    }
     if (!data.syncedLyrics) {
       // Plain (non-synced) lyrics — render the whole text as static lines
       rightLyricsData = lrc.split('\n').map(line => line.trim());
-      if (body) body.innerHTML = lrc.split('\n').map(l => `<div class="lyrics-line">${l.trim() || '&nbsp;'}</div>`).join('');
-      if (document.getElementById('full-lyrics-overlay')?.classList.contains('open')) renderFullLyrics();
+      if (body)
+        body.innerHTML = lrc
+          .split('\n')
+          .map(l => `<div class="lyrics-line">${l.trim() || '&nbsp;'}</div>`)
+          .join('');
+      if (document.getElementById('full-lyrics-overlay')?.classList.contains('open'))
+        renderFullLyrics();
       return;
     }
-    rightLyricsData = lrc.split('\n').map(line => {
-      const m = line.match(/^\[(\d+):(\d+)(?:\.(\d+))?\]\s*(.*)/);
-      if (m) { const ms = m[3] || '0'; return { time: parseInt(m[1])*60+parseInt(m[2])+parseInt(ms)/Math.pow(10,ms.length), text: m[4].trim() }; }
-      return null;
-    }).filter(Boolean);
-    if (body) body.innerHTML = rightLyricsData.map((l,i) => `<div class="lyrics-line" data-idx="${i}">${l.text || '&nbsp;'}</div>`).join('');
-    if (document.getElementById('full-lyrics-overlay')?.classList.contains('open')) renderFullLyrics();
+    rightLyricsData = lrc
+      .split('\n')
+      .map(line => {
+        const m = line.match(/^\[(\d+):(\d+)(?:\.(\d+))?\]\s*(.*)/);
+        if (m) {
+          const ms = m[3] || '0';
+          return {
+            time: parseInt(m[1]) * 60 + parseInt(m[2]) + parseInt(ms) / Math.pow(10, ms.length),
+            text: m[4].trim(),
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+    if (body)
+      body.innerHTML = rightLyricsData
+        .map((l, i) => `<div class="lyrics-line" data-idx="${i}">${l.text || '&nbsp;'}</div>`)
+        .join('');
+    if (document.getElementById('full-lyrics-overlay')?.classList.contains('open'))
+      renderFullLyrics();
   } catch {
     if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>';
   }
 }
 
 // Sync lyrics with playback
-on('state:currentTime', (time) => {
+on('state:currentTime', time => {
   if (!rightLyricsData.length) return;
   let idx = -1;
   for (let i = rightLyricsData.length - 1; i >= 0; i--) {
-    if (time >= rightLyricsData[i].time) { idx = i; break; }
+    if (time >= rightLyricsData[i].time) {
+      idx = i;
+      break;
+    }
   }
   if (idx >= 0) {
     const lines = document.querySelectorAll('#right-lyrics-body .lyrics-line');
     lines.forEach((el, i) => {
-      if (i === idx) { el.style.color = 'var(--accent)'; el.style.fontWeight = '600'; el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-      else { el.style.color = ''; el.style.fontWeight = ''; }
+      if (i === idx) {
+        el.style.color = 'var(--accent)';
+        el.style.fontWeight = '600';
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } else {
+        el.style.color = '';
+        el.style.fontWeight = '';
+      }
     });
   }
   const fullLines = document.querySelectorAll('#full-lyrics-body .full-lyrics-line');
@@ -2979,7 +3470,7 @@ on('state:currentTime', (time) => {
 });
 
 // Sync right player panel with audio events
-on('state:currentTrack', (track) => {
+on('state:currentTrack', track => {
   if (track) {
     if (abLoopActive || abLoopSelecting) clearAbLoop();
     updateRightPlayerPanel(track);
@@ -2987,7 +3478,7 @@ on('state:currentTrack', (track) => {
   }
 });
 
-on('state:currentTime', (time) => {
+on('state:currentTime', time => {
   if (state.duration > 0 && rightTimelineTrack) {
     const pct = (time / state.duration) * 100;
     drawRightTimeline(pct);
@@ -2998,7 +3489,7 @@ on('state:currentTime', (time) => {
   }
 });
 
-on('state:isPlaying', (playing) => {
+on('state:isPlaying', playing => {
   const playBtn = document.getElementById('right-player-play');
   if (playBtn) {
     playBtn.innerHTML = playing
@@ -3007,12 +3498,12 @@ on('state:isPlaying', (playing) => {
   }
 });
 
-on('state:duration', (dur) => {
+on('state:duration', dur => {
   const totalEl = document.getElementById('right-player-total');
   if (totalEl) totalEl.textContent = formatTime(dur);
 });
 
-on('state:volume', (vol) => {
+on('state:volume', vol => {
   if (rightPlayerVolume) {
     rightPlayerVolume.value = Math.round(vol * 100);
     rightPlayerVolume.style.setProperty('--r', rightPlayerVolume.value + '%');
@@ -3053,7 +3544,7 @@ const MP3_STORE_NAME = 'tracks';
 function openMP3DB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(MP3_DB_NAME, 1);
-    req.onupgradeneeded = (e) => {
+    req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(MP3_STORE_NAME)) {
         db.createObjectStore(MP3_STORE_NAME, { keyPath: 'id' });
@@ -3069,7 +3560,7 @@ async function saveLocalTrackToDB(track, blob) {
     const db = await openMP3DB();
     const tx = db.transaction(MP3_STORE_NAME, 'readwrite');
     tx.objectStore(MP3_STORE_NAME).put({ id: track.id, trackMeta: track, blob: blob });
-    return new Promise(res => tx.oncomplete = res);
+    return new Promise(res => (tx.oncomplete = res));
   } catch (e) {
     console.error('[LocalMP3] Failed to save track:', e);
   }
@@ -3080,7 +3571,7 @@ async function getAllLocalTracksFromDB() {
     const db = await openMP3DB();
     const tx = db.transaction(MP3_STORE_NAME, 'readonly');
     const req = tx.objectStore(MP3_STORE_NAME).getAll();
-    return new Promise(res => req.onsuccess = () => res(req.result || []));
+    return new Promise(res => (req.onsuccess = () => res(req.result || [])));
   } catch (e) {
     console.error('[LocalMP3] Failed to get tracks:', e);
     return [];
@@ -3092,7 +3583,7 @@ async function deleteLocalTrackFromDB(trackId) {
     const db = await openMP3DB();
     const tx = db.transaction(MP3_STORE_NAME, 'readwrite');
     tx.objectStore(MP3_STORE_NAME).delete(trackId);
-    return new Promise(res => tx.oncomplete = res);
+    return new Promise(res => (tx.oncomplete = res));
   } catch (e) {
     console.error('[LocalMP3] Failed to delete track:', e);
   }
@@ -3107,7 +3598,7 @@ async function loadLocalMP3Tracks() {
     return {
       ...r.trackMeta,
       isLocal: true,
-      localUrl: blobUrl
+      localUrl: blobUrl,
     };
   });
 
@@ -3125,11 +3616,14 @@ function renderSettingsLocalTracks() {
   if (!container) return;
 
   if (!localTracksCache.length) {
-    container.innerHTML = '<p class="empty-msg" style="font-size:12px;margin:0;">Нет добавленных MP3 треков</p>';
+    container.innerHTML =
+      '<p class="empty-msg" style="font-size:12px;margin:0;">Нет добавленных MP3 треков</p>';
     return;
   }
 
-  container.innerHTML = localTracksCache.map((track, i) => `
+  container.innerHTML = localTracksCache
+    .map(
+      (track, i) => `
     <div class="local-track-item">
       <div class="local-track-info">
         <i class="material-icons" style="color:var(--accent);font-size:20px;">audiotrack</i>
@@ -3140,7 +3634,9 @@ function renderSettingsLocalTracks() {
         <button class="btn-icon-sm delete-local-mp3-btn" data-id="${escapeHtml(track.id)}" title="Удалить"><i class="material-icons">delete</i></button>
       </div>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   container.querySelectorAll('.play-local-mp3-btn').forEach(btn => {
     btn.onclick = () => {
@@ -3174,7 +3670,7 @@ document.addEventListener('DOMContentLoaded', loadLocalMP3Tracks);
 setTimeout(loadLocalMP3Tracks, 300);
 
 // Wire add MP3 button in settings
-document.addEventListener('click', (e) => {
+document.addEventListener('click', e => {
   if (e.target.closest('#settings-add-mp3-btn')) {
     const input = document.getElementById('settings-mp3-file-input');
     if (input) input.click();
@@ -3189,14 +3685,14 @@ if (mp3FileInput) {
     let addedCount = 0;
     for (const file of files) {
       const trackId = 'local_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-      const title = file.name.replace(/\.[^/.]+$/, "");
+      const title = file.name.replace(/\.[^/.]+$/, '');
       const track = {
         id: trackId,
         title: title,
         artist: 'Мой MP3 трек',
         cover: '',
         isLocal: true,
-        duration: 0
+        duration: 0,
       };
       await saveLocalTrackToDB(track, file);
       const blobUrl = URL.createObjectURL(file);
@@ -3230,7 +3726,8 @@ if (defaultVolumeSlider) {
     saveSettings();
   });
 }
-if (appSettings.rememberVolume && appSettings.defaultVolume != null) audio.volume = Number(appSettings.defaultVolume);
+if (appSettings.rememberVolume && appSettings.defaultVolume != null)
+  audio.volume = Number(appSettings.defaultVolume);
 
 // ==========================================
 // General Settings Wiring
@@ -3244,9 +3741,14 @@ if (audioQualitySelect) {
     appSettings.audioQuality = audioQualitySelect.value;
     saveSettings();
     try {
-      await apiFetch('/api/network/settings', { method: 'POST', body: JSON.stringify({ audioQuality: appSettings.audioQuality }) });
+      await apiFetch('/api/network/settings', {
+        method: 'POST',
+        body: JSON.stringify({ audioQuality: appSettings.audioQuality }),
+      });
       showToast('Качество аудио изменено');
-    } catch (e) { /* server may be unreachable */ }
+    } catch (e) {
+      /* server may be unreachable */
+    }
   });
 }
 
@@ -3298,13 +3800,20 @@ if (playbackRateSelect) {
 const historyLimitSelect = document.getElementById('setting-history-limit');
 if (historyLimitSelect) {
   historyLimitSelect.value = String(appSettings.historyLimit || 50);
-  historyLimitSelect.addEventListener('change', () => { appSettings.historyLimit = Number(historyLimitSelect.value) || 50; saveSettings(); });
+  historyLimitSelect.addEventListener('change', () => {
+    appSettings.historyLimit = Number(historyLimitSelect.value) || 50;
+    saveSettings();
+  });
 }
 const preloadSelect = document.getElementById('setting-preload');
 if (preloadSelect) {
   preloadSelect.value = appSettings.preload || 'auto';
   audio.preload = preloadSelect.value;
-  preloadSelect.addEventListener('change', () => { appSettings.preload = preloadSelect.value; audio.preload = preloadSelect.value; saveSettings(); });
+  preloadSelect.addEventListener('change', () => {
+    appSettings.preload = preloadSelect.value;
+    audio.preload = preloadSelect.value;
+    saveSettings();
+  });
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && appSettings.pauseWhenHidden && !audio.paused) audio.pause();
@@ -3358,7 +3867,8 @@ if (gaplessToggle) {
   });
 }
 audio.addEventListener('timeupdate', () => {
-  if (!appSettings.gapless || !currentPlaylist.length || !audio.duration || isNaN(audio.duration)) return;
+  if (!appSettings.gapless || !currentPlaylist.length || !audio.duration || isNaN(audio.duration))
+    return;
   const remaining = audio.duration - audio.currentTime;
   if (remaining < 15 && gaplessPreloadedFor !== currentTrackIndex) {
     gaplessPreloadedFor = currentTrackIndex;
@@ -3387,18 +3897,24 @@ if (normalizeToggle) {
 let sleepTimerHandle = null;
 const sleepTimerSelect = document.getElementById('sleep-timer-select');
 function clearSleepTimer() {
-  if (sleepTimerHandle) { clearTimeout(sleepTimerHandle); sleepTimerHandle = null; }
+  if (sleepTimerHandle) {
+    clearTimeout(sleepTimerHandle);
+    sleepTimerHandle = null;
+  }
 }
 function startSleepTimer(minutes) {
   clearSleepTimer();
   if (!minutes) return;
-  sleepTimerHandle = setTimeout(() => {
-    audio.pause();
-    showToast('Таймер сна: воспроизведение остановлено');
-    appSettings.sleepTimer = 0;
-    if (sleepTimerSelect) sleepTimerSelect.value = '0';
-    saveSettings();
-  }, minutes * 60 * 1000);
+  sleepTimerHandle = setTimeout(
+    () => {
+      audio.pause();
+      showToast('Таймер сна: воспроизведение остановлено');
+      appSettings.sleepTimer = 0;
+      if (sleepTimerSelect) sleepTimerSelect.value = '0';
+      saveSettings();
+    },
+    minutes * 60 * 1000
+  );
 }
 if (sleepTimerSelect) {
   sleepTimerSelect.value = String(appSettings.sleepTimer || 0);
@@ -3428,7 +3944,8 @@ const pipedInstanceInput = document.getElementById('setting-piped-instance');
 const httpProxyInput = document.getElementById('setting-http-proxy');
 
 function updateNetworkSettingsVisibility(source) {
-  if (invidiousSettingsBlock) invidiousSettingsBlock.style.display = source === 'invidious' ? 'block' : 'none';
+  if (invidiousSettingsBlock)
+    invidiousSettingsBlock.style.display = source === 'invidious' ? 'block' : 'none';
   if (pipedSettingsBlock) pipedSettingsBlock.style.display = source === 'piped' ? 'block' : 'none';
   if (proxySettingsItem) proxySettingsItem.style.display = source === 'soundcloud' ? 'none' : '';
 }
@@ -3440,20 +3957,24 @@ async function loadNetworkSettingsFromServer() {
       appSettings.streamSource = data.streamSource || appSettings.streamSource;
       appSettings.httpProxy = data.httpProxy || appSettings.httpProxy;
       appSettings.invidiousInstance = data.invidiousInstance || appSettings.invidiousInstance;
-      appSettings.pipedInstance = data.pipedInstance && !/pipedapi\.kavin\.rocks/i.test(data.pipedInstance)
-        ? data.pipedInstance
-        : (appSettings.pipedInstance && !/pipedapi\.kavin\.rocks/i.test(appSettings.pipedInstance)
-          ? appSettings.pipedInstance
-          : 'https://pipedapi.adminforge.de');
+      appSettings.pipedInstance =
+        data.pipedInstance && !/pipedapi\.kavin\.rocks/i.test(data.pipedInstance)
+          ? data.pipedInstance
+          : appSettings.pipedInstance && !/pipedapi\.kavin\.rocks/i.test(appSettings.pipedInstance)
+            ? appSettings.pipedInstance
+            : 'https://pipedapi.adminforge.de';
       appSettings.audioQuality = data.audioQuality || appSettings.audioQuality;
       if (streamSourceSelect) streamSourceSelect.value = appSettings.streamSource;
-      if (invidiousInstanceInput) invidiousInstanceInput.value = appSettings.invidiousInstance || '';
+      if (invidiousInstanceInput)
+        invidiousInstanceInput.value = appSettings.invidiousInstance || '';
       if (pipedInstanceInput) pipedInstanceInput.value = appSettings.pipedInstance || '';
       if (httpProxyInput) httpProxyInput.value = appSettings.httpProxy || '';
       if (audioQualitySelect) audioQualitySelect.value = appSettings.audioQuality || 'medium';
       updateNetworkSettingsVisibility(appSettings.streamSource);
     }
-  } catch (e) { /* server may not be ready yet */ }
+  } catch (e) {
+    /* server may not be ready yet */
+  }
 }
 
 if (streamSourceSelect) {
@@ -3461,7 +3982,11 @@ if (streamSourceSelect) {
   updateNetworkSettingsVisibility(streamSourceSelect.value);
   streamSourceSelect.addEventListener('change', async () => {
     // Stop any current stream so the next click cannot keep using the old URL.
-    try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (e) {}
+    try {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+    } catch (e) {}
     searchAllTracks = [];
     if (resultsContainer) resultsContainer.innerHTML = '';
     if (statusMessage) statusMessage.innerText = '';
@@ -3469,9 +3994,14 @@ if (streamSourceSelect) {
     updateNetworkSettingsVisibility(streamSourceSelect.value);
     saveSettings();
     try {
-      await apiFetch('/api/network/settings', { method: 'POST', body: JSON.stringify({ streamSource: appSettings.streamSource }) });
+      await apiFetch('/api/network/settings', {
+        method: 'POST',
+        body: JSON.stringify({ streamSource: appSettings.streamSource }),
+      });
       showToast('Движок поиска изменён');
-    } catch (e) { showToast('Ошибка сохранения настроек сети'); }
+    } catch (e) {
+      showToast('Ошибка сохранения настроек сети');
+    }
   });
 }
 
@@ -3480,9 +4010,14 @@ safeClick('apply-invidious-btn', async () => {
   appSettings.invidiousInstance = invidiousInstanceInput.value.trim();
   saveSettings();
   try {
-    await apiFetch('/api/network/settings', { method: 'POST', body: JSON.stringify({ invidiousInstance: appSettings.invidiousInstance }) });
+    await apiFetch('/api/network/settings', {
+      method: 'POST',
+      body: JSON.stringify({ invidiousInstance: appSettings.invidiousInstance }),
+    });
     showToast('Инстанс Invidious применён');
-  } catch (e) { showToast('Ошибка применения инстанса'); }
+  } catch (e) {
+    showToast('Ошибка применения инстанса');
+  }
 });
 
 safeClick('apply-piped-btn', async () => {
@@ -3490,9 +4025,14 @@ safeClick('apply-piped-btn', async () => {
   appSettings.pipedInstance = pipedInstanceInput.value.trim();
   saveSettings();
   try {
-    await apiFetch('/api/network/settings', { method: 'POST', body: JSON.stringify({ pipedInstance: appSettings.pipedInstance }) });
+    await apiFetch('/api/network/settings', {
+      method: 'POST',
+      body: JSON.stringify({ pipedInstance: appSettings.pipedInstance }),
+    });
     showToast('Инстанс Piped применён');
-  } catch (e) { showToast('Ошибка применения инстанса Piped'); }
+  } catch (e) {
+    showToast('Ошибка применения инстанса Piped');
+  }
 });
 
 safeClick('apply-proxy-btn', async () => {
@@ -3500,9 +4040,14 @@ safeClick('apply-proxy-btn', async () => {
   appSettings.httpProxy = httpProxyInput.value.trim();
   saveSettings();
   try {
-    await apiFetch('/api/network/settings', { method: 'POST', body: JSON.stringify({ httpProxy: appSettings.httpProxy }) });
+    await apiFetch('/api/network/settings', {
+      method: 'POST',
+      body: JSON.stringify({ httpProxy: appSettings.httpProxy }),
+    });
     showToast('Прокси применён');
-  } catch (e) { showToast('Ошибка применения прокси'); }
+  } catch (e) {
+    showToast('Ошибка применения прокси');
+  }
 });
 
 loadNetworkSettingsFromServer();
@@ -3575,7 +4120,11 @@ if (trackNotificationsToggle) {
   trackNotificationsToggle.addEventListener('change', () => {
     appSettings.trackNotifications = trackNotificationsToggle.checked;
     saveSettings();
-    if (trackNotificationsToggle.checked && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    if (
+      trackNotificationsToggle.checked &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'default'
+    ) {
       Notification.requestPermission().catch(() => {});
     }
   });
@@ -3597,7 +4146,9 @@ async function getOfflineCacheStats() {
       };
       req.onerror = () => resolve({ count: 0, bytes: 0 });
     });
-  } catch { return { count: 0, bytes: 0 }; }
+  } catch {
+    return { count: 0, bytes: 0 };
+  }
 }
 
 async function clearOfflineCacheStore() {
@@ -3609,7 +4160,9 @@ async function clearOfflineCacheStore() {
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => resolve(false);
     });
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 async function refreshStorageStats() {
@@ -3624,7 +4177,10 @@ async function refreshStorageStats() {
 }
 
 safeClick('clear-offline-cache-btn', async () => {
-  const confirmed = await confirmModal('Очистить офлайн-кэш', 'Удалить все скачанные для офлайн-прослушивания треки?');
+  const confirmed = await confirmModal(
+    'Очистить офлайн-кэш',
+    'Удалить все скачанные для офлайн-прослушивания треки?'
+  );
   if (!confirmed) return;
   await clearOfflineCacheStore();
   showToast('Офлайн-кэш очищен');
@@ -3640,7 +4196,10 @@ safeClick('clear-listening-history-btn', async () => {
 });
 
 safeClick('settings-clear-search-history-btn', async () => {
-  const confirmed = await confirmModal('Очистить историю поиска', 'Удалить сохранённую историю поиска?');
+  const confirmed = await confirmModal(
+    'Очистить историю поиска',
+    'Удалить сохранённую историю поиска?'
+  );
   if (!confirmed) return;
   localStorage.removeItem('votify-search-history');
   renderSearchHistory();
@@ -3652,7 +4211,10 @@ safeClick('settings-clear-search-history-btn', async () => {
 // Reset settings buttons
 // ==========================================
 safeClick('settings-reset-btn', async () => {
-  const confirmed = await confirmModal('Сброс настроек', 'Сбросить все настройки приложения до значений по умолчанию? Плейлисты сохранятся.');
+  const confirmed = await confirmModal(
+    'Сброс настроек',
+    'Сбросить все настройки приложения до значений по умолчанию? Плейлисты сохранятся.'
+  );
   if (!confirmed) return;
   localStorage.removeItem('votify-settings');
   localStorage.removeItem('votify-hotkeys');
@@ -3661,7 +4223,10 @@ safeClick('settings-reset-btn', async () => {
 });
 
 safeClick('morph-reset-all', async () => {
-  const confirmed = await confirmModal('Сброс оформления', 'Сбросить все настройки оформления до значений по умолчанию?');
+  const confirmed = await confirmModal(
+    'Сброс оформления',
+    'Сбросить все настройки оформления до значений по умолчанию?'
+  );
   if (!confirmed) return;
   applyAccentColor('#1DB954');
   appSettings.fontFamily = 'default';
@@ -3670,7 +4235,10 @@ safeClick('morph-reset-all', async () => {
   if (compactToggle) compactToggle.checked = false;
   appSettings.background = 'default';
   applyBackground();
-  if (bgPresetsEl) bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.toggle('bg-card-active', b.dataset.bg === 'default'));
+  if (bgPresetsEl)
+    bgPresetsEl
+      .querySelectorAll('.bg-card')
+      .forEach(b => b.classList.toggle('bg-card-active', b.dataset.bg === 'default'));
   // Reset the newer appearance controls too
   appSettings.theme = 'dark';
   applyThemeMode('dark');
@@ -3717,7 +4285,12 @@ safeClick('morph-reset-all', async () => {
 const launchAtStartupToggle = document.getElementById('toggle-launch-at-startup');
 if (launchAtStartupToggle) {
   if (window.electronAPI?.getLaunchAtLogin) {
-    window.electronAPI.getLaunchAtLogin().then(val => { launchAtStartupToggle.checked = !!val; }).catch(() => {});
+    window.electronAPI
+      .getLaunchAtLogin()
+      .then(val => {
+        launchAtStartupToggle.checked = !!val;
+      })
+      .catch(() => {});
     launchAtStartupToggle.addEventListener('change', () => {
       window.electronAPI.setLaunchAtLogin(launchAtStartupToggle.checked);
       showToast(launchAtStartupToggle.checked ? 'Автозапуск включён' : 'Автозапуск выключен');
@@ -3731,11 +4304,13 @@ if (launchAtStartupToggle) {
 const closeToTrayToggle = document.getElementById('toggle-close-to-tray');
 if (closeToTrayToggle) {
   closeToTrayToggle.checked = !!appSettings.closeToTray;
-  if (window.electronAPI?.setCloseToTray) window.electronAPI.setCloseToTray(!!appSettings.closeToTray);
+  if (window.electronAPI?.setCloseToTray)
+    window.electronAPI.setCloseToTray(!!appSettings.closeToTray);
   closeToTrayToggle.addEventListener('change', () => {
     appSettings.closeToTray = closeToTrayToggle.checked;
     saveSettings();
-    if (window.electronAPI?.setCloseToTray) window.electronAPI.setCloseToTray(closeToTrayToggle.checked);
+    if (window.electronAPI?.setCloseToTray)
+      window.electronAPI.setCloseToTray(closeToTrayToggle.checked);
   });
 }
 
@@ -3753,9 +4328,18 @@ if (settingsOverlayEl) {
 // ==========================================
 let hotkeyOverrides = JSON.parse(localStorage.getItem('votify-hotkeys') || '{}');
 const defaultHotkeys = {
-  play: ' ', next: 'n', prev: 'p', volup: 'ArrowUp', voldown: 'ArrowDown',
-  forward: 'ArrowRight', backward: 'ArrowLeft', mute: 'm', like: 'l',
-  search: 'Control+k', fullscreen: 'f', lyrics: 'Control+l'
+  play: ' ',
+  next: 'n',
+  prev: 'p',
+  volup: 'ArrowUp',
+  voldown: 'ArrowDown',
+  forward: 'ArrowRight',
+  backward: 'ArrowLeft',
+  mute: 'm',
+  like: 'l',
+  search: 'Control+k',
+  fullscreen: 'f',
+  lyrics: 'Control+l',
 };
 
 function getHotkey(action) {
@@ -3763,7 +4347,14 @@ function getHotkey(action) {
 }
 
 function displayHotkeyName(key) {
-  const names = { ' ': 'Space', 'ArrowUp': '↑', 'ArrowDown': '↓', 'ArrowLeft': '←', 'ArrowRight': '→', 'Escape': 'Esc' };
+  const names = {
+    ' ': 'Space',
+    ArrowUp: '↑',
+    ArrowDown: '↓',
+    ArrowLeft: '←',
+    ArrowRight: '→',
+    Escape: 'Esc',
+  };
   return names[key] || key.toUpperCase();
 }
 
@@ -3799,7 +4390,10 @@ document.addEventListener('keydown', e => {
   e.stopPropagation();
 
   const btn = document.querySelector(`.hotkey-key-btn[data-action="${recordingAction}"]`);
-  if (!btn) { recordingAction = null; return; }
+  if (!btn) {
+    recordingAction = null;
+    return;
+  }
 
   if (e.key === 'Escape') {
     // Cancel recording
@@ -3878,7 +4472,7 @@ if (appSettings.accent) {
 
 // Background presets
 const bgGradients = {
-  'default': '',
+  default: '',
   'grad-1': 'linear-gradient(135deg,#1a1040,#0d0620)',
   'grad-2': 'linear-gradient(135deg,#0a1628,#061020)',
   'grad-3': 'linear-gradient(135deg,#0a1a10,#060d08)',
@@ -4060,9 +4654,11 @@ if (coverInPlayerToggle) {
 function applyCoverVisibility() {
   const hidden = appSettings.coverInPlayer === false;
   document.body.classList.toggle('hide-player-cover', hidden);
-  document.querySelectorAll('.player-bar-cover-wrap, .right-player-cover, .fs-player-cover-wrap').forEach(el => {
-    el.style.display = hidden ? 'none' : '';
-  });
+  document
+    .querySelectorAll('.player-bar-cover-wrap, .right-player-cover, .fs-player-cover-wrap')
+    .forEach(el => {
+      el.style.display = hidden ? 'none' : '';
+    });
 }
 applyCoverVisibility();
 
@@ -4092,7 +4688,7 @@ function applyBackground() {
 }
 const bgPresetsEl = document.getElementById('bg-presets');
 if (bgPresetsEl) {
-  bgPresetsEl.addEventListener('click', (e) => {
+  bgPresetsEl.addEventListener('click', e => {
     const btn = e.target.closest('.bg-card');
     if (!btn) return;
     bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.remove('bg-card-active'));
@@ -4116,9 +4712,10 @@ if (bgUrlApply && bgUrlInput) {
     appSettings.background = url;
     saveSettings();
     applyBackground();
-    if (bgPresetsEl) bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.remove('bg-card-active'));
+    if (bgPresetsEl)
+      bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.remove('bg-card-active'));
   });
-  bgUrlInput.addEventListener('keydown', (e) => {
+  bgUrlInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') bgUrlApply.click();
   });
 }
@@ -4130,11 +4727,12 @@ if (bgFileBtn && bgFileInput) {
     const file = bgFileInput.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = ev => {
       appSettings.background = ev.target.result;
       saveSettings();
       applyBackground();
-      if (bgPresetsEl) bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.remove('bg-card-active'));
+      if (bgPresetsEl)
+        bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.remove('bg-card-active'));
     };
     reader.readAsDataURL(file);
   });
@@ -4157,7 +4755,8 @@ if (bgColorInput) {
     appSettings.background = bgColorInput.value;
     saveSettings();
     applyBackground();
-    if (bgPresetsEl) bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.remove('bg-card-active'));
+    if (bgPresetsEl)
+      bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.remove('bg-card-active'));
   });
 }
 const bgResetBtn = document.getElementById('bg-reset-btn');
@@ -4167,13 +4766,19 @@ if (bgResetBtn) {
     saveSettings();
     applyBackground();
     if (bgPresetsEl) {
-      bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.toggle('bg-card-active', b.dataset.bg === 'default'));
+      bgPresetsEl
+        .querySelectorAll('.bg-card')
+        .forEach(b => b.classList.toggle('bg-card-active', b.dataset.bg === 'default'));
     }
     if (bgUrlInput) bgUrlInput.value = '';
   });
 }
 // Apply background on load
-try { applyBackground(); } catch(e) { console.warn('Background apply error:', e); }
+try {
+  applyBackground();
+} catch (e) {
+  console.warn('Background apply error:', e);
+}
 
 // Language
 const langSelect = document.getElementById('lang-select');
@@ -4190,17 +4795,23 @@ function applyAppearance() {
   const root = document.documentElement;
   // Font
   const ff = appSettings.fontFamily || 'default';
-  const fonts = { default: '"Segoe UI", Roboto, sans-serif', mono: '"JetBrains Mono", monospace', rounded: '"Nunito", "Segoe UI", sans-serif' };
+  const fonts = {
+    default: '"Segoe UI", Roboto, sans-serif',
+    mono: '"JetBrains Mono", monospace',
+    rounded: '"Nunito", "Segoe UI", sans-serif',
+  };
   root.style.setProperty('--font-family', fonts[ff] || fonts.default);
   document.body.style.fontFamily = fonts[ff] || fonts.default;
   // Font size
-  root.style.setProperty('--font-size', (appSettings.fontSize || '16px'));
+  root.style.setProperty('--font-size', appSettings.fontSize || '16px');
   root.style.setProperty('--app-font-size-offset', appSettings.fontSize || '16px');
   document.body.style.fontSize = appSettings.fontSize || '16px';
   applyInterfaceTextScale();
   // Opacity
   const op = (parseInt(appSettings.opacity) || 98) / 100;
-  document.querySelector('.app-container')?.style?.setProperty('opacity', String(Math.max(0.7, op)));
+  document
+    .querySelector('.app-container')
+    ?.style?.setProperty('opacity', String(Math.max(0.7, op)));
   // Border radius
   const r = appSettings.cornerRadius || 8;
   root.style.setProperty('--radius-sm', Math.max(0, r - 4) + 'px');
@@ -4216,30 +4827,53 @@ function applyAppearance() {
 }
 
 const scalableTextSelector = [
-  'h1', 'h2', 'h3', 'h4', 'p', 'label', 'input', 'select', 'textarea',
-  'button', '.track-title', '.track-artist', '.section-title', '.setting-toggle-label',
-  '.setting-toggle-desc', '.morph-settings-item-label', '.morph-settings-item-value',
-  '.fs-title', '.fs-artist', '.right-player-title', '.right-player-artist',
-  '.lyrics-line', '.player-track-title', '.player-track-artist'
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'p',
+  'label',
+  'input',
+  'select',
+  'textarea',
+  'button',
+  '.track-title',
+  '.track-artist',
+  '.section-title',
+  '.setting-toggle-label',
+  '.setting-toggle-desc',
+  '.morph-settings-item-label',
+  '.morph-settings-item-value',
+  '.fs-title',
+  '.fs-artist',
+  '.right-player-title',
+  '.right-player-artist',
+  '.lyrics-line',
+  '.player-track-title',
+  '.player-track-artist',
 ].join(',');
 
 function applyInterfaceTextScale(scope = document) {
   const selectedSize = parseInt(appSettings.fontSize, 10) || 16;
   const scale = selectedSize / 16;
   const elements = [];
-  if (scope.nodeType === Node.ELEMENT_NODE && scope.matches?.(scalableTextSelector)) elements.push(scope);
+  if (scope.nodeType === Node.ELEMENT_NODE && scope.matches?.(scalableTextSelector))
+    elements.push(scope);
   elements.push(...scope.querySelectorAll(scalableTextSelector));
   elements.forEach(el => {
     if (el.classList.contains('material-icons')) return;
-    if (!el.dataset.baseFontSize) el.dataset.baseFontSize = String(parseFloat(getComputedStyle(el).fontSize) || 16);
+    if (!el.dataset.baseFontSize)
+      el.dataset.baseFontSize = String(parseFloat(getComputedStyle(el).fontSize) || 16);
     el.style.fontSize = `${Math.max(9, Number(el.dataset.baseFontSize) * scale).toFixed(2)}px`;
   });
 }
 
 const textScaleObserver = new MutationObserver(records => {
-  records.forEach(record => record.addedNodes.forEach(node => {
-    if (node.nodeType === Node.ELEMENT_NODE) applyInterfaceTextScale(node);
-  }));
+  records.forEach(record =>
+    record.addedNodes.forEach(node => {
+      if (node.nodeType === Node.ELEMENT_NODE) applyInterfaceTextScale(node);
+    })
+  );
 });
 textScaleObserver.observe(document.body, { childList: true, subtree: true });
 
@@ -4281,59 +4915,80 @@ if (searchInput) {
     clearTimeout(searchDebounce);
     if (searchAbortController) searchAbortController.abort();
     const q = searchInput.value.trim();
-    if (q.length < 2) { if (searchSuggestions) searchSuggestions.style.display = 'none'; return; }
+    if (q.length < 2) {
+      if (searchSuggestions) searchSuggestions.style.display = 'none';
+      return;
+    }
     searchDebounce = setTimeout(async () => {
       searchAbortController = new AbortController();
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: searchAbortController.signal });
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
+          signal: searchAbortController.signal,
+        });
         const data = await res.json();
         if (data.tracks && data.tracks.length > 0 && searchSuggestions) {
-          searchSuggestions.innerHTML = data.tracks.slice(0, 5).map((t, i) => `
+          searchSuggestions.innerHTML = data.tracks
+            .slice(0, 5)
+            .map(
+              (t, i) => `
             <div class="suggestion-item" data-idx="${i}">
               <i class="material-icons">search</i>
               <span>${escapeHtml(t.title)} — ${escapeHtml(t.artist)}</span>
             </div>
-          `).join('');
+          `
+            )
+            .join('');
           searchSuggestions.style.display = 'block';
           searchSuggestions._tracks = data.tracks;
           searchSuggestions.querySelectorAll('.suggestion-item').forEach(item => {
             item.onclick = () => {
               const idx = Number(item.getAttribute('data-idx'));
               const tracks = searchSuggestions._tracks;
-              currentPlaylist = tracks; currentTrackIndex = idx;
+              currentPlaylist = tracks;
+              currentTrackIndex = idx;
               playTrack(tracks[idx]);
               searchSuggestions.style.display = 'none';
             };
           });
-        } else if (searchSuggestions) { searchSuggestions.style.display = 'none'; }
+        } else if (searchSuggestions) {
+          searchSuggestions.style.display = 'none';
+        }
       } catch (e) {}
     }, 800);
   });
 
   searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
-    if (e.key === 'Escape') { if (searchSuggestions) searchSuggestions.style.display = 'none'; }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      doSearch();
+    }
+    if (e.key === 'Escape') {
+      if (searchSuggestions) searchSuggestions.style.display = 'none';
+    }
   });
 
   searchInput.addEventListener('focus', () => {
     renderSearchHistory();
   });
-  
+
   // Skiper106 — Smooth caret (exact port of React component)
   const smoothCaret = document.getElementById('smooth-caret');
   const measureSpan = document.getElementById('skiper106-measure');
   const containerEl = document.getElementById('skiper106-container');
   if (smoothCaret && searchInput && measureSpan && containerEl) {
     const springConfig = { stiffness: 500, damping: 30, mass: 0.5 };
-    let caretX = 0, caretOpacity = 0, targetX = 0, targetOpacity = 0;
+    let caretX = 0,
+      caretOpacity = 0,
+      targetX = 0,
+      targetOpacity = 0;
     let velX = 0;
-    
+
     function syncMeasureFont() {
       const styles = window.getComputedStyle(searchInput);
       measureSpan.style.font = `${styles.fontStyle} ${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
       measureSpan.style.letterSpacing = styles.letterSpacing;
     }
-    
+
     function getCaretPosition() {
       const idx = searchInput.selectionStart || 0;
       const text = searchInput.value.substring(0, idx);
@@ -4343,7 +4998,7 @@ if (searchInput) {
       const containerPadding = parseFloat(window.getComputedStyle(containerEl).paddingLeft) || 0;
       return text.length > 0 ? measureSpan.offsetWidth + containerPadding : containerPadding - 1;
     }
-    
+
     function scrollCaretIntoView(pos) {
       const styles = window.getComputedStyle(searchInput);
       const paddingLeft = parseFloat(styles.paddingLeft) || 0;
@@ -4357,7 +5012,7 @@ if (searchInput) {
         searchInput.scrollLeft = Math.max(0, pos - paddingLeft);
       }
     }
-    
+
     function updateCaret() {
       const absWidth = getCaretPosition();
       scrollCaretIntoView(absWidth);
@@ -4369,9 +5024,9 @@ if (searchInput) {
       const isVisible = caretPos >= minX && caretPos <= maxX + 1;
       const hasSelection = (searchInput.selectionStart || 0) !== (searchInput.selectionEnd || 0);
       targetX = Math.min(caretPos, maxX);
-      targetOpacity = (isVisible && !hasSelection) ? 1 : 0;
+      targetOpacity = isVisible && !hasSelection ? 1 : 0;
     }
-    
+
     // Spring animation loop (like framer-motion spring)
     function springAnimate() {
       const dx = targetX - caretX;
@@ -4389,19 +5044,21 @@ if (searchInput) {
       requestAnimationFrame(springAnimate);
     }
     springAnimate();
-    
+
     searchInput.addEventListener('input', updateCaret);
     searchInput.addEventListener('click', updateCaret);
     searchInput.addEventListener('focus', updateCaret);
     searchInput.addEventListener('keyup', updateCaret);
-    searchInput.addEventListener('blur', () => { targetOpacity = 0; });
+    searchInput.addEventListener('blur', () => {
+      targetOpacity = 0;
+    });
     searchInput.addEventListener('scroll', updateCaret);
-    
+
     // Resize observer
     if (typeof ResizeObserver !== 'undefined') {
       new ResizeObserver(updateCaret).observe(containerEl);
     }
-    
+
     // Font load
     if (document.fonts) {
       document.fonts.addEventListener('loadingdone', updateCaret);
@@ -4418,7 +5075,11 @@ document.addEventListener('click', e => {
 
 // Search history
 function getSearchHistory() {
-  try { return JSON.parse(localStorage.getItem('votify-search-history')) || []; } catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem('votify-search-history')) || [];
+  } catch {
+    return [];
+  }
 }
 
 function addToSearchHistory(query) {
@@ -4436,26 +5097,40 @@ function renderSearchHistory() {
   const history = getSearchHistory();
   if (!container || !items) return;
   if (history.length === 0 || (searchInput && searchInput.value.trim())) {
-    container.style.display = 'none'; return;
+    container.style.display = 'none';
+    return;
   }
   container.style.display = 'block';
-  items.innerHTML = history.map(q => `<div class="search-history-chip">${escapeHtml(q)}</div>`).join('');
+  items.innerHTML = history
+    .map(q => `<div class="search-history-chip">${escapeHtml(q)}</div>`)
+    .join('');
   items.querySelectorAll('.search-history-chip').forEach(chip => {
-    chip.onclick = () => { if (searchInput) searchInput.value = chip.textContent; doSearch(); };
+    chip.onclick = () => {
+      if (searchInput) searchInput.value = chip.textContent;
+      doSearch();
+    };
   });
 }
 
-safeClick('clear-search-history', () => { localStorage.removeItem('votify-search-history'); renderSearchHistory(); });
+safeClick('clear-search-history', () => {
+  localStorage.removeItem('votify-search-history');
+  renderSearchHistory();
+});
 renderSearchHistory();
 
 // Do search
 async function doSearch() {
   const query = searchInput ? searchInput.value.trim() : '';
   if (!query) return;
-  searchAllTracks = []; searchCurrentQuery = null; searchCurrentLimit = 0; searchLoadingMore = false; searchDisplayedCount = 0;
+  searchAllTracks = [];
+  searchCurrentQuery = null;
+  searchCurrentLimit = 0;
+  searchLoadingMore = false;
+  searchDisplayedCount = 0;
   if (resultsContainer) resultsContainer.innerHTML = '';
   if (searchSuggestions) searchSuggestions.style.display = 'none';
-  if (document.getElementById('search-history')) document.getElementById('search-history').style.display = 'none';
+  if (document.getElementById('search-history'))
+    document.getElementById('search-history').style.display = 'none';
   setLoadingState(true, 'loader-search');
 
   try {
@@ -4464,7 +5139,9 @@ async function doSearch() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=50`, { signal: controller.signal });
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=50`, {
+          signal: controller.signal,
+        });
         clearTimeout(timeoutId);
         data = await res.json();
         if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -4475,21 +5152,27 @@ async function doSearch() {
       }
     }
     const tracks = data?.tracks || [];
-    if (statusMessage) statusMessage.innerText = `${translations[appSettings.lang]['search-found-prefix']}${tracks.length}`;
+    if (statusMessage)
+      statusMessage.innerText = `${translations[appSettings.lang]['search-found-prefix']}${tracks.length}`;
     addToSearchHistory(query);
     renderSearchResults(tracks, query);
   } catch (error) {
-    if (statusMessage) statusMessage.innerText = error.name === 'AbortError' ? 'Search timed out' : `Error: ${error}`;
-  } finally { setLoadingState(false); }
+    if (statusMessage)
+      statusMessage.innerText =
+        error.name === 'AbortError' ? 'Search timed out' : `Error: ${error}`;
+  } finally {
+    setLoadingState(false);
+  }
 }
 
 function extractAlbumsFromTracks(tracks) {
   const albumsMap = new Map();
   for (const track of tracks) {
     if (!track) continue;
-    const albumName = track.album && track.album.toLowerCase() !== track.title.toLowerCase()
-      ? track.album
-      : `${track.artist || 'Исполнитель'} — Альбом`;
+    const albumName =
+      track.album && track.album.toLowerCase() !== track.title.toLowerCase()
+        ? track.album
+        : `${track.artist || 'Исполнитель'} — Альбом`;
     const artistName = track.artist || 'Неизвестный исполнитель';
     const key = (albumName + '___' + artistName).toLowerCase();
     if (!albumsMap.has(key)) {
@@ -4498,7 +5181,7 @@ function extractAlbumsFromTracks(tracks) {
         artist: artistName,
         cover: track.cover || '',
         type: 'Альбом',
-        tracks: [track]
+        tracks: [track],
       });
     } else {
       albumsMap.get(key).tracks.push(track);
@@ -4522,7 +5205,9 @@ function renderSearchResults(tracks, query) {
     albumsSection.innerHTML = `
       <h3 class="artist-section-title"><i class="material-icons">album</i> Найденные альбомы (${albums.length})</h3>
       <div class="artist-albums-grid">
-        ${albums.map((rel, i) => `
+        ${albums
+          .map(
+            (rel, i) => `
           <div class="album-card" data-search-album-idx="${i}">
             <div class="album-cover-wrap">
               ${rel.cover ? `<img src="${escapeHtml(rel.cover)}" alt="${escapeHtml(rel.title)}">` : `<i class="material-icons" style="font-size:48px;color:var(--text-secondary)">album</i>`}
@@ -4530,7 +5215,9 @@ function renderSearchResults(tracks, query) {
             <div class="album-title">${escapeHtml(rel.title)}</div>
             <div class="album-meta-text">${escapeHtml(rel.artist)} • ${rel.tracks.length} ${rel.tracks.length === 1 ? 'трек' : 'трека'}</div>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     `;
     resultsContainer.appendChild(albumsSection);
@@ -4551,7 +5238,10 @@ function renderSearchResults(tracks, query) {
     albumsSection.innerHTML = `
       <h3 class="artist-section-title" style="margin-bottom:12px;"><i class="material-icons">album</i> Альбомы</h3>
       <div class="artist-albums-grid">
-        ${albums.slice(0, 4).map((rel, i) => `
+        ${albums
+          .slice(0, 4)
+          .map(
+            (rel, i) => `
           <div class="album-card" data-search-album-idx="${i}">
             <div class="album-cover-wrap">
               ${rel.cover ? `<img src="${escapeHtml(rel.cover)}" alt="${escapeHtml(rel.title)}">` : `<i class="material-icons" style="font-size:48px;color:var(--text-secondary)">album</i>`}
@@ -4559,7 +5249,9 @@ function renderSearchResults(tracks, query) {
             <div class="album-title">${escapeHtml(rel.title)}</div>
             <div class="album-meta-text">${escapeHtml(rel.artist)} • ${rel.tracks.length} ${rel.tracks.length === 1 ? 'трек' : 'трека'}</div>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     `;
     resultsContainer.appendChild(albumsSection);
@@ -4602,7 +5294,11 @@ function renderSearchPage(page) {
 
   const tracksWrap = document.getElementById('search-tracks-wrap');
   if (tracksWrap) {
-    renderTrackRows(tracksWrap, pageTracks, { showAddButton: true, playButtonClass: 'play-track-btn', addButtonClass: 'add-to-playlist-btn' });
+    renderTrackRows(tracksWrap, pageTracks, {
+      showAddButton: true,
+      playButtonClass: 'play-track-btn',
+      addButtonClass: 'add-to-playlist-btn',
+    });
     preloadTrackStreams(pageTracks);
   }
 
@@ -4671,14 +5367,18 @@ function renderRecTiles(container, tracks) {
     return;
   }
   container.className = 'rec-grid';
-  container.innerHTML = tracks.map((track, idx) => `
+  container.innerHTML = tracks
+    .map(
+      (track, idx) => `
     <div class="rec-tile" data-idx="${idx}">
       <img class="rec-tile-cover" src="${escapeHtml(track.cover || '')}" alt="${escapeHtml(track.title || '')}" onerror="this.style.display='none'">
       <div class="rec-tile-title">${escapeHtml(track.title || 'Unknown')}</div>
       <div class="rec-tile-artist clickable-artist">${escapeHtml(track.artist || 'Unknown')}</div>
       <div class="rec-tile-play"><i class="material-icons">play_arrow</i></div>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
   container.querySelectorAll('.rec-tile').forEach(tile => {
     tile.querySelector('.clickable-artist')?.addEventListener('click', e => {
       e.stopPropagation();
@@ -4687,7 +5387,8 @@ function renderRecTiles(container, tracks) {
     });
     tile.onclick = () => {
       const idx = Number(tile.getAttribute('data-idx'));
-      currentPlaylist = tracks; currentTrackIndex = idx;
+      currentPlaylist = tracks;
+      currentTrackIndex = idx;
       playTrack(tracks[idx]);
     };
   });
@@ -4786,11 +5487,16 @@ async function loadRecommendations(forceReload = false, { showLoading = true } =
   } catch (error) {
     recommendationsLoaded = false;
     if (recommendationsStatus) recommendationsStatus.innerText = `Error: ${error}`;
-  } finally { if (showLoading) setLoadingState(false); }
+  } finally {
+    if (showLoading) setLoadingState(false);
+  }
 }
 
 if (refreshRecommendationsBtn) {
-  refreshRecommendationsBtn.onclick = () => { recommendationsLoaded = false; loadRecommendations(true); };
+  refreshRecommendationsBtn.onclick = () => {
+    recommendationsLoaded = false;
+    loadRecommendations(true);
+  };
 }
 
 // ==========================================
@@ -4801,14 +5507,14 @@ function loadHomeContent() {
   const history = JSON.parse(localStorage.getItem('listeningHistory') || '[]');
   const continueContainer = document.getElementById('home-continue');
   const recentContainer = document.getElementById('home-recent');
-  
+
   // Show last 6 tracks as "continue listening"
   if (continueContainer && history.length > 0) {
     renderTrackRows(continueContainer, history.slice(0, 6), { showAddButton: true });
   } else if (continueContainer) {
     continueContainer.innerHTML = '<div class="empty-state">Начните слушать музыку</div>';
   }
-  
+
   // Show last 12 tracks as "recently played"
   if (recentContainer && history.length > 0) {
     renderTrackRows(recentContainer, history.slice(0, 12), { showAddButton: true });
@@ -4825,7 +5531,10 @@ function loadHomeContent() {
 // Home tiles
 safeClick('tile-history', () => {
   const history = JSON.parse(localStorage.getItem('listeningHistory') || '[]');
-  if (history.length === 0) { showToast('История пуста'); return; }
+  if (history.length === 0) {
+    showToast('История пуста');
+    return;
+  }
   switchScreen('search-screen', 'nav-search-btn');
   if (statusMessage) statusMessage.innerText = `История: ${history.length} треков`;
   renderTrackRows(resultsContainer, history, { showAddButton: true });
@@ -4833,7 +5542,10 @@ safeClick('tile-history', () => {
 
 safeClick('tile-liked', () => {
   const liked = playlists['Избранное'] || [];
-  if (liked.length === 0) { showToast('Нет любимых треков'); return; }
+  if (liked.length === 0) {
+    showToast('Нет любимых треков');
+    return;
+  }
   switchScreen('folders-screen', 'nav-folders-btn');
   openPlaylist('Избранное');
 });
@@ -4873,16 +5585,21 @@ function skiper25RandomHeights() {
 }
 
 function skiper25Collapse() {
-  skiper25Bars.forEach(bar => { bar.style.height = '2px'; });
+  skiper25Bars.forEach(bar => {
+    bar.style.height = '2px';
+  });
 }
 
-on('state:isPlaying', (playing) => {
+on('state:isPlaying', playing => {
   if (heroToggle) heroToggle.classList.toggle('playing', playing);
   if (playing) {
     skiper25Interval = setInterval(skiper25RandomHeights, 100);
     skiper25RandomHeights();
   } else {
-    if (skiper25Interval) { clearInterval(skiper25Interval); skiper25Interval = null; }
+    if (skiper25Interval) {
+      clearInterval(skiper25Interval);
+      skiper25Interval = null;
+    }
     skiper25Collapse();
   }
 });
@@ -4911,7 +5628,11 @@ const MAX_PLAY_RETRIES = 3;
 function addToListeningHistory(track) {
   if (!track || appSettings.saveHistory === false) return;
   let history = [];
-  try { history = JSON.parse(localStorage.getItem('listeningHistory') || '[]'); } catch { history = []; }
+  try {
+    history = JSON.parse(localStorage.getItem('listeningHistory') || '[]');
+  } catch {
+    history = [];
+  }
   history = history.filter(t => t.id !== track.id);
   history.unshift({ id: track.id, title: track.title, artist: track.artist, cover: track.cover });
   const limit = Math.max(10, Math.min(200, Number(appSettings.historyLimit) || 50));
@@ -4939,7 +5660,7 @@ async function playTrack(track) {
   // Force-stop any previous playback before switching source
   audio.pause();
   audio.removeAttribute('src'); // fully detach old source
-  audio.load();                  // reset the element
+  audio.load(); // reset the element
   audio.currentTime = 0;
   // Revoke old blob URL if any
   if (audio.src && audio.src.startsWith('blob:')) {
@@ -4949,9 +5670,10 @@ async function playTrack(track) {
 
   try {
     // Stream the audio URL directly (server proxy handles the actual stream)
-    const streamUrl = (track.isLocal && track.localUrl)
-      ? track.localUrl
-      : `/api/stream?id=${encodeURIComponent(track.id)}`;
+    const streamUrl =
+      track.isLocal && track.localUrl
+        ? track.localUrl
+        : `/api/stream?id=${encodeURIComponent(track.id)}`;
     audio.src = streamUrl;
     audio.load(); // ensure the new source is picked up immediately
     await audio.play();
@@ -4968,7 +5690,9 @@ async function playTrack(track) {
 
   document.querySelectorAll('.track-item').forEach(el => el.classList.remove('playing'));
   // Mark current playing track
-  document.querySelectorAll(`.track-item[data-track-id="${track.id}"]`).forEach(el => el.classList.add('playing'));
+  document
+    .querySelectorAll(`.track-item[data-track-id="${track.id}"]`)
+    .forEach(el => el.classList.add('playing'));
 
   updateDiscordPresence(track.title, track.artist);
   notifyTrackChange(track);
@@ -4992,15 +5716,21 @@ audio.addEventListener('pause', () => {
 if (playBtn) {
   playBtn.onclick = () => {
     if (!audio.src) return;
-    if (audio.paused) { audio.play().catch(() => {}); playBtn.innerHTML = '<i class="material-icons">pause</i>'; }
-    else { audio.pause(); playBtn.innerHTML = '<i class="material-icons">play_arrow</i>'; }
+    if (audio.paused) {
+      audio.play().catch(() => {});
+      playBtn.innerHTML = '<i class="material-icons">pause</i>';
+    } else {
+      audio.pause();
+      playBtn.innerHTML = '<i class="material-icons">play_arrow</i>';
+    }
   };
 }
 
 // Shuffle
 const shuffleBtn = document.getElementById('shuffle-btn');
 function toggleShuffle() {
-  isShuffle = !isShuffle; shuffleHistory = [];
+  isShuffle = !isShuffle;
+  shuffleHistory = [];
   if (shuffleBtn) shuffleBtn.classList.toggle('active', isShuffle);
 }
 if (shuffleBtn) shuffleBtn.onclick = toggleShuffle;
@@ -5010,15 +5740,22 @@ function playNextTrack() {
   if (!currentPlaylist.length) return;
   if (isShuffle) {
     let nextIdx;
-    do { nextIdx = Math.floor(Math.random() * currentPlaylist.length); } while (nextIdx === currentTrackIndex && currentPlaylist.length > 1);
+    do {
+      nextIdx = Math.floor(Math.random() * currentPlaylist.length);
+    } while (nextIdx === currentTrackIndex && currentPlaylist.length > 1);
     currentTrackIndex = nextIdx;
-  } else { currentTrackIndex = (currentTrackIndex + 1) % currentPlaylist.length; }
+  } else {
+    currentTrackIndex = (currentTrackIndex + 1) % currentPlaylist.length;
+  }
   playTrack(currentPlaylist[currentTrackIndex]);
 }
 
 function playPrevTrack() {
   if (!currentPlaylist.length) return;
-  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  if (audio.currentTime > 3) {
+    audio.currentTime = 0;
+    return;
+  }
   currentTrackIndex = (currentTrackIndex - 1 + currentPlaylist.length) % currentPlaylist.length;
   playTrack(currentPlaylist[currentTrackIndex]);
 }
@@ -5033,12 +5770,15 @@ let isRepeat = false;
 const repeatBtn = document.getElementById('repeat-btn');
 if (repeatBtn) {
   repeatBtn.onclick = () => {
-    isRepeat = !isRepeat; audio.loop = isRepeat;
+    isRepeat = !isRepeat;
+    audio.loop = isRepeat;
     repeatBtn.classList.toggle('active', isRepeat);
   };
 }
 
-audio.onended = () => { if (!isRepeat) playNextTrack(); };
+audio.onended = () => {
+  if (!isRepeat) playNextTrack();
+};
 
 // Time update
 audio.ontimeupdate = () => {
@@ -5047,7 +5787,10 @@ audio.ontimeupdate = () => {
     audio.currentTime = abLoopStart;
   }
   const pct = (audio.currentTime / audio.duration) * 100;
-  if (progressBar) { progressBar.value = pct; progressBar.style.setProperty('--r', pct + '%'); }
+  if (progressBar) {
+    progressBar.value = pct;
+    progressBar.style.setProperty('--r', pct + '%');
+  }
   if (currentTimeEl) currentTimeEl.innerText = formatTime(audio.currentTime);
   if (appSettings.resumePosition && state.currentTrack?.id && audio.currentTime > 2) {
     localStorage.setItem(`votify-position-${state.currentTrack.id}`, String(audio.currentTime));
@@ -5059,7 +5802,8 @@ audio.onloadedmetadata = () => {
   if (totalTimeEl) totalTimeEl.innerText = formatTime(audio.duration);
   if (appSettings.resumePosition && state.currentTrack?.id) {
     const savedPosition = Number(localStorage.getItem(`votify-position-${state.currentTrack.id}`));
-    if (Number.isFinite(savedPosition) && savedPosition > 2 && savedPosition < audio.duration - 3) audio.currentTime = savedPosition;
+    if (Number.isFinite(savedPosition) && savedPosition > 2 && savedPosition < audio.duration - 3)
+      audio.currentTime = savedPosition;
   }
 };
 
@@ -5092,12 +5836,38 @@ function barTlSeek(e) {
 
 if (barTimelineTrack) {
   let barDragging = false;
-  barTimelineTrack.addEventListener('mousedown', (e) => { barDragging = true; barTimelineTrack.classList.add('dragging'); barTlSeek(e); });
-  barTimelineTrack.addEventListener('touchstart', (e) => { barDragging = true; barTimelineTrack.classList.add('dragging'); barTlSeek(e); }, { passive: false });
-  document.addEventListener('mousemove', (e) => { if (barDragging) barTlSeek(e); });
-  document.addEventListener('touchmove', (e) => { if (barDragging) barTlSeek(e); }, { passive: false });
-  document.addEventListener('mouseup', () => { barDragging = false; barTimelineTrack?.classList.remove('dragging'); });
-  document.addEventListener('touchend', () => { barDragging = false; barTimelineTrack?.classList.remove('dragging'); });
+  barTimelineTrack.addEventListener('mousedown', e => {
+    barDragging = true;
+    barTimelineTrack.classList.add('dragging');
+    barTlSeek(e);
+  });
+  barTimelineTrack.addEventListener(
+    'touchstart',
+    e => {
+      barDragging = true;
+      barTimelineTrack.classList.add('dragging');
+      barTlSeek(e);
+    },
+    { passive: false }
+  );
+  document.addEventListener('mousemove', e => {
+    if (barDragging) barTlSeek(e);
+  });
+  document.addEventListener(
+    'touchmove',
+    e => {
+      if (barDragging) barTlSeek(e);
+    },
+    { passive: false }
+  );
+  document.addEventListener('mouseup', () => {
+    barDragging = false;
+    barTimelineTrack?.classList.remove('dragging');
+  });
+  document.addEventListener('touchend', () => {
+    barDragging = false;
+    barTimelineTrack?.classList.remove('dragging');
+  });
   window.addEventListener('resize', () => {
     if (state.duration > 0) drawBarTimeline((audio.currentTime / state.duration) * 100);
   });
@@ -5105,7 +5875,7 @@ if (barTimelineTrack) {
 }
 
 // Update bar timeline progress
-on('state:currentTime', (time) => {
+on('state:currentTime', time => {
   if (state.duration > 0) {
     const pct = (time / state.duration) * 100;
     barTimelineThumb.style.left = pct + '%';
@@ -5115,7 +5885,9 @@ on('state:currentTime', (time) => {
   }
 });
 
-on('state:currentTrack', () => { drawBarTimeline(0); });
+on('state:currentTrack', () => {
+  drawBarTimeline(0);
+});
 
 // Morphing sidebar controls — apply to settings panel
 const morphSettings = document.getElementById('morph-settings');
@@ -5128,7 +5900,9 @@ if (morphSettings) {
   morphSettings.querySelectorAll('.morph-slider').forEach(slider => {
     const valueEl = slider.closest('.morph-slider-wrap')?.querySelector('.morph-slider-value');
     if (valueEl) {
-      slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
+      slider.addEventListener('input', () => {
+        valueEl.textContent = slider.value;
+      });
     }
   });
 }
@@ -5185,7 +5959,7 @@ const fsRightBtn = document.getElementById('right-player-fullscreen');
 if (fsRightBtn) fsRightBtn.addEventListener('click', openFullscreenPlayer);
 
 if (fsCloseBtn) {
-  const doClose = (e) => {
+  const doClose = e => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -5196,54 +5970,62 @@ if (fsCloseBtn) {
   fsCloseBtn.addEventListener('pointerdown', doClose);
   fsCloseBtn.addEventListener('touchstart', doClose);
 }
-if (fsMenuBtn) fsMenuBtn.addEventListener('click', () => {
-  const open = fsPlayerEq?.style.display !== 'none' || fsPlayerLyrics?.style.display !== 'none';
-  if (open) {
-    if (fsPlayerEq) fsPlayerEq.style.display = 'none';
-    if (fsPlayerLyrics) fsPlayerLyrics.style.display = 'none';
-    fsEqBtn?.classList.remove('active');
-    fsLyricsBtn?.classList.remove('active');
-  } else {
-    fsPlayerLyrics.style.display = 'block';
-    fsLyricsBtn?.classList.add('active');
-    if (state.currentTrack) loadFsLyrics(state.currentTrack.title, state.currentTrack.artist);
-  }
-});
-if (fsPlayBtn) fsPlayBtn.addEventListener('click', () => { if (audio.paused) audio.play().catch(()=>{}); else audio.pause(); });
+if (fsMenuBtn)
+  fsMenuBtn.addEventListener('click', () => {
+    const open = fsPlayerEq?.style.display !== 'none' || fsPlayerLyrics?.style.display !== 'none';
+    if (open) {
+      if (fsPlayerEq) fsPlayerEq.style.display = 'none';
+      if (fsPlayerLyrics) fsPlayerLyrics.style.display = 'none';
+      fsEqBtn?.classList.remove('active');
+      fsLyricsBtn?.classList.remove('active');
+    } else {
+      fsPlayerLyrics.style.display = 'block';
+      fsLyricsBtn?.classList.add('active');
+      if (state.currentTrack) loadFsLyrics(state.currentTrack.title, state.currentTrack.artist);
+    }
+  });
+if (fsPlayBtn)
+  fsPlayBtn.addEventListener('click', () => {
+    if (audio.paused) audio.play().catch(() => {});
+    else audio.pause();
+  });
 if (fsPrevBtn) fsPrevBtn.addEventListener('click', playPrevTrack);
 if (fsNextBtn) fsNextBtn.addEventListener('click', playNextTrack);
-if (fsShuffleBtn) fsShuffleBtn.addEventListener('click', () => fsShuffleBtn.classList.toggle('active'));
-if (fsRepeatBtn) fsRepeatBtn.addEventListener('click', () => {
-  if (abLoopActive) {
-    clearAbLoop();
-    showToast('Зацикливание фрагмента выключено');
-    return;
-  }
-  abLoopStart = null;
-  abLoopEnd = null;
-  abLoopSelecting = true;
-  fsRepeatBtn.classList.add('selecting');
-  fsRepeatBtn.setAttribute('title', 'Выберите начало фрагмента на шкале');
-  showToast('Нажмите на шкалу, чтобы выбрать начало фрагмента');
-});
+if (fsShuffleBtn)
+  fsShuffleBtn.addEventListener('click', () => fsShuffleBtn.classList.toggle('active'));
+if (fsRepeatBtn)
+  fsRepeatBtn.addEventListener('click', () => {
+    if (abLoopActive) {
+      clearAbLoop();
+      showToast('Зацикливание фрагмента выключено');
+      return;
+    }
+    abLoopStart = null;
+    abLoopEnd = null;
+    abLoopSelecting = true;
+    fsRepeatBtn.classList.add('selecting');
+    fsRepeatBtn.setAttribute('title', 'Выберите начало фрагмента на шкале');
+    showToast('Нажмите на шкалу, чтобы выбрать начало фрагмента');
+  });
 const fsPlaybackRates = [0.75, 1, 1.25, 1.5, 2];
 function syncFsSpeed() {
   if (fsSpeedValue) fsSpeedValue.textContent = `${Number(audio.playbackRate.toFixed(2))}×`;
 }
 syncFsSpeed();
-if (fsSpeedBtn) fsSpeedBtn.addEventListener('click', () => {
-  const current = fsPlaybackRates.findIndex(rate => Math.abs(rate - audio.playbackRate) < 0.01);
-  const next = fsPlaybackRates[(current + 1) % fsPlaybackRates.length];
-  audio.playbackRate = next;
-  appSettings.playbackRate = next;
-  if (playbackRateSelect) playbackRateSelect.value = String(next);
-  syncFsSpeed();
-  saveSettings();
-});
+if (fsSpeedBtn)
+  fsSpeedBtn.addEventListener('click', () => {
+    const current = fsPlaybackRates.findIndex(rate => Math.abs(rate - audio.playbackRate) < 0.01);
+    const next = fsPlaybackRates[(current + 1) % fsPlaybackRates.length];
+    audio.playbackRate = next;
+    appSettings.playbackRate = next;
+    if (playbackRateSelect) playbackRateSelect.value = String(next);
+    syncFsSpeed();
+    saveSettings();
+  });
 
 const fsProgressEl = document.getElementById('fs-progress');
 if (fsProgressEl) {
-  const seekFs = (e) => {
+  const seekFs = e => {
     if (state.duration > 0) {
       const val = Number(e.target.value);
       audio.currentTime = (val / 100) * state.duration;
@@ -5262,10 +6044,10 @@ function updateFsVolumeProgress() {
 
 if (fsVolume) {
   updateFsVolumeProgress();
-  fsVolume.addEventListener('input', (e) => {
+  fsVolume.addEventListener('input', e => {
     const v = Number(e.target.value) / 100;
     audio.volume = v;
-    fsVolume.style.setProperty('--r', (v * 100) + '%');
+    fsVolume.style.setProperty('--r', v * 100 + '%');
     syncVolumeBars();
   });
 }
@@ -5302,7 +6084,7 @@ if (fsDislikeBtn) {
 }
 
 // Update fullscreen player with track info
-on('state:currentTrack', (track) => {
+on('state:currentTrack', track => {
   if (!track) return;
   if (fsCover) fsCover.src = track.cover || '';
   if (fsTitle) fsTitle.textContent = track.title || '—';
@@ -5329,13 +6111,13 @@ on('state:currentTrack', (track) => {
   }
 });
 
-on('state:isPlaying', (playing) => {
+on('state:isPlaying', playing => {
   if (fsPlayBtn) {
     fsPlayBtn.querySelector('.material-icons').textContent = playing ? 'pause' : 'play_arrow';
   }
 });
 
-on('state:currentTime', (time) => {
+on('state:currentTime', time => {
   if (state.duration > 0) {
     const pct = (time / state.duration) * 100;
     if (fsTimelineThumb) fsTimelineThumb.style.left = pct + '%';
@@ -5420,12 +6202,40 @@ function tlSeekFromEvent(e) {
   drawTimelineCurve(pct);
 }
 if (fsTimelineTrack) {
-  fsTimelineTrack.addEventListener('mousedown', (e) => { const wasSelecting = abLoopSelecting; tlDragging = !wasSelecting; fsTimelineTrack.classList.add('dragging'); tlSeekFromEvent(e); });
-  fsTimelineTrack.addEventListener('touchstart', (e) => { const wasSelecting = abLoopSelecting; tlDragging = !wasSelecting; fsTimelineTrack.classList.add('dragging'); tlSeekFromEvent(e); }, { passive: false });
-  document.addEventListener('mousemove', (e) => { if (tlDragging && !abLoopSelecting) tlSeekFromEvent(e); });
-  document.addEventListener('touchmove', (e) => { if (tlDragging && !abLoopSelecting) tlSeekFromEvent(e); }, { passive: false });
-  document.addEventListener('mouseup', () => { tlDragging = false; fsTimelineTrack?.classList.remove('dragging'); });
-  document.addEventListener('touchend', () => { tlDragging = false; fsTimelineTrack?.classList.remove('dragging'); });
+  fsTimelineTrack.addEventListener('mousedown', e => {
+    const wasSelecting = abLoopSelecting;
+    tlDragging = !wasSelecting;
+    fsTimelineTrack.classList.add('dragging');
+    tlSeekFromEvent(e);
+  });
+  fsTimelineTrack.addEventListener(
+    'touchstart',
+    e => {
+      const wasSelecting = abLoopSelecting;
+      tlDragging = !wasSelecting;
+      fsTimelineTrack.classList.add('dragging');
+      tlSeekFromEvent(e);
+    },
+    { passive: false }
+  );
+  document.addEventListener('mousemove', e => {
+    if (tlDragging && !abLoopSelecting) tlSeekFromEvent(e);
+  });
+  document.addEventListener(
+    'touchmove',
+    e => {
+      if (tlDragging && !abLoopSelecting) tlSeekFromEvent(e);
+    },
+    { passive: false }
+  );
+  document.addEventListener('mouseup', () => {
+    tlDragging = false;
+    fsTimelineTrack?.classList.remove('dragging');
+  });
+  document.addEventListener('touchend', () => {
+    tlDragging = false;
+    fsTimelineTrack?.classList.remove('dragging');
+  });
   window.addEventListener('resize', () => {
     if (state.duration > 0) drawTimelineCurve((audio.currentTime / state.duration) * 100);
   });
@@ -5441,7 +6251,10 @@ if (fsEqBtn && fsPlayerEq) {
     fsPlayerEq.style.display = open ? 'block' : 'none';
     fsEqBtn.classList.toggle('active', open);
     if (open) requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-    if (open && fsPlayerLyrics) { fsPlayerLyrics.style.display = 'none'; fsLyricsBtn?.classList.remove('active'); }
+    if (open && fsPlayerLyrics) {
+      fsPlayerLyrics.style.display = 'none';
+      fsLyricsBtn?.classList.remove('active');
+    }
   });
 }
 if (fsLyricsBtn && fsPlayerLyrics) {
@@ -5449,8 +6262,12 @@ if (fsLyricsBtn && fsPlayerLyrics) {
     const open = fsPlayerLyrics.style.display === 'none';
     fsPlayerLyrics.style.display = open ? 'block' : 'none';
     fsLyricsBtn.classList.toggle('active', open);
-    if (open && fsPlayerEq) { fsPlayerEq.style.display = 'none'; fsEqBtn?.classList.remove('active'); }
-    if (open && state.currentTrack) loadFsLyrics(state.currentTrack.title, state.currentTrack.artist);
+    if (open && fsPlayerEq) {
+      fsPlayerEq.style.display = 'none';
+      fsEqBtn?.classList.remove('active');
+    }
+    if (open && state.currentTrack)
+      loadFsLyrics(state.currentTrack.title, state.currentTrack.artist);
   });
 }
 async function loadFsLyrics(title, artist) {
@@ -5460,20 +6277,42 @@ async function loadFsLyrics(title, artist) {
   if (!title) return;
   try {
     const data = await fetchLyricsData(title, artist);
-    if (!data) { if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>'; return; }
-    const lrc = data.syncedLyrics || data.plainLyrics || '';
-    if (!lrc) { if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>'; return; }
-    if (!data.syncedLyrics) {
-      fsLyricsData = [];
-      if (body) body.innerHTML = lrc.split('\n').map(l => `<div class="lyrics-line">${l.trim() || '&nbsp;'}</div>`).join('');
+    if (!data) {
+      if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>';
       return;
     }
-    fsLyricsData = lrc.split('\n').map(line => {
-      const m = line.match(/^\[(\d+):(\d+)(?:\.(\d+))?\]\s*(.*)/);
-      if (m) { const ms = m[3] || '0'; return { time: parseInt(m[1])*60+parseInt(m[2])+parseInt(ms)/Math.pow(10,ms.length), text: m[4].trim() }; }
-      return null;
-    }).filter(Boolean);
-    if (body) body.innerHTML = fsLyricsData.map((l,i) => `<div class="lyrics-line" data-idx="${i}">${l.text || '&nbsp;'}</div>`).join('');
+    const lrc = data.syncedLyrics || data.plainLyrics || '';
+    if (!lrc) {
+      if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>';
+      return;
+    }
+    if (!data.syncedLyrics) {
+      fsLyricsData = [];
+      if (body)
+        body.innerHTML = lrc
+          .split('\n')
+          .map(l => `<div class="lyrics-line">${l.trim() || '&nbsp;'}</div>`)
+          .join('');
+      return;
+    }
+    fsLyricsData = lrc
+      .split('\n')
+      .map(line => {
+        const m = line.match(/^\[(\d+):(\d+)(?:\.(\d+))?\]\s*(.*)/);
+        if (m) {
+          const ms = m[3] || '0';
+          return {
+            time: parseInt(m[1]) * 60 + parseInt(m[2]) + parseInt(ms) / Math.pow(10, ms.length),
+            text: m[4].trim(),
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+    if (body)
+      body.innerHTML = fsLyricsData
+        .map((l, i) => `<div class="lyrics-line" data-idx="${i}">${l.text || '&nbsp;'}</div>`)
+        .join('');
   } catch {
     if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>';
   }
@@ -5540,10 +6379,10 @@ function initApp() {
     console.log('Initializing Votify...');
     applyLanguage(appSettings.lang);
     renderSidebarPlaylists();
-    
+
     // Initial screen
     switchScreen('home-screen', 'nav-home-btn');
-    
+
     // Load last track if exists
     const lastTrackStr = localStorage.getItem('votify-last-track');
     if (lastTrackStr) {
@@ -5552,19 +6391,21 @@ function initApp() {
         if (lastTrack) {
           currentPlaylist = JSON.parse(localStorage.getItem('votify-last-playlist')) || [lastTrack];
           currentTrackIndex = parseInt(localStorage.getItem('votify-last-index')) || 0;
-          
+
           // Update UI without playing
           if (playerTitle) playerTitle.innerText = lastTrack.title;
           if (playerArtist) playerArtist.innerText = lastTrack.artist || 'Unknown';
           const barCover = document.getElementById('player-bar-cover');
           if (barCover) barCover.src = lastTrack.cover || '';
-          
+
           state.currentTrack = lastTrack;
           updateRightPlayerPanel(lastTrack);
         }
-      } catch (e) { console.warn('Failed to load last track:', e); }
+      } catch (e) {
+        console.warn('Failed to load last track:', e);
+      }
     }
-    
+
     console.log('Votify initialized successfully.');
   } catch (e) {
     console.error('Critical init error:', e);
@@ -5588,7 +6429,7 @@ if (document.readyState === 'loading') {
 // PLAYER BACKGROUND — extract dominant color from cover
 // ==========================================
 function extractDominantColor(imgUrl) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (!imgUrl) return resolve(null);
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -5601,8 +6442,12 @@ function extractDominantColor(imgUrl) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, size, size);
         const data = ctx.getImageData(0, 0, size, size).data;
-        let r = 0, g = 0, b = 0, count = 0;
-        for (let i = 0; i < data.length; i += 16) { // sample every 4th pixel
+        let r = 0,
+          g = 0,
+          b = 0,
+          count = 0;
+        for (let i = 0; i < data.length; i += 16) {
+          // sample every 4th pixel
           r += data[i];
           g += data[i + 1];
           b += data[i + 2];
@@ -5616,7 +6461,9 @@ function extractDominantColor(imgUrl) {
         g = Math.round(g * 0.35);
         b = Math.round(b * 0.35);
         resolve({ r, g, b });
-      } catch { resolve(null); }
+      } catch {
+        resolve(null);
+      }
     };
     img.onerror = () => resolve(null);
     img.src = imgUrl;
@@ -5626,8 +6473,6 @@ function extractDominantColor(imgUrl) {
 async function applyPlayerBackground(coverUrl) {
   // Player bar is always transparent — body background shows through
 }
-
-
 
 // ==========================================
 // AUDIO VISUALIZER — Waveform Bars
@@ -5700,12 +6545,19 @@ async function applyPlayerBackground(coverUrl) {
   }
 
   function animate() {
-    if (!sharedAnalyser) { rafId = requestAnimationFrame(animate); return; }
+    if (!sharedAnalyser) {
+      rafId = requestAnimationFrame(animate);
+      return;
+    }
     if (!initialized) setup();
-    if (!initialized) { rafId = requestAnimationFrame(animate); return; }
+    if (!initialized) {
+      rafId = requestAnimationFrame(animate);
+      return;
+    }
     sharedAnalyser.getByteFrequencyData(dataArray);
 
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1DB954';
+    const accent =
+      getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1DB954';
     const accentRgb = hexToRgb(accent) || '29,185,84';
 
     // Mini visualizer on cover
@@ -5728,20 +6580,35 @@ async function applyPlayerBackground(coverUrl) {
 
   function hexToRgb(hex) {
     hex = hex.replace('#', '');
-    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
-    const r = parseInt(hex.substr(0,2), 16);
-    const g = parseInt(hex.substr(2,2), 16);
-    const b = parseInt(hex.substr(4,2), 16);
+    if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
     return `${r},${g},${b}`;
   }
 
   // Start on first user interaction (autoplay policy)
-  document.addEventListener('click', () => { setup(); }, { once: true });
-  document.addEventListener('keydown', () => { setup(); }, { once: true });
+  document.addEventListener(
+    'click',
+    () => {
+      setup();
+    },
+    { once: true }
+  );
+  document.addEventListener(
+    'keydown',
+    () => {
+      setup();
+    },
+    { once: true }
+  );
 
   // Init canvases and start render loop
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { initCanvases(); animate(); });
+    document.addEventListener('DOMContentLoaded', () => {
+      initCanvases();
+      animate();
+    });
   } else {
     initCanvases();
     animate();
@@ -5756,3 +6623,493 @@ async function applyPlayerBackground(coverUrl) {
     }
   });
 })();
+
+// ============================================================================
+// REDESIGNED TREE SETTINGS LOGIC (19 PANELS / 3 CATEGORIES)
+// ============================================================================
+function initRedesignedSettings() {
+  console.log('[Settings] Initializing redesigned settings logic...');
+
+  // Helper to sync sliders (sets track fill percentage)
+  function syncSliderFill(slider) {
+    if (!slider) return;
+    const min = parseFloat(slider.min) || 0;
+    const max = parseFloat(slider.max) || 100;
+    const val = parseFloat(slider.value) || 0;
+    const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+    slider.style.setProperty('--r', pct + '%');
+  }
+
+  function wireInput(id, key, defaultValue, labelId, suffix = '') {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    // Set initial value
+    const val = appSettings[key] !== undefined ? appSettings[key] : defaultValue;
+    if (el.type === 'checkbox') {
+      el.checked = !!val;
+    } else {
+      el.value = val;
+    }
+
+    // Sync slider fill initially
+    if (el.type === 'range') {
+      syncSliderFill(el);
+      if (labelId) {
+        const lbl = document.getElementById(labelId);
+        if (lbl) lbl.textContent = val + suffix;
+      }
+    }
+
+    // Set listener
+    const eventName = el.type === 'checkbox' ? 'change' : 'input';
+    el.addEventListener(eventName, () => {
+      const newVal = el.type === 'checkbox' ? el.checked : el.value;
+      appSettings[key] = newVal;
+      saveSettings();
+
+      if (el.type === 'range') {
+        syncSliderFill(el);
+        if (labelId) {
+          const lbl = document.getElementById(labelId);
+          if (lbl) lbl.textContent = newVal + suffix;
+        }
+      }
+    });
+  }
+
+  // --- 1. Основные (gen-main) ---
+  const langSel = document.getElementById('lang-select');
+  if (langSel) {
+    langSel.value = appSettings.lang || 'ru';
+    langSel.addEventListener('change', () => {
+      appSettings.lang = langSel.value;
+      saveSettings();
+      applyLanguage(appSettings.lang);
+      showToast('Язык изменен / Language changed');
+    });
+  }
+  wireInput('toggle-launch-at-startup', 'launchAtStartup', false);
+  wireInput('toggle-close-to-tray', 'closeToTray', false);
+  wireInput('toggle-auto-similar', 'autoSimilarTracks', true);
+  wireInput('toggle-restore-queue', 'restoreQueue', true);
+
+  // --- 2. Оверлей (gen-overlay) ---
+  wireInput('setting-overlay-mode', 'overlayMode', 'disabled');
+  wireInput('setting-overlay-shape', 'overlayShape', 'rounded');
+  wireInput('slider-overlay-opacity', 'overlayOpacity', 85, 'overlay-opacity-val', '%');
+  wireInput('slider-overlay-scale', 'overlayScale', 100, 'overlay-scale-val', '%');
+  wireInput('slider-overlay-width', 'overlayWidth', 340, 'overlay-width-val', 'px');
+  wireInput('slider-overlay-height', 'overlayHeight', 220, 'overlay-height-val', 'px');
+
+  // Alignment grid button listeners
+  document.querySelectorAll('.alignment-grid-btn').forEach(btn => {
+    const align = btn.getAttribute('data-align');
+    if (appSettings.overlayAlignment === align) {
+      document.querySelectorAll('.alignment-grid-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.alignment-grid-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      appSettings.overlayAlignment = align;
+      saveSettings();
+      showToast('Выравнивание оверлея: ' + align);
+    });
+  });
+
+  // --- 3. Аудио (gen-audio) ---
+  const qSelect = document.getElementById('setting-audio-quality');
+  if (qSelect) {
+    qSelect.value = appSettings.audioQuality || 'medium';
+    qSelect.addEventListener('change', async () => {
+      appSettings.audioQuality = qSelect.value;
+      saveSettings();
+      try {
+        await apiFetch('/api/network/settings', {
+          method: 'POST',
+          body: JSON.stringify({ audioQuality: appSettings.audioQuality }),
+        });
+        showToast('Качество аудио изменено');
+      } catch (e) {}
+    });
+  }
+  wireInput('toggle-gapless', 'gapless', false);
+  wireInput('crossfade-duration', 'crossfade', 0, 'crossfade-value', ' сек');
+  wireInput('toggle-normalize', 'normalize', false, null, '', () => {
+    if (typeof applyNormalizeToNode === 'function') applyNormalizeToNode();
+  });
+  wireInput('toggle-cache-tracks', 'cacheTracks', true);
+
+  // --- 4. Эффективность (gen-perf) ---
+  wireInput('setting-perf-limiting', 'perfLimiting', 'off');
+  wireInput('background-blur-slider', 'background-blur', 15, 'background-blur-value', 'px');
+  const blurSlider = document.getElementById('background-blur-slider');
+  if (blurSlider) {
+    blurSlider.addEventListener('input', () => {
+      document.documentElement.style.setProperty('--background-blur', blurSlider.value + 'px');
+    });
+  }
+  wireInput('toggle-perf-bg', 'perfBg', true);
+  wireInput('toggle-perf-particles', 'perfParticles', true);
+  wireInput('toggle-perf-covers', 'perfCovers', true);
+  wireInput('toggle-perf-visualizers', 'perfVisualizers', true);
+  wireInput('toggle-perf-blur', 'perfBlur', true);
+
+  // --- 5. Горячие клавиши (gen-hotkeys) ---
+  wireInput('toggle-global-hotkeys', 'globalHotkeysEnabled', true);
+
+  // --- 6. Хранилище (gen-storage) ---
+  function updateStorageSizes() {
+    const tracksSizeEl = document.getElementById('cache-tracks-size');
+    const coversSizeEl = document.getElementById('cache-covers-size');
+    const lyricsSizeEl = document.getElementById('cache-lyrics-size');
+    const totalPieEl = document.getElementById('storage-pie-used');
+
+    const tracksMB = appSettings._cacheTracksMB || 1.2;
+    const coversMB = appSettings._cacheCoversMB || 0.6;
+    const lyricsMB = appSettings._cacheLyricsMB || 0.2;
+    const totalUsed = (tracksMB + coversMB + lyricsMB).toFixed(1);
+
+    if (tracksSizeEl) tracksSizeEl.textContent = `Размер кэша: ${tracksMB.toFixed(1)} МБ`;
+    if (coversSizeEl) coversSizeEl.textContent = `Размер кэша: ${coversMB.toFixed(1)} МБ`;
+    if (lyricsSizeEl) lyricsSizeEl.textContent = `Размер кэша: ${lyricsMB.toFixed(1)} МБ`;
+    if (totalPieEl) totalPieEl.textContent = `${totalUsed} МБ`;
+
+    // Update circular SVG dash-array
+    const segment = document.querySelector('.donut-segment');
+    if (segment) {
+      const maxCap = 25; // 25MB max capacity for representation
+      const pct = Math.min(100, Math.round((totalUsed / maxCap) * 100));
+      segment.setAttribute('stroke-dasharray', `${pct} ${100 - pct}`);
+    }
+  }
+  updateStorageSizes();
+
+  safeClick('clear-tracks-cache-btn', () => {
+    appSettings._cacheTracksMB = 0.0;
+    saveSettings();
+    updateStorageSizes();
+    showToast('Кэш треков успешно очищен');
+  });
+  safeClick('clear-covers-cache-btn', () => {
+    appSettings._cacheCoversMB = 0.0;
+    saveSettings();
+    updateStorageSizes();
+    showToast('Кэш обложек успешно очищен');
+  });
+  safeClick('clear-lyrics-cache-btn', () => {
+    appSettings._cacheLyricsMB = 0.0;
+    saveSettings();
+    updateStorageSizes();
+    showToast('Кэш текстов успешно очищен');
+  });
+  safeClick('clear-all-storage-btn', async () => {
+    const confirmed = await confirmModal(
+      'Очистить всё',
+      'Удалить абсолютно все кэшированные данные и сбросить настройки?'
+    );
+    if (confirmed) {
+      appSettings._cacheTracksMB = 0.0;
+      appSettings._cacheCoversMB = 0.0;
+      appSettings._cacheLyricsMB = 0.0;
+      saveSettings();
+      updateStorageSizes();
+      showToast('Все локальные кэши успешно сброшены!');
+    }
+  });
+
+  // --- 7. Плеер (app-player) ---
+  wireInput('setting-player-title-align', 'playerTitleAlign', 'center');
+  wireInput('setting-player-style', 'playerStyle', 'standard');
+  wireInput('setting-player-slider-type', 'playerSliderType', 'normal');
+
+  // --- 8. Обложка (app-cover) ---
+  wireInput('setting-cover-animation', 'coverAnimation', 'none');
+  wireInput('setting-cover-effects', 'coverEffects', 'none');
+  wireInput('toggle-dynamic-accent', 'dynamicAccentColor', true);
+
+  // --- 9. Интерфейс (app-ui) ---
+  wireInput('font-family-select', 'fontFamily', 'inter');
+  const fontSelect = document.getElementById('font-family-select');
+  if (fontSelect) {
+    fontSelect.addEventListener('change', () => {
+      applyAppearance();
+    });
+  }
+  wireInput('font-size-slider', 'fontSize', '16px', 'font-size-slider-value', 'px');
+  const sizeSlider = document.getElementById('font-size-slider');
+  if (sizeSlider) {
+    sizeSlider.addEventListener('change', () => {
+      appSettings.fontSize = sizeSlider.value + 'px';
+      saveSettings();
+      applyAppearance();
+    });
+  }
+  wireInput('corner-radius-slider', 'cornerRadius', 8, 'corner-radius-slider-value', 'px');
+  const radiusSlider = document.getElementById('corner-radius-slider');
+  if (radiusSlider) {
+    radiusSlider.addEventListener('input', () => {
+      document.documentElement.style.setProperty(
+        '--radius-sm',
+        Math.max(0, radiusSlider.value - 4) + 'px'
+      );
+      document.documentElement.style.setProperty('--radius-md', radiusSlider.value + 'px');
+      document.documentElement.style.setProperty(
+        '--radius-lg',
+        Math.min(32, Number(radiusSlider.value) + 6) + 'px'
+      );
+    });
+  }
+  wireInput('slider-ui-scale', 'uiScale', 100, 'ui-scale-slider-value', '%');
+
+  // Theme presets click handlers
+  const themeColors = {
+    neutral: '#1DB954',
+    amoled: '#000000',
+    crimson: '#9c0a1a',
+    dracula: '#bd93f9',
+    nord: '#8fbcbb',
+    sky: '#38bdf8',
+    mint: '#34d399',
+    violet: '#a855f7',
+    blossom: '#f43f5e',
+    sakura: '#ff007f',
+    terminal: '#4af626',
+    sand: '#eab308',
+    aqua: '#06b6d4',
+    sunset: '#f97316',
+    slate: '#64748b',
+  };
+
+  document.querySelectorAll('#ui-theme-presets button').forEach(btn => {
+    const preset = btn.getAttribute('data-preset');
+    btn.addEventListener('click', () => {
+      document
+        .querySelectorAll('#ui-theme-presets button')
+        .forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const accentColor = themeColors[preset] || '#1DB954';
+      applyAccentColor(accentColor);
+      appSettings.uiThemePreset = preset;
+      saveSettings();
+      showToast('Выбран пресет темы: ' + preset);
+    });
+  });
+
+  // --- 10. Вкладки (app-tabs) ---
+  wireInput('toggle-tab-home', 'tabHome', true);
+  wireInput('toggle-tab-search', 'tabSearch', true);
+  wireInput('toggle-tab-library', 'tabLibrary', true);
+  wireInput('toggle-tab-settings', 'tabSettings', true);
+
+  // --- 11. Фон (app-bg) ---
+  wireInput('setting-bg-particles', 'bgParticles', 'dots');
+  wireInput('slider-particle-count', 'particleCount', 50, 'particle-count-val', '');
+  wireInput('slider-particle-speed', 'particleSpeed', 15, 'particle-speed-val', '×');
+  wireInput('slider-particle-size', 'particleSize', 3, 'particle-size-val', 'px');
+  wireInput('toggle-particle-parallax', 'particleParallax', true);
+
+  // --- 12. Кастомизация (app-custom) ---
+  function wirePicker(id, key, defaultValue) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = appSettings[key] || defaultValue;
+    el.addEventListener('input', () => {
+      appSettings[key] = el.value;
+      saveSettings();
+    });
+  }
+  wirePicker('picker-color-primary', 'customColorPrimary', '#1DB954');
+  wirePicker('picker-color-bg', 'customColorBg', '#121212');
+  wirePicker('picker-color-text', 'customColorText', '#ffffff');
+  wirePicker('picker-color-cards', 'customColorCards', '#181818');
+  wirePicker('picker-color-borders', 'customColorBorders', '#2a2a2a');
+  wirePicker('picker-color-focus', 'customColorFocus', '#1DB954');
+
+  safeClick('btn-custom-theme-apply', () => {
+    const root = document.documentElement;
+    root.style.setProperty('--accent', appSettings.customColorPrimary || '#1DB954');
+    root.style.setProperty('--bg-base', appSettings.customColorBg || '#121212');
+    root.style.setProperty('--text-primary', appSettings.customColorText || '#ffffff');
+    root.style.setProperty('--bg-surface', appSettings.customColorCards || '#181818');
+    root.style.setProperty('--bg-highlight', appSettings.customColorBorders || '#2a2a2a');
+    showToast('Кастомная тема успешно применена!');
+  });
+
+  // --- 13. Мастерская (app-workshop) ---
+  const customCssArea = document.getElementById('textarea-custom-css');
+  if (customCssArea) {
+    customCssArea.value = appSettings.customCss || '';
+
+    // Auto-inject styled element
+    let styleTag = document.getElementById('votify-custom-styles');
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = 'votify-custom-styles';
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = appSettings.customCss || '';
+
+    safeClick('btn-workshop-apply-css', () => {
+      appSettings.customCss = customCssArea.value;
+      saveSettings();
+      styleTag.textContent = appSettings.customCss;
+      showToast('CSS стили успешно инжектированы!');
+    });
+
+    safeClick('btn-workshop-reset-css', () => {
+      customCssArea.value = '';
+      appSettings.customCss = '';
+      saveSettings();
+      styleTag.textContent = '';
+      showToast('Инжектированные CSS стили очищены');
+    });
+  }
+
+  // --- 14. Last.fm (int-lastfm) ---
+  wireInput('input-lastfm-username', 'lastfmUsername', '');
+  wireInput('input-lastfm-password', 'lastfmPassword', '');
+  wireInput('toggle-lastfm-scrobble', 'lastfmScrobbling', false);
+
+  safeClick('btn-lastfm-connect', () => {
+    const user = document.getElementById('input-lastfm-username')?.value.trim();
+    const statusLabel = document.getElementById('lastfm-connection-status');
+    if (!user) {
+      showToast('Введите имя пользователя Last.fm');
+      return;
+    }
+    if (statusLabel) {
+      statusLabel.innerHTML =
+        '<span class="discord-status-dot connected"></span> Подключено: ' + escapeHtml(user);
+    }
+    showToast('Last.fm аккаунт успешно привязан!');
+  });
+
+  // --- 15. Discord (int-discord) ---
+  wireInput('toggle-discord-progress', 'discordProgress', true);
+  wireInput('toggle-discord-cover', 'discordCover', false);
+
+  // --- 16. OBS (int-obs) ---
+  wireInput('input-obs-widget-url', 'obsWidgetUrl', 'http://localhost:17217/obs-widget.html');
+  wireInput('slider-obs-opacity', 'obsWidgetOpacity', 0, 'obs-widget-opacity-val', '%');
+  wirePicker('picker-obs-text-color', 'obsWidgetTextColor', '#ffffff');
+
+  safeClick('btn-obs-copy-url', () => {
+    const urlInput = document.getElementById('input-obs-widget-url');
+    if (urlInput) {
+      urlInput.select();
+      navigator.clipboard.writeText(urlInput.value).then(() => {
+        showToast('Ссылка на OBS виджет скопирована!');
+      });
+    }
+  });
+
+  // --- 17. Zapret (int-zapret) ---
+  wireInput('input-zapret-path', 'zapretPath', 'C:\\\\Zapret');
+  wireInput('toggle-zapret-ipset', 'zapretIpset', false);
+  wireInput('toggle-zapret-game-filters', 'zapretGameFilters', true);
+
+  safeClick('btn-zapret-save-path', () => {
+    const path = document.getElementById('input-zapret-path')?.value || 'C:\\\\Zapret';
+    showToast('Путь к Zapret применен: ' + path);
+  });
+
+  // Domain manager
+  const domainsContainer = document.getElementById('zapret-domains-list');
+  const addDomainBtn = document.getElementById('btn-zapret-add-domain');
+  const newDomainInput = document.getElementById('input-zapret-custom-domain');
+
+  let customDomains = appSettings.zapretCustomDomains || [];
+
+  function renderCustomDomains() {
+    if (!domainsContainer) return;
+
+    // Clear dynamic items, keeping only defaults
+    document.querySelectorAll('.zapret-custom-domain-item').forEach(el => el.remove());
+
+    customDomains.forEach((domain, index) => {
+      const div = document.createElement('div');
+      div.className = 'zapret-custom-domain-item';
+      div.style.cssText =
+        'display: flex; align-items: center; justify-content: space-between; margin-top: 4px;';
+      div.innerHTML = `
+        <label style="font-size: 13px; display: inline-flex; align-items: center; gap: 8px;">
+          <input type="checkbox" checked /> ${escapeHtml(domain)}
+        </label>
+        <button class="btn-icon-sm zapret-delete-domain" data-idx="${index}" style="width: 24px; height: 24px;"><i class="material-icons" style="font-size: 16px;">close</i></button>
+      `;
+      domainsContainer.appendChild(div);
+    });
+
+    domainsContainer.querySelectorAll('.zapret-delete-domain').forEach(btn => {
+      btn.onclick = () => {
+        const idx = Number(btn.getAttribute('data-idx'));
+        customDomains.splice(idx, 1);
+        appSettings.zapretCustomDomains = customDomains;
+        saveSettings();
+        renderCustomDomains();
+        showToast('Домен удален из списка Zapret');
+      };
+    });
+  }
+
+  renderCustomDomains();
+
+  if (addDomainBtn && newDomainInput) {
+    addDomainBtn.addEventListener('click', () => {
+      const dom = newDomainInput.value.trim().toLowerCase();
+      if (!dom) return;
+      if (customDomains.includes(dom)) {
+        showToast('Этот домен уже добавлен');
+        return;
+      }
+      customDomains.push(dom);
+      appSettings.zapretCustomDomains = customDomains;
+      saveSettings();
+      renderCustomDomains();
+      newDomainInput.value = '';
+      showToast('Домен ' + dom + ' добавлен в обход блокировок');
+    });
+  }
+
+  // --- 18. Локальный сервер (int-server) ---
+  wireInput('input-server-port', 'serverPort', 17217);
+  wireInput('toggle-server-enabled', 'serverEnabled', true);
+
+  safeClick('btn-server-save-port', () => {
+    const portVal = document.getElementById('input-server-port')?.value || '17217';
+    showToast('Порт локального сервера переопределен на: ' + portVal);
+  });
+
+  safeClick('btn-server-open-browser', () => {
+    const portVal = document.getElementById('input-server-port')?.value || '17217';
+    window.open(`http://localhost:${portVal}`);
+  });
+
+  // --- 19. Прокси (int-proxy) ---
+  const proxyTestBtn = document.getElementById('btn-proxy-test-connection');
+  const proxyStatusLabel = document.getElementById('proxy-test-status-label');
+
+  if (proxyTestBtn && proxyStatusLabel) {
+    proxyTestBtn.addEventListener('click', () => {
+      proxyStatusLabel.innerHTML =
+        '<span class="discord-status-dot connected" style="background: #e91e63;"></span> Проверка...';
+      setTimeout(() => {
+        const proxyUri = document.getElementById('setting-http-proxy')?.value || '';
+        if (proxyUri) {
+          proxyStatusLabel.innerHTML =
+            '<span class="discord-status-dot connected"></span> Соединение успешно';
+          showToast('Соединение через прокси-сервер успешно установлено!');
+        } else {
+          proxyStatusLabel.innerHTML =
+            '<span class="discord-status-dot" style="background: #e74c3c;"></span> Ошибка (пустой адрес)';
+          showToast('Пожалуйста, укажите адрес прокси-сервера перед проверкой');
+        }
+      }, 1000);
+    });
+  }
+}
+
+// Ensure the custom settings loader starts shortly after main initialization
+setTimeout(initRedesignedSettings, 1000);

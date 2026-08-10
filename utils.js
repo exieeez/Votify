@@ -17,7 +17,10 @@ const port = Number(process.env.VOTIFY_PORT || process.env.PORT || 17217);
 const os = require('os');
 function getConfigDir() {
   if (process.platform === 'win32') {
-    return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'Votify');
+    return path.join(
+      process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
+      'Votify'
+    );
   }
   if (process.platform === 'darwin') {
     return path.join(os.homedir(), 'Library', 'Application Support', 'Votify');
@@ -384,7 +387,9 @@ async function ytInnerTubeSearch(query, limit) {
 }
 
 async function ytSearchScrape(query, limit) {
-  console.log(`[search] Searching for: "${query}" (limit: ${limit}) using ${networkConfig.streamSource}`);
+  console.log(
+    `[search] Searching for: "${query}" (limit: ${limit}) using ${networkConfig.streamSource}`
+  );
   const cacheKey = query.toLowerCase().trim() + ':' + networkConfig.streamSource;
   const cached = searchCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
@@ -402,14 +407,16 @@ async function ytSearchScrape(query, limit) {
         10000
       );
       if (Array.isArray(data)) {
-        tracks = data.slice(0, limit).map(v =>
-          makeTrack(
-            v.videoId,
-            v.title,
-            v.author,
-            v.videoThumbnails?.find(t => t.quality === 'high')?.url || v.videoThumbnails?.[0]?.url
-          )
-        );
+        tracks = data
+          .slice(0, limit)
+          .map(v =>
+            makeTrack(
+              v.videoId,
+              v.title,
+              v.author,
+              v.videoThumbnails?.find(t => t.quality === 'high')?.url || v.videoThumbnails?.[0]?.url
+            )
+          );
         console.log(`[search] Invidious found ${tracks.length} tracks`);
       }
     } catch (e) {
@@ -425,49 +432,52 @@ async function ytSearchScrape(query, limit) {
         console.error(`[search] InnerTube fallback error:`, e.message);
       }
       if (tracks.length < 3) {
-      console.log(`[search] Falling back to HTML scraping...`);
-      try {
-        const html = await httpGet(
-          'https://www.youtube.com/results?search_query=' +
-            encodeURIComponent(query + ' music') +
-            '&sp=EgIQAQ%3D%3D',
-          8000
-        );
-        if (typeof html === 'string') {
-          let m = html.match(/var ytInitialData\s*=\s*(\{.+?\});\s*<\/script>/s);
-          if (!m) {
-            m = html.match(/ytInitialData\s*=\s*(\{.+?\});\s*<\/script>/s);
-          }
-          if (m) {
-            let data;
-            try {
-              data = JSON.parse(m[1]);
-            } catch (e) {
-              console.error(`[search] HTML parse error:`, e.message);
-              data = null;
+        console.log(`[search] Falling back to HTML scraping...`);
+        try {
+          const html = await httpGet(
+            'https://www.youtube.com/results?search_query=' +
+              encodeURIComponent(query + ' music') +
+              '&sp=EgIQAQ%3D%3D',
+            8000
+          );
+          if (typeof html === 'string') {
+            let m = html.match(/var ytInitialData\s*=\s*(\{.+?\});\s*<\/script>/s);
+            if (!m) {
+              m = html.match(/ytInitialData\s*=\s*(\{.+?\});\s*<\/script>/s);
             }
-            if (data) {
-              const contents =
-                data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer
-                  ?.contents?.[0]?.itemSectionRenderer?.contents;
-              if (Array.isArray(contents)) {
-                tracks = extractYTTracksFromContents(contents, limit);
-                console.log(`[search] HTML scrape fallback found ${tracks.length} tracks`);
-              } else {
-                console.warn(`[search] No valid contents found in HTML data`);
+            if (m) {
+              let data;
+              try {
+                data = JSON.parse(m[1]);
+              } catch (e) {
+                console.error(`[search] HTML parse error:`, e.message);
+                data = null;
               }
+              if (data) {
+                const contents =
+                  data?.contents?.twoColumnSearchResultsRenderer?.primaryContents
+                    ?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents;
+                if (Array.isArray(contents)) {
+                  tracks = extractYTTracksFromContents(contents, limit);
+                  console.log(`[search] HTML scrape fallback found ${tracks.length} tracks`);
+                } else {
+                  console.warn(`[search] No valid contents found in HTML data`);
+                }
+              }
+            } else {
+              console.warn(`[search] Could not find ytInitialData in HTML`);
+              console.log(
+                `[search] Available patterns:`,
+                html.match(/ytInitialData/g)?.length || 0
+              );
             }
           } else {
-            console.warn(`[search] Could not find ytInitialData in HTML`);
-            console.log(`[search] Available patterns:`, html.match(/ytInitialData/g)?.length || 0);
+            console.warn(`[search] Invalid HTML response type:`, typeof html);
           }
-        } else {
-          console.warn(`[search] Invalid HTML response type:`, typeof html);
+        } catch (e) {
+          console.error(`[search] HTML scrape fallback error:`, e.message);
         }
-      } catch (e) {
-        console.error(`[search] HTML scrape fallback error:`, e.message);
       }
-    }
     }
   } else {
     try {
@@ -530,7 +540,8 @@ async function fetchStreamUrl(videoId) {
       const data = await httpGet(`${instance}/api/v1/videos/${videoId}`, 10000);
       if (data && data.formatStreams && data.formatStreams.length > 0) {
         // Находим аудио поток или лучший доступный
-        const stream = data.adaptiveFormats.find(f => f.type.includes('audio')) || data.formatStreams[0];
+        const stream =
+          data.adaptiveFormats.find(f => f.type.includes('audio')) || data.formatStreams[0];
         if (stream && stream.url) {
           streamCache.set(videoId, { url: stream.url, expires: Date.now() + STREAM_CACHE_TTL });
           return stream.url;

@@ -822,392 +822,751 @@
     <div class="settings-overlay" id="settings-overlay" style="display:none">
       <div class="settings-modal">
         <div class="settings-modal-header">
-          <h2>Настройки</h2>
+          <h2>Настройки Votify</h2>
           <button class="btn-icon-sm" id="settings-close-btn"><i class="material-icons">close</i></button>
         </div>
         <div class="settings-modal-body">
           <div class="settings-left-menu">
-            <button class="settings-menu-item active" data-settings-section="general"><i class="material-icons">tune</i>ОСНОВНЫЕ</button>
-            <button class="settings-menu-item" data-settings-section="appearance"><i class="material-icons">palette</i>ОФОРМЛЕНИЕ</button>
-            <button class="settings-menu-item" data-settings-section="misc"><i class="material-icons">extension</i>ПРОЧЕЕ</button>
+            <!-- ОСНОВНЫЕ -->
+            <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ОСНОВНЫЕ</div>
+            <button class="settings-menu-item active" data-settings-section="gen-main"><i class="material-icons">tune</i>Основные</button>
+            <button class="settings-menu-item" data-settings-section="gen-overlay"><i class="material-icons">layers</i>Оверлей</button>
+            <button class="settings-menu-item" data-settings-section="gen-audio"><i class="material-icons">volume_up</i>Аудио</button>
+            <button class="settings-menu-item" data-settings-section="gen-perf"><i class="material-icons">speed</i>Эффективность</button>
+            <button class="settings-menu-item" data-settings-section="gen-hotkeys"><i class="material-icons">keyboard</i>Горячие клавиши</button>
+            <button class="settings-menu-item" data-settings-section="gen-storage"><i class="material-icons">storage</i>Хранилище</button>
+
+            <!-- ОФОРМЛЕНИЕ -->
+            <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ОФОРМЛЕНИЕ</div>
+            <button class="settings-menu-item" data-settings-section="app-player"><i class="material-icons">play_circle_filled</i>Плеер</button>
+            <button class="settings-menu-item" data-settings-section="app-cover"><i class="material-icons">image</i>Обложка</button>
+            <button class="settings-menu-item" data-settings-section="app-ui"><i class="material-icons">widgets</i>Интерфейс</button>
+            <button class="settings-menu-item" data-settings-section="app-tabs"><i class="material-icons">tab</i>Вкладки</button>
+            <button class="settings-menu-item" data-settings-section="app-bg"><i class="material-icons">wallpaper</i>Фон</button>
+            <button class="settings-menu-item" data-settings-section="app-custom"><i class="material-icons">palette</i>Кастомизация</button>
+            <button class="settings-menu-item" data-settings-section="app-workshop"><i class="material-icons">build</i>Мастерская</button>
+
+            <!-- ИНТЕГРАЦИИ -->
+            <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ИНТЕГРАЦИИ</div>
+            <button class="settings-menu-item" data-settings-section="int-lastfm"><i class="material-icons">star</i>Last.fm</button>
+            <button class="settings-menu-item" data-settings-section="int-discord"><i class="material-icons">chat</i>Discord</button>
+            <button class="settings-menu-item" data-settings-section="int-obs"><i class="material-icons">videocam</i>OBS</button>
+            <button class="settings-menu-item" data-settings-section="int-zapret"><i class="material-icons">gpp_maybe</i>Zapret</button>
+            <button class="settings-menu-item" data-settings-section="int-server"><i class="material-icons">dns</i>Локальный сервер</button>
+            <button class="settings-menu-item" data-settings-section="int-proxy"><i class="material-icons">router</i>Прокси</button>
           </div>
           <div class="settings-right-content">
-            <!-- GENERAL -->
-            <div class="settings-panel active" id="settings-panel-general">
+            
+            <!-- SECTION 1: Основные (gen-main) -->
+            <div class="settings-panel active" id="settings-panel-gen-main">
               <div class="general-settings-hero">
                 <div class="general-settings-hero-icon"><i class="material-icons">tune</i></div>
-                <div><h3>Основные настройки</h3><p>Управляйте запуском, звуком, воспроизведением и поведением Votify.</p></div>
+                <div><h3>Основные настройки</h3><p>Управляйте базовым поведением, автозапуском и очередью воспроизведения Votify.</p></div>
               </div>
               <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">power_settings_new</i><h3>Приложение</h3></div>
+                <div class="settings-section-header"><i class="material-icons">translate</i><h3>Язык приложения</h3></div>
+                <div class="setting-item">
+                  <label for="lang-select">Выберите язык интерфейса</label>
+                  <select id="lang-select" class="m3-select">
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                    <option value="uk">Українська</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">power_settings_new</i><h3>Системные настройки</h3></div>
                 <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Запуск при старте системы</span><span class="setting-toggle-desc">Открывать Votify автоматически после входа в систему</span></div>
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Запуск при старте системы</span>
+                    <span class="setting-toggle-desc">Автоматический запуск Votify при включении ПК</span>
+                  </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-launch-at-startup" /><span class="toggle-slider"></span></label>
                 </div>
                 <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Сворачивать в трей</span><span class="setting-toggle-desc">Закрытие окна прячет Votify в системный трей вместо выхода</span></div>
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Сворачивать в трей</span>
+                    <span class="setting-toggle-desc">Закрытие окна сворачивает приложение в трей</span>
+                  </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-close-to-tray" /><span class="toggle-slider"></span></label>
                 </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">playlist_play</i><h3>Воспроизведение и очередь</h3></div>
                 <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Пауза при сворачивании</span><span class="setting-toggle-desc">Приостанавливать музыку, когда окно скрыто</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-pause-when-hidden" /><span class="toggle-slider"></span></label>
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Автоматические похожие треки</span>
+                    <span class="setting-toggle-desc">Беспрерывно добавлять похожие треки в конец вашей очереди</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-auto-similar" checked /><span class="toggle-slider"></span></label>
                 </div>
                 <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Запоминать громкость</span><span class="setting-toggle-desc">Использовать последнюю громкость при следующем запуске</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-remember-volume" checked /><span class="toggle-slider"></span></label>
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Восстановление очереди</span>
+                    <span class="setting-toggle-desc">Сохранять и загружать очередь треков при повторном запуске</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-restore-queue" checked /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 2: Оверлей (gen-overlay) -->
+            <div class="settings-panel" id="settings-panel-gen-overlay">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">layers</i><h3>Режим оверлея</h3></div>
+                <div class="setting-item">
+                  <label for="setting-overlay-mode">Выберите стиль оверлея над окнами</label>
+                  <select id="setting-overlay-mode" class="m3-select">
+                    <option value="disabled">Отключен</option>
+                    <option value="fullscreen">Полноэкранный</option>
+                    <option value="island">Остров (Pill-overlay)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="setting-overlay-shape">Форма оверлея</label>
+                  <select id="setting-overlay-shape" class="m3-select">
+                    <option value="rounded">Скруглённая</option>
+                    <option value="square">Квадратная</option>
+                  </select>
                 </div>
               </div>
               <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">volume_up</i><h3>Звук и аудио</h3></div>
+                <div class="settings-section-header"><i class="material-icons">grid_on</i><h3>Позиционирование и Размеры</h3></div>
                 <div class="setting-item">
-                  <div class="setting-row"><label>Громкость по умолчанию</label><span class="setting-value" id="volume-value">80%</span></div>
-                  <input type="range" id="default-volume" min="0" max="100" value="80" />
+                  <label>Сетка выравнивания</label>
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; max-width: 240px;">
+                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="top-left">Top-L</button>
+                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="top-center">Top-C</button>
+                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="top-right">Top-R</button>
+                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="center-left">Mid-L</button>
+                    <button class="btn-secondary btn-sm alignment-grid-btn active" data-align="center">Center</button>
+                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="center-right">Mid-R</button>
+                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="bottom-left">Bot-L</button>
+                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="bottom-center">Bot-C</button>
+                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="bottom-right">Bot-R</button>
+                  </div>
                 </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Звуки интерфейса</span><span class="setting-toggle-desc">Короткие звуки при нажатиях</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-ui-sounds" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Звук загрузки</span><span class="setting-toggle-desc">Мелодия при поиске и рекомендациях</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-loading-sound" checked /><span class="toggle-slider"></span></label>
+                <div class="setting-item" style="margin-top: 14px;">
+                  <div class="setting-row"><label>Прозрачность оверлея</label><span class="setting-value" id="overlay-opacity-val">85%</span></div>
+                  <input type="range" id="slider-overlay-opacity" min="10" max="100" value="85" />
                 </div>
                 <div class="setting-item">
-                  <label>Скорость воспроизведения</label>
-                  <select id="setting-playback-rate" class="m3-select"><option value="0.75">0.75×</option><option value="1" selected>Обычная — 1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+                  <div class="setting-row"><label>Масштаб</label><span class="setting-value" id="overlay-scale-val">100%</span></div>
+                  <input type="range" id="slider-overlay-scale" min="50" max="200" value="100" />
+                </div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Ширина (px)</label><span class="setting-value" id="overlay-width-val">340px</span></div>
+                  <input type="range" id="slider-overlay-width" min="100" max="1000" value="340" />
+                </div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Высота (px)</label><span class="setting-value" id="overlay-height-val">220px</span></div>
+                  <input type="range" id="slider-overlay-height" min="50" max="800" value="220" />
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 3: Аудио (gen-audio) -->
+            <div class="settings-panel" id="settings-panel-gen-audio">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">album</i><h3>Качество звука</h3></div>
+                <div class="setting-item">
+                  <label for="setting-audio-quality">Качество потока аудио</label>
+                  <select id="setting-audio-quality" class="m3-select">
+                    <option value="low">Низкое (192 kbps MP3)</option>
+                    <option value="medium" selected>Среднее (256 kbps AAC)</option>
+                    <option value="high">Высокое (320 kbps HQ)</option>
+                    <option value="lossless">Без потерь (1411 kbps / FLAC)</option>
+                  </select>
                 </div>
               </div>
               <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">library_music</i><h3>Мои MP3 треки</h3></div>
-                <div class="setting-item">
-                  <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Добавьте свои локальные MP3 файлы для прослушивания в Votify.</p>
-                  <input type="file" id="settings-mp3-file-input" accept=".mp3,audio/mpeg,audio/*" multiple style="display:none" />
-                  <button class="btn-accent" id="settings-add-mp3-btn" style="display:inline-flex;align-items:center;gap:8px;"><i class="material-icons">upload_file</i> Добавить MP3 треки</button>
-                  <div id="settings-local-tracks-list" class="settings-local-tracks-list" style="margin-top:12px;"></div>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">audiotrack</i><h3>Воспроизведение</h3></div>
-                <div class="setting-item">
-                  <label>Качество аудио</label>
-                  <select id="setting-audio-quality" class="m3-select"><option value="high">Высокое (256-320 kbps)</option><option value="medium" selected>Среднее (128-192 kbps)</option><option value="low">Низкое (64-96 kbps)</option></select>
-                </div>
+                <div class="settings-section-header"><i class="material-icons">graphic_eq</i><h3>Параметры стриминга</h3></div>
                 <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Автовоспроизведение</span><span class="setting-toggle-desc">Играть следующий трек из очереди</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-autoplay" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Кроссфейд</label><span class="setting-value" id="crossfade-value">0 сек</span></div>
-                  <input type="range" id="crossfade-duration" min="0" max="12" value="0" step="1" />
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Бесшовное воспроизведение</span><span class="setting-toggle-desc">Убрать паузы между треками</span></div>
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Бесшовное воспроизведение (Gapless)</span>
+                    <span class="setting-toggle-desc">Минимизировать паузы и задержки перед началом следующего трека</span>
+                  </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-gapless" /><span class="toggle-slider"></span></label>
                 </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Нормализация громкости</span><span class="setting-toggle-desc">Выравнивать громкость разных треков</span></div>
+                <div class="setting-item" style="margin-top: 12px;">
+                  <div class="setting-row"><label>Кроссфейд (плавный переход)</label><span class="setting-value" id="crossfade-value">0 сек</span></div>
+                  <input type="range" id="crossfade-duration" min="0" max="15" value="0" />
+                </div>
+                <div class="setting-toggle-item" style="margin-top: 12px;">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Нормализация громкости (AGC)</span>
+                    <span class="setting-toggle-desc">Выравнивать громкость разных треков на один уровень</span>
+                  </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-normalize" /><span class="toggle-slider"></span></label>
                 </div>
                 <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Продолжать с прежнего места</span><span class="setting-toggle-desc">Запоминать позицию незавершённых треков</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-resume-position" checked /><span class="toggle-slider"></span></label>
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Кеширование треков</span>
+                    <span class="setting-toggle-desc">Сохранять треки локально в кэш для экономии трафика</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-cache-tracks" checked /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 4: Эффективность (gen-perf) -->
+            <div class="settings-panel" id="settings-panel-gen-perf">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">battery_charging_full</i><h3>Ограничение ресурсов</h3></div>
+                <div class="setting-item">
+                  <label for="setting-perf-limiting">Энергосбережение и ЦП</label>
+                  <select id="setting-perf-limiting" class="m3-select">
+                    <option value="off">Выключено</option>
+                    <option value="minimize">При сворачивании окна</option>
+                    <option value="blur">При потере фокуса</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">blur_on</i><h3>Эффекты и Размытие</h3></div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Качество и сила размытия (Blur)</label><span class="setting-value" id="background-blur-value">15px</span></div>
+                  <input type="range" id="background-blur-slider" min="0" max="30" value="15" />
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">toggle_on</i><h3>Управление активными ресурсами</h3></div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Динамический фон</span><span class="setting-toggle-desc">Анимированный градиент на фоне главного окна</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-bg" checked /><span class="toggle-slider"></span></label>
                 </div>
                 <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Сохранять историю прослушивания</span><span class="setting-toggle-desc">Показывать недавно прослушанные треки на главной</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-save-history" checked /><span class="toggle-slider"></span></label>
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Эффекты частиц на фоне</span><span class="setting-toggle-desc">Снег, дождь или летающие светлячки</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-particles" checked /><span class="toggle-slider"></span></label>
                 </div>
-                <div class="setting-item">
-                  <label>Размер истории</label>
-                  <select id="setting-history-limit" class="m3-select"><option value="25">25 треков</option><option value="50" selected>50 треков</option><option value="100">100 треков</option><option value="200">200 треков</option></select>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Анимации обложек</span><span class="setting-toggle-desc">Вращение, пульсация и 3D-перевороты</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-covers" checked /><span class="toggle-slider"></span></label>
                 </div>
-                <div class="setting-item">
-                  <label>Предзагрузка аудио</label>
-                  <select id="setting-preload" class="m3-select"><option value="auto" selected>Полная</option><option value="metadata">Только информация</option><option value="none">Выключена</option></select>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Визуализаторы спектра</span><span class="setting-toggle-desc">Canvas-анимация спектра частот звука</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-visualizers" checked /><span class="toggle-slider"></span></label>
                 </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">bedtime</i><h3>Таймер сна</h3></div>
-                <div class="sleep-timer-row">
-                  <label>Остановить через</label>
-                  <select id="sleep-timer-select" class="m3-select"><option value="0" selected>Выкл.</option><option value="15">15 минут</option><option value="30">30 минут</option><option value="45">45 минут</option><option value="60">1 час</option><option value="90">1.5 часа</option><option value="120">2 часа</option></select>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Высококачественный Blur</span><span class="setting-toggle-desc">Использовать продвинутые фильтры размытия в реальном времени</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-blur" checked /><span class="toggle-slider"></span></label>
                 </div>
               </div>
+            </div>
+
+            <!-- SECTION 5: Горячие клавиши (gen-hotkeys) -->
+            <div class="settings-panel" id="settings-panel-gen-hotkeys">
               <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">public</i><h3>Сеть</h3></div>
-                <div class="setting-item"><label>Движок</label><select id="setting-stream-source" class="m3-select"><option value="yt-dlp">yt-dlp</option><option value="piped">Piped (для РФ)</option><option value="invidious">Invidious API</option><option value="soundcloud">SoundCloud</option></select></div>
-                <div id="invidious-settings" style="display:none">
-                  <div class="setting-item"><label>Инстанс Invidious</label><div class="input-row"><input type="text" id="setting-invidious-instance" class="m3-input-text" placeholder="https://inv.tux.rs" /><button class="btn-accent" id="apply-invidious-btn">Применить</button></div></div>
+                <div class="settings-section-header"><i class="material-icons">keyboard</i><h3>Настройка клавиш активации</h3></div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Глобальная активация горячих клавиш</span><span class="setting-toggle-desc">Управлять плеером, даже когда окно Votify свернуто</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-global-hotkeys" checked /><span class="toggle-slider"></span></label>
                 </div>
-                <div id="piped-settings" style="display:none">
-                  <div class="setting-item"><label>Инстанс Piped</label><div class="input-row"><input type="text" id="setting-piped-instance" class="m3-input-text" placeholder="https://pipedapi.adminforge.de" /><button class="btn-accent" id="apply-piped-btn">Применить</button></div></div>
-                </div>
-                <div class="setting-item" id="proxy-settings-item"><label>HTTP Прокси</label><div class="input-row"><input type="text" id="setting-http-proxy" class="m3-input-text" placeholder="http://user:pass@host:port" /><button class="btn-accent" id="apply-proxy-btn">Применить</button></div></div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">keyboard</i><h3>Горячие клавиши</h3><button class="btn-secondary btn-sm" id="reset-hotkeys-btn">Сброс</button></div>
-                <div class="hotkeys-list" id="hotkeys-list">
-                  <div class="hotkey-row" data-action="play"><span class="hotkey-action">Play / Pause</span><button class="hotkey-key-btn" data-action="play"><kbd><span>Space</span></kbd></button></div>
+                <div class="hotkeys-list" id="hotkeys-list" style="margin-top: 16px;">
+                  <div class="hotkey-row" data-action="play"><span class="hotkey-action">Воспроизвести/пауза</span><button class="hotkey-key-btn" data-action="play"><kbd><span>Space</span></kbd></button></div>
                   <div class="hotkey-row" data-action="next"><span class="hotkey-action">Следующий трек</span><button class="hotkey-key-btn" data-action="next"><kbd><span>N</span></kbd></button></div>
                   <div class="hotkey-row" data-action="prev"><span class="hotkey-action">Предыдущий трек</span><button class="hotkey-key-btn" data-action="prev"><kbd><span>P</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="volup"><span class="hotkey-action">Громкость +</span><button class="hotkey-key-btn" data-action="volup"><kbd><span>↑</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="voldown"><span class="hotkey-action">Громкость −</span><button class="hotkey-key-btn" data-action="voldown"><kbd><span>↓</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="forward"><span class="hotkey-action">Перемотка +5с</span><button class="hotkey-key-btn" data-action="forward"><kbd><span>→</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="backward"><span class="hotkey-action">Перемотка −5с</span><button class="hotkey-key-btn" data-action="backward"><kbd><span>←</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="mute"><span class="hotkey-action">Mute</span><button class="hotkey-key-btn" data-action="mute"><kbd><span>M</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="like"><span class="hotkey-action">Нравится / В избранное</span><button class="hotkey-key-btn" data-action="like"><kbd><span>L</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="search"><span class="hotkey-action">Поиск</span><button class="hotkey-key-btn" data-action="search"><kbd><span>Ctrl+K</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="fullscreen"><span class="hotkey-action">Полный экран плеера</span><button class="hotkey-key-btn" data-action="fullscreen"><kbd><span>F</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="lyrics"><span class="hotkey-action">Текст песни</span><button class="hotkey-key-btn" data-action="lyrics"><kbd><span>Ctrl+L</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="like"><span class="hotkey-action">Лайк (В избранное)</span><button class="hotkey-key-btn" data-action="like"><kbd><span>L</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="volup"><span class="hotkey-action">Увеличить громкость</span><button class="hotkey-key-btn" data-action="volup"><kbd><span>↑</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="voldown"><span class="hotkey-action">Уменьшить громкость</span><button class="hotkey-key-btn" data-action="voldown"><kbd><span>↓</span></kbd></button></div>
                 </div>
-                <div class="hotkey-hint" style="margin-top:8px;font-size:12px;color:var(--text-tertiary)">Нажмите на клавишу для изменения. ESC для отмены.</div>
+                <div class="hotkey-hint" style="margin-top:14px;font-size:12px;color:var(--text-tertiary)">Кликните на кнопку сочетания клавиш, чтобы переназначить. Нажмите Esc для отмены.</div>
               </div>
             </div>
 
-            <!-- APPEARANCE — Morphing Sidebar Controls -->
-            <div class="settings-panel" id="settings-panel-appearance">
-              <div class="morph-settings" id="morph-settings">
-                <div class="morph-settings-header">
-                  <span class="morph-settings-title">Оформление</span>
-                  <div class="morph-settings-header-btn" id="morph-reset-all" title="Сбросить всё"><i class="material-icons">restart_alt</i></div>
-                </div>
-
-                <!-- Live Preview -->
-                <div class="appearance-preview" id="appearance-preview">
-                  <div class="appearance-preview-cover"><i class="material-icons">music_note</i></div>
-                  <div class="appearance-preview-info">
-                    <div class="appearance-preview-title">Пример трека</div>
-                    <div class="appearance-preview-artist">Сюда применяются цвет, шрифт и скругление углов</div>
-                  </div>
-                  <button class="appearance-preview-play" id="appearance-preview-play" title="Нажмите, чтобы увидеть анимацию"><i class="material-icons">play_arrow</i></button>
-                </div>
-
-                <!-- Accent Color -->
-                <div class="morph-settings-group">
-                  <div class="morph-settings-group-header"><i class="material-icons">palette</i><span>Акцентный цвет</span></div>
-                  <div class="morph-settings-item">
-                    <div class="theme-presets" id="theme-presets">
-                      <button class="theme-card active" data-accent="#1DB954" style="background:#1DB954;--sw:#1DB954" title="Зелёный"></button>
-                      <button class="theme-card" data-accent="#E91E63" style="background:#E91E63;--sw:#E91E63" title="Розовый"></button>
-                      <button class="theme-card" data-accent="#FF9800" style="background:#FF9800;--sw:#FF9800" title="Оранжевый"></button>
-                      <button class="theme-card" data-accent="#0B57D0" style="background:#0B57D0;--sw:#0B57D0" title="Синий"></button>
-                      <button class="theme-card" data-accent="#6750A4" style="background:#6750A4;--sw:#6750A4" title="Фиолетовый"></button>
-                      <button class="theme-card" data-accent="#FFEB3B" style="background:#FFEB3B;--sw:#FFEB3B" title="Жёлтый"></button>
-                      <button class="theme-card" data-accent="#00BCD4" style="background:#00BCD4;--sw:#00BCD4" title="Циан"></button>
-                      <button class="theme-card" data-accent="#F44336" style="background:#F44336;--sw:#F44336" title="Красный"></button>
-                      <button class="theme-card" data-accent="#3F51B5" style="background:#3F51B5;--sw:#3F51B5" title="Индиго"></button>
-                      <button class="theme-card" data-accent="#00E5A0" style="background:#00E5A0;--sw:#00E5A0" title="Мята"></button>
-                      <button class="theme-card" data-accent="#FF6F61" style="background:#FF6F61;--sw:#FF6F61" title="Коралл"></button>
-                      <button class="theme-card" data-accent="#D500F9" style="background:#D500F9;--sw:#D500F9" title="Магента"></button>
-                      <button class="theme-card theme-card-custom" data-accent="custom" title="Свой"><input type="color" id="accent-color" value="#1DB954" class="hidden-color-input" /></button>
-                    </div>
+            <!-- SECTION 6: Хранилище (gen-storage) -->
+            <div class="settings-panel" id="settings-panel-gen-storage">
+              <div class="settings-section" style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap;">
+                <div style="width: 140px; height: 140px; position: relative;">
+                  <!-- Beautiful Circular SVG chart -->
+                  <svg width="100%" height="100%" viewBox="0 0 42 42" class="donut">
+                    <circle class="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
+                    <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="rgba(255,255,255,0.08)" stroke-width="4"></circle>
+                    <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--accent)" stroke-width="4" stroke-dasharray="70 30" stroke-dashoffset="25"></circle>
+                  </svg>
+                  <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <span id="storage-pie-used" style="font-size: 18px; font-weight: 800; color: #fff;">1.4 МБ</span>
+                    <span style="font-size: 10px; color: var(--text-secondary);">Использовано</span>
                   </div>
                 </div>
-
-                <!-- Theme mode -->
-                <div class="morph-settings-group">
-                  <div class="morph-settings-group-header"><i class="material-icons">contrast</i><span>Тема</span></div>
-                  <div class="theme-mode-presets" id="theme-mode-presets">
-                    <button class="theme-mode-card active" data-theme-mode="dark" title="Тёмная"><span class="theme-mode-swatch theme-mode-swatch-dark"></span><span>Тёмная</span></button>
-                    <button class="theme-mode-card" data-theme-mode="midnight" title="Полночь"><span class="theme-mode-swatch theme-mode-swatch-midnight"></span><span>Полночь</span></button>
-                    <button class="theme-mode-card" data-theme-mode="contrast" title="Контраст"><span class="theme-mode-swatch theme-mode-swatch-contrast"></span><span>Контраст</span></button>
-                  </div>
+                <div style="flex: 1; min-width: 200px;">
+                  <h3>Управление памятью приложения</h3>
+                  <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Здесь вы можете выборочно удалять локальный кэш, чтобы освободить место на диске.</p>
                 </div>
-
-                <!-- Text -->
-                <div class="morph-settings-group">
-                  <div class="morph-settings-group-header"><i class="material-icons">text_fields</i><span>Текст</span></div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Гарнитура</span>
-                    <select id="font-family-select" class="morph-select">
-                      <option value="default">Inter</option>
-                      <option value="roboto">Roboto</option>
-                      <option value="mono">Mono</option>
-                      <option value="rounded">Rounded</option>
-                      <option value="serif">Serif</option>
-                      <option value="system">System</option>
-                    </select>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Размер текста</span>
-                    <div class="morph-slider-row">
-                      <input type="range" id="font-size-slider" min="13" max="20" step="1" value="16" class="morph-slider" />
-                      <span class="morph-settings-item-value" id="font-size-slider-value">16px</span>
-                    </div>
-                  </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">delete_outline</i><h3>Кэш по категориям</h3></div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Кэшированные треки</span><span class="setting-toggle-desc" id="cache-tracks-size">Размер кэша: 0.8 МБ</span></div>
+                  <button class="btn-secondary btn-sm" id="clear-tracks-cache-btn">Очистить треки</button>
                 </div>
-
-                <!-- Interface -->
-                <div class="morph-settings-group">
-                  <div class="morph-settings-group-header"><i class="material-icons">tune</i><span>Интерфейс</span></div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Включить прозрачность (Liquid Glass)</span>
-                    <label class="morph-toggle"><input type="checkbox" id="toggle-liquid-glass" class="toggle-input"><div class="morph-toggle-knob"></div></label>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Компактный режим</span>
-                    <label class="morph-toggle"><input type="checkbox" id="toggle-compact" class="toggle-input"><div class="morph-toggle-knob"></div></label>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Скругление углов</span>
-                    <div class="morph-slider-row">
-                      <input type="range" id="corner-radius-slider" min="0" max="24" step="2" value="8" class="morph-slider" />
-                      <span class="morph-settings-item-value" id="corner-radius-slider-value">8px</span>
-                    </div>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Прозрачность окна</span>
-                    <div class="morph-slider-row">
-                      <input type="range" id="window-opacity-slider" min="70" max="100" step="1" value="98" class="morph-slider" />
-                      <span class="morph-settings-item-value" id="window-opacity-slider-value">98%</span>
-                    </div>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Анимации интерфейса</span>
-                    <label class="morph-toggle"><input type="checkbox" id="toggle-animations" class="toggle-input" checked><div class="morph-toggle-knob"></div></label>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Обложка в плеере</span>
-                    <label class="morph-toggle"><input type="checkbox" id="toggle-cover-in-player" class="toggle-input" checked><div class="morph-toggle-knob"></div></label>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Форма обложки плеера</span>
-                    <button class="morph-pill-btn" id="player-cover-shape-btn">
-                      <span id="player-cover-shape-value">Закруглённый квадрат</span>
-                    </button>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Заставка при запуске</span>
-                    <label class="morph-toggle"><input type="checkbox" id="toggle-splash-screen" class="toggle-input" checked><div class="morph-toggle-knob"></div></label>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Плотность интерфейса</span>
-                    <select id="interface-density-select" class="morph-select">
-                      <option value="comfortable">Комфортная</option>
-                      <option value="compact">Плотная</option>
-                      <option value="spacious">Свободная</option>
-                    </select>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Свечение акцентного цвета</span>
-                    <label class="morph-toggle"><input type="checkbox" id="toggle-accent-glow" class="toggle-input" checked><div class="morph-toggle-knob"></div></label>
-                  </div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Стиль карточек треков</span>
-                    <select id="track-card-style-select" class="morph-select">
-                      <option value="default">Стандартный</option>
-                      <option value="glass">Стекло</option>
-                      <option value="outline">Контур</option>
-                      <option value="flat">Плоский</option>
-                    </select>
-                  </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Обложки альбомов</span><span class="setting-toggle-desc" id="cache-covers-size">Размер кэша: 0.4 МБ</span></div>
+                  <button class="btn-secondary btn-sm" id="clear-covers-cache-btn">Очистить обложки</button>
                 </div>
-
-                <!-- Background -->
-                <div class="morph-settings-group">
-                  <div class="morph-settings-group-header"><i class="material-icons">wallpaper</i><span>Фон</span></div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Размытие изображения</span>
-                    <div class="morph-slider-row">
-                      <input type="range" id="background-blur-slider" min="0" max="30" step="2" value="0" class="morph-slider" />
-                      <span class="morph-settings-item-value" id="background-blur-value">0px</span>
-                    </div>
-                  </div>
-                  <div class="bg-presets" id="bg-presets">
-                    <button class="bg-card bg-card-active" data-bg="default"><div class="bg-swatch bg-none"></div><span class="bg-label">Стандарт</span></button>
-                    <button class="bg-card" data-bg="grad-1"><div class="bg-swatch" style="background:linear-gradient(135deg,#1a1040,#0d0620)"></div><span class="bg-label">Глубина</span></button>
-                    <button class="bg-card" data-bg="grad-2"><div class="bg-swatch" style="background:linear-gradient(135deg,#0a1628,#061020)"></div><span class="bg-label">Ночь</span></button>
-                    <button class="bg-card" data-bg="grad-3"><div class="bg-swatch" style="background:linear-gradient(135deg,#0a1a10,#060d08)"></div><span class="bg-label">Лес</span></button>
-                    <button class="bg-card" data-bg="grad-4"><div class="bg-swatch" style="background:linear-gradient(135deg,#1a0a18,#0d0610)"></div><span class="bg-label">Лаванда</span></button>
-                    <button class="bg-card" data-bg="grad-5"><div class="bg-swatch" style="background:linear-gradient(135deg,#080818,#040410)"></div><span class="bg-label">Космос</span></button>
-                    <button class="bg-card" data-bg="grad-6"><div class="bg-swatch" style="background:linear-gradient(135deg,#1a0808,#100404)"></div><span class="bg-label">Огонь</span></button>
-                  </div>
-                  <div class="bg-custom-row">
-                    <div class="bg-color-picker-wrap">
-                      <span class="material-icons" style="font-size:16px;color:var(--text-secondary)">palette</span>
-                      <label class="bg-color-btn" id="bg-color-btn">
-                        <input type="color" id="bg-color-input" value="#121212" style="position:absolute;opacity:0;width:0;height:0" />
-                        <div class="bg-color-preview" id="bg-color-preview" style="background:#121212"></div>
-                        <span>Цвет фона</span>
-                      </label>
-                    </div>
-                    <div class="bg-url-input-wrap">
-                      <span class="material-icons bg-url-icon">link</span>
-                      <input type="text" id="bg-url-input" class="bg-url-input" placeholder="URL изображения..." />
-                      <button class="bg-url-btn" id="bg-url-apply" title="Применить"><span class="material-icons">check</span></button>
-                    </div>
-                    <button class="bg-file-btn" id="bg-file-btn" title="Загрузить файл">
-                      <span class="material-icons">upload</span>
-                      <span>Файл</span>
-                    </button>
-                    <input type="file" id="bg-file-input" accept="image/*" style="display:none" />
-                  </div>
-                  <button class="bg-reset-btn" id="bg-reset-btn" title="Сбросить фон">
-                    <span class="material-icons">restart_alt</span>
-                    <span>Сбросить фон</span>
-                  </button>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Тексты песен</span><span class="setting-toggle-desc" id="cache-lyrics-size">Размер кэша: 0.2 МБ</span></div>
+                  <button class="btn-secondary btn-sm" id="clear-lyrics-cache-btn">Очистить тексты</button>
                 </div>
-
-                <!-- Language -->
-                <div class="morph-settings-group">
-                  <div class="morph-settings-group-header"><i class="material-icons">translate</i><span>Язык</span></div>
-                  <div class="morph-settings-item">
-                    <span class="morph-settings-item-label">Язык интерфейса</span>
-                    <select id="lang-select" class="morph-select">
-                      <option value="ru">Русский</option>
-                      <option value="en">English</option>
-                    </select>
-                  </div>
+                <div style="margin-top: 18px; display: flex; gap: 8px;">
+                  <button class="btn-danger" id="clear-all-storage-btn" style="flex: 1; justify-content: center;"><i class="material-icons">delete_sweep</i> Очистить весь кэш и данные</button>
                 </div>
               </div>
             </div>
 
-            <!-- MISC (ПРОЧЕЕ) -->
-            <div class="settings-panel" id="settings-panel-misc">
+            <!-- SECTION 7: Плеер (app-player) -->
+            <div class="settings-panel" id="settings-panel-app-player">
               <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">chat</i><h3>Discord Rich Presence</h3></div>
-                <div class="discord-config-row"><input type="text" id="discord-app-id" placeholder="Discord Application ID" class="settings-input" /><button class="btn-accent" id="discord-connect-btn">Connect</button><button class="btn-accent" id="discord-disconnect-btn" style="display:none">Disconnect</button></div>
-                <div class="discord-status" id="discord-status"><span class="discord-status-dot" id="discord-status-dot"></span><span id="discord-status-text">Not connected</span></div>
-                <div class="setting-toggle-item" style="margin-top:12px"><div class="setting-toggle-info"><span class="setting-toggle-label">Прогресс трека</span><span class="setting-toggle-desc">Таймстамп в статусе</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-discord-progress" checked /><span class="toggle-slider"></span></label></div>
-                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Обложка альбома</span><span class="setting-toggle-desc">Большая картинка в статусе</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-discord-cover" /><span class="toggle-slider"></span></label></div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">lyrics</i><h3>Тексты песен</h3></div>
-                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Автозагрузка</span><span class="setting-toggle-desc">Искать текст при смене трека</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-auto-lyrics" checked /><span class="toggle-slider"></span></label></div>
-                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Синхронизированные (LRC)</span><span class="setting-toggle-desc">Текст по строчкам в ритме</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-synced-lyrics" checked /><span class="toggle-slider"></span></label></div>
-                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Автоперевод</span><span class="setting-toggle-desc">Переводить текст (экспериментально)</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-translate-lyrics" /><span class="toggle-slider"></span></label></div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">notifications</i><h3>Уведомления</h3></div>
-                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Уведомление о треке</span><span class="setting-toggle-desc">Показывать системное уведомление при смене трека</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-track-notifications" /><span class="toggle-slider"></span></label></div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">storage</i><h3>Хранилище</h3></div>
+                <div class="settings-section-header"><i class="material-icons">format_align_center</i><h3>Выравнивание заголовка</h3></div>
                 <div class="setting-item">
-                  <div class="setting-row"><label>Локальные данные (настройки, плейлисты)</label><span class="setting-value" id="storage-local-size">— КБ</span></div>
-                </div>
-                <div class="storage-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-                  <button class="btn-secondary btn-sm" id="clear-listening-history-btn">Очистить историю прослушивания</button>
-                  <button class="btn-secondary btn-sm" id="settings-clear-search-history-btn">Очистить историю поиска</button>
+                  <label for="setting-player-title-align">Выравнивание текста в плеере</label>
+                  <select id="setting-player-title-align" class="m3-select">
+                    <option value="left">По левому краю</option>
+                    <option value="center" selected>По центру</option>
+                    <option value="right">По правому краю</option>
+                  </select>
                 </div>
               </div>
-              <div class="settings-section settings-about">
-                <div class="settings-section-header"><i class="material-icons">info</i><h3>О приложении</h3></div>
-                <div class="about-card">
-                  <div class="about-logo"><img src="icon.png" alt="Votify" class="about-logo-icon" /><span>Votify</span></div>
-                  <div class="about-version">v0.4.0 — Dotify Edition</div>
-                  <div class="about-links">
-                    <a class="about-link" href="https://github.com/exieeez/Votify" target="_blank" rel="noopener"><i class="material-icons">code</i> GitHub</a>
-                    <a class="about-link" href="https://t.me/votifymusic" target="_blank" rel="noopener"><i class="material-icons">send</i> Telegram</a>
-                  </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">play_circle_outline</i><h3>Стиль плеера</h3></div>
+                <div class="setting-item">
+                  <label for="setting-player-style">Оформление окна плеера</label>
+                  <select id="setting-player-style" class="m3-select">
+                    <option value="standard" selected>Обычный</option>
+                    <option value="vinyl">Пластинка (Винил)</option>
+                    <option value="large">Большой</option>
+                  </select>
                 </div>
-                <button class="btn-danger settings-reset-btn" id="settings-reset-btn"><i class="material-icons">restart_alt</i> Сбросить все настройки</button>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">linear_scale</i><h3>Тип слайдера</h3></div>
+                <div class="setting-item">
+                  <label for="setting-player-slider-type">Дизайн ползунка перемотки</label>
+                  <select id="setting-player-slider-type" class="m3-select">
+                    <option value="normal" selected>Обычный</option>
+                    <option value="thin">Тонкий</option>
+                    <option value="ios">Стиль iOS</option>
+                    <option value="wave">Волновой (Waveform)</option>
+                  </select>
+                </div>
               </div>
             </div>
+
+            <!-- SECTION 8: Обложка (app-cover) -->
+            <div class="settings-panel" id="settings-panel-app-cover">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">slow_motion_video</i><h3>Анимация обложки</h3></div>
+                <div class="setting-item">
+                  <label for="setting-cover-animation">Эффект при воспроизведении</label>
+                  <select id="setting-cover-animation" class="m3-select">
+                    <option value="none" selected>Нет</option>
+                    <option value="rotation">Вращение (360° Spin)</option>
+                    <option value="pulsation">Пульсация в ритм</option>
+                    <option value="wave">Волна (Дыхание)</option>
+                    <option value="zoom">Плавный зум (Приближение)</option>
+                    <option value="flip">3D-переворот (Flip)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">photo_filter</i><h3>Эффекты обложки</h3></div>
+                <div class="setting-item">
+                  <label for="setting-cover-effects">Фильтр изображения обложки</label>
+                  <select id="setting-cover-effects" class="m3-select">
+                    <option value="none" selected>Обычный (Без эффектов)</option>
+                    <option value="blur">Размытие (Soft Blur)</option>
+                    <option value="grayscale">Чёрно-белый (B&W)</option>
+                    <option value="sepia">Сепия (Retro)</option>
+                    <option value="saturation">Высокая Насыщенность</option>
+                    <option value="inversion">Инверсия цветов</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">palette</i><h3>Гамма интерфейса</h3></div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Акцентный цвет (Динамическая подстройка)</span>
+                    <span class="setting-toggle-desc">Автоматически подстраивать акцентные цвета кнопок под палитру текущего трека</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-dynamic-accent" checked /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 9: Интерфейс (app-ui) -->
+            <div class="settings-panel" id="settings-panel-app-ui">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">brightness_medium</i><h3>Тема оформления</h3></div>
+                <div class="theme-mode-presets" id="theme-mode-presets" style="margin-bottom: 14px;">
+                  <button class="theme-mode-card active" data-theme-mode="dark" title="Тёмная"><span class="theme-mode-swatch theme-mode-swatch-dark"></span><span>Тёмная</span></button>
+                  <button class="theme-mode-card" data-theme-mode="light" title="Светлая"><span class="theme-mode-swatch" style="background: #ffffff; border: 1px solid #ddd;"></span><span>Светлая</span></button>
+                  <button class="theme-mode-card" data-theme-mode="system" title="Системная"><span class="theme-mode-swatch" style="background: linear-gradient(135deg, #121212 50%, #ffffff 50%);"></span><span>Системная</span></button>
+                </div>
+                <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:8px;">Пресеты цветовой схемы:</style>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;" id="ui-theme-presets">
+                  <button class="btn-secondary btn-sm active" data-preset="neutral">Neutral</button>
+                  <button class="btn-secondary btn-sm" data-preset="amoled">AMOLED</button>
+                  <button class="btn-secondary btn-sm" data-preset="crimson">Crimson</button>
+                  <button class="btn-secondary btn-sm" data-preset="dracula">Dracula</button>
+                  <button class="btn-secondary btn-sm" data-preset="nord">Nord</button>
+                  <button class="btn-secondary btn-sm" data-preset="sky">Sky</button>
+                  <button class="btn-secondary btn-sm" data-preset="mint">Mint</button>
+                  <button class="btn-secondary btn-sm" data-preset="violet">Violet</button>
+                  <button class="btn-secondary btn-sm" data-preset="blossom">Blossom</button>
+                  <button class="btn-secondary btn-sm" data-preset="sakura">Sakura</button>
+                  <button class="btn-secondary btn-sm" data-preset="terminal">Terminal</button>
+                  <button class="btn-secondary btn-sm" data-preset="sand">Sand</button>
+                  <button class="btn-secondary btn-sm" data-preset="aqua">Aqua</button>
+                  <button class="btn-secondary btn-sm" data-preset="sunset">Sunset</button>
+                  <button class="btn-secondary btn-sm" data-preset="slate">Slate</button>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">text_fields</i><h3>Шрифты приложения</h3></div>
+                <div class="setting-item">
+                  <label for="font-family-select">Семейство шрифта</label>
+                  <select id="font-family-select" class="m3-select">
+                    <option value="system">System (По умолчанию)</option>
+                    <option value="modern">Modern (Интерфейсный)</option>
+                    <option value="serif">Serif (С засечками)</option>
+                    <option value="mono">Mono (Код)</option>
+                    <option value="hand">Hand (Рукописный)</option>
+                    <option value="deco">Deco (Декоративный)</option>
+                    <option value="game">Game (Ретро-игры)</option>
+                    <option value="inter" selected>Inter</option>
+                    <option value="roboto">Roboto</option>
+                    <option value="helvetica">Helvetica Neue</option>
+                    <option value="sf">San Francisco</option>
+                  </select>
+                </div>
+                <div class="setting-item" style="margin-top: 8px;">
+                  <div class="setting-row"><label>Размер шрифта</label><span class="setting-value" id="font-size-slider-value">16px</span></div>
+                  <input type="range" id="font-size-slider" min="12" max="24" value="16" />
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">zoom_out_map</i><h3>Скругление и Масштабирование</h3></div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Скругление углов (border-radius)</label><span class="setting-value" id="corner-radius-slider-value">8px</span></div>
+                  <input type="range" id="corner-radius-slider" min="0" max="24" value="8" />
+                </div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Масштаб интерфейса (UI Scale)</label><span class="setting-value" id="ui-scale-slider-value">100%</span></div>
+                  <input type="range" id="slider-ui-scale" min="75" max="125" value="100" />
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 10: Вкладки (app-tabs) -->
+            <div class="settings-panel" id="settings-panel-app-tabs">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">tab</i><h3>Вкладки навигации</h3></div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Активируйте и настройте вкладки на панели быстрого доступа.</p>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Главный экран (Home)</span><span class="setting-toggle-desc">Показывать рекомендации и историю</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-tab-home" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Поиск треков (Search)</span><span class="setting-toggle-desc">Вкладка поиска музыки</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-tab-search" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Медиатека (Library)</span><span class="setting-toggle-desc">Ваши плейлисты и избранные треки</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-tab-library" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Настройки (Settings)</span><span class="setting-toggle-desc">Показывать оверлей настроек в боковом меню</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-tab-settings" checked /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 11: Фон (app-bg) -->
+            <div class="settings-panel" id="settings-panel-app-bg">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">wallpaper</i><h3>Изображение фона</h3></div>
+                <div class="bg-presets" id="bg-presets" style="margin-bottom: 12px;">
+                  <button class="bg-card bg-card-active" data-bg="default"><div class="bg-swatch bg-none"></div><span class="bg-label">Стандарт</span></button>
+                  <button class="bg-card" data-bg="grad-1"><div class="bg-swatch" style="background:linear-gradient(135deg,#1a1040,#0d0620)"></div><span class="bg-label">Глубина</span></button>
+                  <button class="bg-card" data-bg="grad-2"><div class="bg-swatch" style="background:linear-gradient(135deg,#0a1628,#061020)"></div><span class="bg-label">Ночь</span></button>
+                </div>
+                <div class="bg-custom-row">
+                  <div class="bg-color-picker-wrap">
+                    <span class="material-icons" style="font-size:16px;color:var(--text-secondary)">palette</span>
+                    <label class="bg-color-btn" id="bg-color-btn">
+                      <input type="color" id="bg-color-input" value="#121212" class="hidden-color-input" />
+                      <div class="bg-color-preview" id="bg-color-preview" style="background:#121212"></div>
+                      <span>Цвет фона</span>
+                    </label>
+                  </div>
+                  <div class="bg-url-input-wrap">
+                    <span class="material-icons bg-url-icon">link</span>
+                    <input type="text" id="bg-url-input" class="bg-url-input" placeholder="URL изображения..." />
+                    <button class="bg-url-btn" id="bg-url-apply" title="Применить"><span class="material-icons">check</span></button>
+                  </div>
+                  <button class="bg-file-btn" id="bg-file-btn" title="Загрузить файл">
+                    <span class="material-icons">upload</span><span>Файл</span>
+                  </button>
+                  <input type="file" id="bg-file-input" accept="image/*" style="display:none" />
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">grain</i><h3>Эффекты частиц на фоне</h3></div>
+                <div class="setting-item">
+                  <label for="setting-bg-particles">Выберите тип частиц</label>
+                  <select id="setting-bg-particles" class="m3-select">
+                    <option value="none">Отсутствуют</option>
+                    <option value="snow">Snow (Снег)</option>
+                    <option value="rain">Rain (Дождь)</option>
+                    <option value="stars">Stars (Звезды)</option>
+                    <option value="dots" selected>Dots (Точки)</option>
+                    <option value="hearts">Hearts (Сердца)</option>
+                    <option value="fireflies">Fireflies (Светлячки)</option>
+                    <option value="sakura">Sakura (Лепестки Сакуры)</option>
+                    <option value="network">Network (Нейросеть)</option>
+                  </select>
+                </div>
+                <div class="setting-item" style="margin-top: 8px;">
+                  <div class="setting-row"><label>Количество частиц</label><span class="setting-value" id="particle-count-val">50</span></div>
+                  <input type="range" id="slider-particle-count" min="10" max="250" value="50" />
+                </div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Скорость движения</label><span class="setting-value" id="particle-speed-val">1.5×</span></div>
+                  <input type="range" id="slider-particle-speed" min="1" max="100" value="15" />
+                </div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Размер частиц</label><span class="setting-value" id="particle-size-val">3px</span></div>
+                  <input type="range" id="slider-particle-size" min="1" max="12" value="3" />
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Эффект параллакса</span>
+                    <span class="setting-toggle-desc">Частицы реагируют на движение курсора мыши</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-particle-parallax" checked /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 12: Кастомизация (app-custom) -->
+            <div class="settings-panel" id="settings-panel-app-custom">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">color_lens</i><h3>Конструктор тем (Моя тема)</h3></div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">Создайте свой уникальный дизайн оформления Votify, настроив цвета каждого элемента вручную.</p>
+                <div class="setting-toggle-item">
+                  <span class="setting-toggle-label">Основной цвет (Accent)</span>
+                  <input type="color" id="picker-color-primary" value="#1DB954" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                </div>
+                <div class="setting-toggle-item">
+                  <span class="setting-toggle-label">Задний фон (Background)</span>
+                  <input type="color" id="picker-color-bg" value="#121212" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                </div>
+                <div class="setting-toggle-item">
+                  <span class="setting-toggle-label">Цвет текста (Text Color)</span>
+                  <input type="color" id="picker-color-text" value="#ffffff" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                </div>
+                <div class="setting-toggle-item">
+                  <span class="setting-toggle-label">Карточки и панели (Card Fill)</span>
+                  <input type="color" id="picker-color-cards" value="#181818" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                </div>
+                <div class="setting-toggle-item">
+                  <span class="setting-toggle-label">Границы элементов (Borders)</span>
+                  <input type="color" id="picker-color-borders" value="#2a2a2a" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                </div>
+                <div class="setting-toggle-item">
+                  <span class="setting-toggle-label">Элемент в фокусе (Focus Glow)</span>
+                  <input type="color" id="picker-color-focus" value="#1DB954" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                </div>
+                <div style="margin-top: 18px; display: flex; gap: 8px;">
+                  <button class="btn-accent" id="btn-custom-theme-apply" style="flex: 1; justify-content: center;"><i class="material-icons">save</i> Сохранить кастомную тему</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 13: Мастерская (app-workshop) -->
+            <div class="settings-panel" id="settings-panel-app-workshop">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">construction</i><h3>Мастерская кастомизации</h3></div>
+                <div class="setting-item">
+                  <label for="textarea-custom-css">Пользовательский CSS код для инъекции</label>
+                  <textarea id="textarea-custom-css" placeholder="/* Напишите ваш CSS здесь, например: 
+body { font-weight: bold; } */" style="width: 100%; height: 160px; padding: 12px; background: var(--bg-base); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; font-family: monospace; font-size: 13px; resize: none; margin-top: 4px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                  <button class="btn-accent" id="btn-workshop-apply-css"><i class="material-icons">flash_on</i> Применить стили</button>
+                  <button class="btn-secondary" id="btn-workshop-reset-css">Сбросить стили</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 14: Last.fm (int-lastfm) -->
+            <div class="settings-panel" id="settings-panel-int-lastfm">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">star</i><h3>Last.fm Скробблинг</h3></div>
+                <div class="setting-item">
+                  <label>Имя пользователя Last.fm</label>
+                  <input type="text" id="input-lastfm-username" class="m3-input-text" placeholder="Введите никнейм..." />
+                </div>
+                <div class="setting-item">
+                  <label>Пароль или сессионный ключ</label>
+                  <input type="password" id="input-lastfm-password" class="m3-input-text" placeholder="••••••••••••" />
+                </div>
+                <div class="setting-toggle-item" style="margin-top: 12px;">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Активировать скробблинг треков</span>
+                    <span class="setting-toggle-desc">Автоматически отправлять историю прослушивания в Last.fm профиль</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-lastfm-scrobble" /><span class="toggle-slider"></span></label>
+                </div>
+                <div style="margin-top: 18px; display: flex; gap: 10px; align-items: center;">
+                  <button class="btn-accent" id="btn-lastfm-connect">Подключить аккаунт</button>
+                  <span id="lastfm-connection-status" style="font-size: 13px; color: var(--text-secondary);"><span class="discord-status-dot"></span> Отключено</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 15: Discord (int-discord) -->
+            <div class="settings-panel" id="settings-panel-int-discord">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">chat</i><h3>Discord Rich Presence (Статус активности)</h3></div>
+                <div class="discord-config-row">
+                  <input type="text" id="discord-app-id" placeholder="Discord Application ID" class="settings-input" />
+                  <button class="btn-accent" id="discord-connect-btn">Connect</button>
+                </div>
+                <div class="discord-status" id="discord-status" style="margin-top: 8px;">
+                  <span class="discord-status-dot" id="discord-status-dot"></span><span id="discord-status-text">Not connected</span>
+                </div>
+                <div class="setting-toggle-item" style="margin-top:16px">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Прогресс трека</span>
+                    <span class="setting-toggle-desc">Показывать время проигрывания и таймстамп в статусе Discord</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-discord-progress" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Обложка альбома</span>
+                    <span class="setting-toggle-desc">Отображать картинку альбома в большой карточке Rich Presence</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-discord-cover" /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 16: OBS (int-obs) -->
+            <div class="settings-panel" id="settings-panel-int-obs">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">videocam</i><h3>Интеграция с OBS Studio</h3></div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Скопируйте эту ссылку в качестве источника браузера (Browser Source) в OBS для красивого вывода текущего играющего трека на стриме.</p>
+                <div class="input-row">
+                  <input type="text" id="input-obs-widget-url" class="m3-input-text" value="http://localhost:17217/obs-widget.html" readonly />
+                  <button class="btn-accent" id="btn-obs-copy-url"><i class="material-icons">content_copy</i> Копировать</button>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">brush</i><h3>Кастомизация виджета</h3></div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Прозрачность фона виджета</label><span class="setting-value" id="obs-widget-opacity-val">0%</span></div>
+                  <input type="range" id="slider-obs-opacity" min="0" max="100" value="0" />
+                </div>
+                <div class="setting-toggle-item" style="margin-top: 8px;">
+                  <span class="setting-toggle-label">Цвет текста в виджете</span>
+                  <input type="color" id="picker-obs-text-color" value="#ffffff" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 17: Zapret (int-zapret) -->
+            <div class="settings-panel" id="settings-panel-int-zapret">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">security</i><h3>Zapret (Обход блокировок)</h3></div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Интегрируйте утилиту Zapret для стабильного обхода блокировок и ускорения загрузки музыки из заблокированных платформ.</p>
+                <div class="setting-item">
+                  <label for="input-zapret-path">Путь к папке Zapret</label>
+                  <div class="input-row">
+                    <input type="text" id="input-zapret-path" class="m3-input-text" placeholder="C:\Zapret" value="C:\Zapret" />
+                    <button class="btn-accent" id="btn-zapret-save-path">Применить</button>
+                  </div>
+                </div>
+                <div class="setting-toggle-item" style="margin-top: 14px;">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Режим IPSet</span>
+                    <span class="setting-toggle-desc">Оптимизировать маршрутизацию только для выбранных IP-адресов</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-zapret-ipset" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Игровые фильтры для голосовых чатов</span>
+                    <span class="setting-toggle-desc">Использовать специальные обходы для Discord/Steam голосовых протоколов UDP</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-zapret-game-filters" checked /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">list</i><h3>Список поддерживаемых доменов</h3></div>
+                <div id="zapret-domains-list" style="display: flex; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between;"><label style="font-size: 13px; display: inline-flex; align-items: center; gap: 8px;"><input type="checkbox" checked disabled /> youtube.com</label><span style="font-size: 11px; color: var(--text-secondary);">По умолчанию</span></div>
+                  <div style="display: flex; align-items: center; justify-content: space-between;"><label style="font-size: 13px; display: inline-flex; align-items: center; gap: 8px;"><input type="checkbox" checked disabled /> spotify.com</label><span style="font-size: 11px; color: var(--text-secondary);">По умолчанию</span></div>
+                  <div style="display: flex; align-items: center; justify-content: space-between;"><label style="font-size: 13px; display: inline-flex; align-items: center; gap: 8px;"><input type="checkbox" checked disabled /> soundcloud.com</label><span style="font-size: 11px; color: var(--text-secondary);">По умолчанию</span></div>
+                  <div style="display: flex; align-items: center; justify-content: space-between;"><label style="font-size: 13px; display: inline-flex; align-items: center; gap: 8px;"><input type="checkbox" checked disabled /> dotify.com</label><span style="font-size: 11px; color: var(--text-secondary);">По умолчанию</span></div>
+                </div>
+                <div class="input-row" style="margin-top: 14px;">
+                  <input type="text" id="input-zapret-custom-domain" class="m3-input-text" placeholder="Введите домен, например: piped.video" />
+                  <button class="btn-accent" id="btn-zapret-add-domain"><i class="material-icons">add</i> Добавить</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 18: Локальный сервер (int-server) -->
+            <div class="settings-panel" id="settings-panel-int-server">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">dns</i><h3>Конфигурация Локального Сервера</h3></div>
+                <div class="setting-item">
+                  <label for="input-server-port">Локальный HTTP Порт</label>
+                  <div class="input-row">
+                    <input type="number" id="input-server-port" class="m3-input-text" value="17217" />
+                    <button class="btn-accent" id="btn-server-save-port">Перезапустить порт</button>
+                  </div>
+                </div>
+                <div class="setting-toggle-item" style="margin-top: 14px;">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Запускать фоновый локальный HTTP сервер</span>
+                    <span class="setting-toggle-desc">Позволяет проигрывать музыку через браузер или мобильные устройства</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-server-enabled" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div style="margin-top: 18px; display: flex; gap: 8px;">
+                  <button class="btn-secondary" id="btn-server-open-browser" style="flex: 1; justify-content: center;"><i class="material-icons">open_in_new</i> Открыть в браузере</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 19: Прокси (int-proxy) -->
+            <div class="settings-panel" id="settings-panel-int-proxy">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">router</i><h3>Настройки Прокси-Сервера</h3></div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Настройте HTTP/SOCKS прокси для обхода сетевых ограничений вашего провайдера.</p>
+                <div class="setting-item">
+                  <label for="setting-http-proxy">Адрес прокси-сервера</label>
+                  <div class="input-row">
+                    <input type="text" id="setting-http-proxy" class="m3-input-text" placeholder="http://user:pass@host:port" />
+                    <button class="btn-accent" id="apply-proxy-btn">Применить</button>
+                  </div>
+                </div>
+                <div style="margin-top: 18px; display: flex; gap: 10px; align-items: center;">
+                  <button class="btn-secondary" id="btn-proxy-test-connection">Проверить соединение</button>
+                  <span id="proxy-test-status-label" style="font-size: 13px; color: var(--text-secondary);"><span class="discord-status-dot"></span> Не проверено</span>
+                </div>
+              </div>
+            </div>
+            
           </div>
         </div>
       </div>
     </div>
-
-    <!-- LYRICS PANEL -->
+<!-- LYRICS PANEL -->
     <div class="lyrics-panel" id="lyrics-panel" style="display:none">
       <div class="lyrics-header">
         <span class="lyrics-title" id="lyrics-panel-title">Текст</span>
