@@ -921,6 +921,17 @@ function renderSidebarPlaylists() {
   });
 }
 
+async function createPlaylist() {
+  const name = (await promptModal('Новый плейлист', 'Например: В дорогу'))?.trim();
+  if (!name) return;
+  if (playlists[name]) { showToast('Плейлист с таким названием уже есть'); return; }
+  playlists[name] = [];
+  savePlaylists();
+  renderSidebarPlaylists();
+  renderPlaylists();
+  showToast(`Плейлист «${name}» создан`);
+}
+
 function openPlaylist(name) {
   currentActiveLibItem = name;
 
