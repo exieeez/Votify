@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+release/
+
+# Environment files
+*.env
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+
+# Windows-specific (not needed for Linux)
+*.exe
+*.blockmap
+
+# Local data
+*.json
+!package.json
+!tsconfig.json
+!*.config.js
+!*.rc.js
+
+# Service keys (keep locally, don't commit)
+supabase-service-key.json
+firebase-config.json
+firebase-service-account.json
+
+# Temporary and backup files
+.backup-side-player-20260809/
+.trae/
+nohup.out
+repomix-output.xml
+test-fix*.js
+*.bdic
+
+# Binaries
+bin/yt-dlp.exe

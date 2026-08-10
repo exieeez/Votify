@@ -1,0 +1,66 @@
+{
+  "name": "votify",
+  "version": "0.4.0",
+  "description": "Votify - Material You Music Player",
+  "author": "Votify Team",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --linux AppImage deb rpm",
+    "build:appimage": "electron-builder --linux AppImage",
+    "build:win": "electron-builder --win nsis --x64",
+    "postinstall": "node scripts/download-ytdlp.js",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit"
+  },
+  "build": {
+    "appId": "com.votify.music",
+    "productName": "Votify",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "server.js",
+      "routes/**/*",
+      "bin/**/*",
+      "src/**/*",
+      "node_modules/**/*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "bin/**"
+    ],
+    "linux": {
+      "category": "AudioVideo",
+      "icon": "src/icon.png",
+      "maintainer": "Votify Team"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "src/icon.png"
+    },
+    "npmRebuild": false
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^9.0.3"
+  },
+  "allowScripts": {
+    "electron@35.0.0": true
+  }
+}

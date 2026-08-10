@@ -1,0 +1,88 @@
+/* ==========================================
+   SIDEBAR COMPONENT STYLES
+   ========================================== */
+
+/* Additional sidebar styles beyond layout.css */
+
+/* Tooltip for collapsed sidebar */
+.sidebar:not(.is-expanded) .sidebar__item {
+  position: relative;
+}
+
+.sidebar:not(.is-expanded) .sidebar__item:hover::after {
+  content: attr(aria-label);
+  position: absolute;
+  left: calc(var(--sidebar-width) + var(--space-3));
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--fg-primary);
+  white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-tooltip);
+  animation: slideLeft var(--duration-fast) var(--ease-out);
+}
+
+/* Mobile sidebar overlay */
+@media (max-width: 900px) {
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: calc(var(--z-sidebar) - 1);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--duration-base), visibility var(--duration-base);
+  }
+  
+  .sidebar-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+  
+  .sidebar.is-mobile-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-xl);
+  }
+}
+
+/* Sidebar scrollbar */
+.sidebar__nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar__nav::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: var(--radius-full);
+  border: none;
+  background-clip: padding-box;
+}
+
+/* Keyboard focus */
+.sidebar__item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar__toggle .icon-chevron,
+  .sidebar__logo,
+  .sidebar__label,
+  .sidebar:not(.is-expanded) .sidebar__item::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
