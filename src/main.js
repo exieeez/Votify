@@ -1213,6 +1213,23 @@ async function openArtistPage(artistName) {
     const tracks = Array.isArray(data.tracks) ? data.tracks : [];
     if (countEl) countEl.textContent = formatTrackCount(tracks.length);
 
+    const saveAllBtn = document.getElementById('artist-save-all-playlist-btn');
+    if (saveAllBtn) {
+      saveAllBtn.onclick = async () => {
+        if (!tracks.length) {
+          if (typeof showToast === 'function') showToast('Нет треков для сохранения');
+          return;
+        }
+        const targetPlaylist = await playlistPickerModal(name);
+        if (targetPlaylist && playlists[targetPlaylist]) {
+          playlists[targetPlaylist].push(...tracks);
+          savePlaylists();
+          renderSidebarPlaylists();
+          if (typeof showToast === 'function') showToast(`Сохранено ${tracks.length} треков в «${targetPlaylist}»`);
+        }
+      };
+    }
+
     if (tracks.length && avatarEl) {
       const cover = tracks.find(track => track.cover)?.cover;
       if (cover) avatarEl.innerHTML = `<img src="${escapeHtml(cover)}" alt="${escapeHtml(name)}">`;
@@ -1448,6 +1465,8 @@ safeClick('nav-settings-btn', () => {
     if (!isOpen) {
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('nav-settings-btn').classList.add('active');
+      if (typeof initRangeSliderTracks === 'function') initRangeSliderTracks();
+      if (typeof renderSettingsLocalTracks === 'function') renderSettingsLocalTracks();
     } else {
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       const btn = document.getElementById(previousActiveBtnId);
@@ -3001,20 +3020,213 @@ on('state:volume', (vol) => {
 });
 
 // ==========================================
+// RANGE SLIDERS TRACK FILL FIX
+// ==========================================
+function updateSliderTrackFill(slider) {
+  if (!slider) return;
+  const min = parseFloat(slider.min) || 0;
+  const max = parseFloat(slider.max) || 100;
+  const val = parseFloat(slider.value) || 0;
+  const pct = max > min ? Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100)) : 0;
+  slider.style.setProperty('--r', `${pct}%`);
+}
+
+function initRangeSliderTracks() {
+  document.querySelectorAll('input[type="range"]').forEach(slider => {
+    updateSliderTrackFill(slider);
+    if (!slider._hasTrackFillListener) {
+      slider._hasTrackFillListener = true;
+      slider.addEventListener('input', () => updateSliderTrackFill(slider));
+      slider.addEventListener('change', () => updateSliderTrackFill(slider));
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', initRangeSliderTracks);
+setTimeout(initRangeSliderTracks, 500);
+
+// ==========================================
+// LOCAL MP3 TRACKS MANAGEMENT (IndexedDB + Settings)
+// ==========================================
+const MP3_DB_NAME = 'VotifyLocalMP3DB';
+const MP3_STORE_NAME = 'tracks';
+
+function openMP3DB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(MP3_DB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(MP3_STORE_NAME)) {
+        db.createObjectStore(MP3_STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveLocalTrackToDB(track, blob) {
+  try {
+    const db = await openMP3DB();
+    const tx = db.transaction(MP3_STORE_NAME, 'readwrite');
+    tx.objectStore(MP3_STORE_NAME).put({ id: track.id, trackMeta: track, blob: blob });
+    return new Promise(res => tx.oncomplete = res);
+  } catch (e) {
+    console.error('[LocalMP3] Failed to save track:', e);
+  }
+}
+
+async function getAllLocalTracksFromDB() {
+  try {
+    const db = await openMP3DB();
+    const tx = db.transaction(MP3_STORE_NAME, 'readonly');
+    const req = tx.objectStore(MP3_STORE_NAME).getAll();
+    return new Promise(res => req.onsuccess = () => res(req.result || []));
+  } catch (e) {
+    console.error('[LocalMP3] Failed to get tracks:', e);
+    return [];
+  }
+}
+
+async function deleteLocalTrackFromDB(trackId) {
+  try {
+    const db = await openMP3DB();
+    const tx = db.transaction(MP3_STORE_NAME, 'readwrite');
+    tx.objectStore(MP3_STORE_NAME).delete(trackId);
+    return new Promise(res => tx.oncomplete = res);
+  } catch (e) {
+    console.error('[LocalMP3] Failed to delete track:', e);
+  }
+}
+
+let localTracksCache = [];
+
+async function loadLocalMP3Tracks() {
+  const records = await getAllLocalTracksFromDB();
+  localTracksCache = records.map(r => {
+    const blobUrl = URL.createObjectURL(r.blob);
+    return {
+      ...r.trackMeta,
+      isLocal: true,
+      localUrl: blobUrl
+    };
+  });
+
+  if (localTracksCache.length > 0) {
+    playlists['Мои MP3'] = localTracksCache;
+    savePlaylists();
+    renderSidebarPlaylists();
+  }
+
+  renderSettingsLocalTracks();
+}
+
+function renderSettingsLocalTracks() {
+  const container = document.getElementById('settings-local-tracks-list');
+  if (!container) return;
+
+  if (!localTracksCache.length) {
+    container.innerHTML = '<p class="empty-msg" style="font-size:12px;margin:0;">Нет добавленных MP3 треков</p>';
+    return;
+  }
+
+  container.innerHTML = localTracksCache.map((track, i) => `
+    <div class="local-track-item">
+      <div class="local-track-info">
+        <i class="material-icons" style="color:var(--accent);font-size:20px;">audiotrack</i>
+        <span class="local-track-title">${escapeHtml(track.title)}</span>
+      </div>
+      <div class="local-track-actions">
+        <button class="btn-icon-sm play-local-mp3-btn" data-idx="${i}" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
+        <button class="btn-icon-sm delete-local-mp3-btn" data-id="${escapeHtml(track.id)}" title="Удалить"><i class="material-icons">delete</i></button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.play-local-mp3-btn').forEach(btn => {
+    btn.onclick = () => {
+      const idx = Number(btn.getAttribute('data-idx'));
+      if (localTracksCache[idx]) {
+        currentPlaylist = localTracksCache;
+        currentTrackIndex = idx;
+        playTrack(localTracksCache[idx]);
+      }
+    };
+  });
+
+  container.querySelectorAll('.delete-local-mp3-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-id');
+      if (id) {
+        await deleteLocalTrackFromDB(id);
+        localTracksCache = localTracksCache.filter(t => t.id !== id);
+        playlists['Мои MP3'] = localTracksCache;
+        if (!localTracksCache.length) delete playlists['Мои MP3'];
+        savePlaylists();
+        renderSidebarPlaylists();
+        renderSettingsLocalTracks();
+        if (typeof showToast === 'function') showToast('MP3 трек удален');
+      }
+    };
+  });
+}
+
+document.addEventListener('DOMContentLoaded', loadLocalMP3Tracks);
+setTimeout(loadLocalMP3Tracks, 300);
+
+// Wire add MP3 button in settings
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#settings-add-mp3-btn')) {
+    const input = document.getElementById('settings-mp3-file-input');
+    if (input) input.click();
+  }
+});
+
+const mp3FileInput = document.getElementById('settings-mp3-file-input');
+if (mp3FileInput) {
+  mp3FileInput.onchange = async () => {
+    const files = Array.from(mp3FileInput.files || []);
+    if (!files.length) return;
+    let addedCount = 0;
+    for (const file of files) {
+      const trackId = 'local_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      const title = file.name.replace(/\.[^/.]+$/, "");
+      const track = {
+        id: trackId,
+        title: title,
+        artist: 'Мой MP3 трек',
+        cover: '',
+        isLocal: true,
+        duration: 0
+      };
+      await saveLocalTrackToDB(track, file);
+      const blobUrl = URL.createObjectURL(file);
+      localTracksCache.push({ ...track, localUrl: blobUrl });
+      addedCount++;
+    }
+    playlists['Мои MP3'] = localTracksCache;
+    savePlaylists();
+    renderSidebarPlaylists();
+    renderSettingsLocalTracks();
+    mp3FileInput.value = '';
+    if (typeof showToast === 'function') showToast(`Добавлено MP3 треков: ${addedCount}`);
+  };
+}
+
+// ==========================================
 // Volume Slider (Settings)
 // ==========================================
 const defaultVolumeSlider = document.getElementById('default-volume');
 const volumeValueLabel = document.getElementById('volume-value');
 if (defaultVolumeSlider) {
   defaultVolumeSlider.value = Math.round((appSettings.defaultVolume || 0.8) * 100);
-  defaultVolumeSlider.style.setProperty('--r', defaultVolumeSlider.value + '%');
+  updateSliderTrackFill(defaultVolumeSlider);
   if (volumeValueLabel) volumeValueLabel.textContent = defaultVolumeSlider.value + '%';
   defaultVolumeSlider.addEventListener('input', () => {
     const val = parseInt(defaultVolumeSlider.value);
     if (volumeValueLabel) volumeValueLabel.textContent = val + '%';
     appSettings.defaultVolume = val / 100;
     audio.volume = val / 100;
-    defaultVolumeSlider.style.setProperty('--r', val + '%');
+    updateSliderTrackFill(defaultVolumeSlider);
     saveSettings();
   });
 }
@@ -4050,6 +4262,7 @@ let searchCurrentQuery = null;
 let searchCurrentLimit = 0;
 let searchLoadingMore = false;
 let searchAllTracks = [];
+let searchDisplayedCount = 0;
 let activeSearchFilter = 'all';
 
 // Filter pills
@@ -4239,7 +4452,7 @@ renderSearchHistory();
 async function doSearch() {
   const query = searchInput ? searchInput.value.trim() : '';
   if (!query) return;
-  searchAllTracks = []; searchCurrentQuery = null; searchCurrentLimit = 0; searchLoadingMore = false;
+  searchAllTracks = []; searchCurrentQuery = null; searchCurrentLimit = 0; searchLoadingMore = false; searchDisplayedCount = 0;
   if (resultsContainer) resultsContainer.innerHTML = '';
   if (searchSuggestions) searchSuggestions.style.display = 'none';
   if (document.getElementById('search-history')) document.getElementById('search-history').style.display = 'none';
@@ -4251,7 +4464,7 @@ async function doSearch() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=50`, { signal: controller.signal });
         clearTimeout(timeoutId);
         data = await res.json();
         if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -4270,71 +4483,182 @@ async function doSearch() {
   } finally { setLoadingState(false); }
 }
 
+function extractAlbumsFromTracks(tracks) {
+  const albumsMap = new Map();
+  for (const track of tracks) {
+    if (!track) continue;
+    const albumName = track.album && track.album.toLowerCase() !== track.title.toLowerCase()
+      ? track.album
+      : `${track.artist || 'Исполнитель'} — Альбом`;
+    const artistName = track.artist || 'Неизвестный исполнитель';
+    const key = (albumName + '___' + artistName).toLowerCase();
+    if (!albumsMap.has(key)) {
+      albumsMap.set(key, {
+        title: albumName,
+        artist: artistName,
+        cover: track.cover || '',
+        type: 'Альбом',
+        tracks: [track]
+      });
+    } else {
+      albumsMap.get(key).tracks.push(track);
+    }
+  }
+  return Array.from(albumsMap.values());
+}
+
 function renderSearchResults(tracks, query) {
   if (!resultsContainer) return;
-  // Apply filter
-  let filteredTracks = tracks;
-  if (activeSearchFilter === 'tracks') {
-    filteredTracks = tracks; // All results are tracks
-  } else if (activeSearchFilter !== 'all' && activeSearchFilter !== 'spotify') {
-    // For playlists/albums/art filters, keep all for now (API doesn't distinguish)
-    filteredTracks = tracks;
-  }
-  renderTrackRows(resultsContainer, filteredTracks, { showAddButton: true, playButtonClass: 'play-track-btn', addButtonClass: 'add-to-playlist-btn' });
-  preloadTrackStreams(filteredTracks);
+  resultsContainer.innerHTML = '';
+  const albums = extractAlbumsFromTracks(tracks);
 
-  const existingSentinel = document.getElementById('load-more-sentinel');
-  if (existingSentinel) existingSentinel.remove();
-  if (query && tracks.length >= 12) {
-    searchCurrentQuery = query; searchCurrentLimit = tracks.length; searchLoadingMore = false;
-    searchAllTracks = [...tracks];
-    const sentinel = document.createElement('div');
-    sentinel.id = 'load-more-sentinel';
-    sentinel.className = 'load-more-sentinel';
-    sentinel.innerHTML = '<span class="load-more-hint">Scroll down for more / →</span>';
-    resultsContainer.appendChild(sentinel);
+  if (activeSearchFilter === 'albums') {
+    if (!albums.length) {
+      resultsContainer.innerHTML = '<p class="empty-msg">Альбомов не найдено</p>';
+      return;
+    }
+    const albumsSection = document.createElement('div');
+    albumsSection.className = 'artist-section';
+    albumsSection.innerHTML = `
+      <h3 class="artist-section-title"><i class="material-icons">album</i> Найденные альбомы (${albums.length})</h3>
+      <div class="artist-albums-grid">
+        ${albums.map((rel, i) => `
+          <div class="album-card" data-search-album-idx="${i}">
+            <div class="album-cover-wrap">
+              ${rel.cover ? `<img src="${escapeHtml(rel.cover)}" alt="${escapeHtml(rel.title)}">` : `<i class="material-icons" style="font-size:48px;color:var(--text-secondary)">album</i>`}
+            </div>
+            <div class="album-title">${escapeHtml(rel.title)}</div>
+            <div class="album-meta-text">${escapeHtml(rel.artist)} • ${rel.tracks.length} ${rel.tracks.length === 1 ? 'трек' : 'трека'}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    resultsContainer.appendChild(albumsSection);
+    albumsSection.querySelectorAll('[data-search-album-idx]').forEach(card => {
+      card.onclick = () => {
+        const idx = Number(card.getAttribute('data-search-album-idx'));
+        if (albums[idx]) openAlbumPage(albums[idx]);
+      };
+    });
+    return;
   }
+
+  // If filter is "all", render Albums section first if any
+  if (activeSearchFilter === 'all' && albums.length > 0) {
+    const albumsSection = document.createElement('div');
+    albumsSection.className = 'artist-section';
+    albumsSection.style.marginBottom = '24px';
+    albumsSection.innerHTML = `
+      <h3 class="artist-section-title" style="margin-bottom:12px;"><i class="material-icons">album</i> Альбомы</h3>
+      <div class="artist-albums-grid">
+        ${albums.slice(0, 4).map((rel, i) => `
+          <div class="album-card" data-search-album-idx="${i}">
+            <div class="album-cover-wrap">
+              ${rel.cover ? `<img src="${escapeHtml(rel.cover)}" alt="${escapeHtml(rel.title)}">` : `<i class="material-icons" style="font-size:48px;color:var(--text-secondary)">album</i>`}
+            </div>
+            <div class="album-title">${escapeHtml(rel.title)}</div>
+            <div class="album-meta-text">${escapeHtml(rel.artist)} • ${rel.tracks.length} ${rel.tracks.length === 1 ? 'трек' : 'трека'}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    resultsContainer.appendChild(albumsSection);
+    albumsSection.querySelectorAll('[data-search-album-idx]').forEach(card => {
+      card.onclick = () => {
+        const idx = Number(card.getAttribute('data-search-album-idx'));
+        if (albums[idx]) openAlbumPage(albums[idx]);
+      };
+    });
+  }
+
+  // Store all tracks, render page 1
+  searchAllTracks = [...tracks];
+  searchCurrentQuery = query;
+  searchDisplayedCount = 1; // current page number
+
+  const tracksWrap = document.createElement('div');
+  tracksWrap.className = 'results-list-tracks';
+  tracksWrap.id = 'search-tracks-wrap';
+  resultsContainer.appendChild(tracksWrap);
+
+  // Pagination container
+  const paginationWrap = document.createElement('div');
+  paginationWrap.className = 'search-pagination';
+  paginationWrap.id = 'search-pagination';
+  resultsContainer.appendChild(paginationWrap);
+
+  renderSearchPage(1);
 }
 
-async function loadMoreSearchResults() {
-  if (!searchCurrentQuery || searchLoadingMore) return;
-  searchLoadingMore = true; searchCurrentLimit += 12;
-  const sentinel = document.getElementById('load-more-sentinel');
-  if (sentinel) sentinel.innerHTML = '<span class="load-more-loading">Загрузка...</span>';
-  try {
-    const res = await fetch(`/api/search?q=${encodeURIComponent(searchCurrentQuery)}&limit=${searchCurrentLimit}`);
-    const data = await res.json();
-    const newTracks = data.tracks || [];
-    if (newTracks.length > 0) {
-      const existingIds = new Set();
-      resultsContainer.querySelectorAll('.track-item').forEach(el => { const id = el.getAttribute('data-track-id'); if (id) existingIds.add(id); });
-      const freshTracks = newTracks.filter(t => !existingIds.has(t.id));
-      if (freshTracks.length > 0) {
-        searchAllTracks = [...searchAllTracks, ...freshTracks];
-        appendTrackRows(resultsContainer, freshTracks, { showAddButton: true });
-        preloadTrackStreams(freshTracks);
-      }
-      if (sentinel) {
-        sentinel.innerHTML = newTracks.length < searchCurrentLimit
-          ? '<span class="load-more-hint">All results loaded</span>'
-          : '<span class="load-more-hint">Scroll down for more / →</span>';
-      }
-    } else if (sentinel) { sentinel.innerHTML = '<span class="load-more-hint">All results loaded</span>'; }
-  } catch { if (sentinel) sentinel.innerHTML = '<span class="load-more-hint">Scroll down for more / →</span>'; }
-  searchLoadingMore = false;
-}
+function renderSearchPage(page) {
+  const perPage = 12;
+  const totalPages = Math.ceil(searchAllTracks.length / perPage);
+  if (page < 1) page = 1;
+  if (page > totalPages) page = totalPages;
+  searchDisplayedCount = page;
 
-// Infinite scroll in main content
-const mainContent = document.querySelector('.main-content');
-if (mainContent) {
-  mainContent.addEventListener('scroll', () => {
-    if (!searchCurrentQuery || searchLoadingMore) return;
-    if (currentScreenId !== 'search-screen') return;
-    const sentinel = document.getElementById('load-more-sentinel');
-    if (!sentinel) return;
-    const rect = sentinel.getBoundingClientRect();
-    const containerRect = mainContent.getBoundingClientRect();
-    if (rect.top - containerRect.bottom < 300) loadMoreSearchResults();
+  const start = (page - 1) * perPage;
+  const pageTracks = searchAllTracks.slice(start, start + perPage);
+
+  const tracksWrap = document.getElementById('search-tracks-wrap');
+  if (tracksWrap) {
+    renderTrackRows(tracksWrap, pageTracks, { showAddButton: true, playButtonClass: 'play-track-btn', addButtonClass: 'add-to-playlist-btn' });
+    preloadTrackStreams(pageTracks);
+  }
+
+  // Render pagination buttons
+  const paginationWrap = document.getElementById('search-pagination');
+  if (!paginationWrap || totalPages <= 1) {
+    if (paginationWrap) paginationWrap.innerHTML = '';
+    return;
+  }
+
+  let buttons = '';
+
+  // Prev button
+  buttons += `<button class="search-page-btn ${page <= 1 ? 'disabled' : ''}" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>
+    <i class="material-icons">chevron_left</i>
+  </button>`;
+
+  // Page numbers
+  const maxVisible = 5;
+  let startPage = Math.max(1, page - Math.floor(maxVisible / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+  if (endPage - startPage < maxVisible - 1) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
+  }
+
+  if (startPage > 1) {
+    buttons += `<button class="search-page-btn" data-page="1">1</button>`;
+    if (startPage > 2) buttons += `<span class="search-page-dots">...</span>`;
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    buttons += `<button class="search-page-btn ${i === page ? 'active' : ''}" data-page="${i}">${i}</button>`;
+  }
+
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) buttons += `<span class="search-page-dots">...</span>`;
+    buttons += `<button class="search-page-btn" data-page="${totalPages}">${totalPages}</button>`;
+  }
+
+  // Next button
+  buttons += `<button class="search-page-btn ${page >= totalPages ? 'disabled' : ''}" data-page="${page + 1}" ${page >= totalPages ? 'disabled' : ''}>
+    <i class="material-icons">chevron_right</i>
+  </button>`;
+
+  paginationWrap.innerHTML = buttons;
+
+  paginationWrap.querySelectorAll('.search-page-btn:not(.disabled)').forEach(btn => {
+    btn.onclick = () => {
+      const p = Number(btn.getAttribute('data-page'));
+      if (p >= 1 && p <= totalPages) {
+        renderSearchPage(p);
+        // Scroll to top of results
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
   });
 }
 
@@ -4625,7 +4949,9 @@ async function playTrack(track) {
 
   try {
     // Stream the audio URL directly (server proxy handles the actual stream)
-    const streamUrl = `/api/stream?id=${encodeURIComponent(track.id)}`;
+    const streamUrl = (track.isLocal && track.localUrl)
+      ? track.localUrl
+      : `/api/stream?id=${encodeURIComponent(track.id)}`;
     audio.src = streamUrl;
     audio.load(); // ensure the new source is picked up immediately
     await audio.play();
