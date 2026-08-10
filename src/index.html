@@ -534,6 +534,11 @@
                 <span class="artist-listeners" id="artist-listeners"><i class="material-icons">headphones</i> <span id="artist-listeners-count">0</span> слушателей за месяц</span>
                 <span class="artist-track-count" id="artist-track-count">0 треков</span>
               </div>
+              <div class="artist-actions-row" style="margin-top: 12px;">
+                <button class="btn-secondary" id="artist-save-all-playlist-btn" style="display: inline-flex; align-items: center; gap: 8px;">
+                  <i class="material-icons">playlist_add</i> Сохранить все треки в плейлист
+                </button>
+              </div>
             </div>
           </div>
           <div class="status-message" id="artist-status"></div>
@@ -869,6 +874,15 @@
                 <div class="setting-item">
                   <label>Скорость воспроизведения</label>
                   <select id="setting-playback-rate" class="m3-select"><option value="0.75">0.75×</option><option value="1" selected>Обычная — 1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">library_music</i><h3>Мои MP3 треки</h3></div>
+                <div class="setting-item">
+                  <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Добавьте свои локальные MP3 файлы для прослушивания в Votify.</p>
+                  <input type="file" id="settings-mp3-file-input" accept=".mp3,audio/mpeg,audio/*" multiple style="display:none" />
+                  <button class="btn-accent" id="settings-add-mp3-btn" style="display:inline-flex;align-items:center;gap:8px;"><i class="material-icons">upload_file</i> Добавить MP3 треки</button>
+                  <div id="settings-local-tracks-list" class="settings-local-tracks-list" style="margin-top:12px;"></div>
                 </div>
               </div>
               <div class="settings-section">

@@ -616,6 +616,26 @@ async function ytSearchScrape(query, limit) {
     }
   }
 
+  if (tracks.length < limit) {
+    const subQueries = [`${query} song`, `${query} full`, `${query} audio`, `${query} official`];
+    const existingIds = new Set(tracks.map(t => t.id));
+    for (const sq of subQueries) {
+      if (tracks.length >= limit) break;
+      try {
+        const more = await ytInnerTubeSearch(sq, limit);
+        if (Array.isArray(more)) {
+          for (const tr of more) {
+            if (tr && tr.id && !existingIds.has(tr.id)) {
+              tracks.push(tr);
+              existingIds.add(tr.id);
+              if (tracks.length >= limit) break;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
   searchCache.set(cacheKey, { tracks, expires: Date.now() + SEARCH_CACHE_TTL });
   return tracks.slice(0, limit);
 }
@@ -624,7 +644,7 @@ async function searchTracks(query, limit, useCache = true) {
   const cacheKey = query.toLowerCase().trim() + ':' + networkConfig.streamSource;
   if (useCache) {
     const cached = searchCache.get(cacheKey);
-    if (cached && cached.expires > Date.now()) {
+    if (cached && cached.expires > Date.now() && cached.tracks.length >= limit) {
       console.log(`[search] Cache hit for: "${query}"`);
       return cached.tracks.slice(0, limit);
     }
