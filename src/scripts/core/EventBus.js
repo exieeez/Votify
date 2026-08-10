@@ -22,14 +22,22 @@ export class EventBus {
   emit(event, ...args) {
     // Exact match
     this._events.get(event)?.forEach(cb => {
-      try { cb(...args); } catch (e) { console.error(`EventBus error [${event}]:`, e); }
+      try {
+        cb(...args);
+      } catch (e) {
+        console.error(`EventBus error [${event}]:`, e);
+      }
     });
-    
+
     // Wildcard listeners
     this._wildcards.forEach((callbacks, pattern) => {
       if (this._match(pattern, event)) {
         callbacks.forEach(cb => {
-          try { cb(event, ...args); } catch (e) { console.error(`EventBus wildcard error [${pattern}]:`, e); }
+          try {
+            cb(event, ...args);
+          } catch (e) {
+            console.error(`EventBus wildcard error [${pattern}]:`, e);
+          }
         });
       }
     });
@@ -85,7 +93,7 @@ export const EVENTS = {
   PLAYER_TIME_UPDATE: 'player:time-update',
   PLAYER_END: 'player:end',
   PLAYER_ERROR: 'player:error',
-  
+
   // UI
   SIDEBAR_TOGGLE: 'sidebar:toggle',
   SIDEBAR_MOBILE_OPEN: 'sidebar:mobile-open',
@@ -93,44 +101,44 @@ export const EVENTS = {
   THEME_CHANGE: 'theme:change',
   ROUTE_CHANGE: 'route:change',
   ROUTE_NAVIGATE: 'route:navigate',
-  
+
   // Wave
   WAVE_GENERATE: 'wave:generate',
   WAVE_UPDATE: 'wave:update',
   WAVE_TRACK_ADD: 'wave:track-add',
-  
+
   // Charts
   CHARTS_LOAD: 'charts:load',
   CHARTS_UPDATE: 'charts:update',
   CHARTS_TAB_CHANGE: 'charts:tab-change',
-  
+
   // Search
   SEARCH_QUERY: 'search:query',
   SEARCH_RESULTS: 'search:results',
   SEARCH_HISTORY_ADD: 'search:history-add',
   SEARCH_HISTORY_CLEAR: 'search:history-clear',
   SEARCH_FILTER: 'search:filter',
-  
+
   // Library
   LIBRARY_PLAYLIST_CREATE: 'library:playlist-create',
   LIBRARY_PLAYLIST_UPDATE: 'library:playlist-update',
   LIBRARY_PLAYLIST_DELETE: 'library:playlist-delete',
   LIBRARY_TRACK_LIKE: 'library:track-like',
   LIBRARY_TRACK_UNLIKE: 'library:track-unlike',
-  
+
   // Fullscreen Player
   FULLSCREEN_OPEN: 'fullscreen:open',
   FULLSCREEN_CLOSE: 'fullscreen:close',
-  
+
   // Toast/Notifications
   TOAST_SHOW: 'toast:show',
   TOAST_HIDE: 'toast:hide',
-  
+
   // Settings
   SETTINGS_CHANGE: 'settings:change',
-  
+
   // Keyboard
-  KEY_SHORTCUT: 'key:shortcut'
+  KEY_SHORTCUT: 'key:shortcut',
 };
 
 export default eventBus;

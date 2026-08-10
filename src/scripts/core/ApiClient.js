@@ -19,9 +19,9 @@ async function request(path, options = {}) {
   const config = {
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers
+      ...options.headers,
     },
-    ...options
+    ...options,
   };
 
   if (config.body && typeof config.body === 'object') {
@@ -30,13 +30,17 @@ async function request(path, options = {}) {
 
   try {
     const res = await fetch(url, config);
-    
+
     if (!res.ok) {
       let data;
-      try { data = await res.json(); } catch { data = { error: res.statusText }; }
+      try {
+        data = await res.json();
+      } catch {
+        data = { error: res.statusText };
+      }
       throw new ApiError(data.error || 'Request failed', res.status, data);
     }
-    
+
     const contentType = res.headers.get('content-type');
     if (contentType?.includes('application/json')) {
       return res.json();
@@ -76,7 +80,9 @@ export const ApiClient = {
 
   // Lyrics
   async getLyrics(track, artist) {
-    return request(`/api/lyrics?track=${encodeURIComponent(track)}&artist=${encodeURIComponent(artist)}`);
+    return request(
+      `/api/lyrics?track=${encodeURIComponent(track)}&artist=${encodeURIComponent(artist)}`
+    );
   },
 
   // Artist
@@ -104,7 +110,7 @@ export const ApiClient = {
   async syncPush(data) {
     return request('/api/sync/push', {
       method: 'POST',
-      body: data
+      body: data,
     });
   },
 
@@ -116,14 +122,14 @@ export const ApiClient = {
   async updateNetworkSettings(config) {
     return request('/api/network/settings', {
       method: 'POST',
-      body: config
+      body: config,
     });
   },
 
   // Health check
   async health() {
     return request('/api/health').catch(() => ({ status: 'ok' }));
-  }
+  },
 };
 
 // Helper: batch requests

@@ -12,29 +12,74 @@
 // ==========================================
 
 // --- Mini Store ---
-const state = new Proxy({
-  currentTrack: null, queue: [], volume: 0.8, isPlaying: false, currentTime: 0, duration: 0,
-  sidebarCollapsed: true, activeRoute: '/', searchQuery: '', searchResults: [], searchLoading: false,
-  waveTracks: [], chartsRegion: [], user: { playlists: {}, liked: [], history: [] }
-}, {
-  set(t, p, v) { const old = t[p]; t[p] = v; if (old !== v) dispatch('state:' + p, v, old); return true; }
-});
+const state = new Proxy(
+  {
+    currentTrack: null,
+    queue: [],
+    volume: 0.8,
+    isPlaying: false,
+    currentTime: 0,
+    duration: 0,
+    sidebarCollapsed: true,
+    activeRoute: '/',
+    searchQuery: '',
+    searchResults: [],
+    searchLoading: false,
+    waveTracks: [],
+    chartsRegion: [],
+    user: { playlists: {}, liked: [], history: [] },
+  },
+  {
+    set(t, p, v) {
+      const old = t[p];
+      t[p] = v;
+      if (old !== v) dispatch('state:' + p, v, old);
+      return true;
+    },
+  }
+);
 
 const listeners = {};
-function on(evt, fn) { (listeners[evt] = listeners[evt] || []).push(fn); return () => { listeners[evt] = listeners[evt].filter(f => f !== fn); }; }
-function dispatch(evt, ...args) { (listeners[evt] || []).forEach(fn => { try { fn(...args); } catch(e) { console.error(evt, e); } }); }
+function on(evt, fn) {
+  (listeners[evt] = listeners[evt] || []).push(fn);
+  return () => {
+    listeners[evt] = listeners[evt].filter(f => f !== fn);
+  };
+}
+function dispatch(evt, ...args) {
+  (listeners[evt] || []).forEach(fn => {
+    try {
+      fn(...args);
+    } catch (e) {
+      console.error(evt, e);
+    }
+  });
+}
 
 // Audio
 let audio = new Audio();
 audio.preload = 'auto';
 audio.volume = state.volume;
 
-audio.addEventListener('loadedmetadata', () => { state.duration = audio.duration; });
-audio.addEventListener('timeupdate', () => { state.currentTime = audio.currentTime; });
-audio.addEventListener('ended', () => { onNext(); });
-audio.addEventListener('error', (e) => { console.error('Audio error:', e); dispatch('toast', { text: 'Ошибка воспроизведения', type: 'error' }); });
-audio.addEventListener('play', () => { state.isPlaying = true; });
-audio.addEventListener('pause', () => { state.isPlaying = false; });
+audio.addEventListener('loadedmetadata', () => {
+  state.duration = audio.duration;
+});
+audio.addEventListener('timeupdate', () => {
+  state.currentTime = audio.currentTime;
+});
+audio.addEventListener('ended', () => {
+  onNext();
+});
+audio.addEventListener('error', e => {
+  console.error('Audio error:', e);
+  dispatch('toast', { text: 'Ошибка воспроизведения', type: 'error' });
+});
+audio.addEventListener('play', () => {
+  state.isPlaying = true;
+});
+audio.addEventListener('pause', () => {
+  state.isPlaying = false;
+});
 
 // ==========================================
 // API HELPERS
@@ -53,10 +98,16 @@ async function api(path) {
 
 async function apiPost(path, body) {
   try {
-    const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return await res.json();
-  } catch (e) { return null; }
+  } catch (e) {
+    return null;
+  }
 }
 
 // ==========================================
@@ -80,7 +131,9 @@ function loadAndPlay(track) {
       const objectUrl = URL.createObjectURL(blob);
       if (audio.src && audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
       audio.src = objectUrl;
-      audio.play().catch(e => dispatch('toast', { text: 'Не удалось воспроизвести', type: 'error' }));
+      audio
+        .play()
+        .catch(e => dispatch('toast', { text: 'Не удалось воспроизвести', type: 'error' }));
     })
     .catch(e => dispatch('toast', { text: 'Ошибка загрузки трека', type: 'error' }));
 }
@@ -88,7 +141,8 @@ function loadAndPlay(track) {
 function togglePlay() {
   if (!audio.src) return;
   if (state.isPlaying) audio.pause();
-  else audio.play().catch(e => dispatch('toast', { text: 'Не удалось воспроизвести', type: 'error' }));
+  else
+    audio.play().catch(e => dispatch('toast', { text: 'Не удалось воспроизвести', type: 'error' }));
 }
 
 function onPrev() {
@@ -109,7 +163,9 @@ function onNext() {
   loadAndPlay(next);
 }
 
-function seek(time) { audio.currentTime = time; }
+function seek(time) {
+  audio.currentTime = time;
+}
 
 // ==========================================
 // UI HELPERS
@@ -117,15 +173,22 @@ function seek(time) { audio.currentTime = time; }
 const $ = (s, ctx = document) => ctx.querySelector(s);
 const $$ = (s, ctx = document) => Array.from(ctx.querySelectorAll(s));
 
-function toggleClass(el, cls, force) { el.classList.toggle(cls, force); }
-function addClass(el, ...cls) { el.classList.add(...cls); }
-function removeClass(el, ...cls) { el.classList.remove(...cls); }
+function toggleClass(el, cls, force) {
+  el.classList.toggle(cls, force);
+}
+function addClass(el, ...cls) {
+  el.classList.add(...cls);
+}
+function removeClass(el, ...cls) {
+  el.classList.remove(...cls);
+}
 
 function h(tag, attrs = {}, children = []) {
   const el = document.createElement(tag);
   Object.entries(attrs).forEach(([k, v]) => {
     if (k === 'class' || k === 'className') el.className = v;
-    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k.startsWith('on') && typeof v === 'function')
+      el.addEventListener(k.slice(2).toLowerCase(), v);
     else if (k === 'dataset') Object.assign(el.dataset, v);
     else el.setAttribute(k, String(v));
   });
@@ -138,7 +201,15 @@ function h(tag, attrs = {}, children = []) {
 }
 
 function icon(name) {
-  return h('svg', { class: 'icon', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+  return h('svg', {
+    class: 'icon',
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': '2',
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+  });
 }
 
 // ==========================================
@@ -149,13 +220,19 @@ function renderTrackCard(track, variant = 'default') {
   const title = track.title || 'Unknown';
   const artist = track.artist || 'Unknown';
 
-  const card = h('div', { class: `track-card track-card--${variant}`, dataset: { trackId: track.id, artist: artist } });
+  const card = h('div', {
+    class: `track-card track-card--${variant}`,
+    dataset: { trackId: track.id, artist: artist },
+  });
 
   const coverEl = h('img', { class: 'track-card__cover', src: cover, alt: title, loading: 'lazy' });
-  coverEl.onerror = () => { coverEl.src = `https://img.youtube.com/vi/${track.id}/mqdefault.jpg`; };
+  coverEl.onerror = () => {
+    coverEl.src = `https://img.youtube.com/vi/${track.id}/mqdefault.jpg`;
+  };
 
-  card.innerHTML = (variant === 'chart')
-    ? `<div class="track-card__rank${track._rank <= 3 ? ' is-top3' : ''}">${track._rank || ''}</div>
+  card.innerHTML =
+    variant === 'chart'
+      ? `<div class="track-card__rank${track._rank <= 3 ? ' is-top3' : ''}">${track._rank || ''}</div>
        <img class="track-card__cover" src="${cover}" alt="${title}" loading="lazy">
        <div class="track-card__content">
          <div class="track-card__title">${title}</div>
@@ -169,8 +246,8 @@ function renderTrackCard(track, variant = 'default') {
            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
          </button>
        </div>`
-    : (variant === 'compact')
-    ? `<img class="track-card__cover" src="${cover}" alt="${title}" loading="lazy">
+      : variant === 'compact'
+        ? `<img class="track-card__cover" src="${cover}" alt="${title}" loading="lazy">
        <div class="track-card__content">
          <div class="track-card__title">${title}</div>
          <div class="track-card__artist">${artist}</div>
@@ -180,7 +257,7 @@ function renderTrackCard(track, variant = 'default') {
            <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
          </button>
        </div>`
-    : `<img class="track-card__cover" src="${cover}" alt="${title}" loading="lazy">
+        : `<img class="track-card__cover" src="${cover}" alt="${title}" loading="lazy">
        <div class="track-card__content">
          <div class="track-card__title">${title}</div>
          <div class="track-card__artist">${artist}</div>
@@ -197,11 +274,11 @@ function renderTrackCard(track, variant = 'default') {
          </button>
        </div>`;
 
-  card.querySelector('.track-card__play')?.addEventListener('click', (e) => {
+  card.querySelector('.track-card__play')?.addEventListener('click', e => {
     e.stopPropagation();
     playTrack(track);
   });
-  
+
   card.addEventListener('click', () => playTrack(track));
   return card;
 }
@@ -212,7 +289,7 @@ function renderTrackCard(track, variant = 'default') {
 function renderSearchView() {
   const query = state.searchQuery;
   if (query) return fetchAndRenderSearch(query);
-  
+
   // Show history and trending
   return `<div class="search-view">
     <div class="search-input-wrapper">
@@ -234,10 +311,14 @@ function renderSearchHistory() {
       <button class="search-history__clear" id="clearHistory">Очистить</button>
     </div>
     <div class="search-history__list">
-      ${history.map(q => `<button class="search-history__item" data-query="${q}">
+      ${history
+        .map(
+          q => `<button class="search-history__item" data-query="${q}">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 0011zA 9</path></svg>
         ${q}
-      </button>`).join('')}
+      </button>`
+        )
+        .join('')}
     </div>
   </div>`;
 }
@@ -246,7 +327,7 @@ async function fetchAndRenderSearch(query) {
   const container = $('searchResults');
   if (!container) return;
   container.innerHTML = '<div class="search-loading"><div class="spinner"></div>Ищем...</div>';
-  
+
   const data = await api(`/api/search?q=${encodeURIComponent(query)}&limit=12`);
   if (!data || !data.tracks) {
     container.innerHTML = '<div class="search-empty">Ничего не найдено</div>';
@@ -261,7 +342,7 @@ async function fetchAndRenderSearch(query) {
     <div class="search-results__grid">`;
   data.tracks.forEach(t => {
     html += `<div class="search-result-item" data-id="${t.id}">
-      <img class="search-result-item__cover" src="${t.cover || 'https://img.youtube.com/vi/'+t.id+'/hqdefault.jpg'}" alt="${t.title}" loading="lazy">
+      <img class="search-result-item__cover" src="${t.cover || 'https://img.youtube.com/vi/' + t.id + '/hqdefault.jpg'}" alt="${t.title}" loading="lazy">
       <div class="search-result-item__info">
         <div class="search-result-item__title">${t.title}</div>
         <div class="search-result-item__meta">
@@ -307,7 +388,7 @@ const CHART_TABS = [
   { id: 'region', label: 'Регион', icon: '🏠' },
   { id: 'neighbors', label: 'Соседи', icon: '🌍' },
   { id: 'niche', label: 'Нишевое', icon: '🎭' },
-  { id: 'underground', label: 'Подземелье', icon: '🕳' }
+  { id: 'underground', label: 'Подземелье', icon: '🕳' },
 ];
 
 let currentChartTab = 'region';
@@ -330,7 +411,7 @@ async function loadCharts(region = 'RU') {
     // Try Invidious trending by region
     const instance = 'https://yewtu.be';
     const popData = await api(`${instance}/api/v1/trending?type=music&region=${region}`);
-    
+
     if (popData && Array.isArray(popData)) {
       const list = document.getElementById('chartList');
       if (!list) return;
@@ -340,7 +421,7 @@ async function loadCharts(region = 'RU') {
         const div = document.createElement('div');
         div.className = 'chart-item';
         div.innerHTML = `
-          <span class="chart-item__rank${i < 3 ? ' is-top'+(i+1) : ''}">${i + 1}</span>
+          <span class="chart-item__rank${i < 3 ? ' is-top' + (i + 1) : ''}">${i + 1}</span>
           <img class="chart-item__cover" src="${v.videoThumbnails?.[1]?.url || v.videoThumbnails?.[0]?.url || ''}" alt="${v.title}" loading="lazy">
           <div class="chart-item__info">
             <div class="chart-item__title">${v.title}</div>
@@ -364,7 +445,8 @@ async function loadCharts(region = 'RU') {
     // Fallback to search-based charts
     const list = document.getElementById('chartList');
     if (!list) return;
-    list.innerHTML = '<div class="chart-item">Не удалось загрузить региональные чарты. Используй поиск.</div>';
+    list.innerHTML =
+      '<div class="chart-item">Не удалось загрузить региональные чарты. Используй поиск.</div>';
   }
 }
 
@@ -436,7 +518,12 @@ function render() {
   });
 
   // Update page title
-  const titles = { '/': 'Моя волна', '/search': 'Поиск', '/charts': 'Чарты', '/library': 'Библиотека' };
+  const titles = {
+    '/': 'Моя волна',
+    '/search': 'Поиск',
+    '/charts': 'Чарты',
+    '/library': 'Библиотека',
+  };
   const titleEl = $('pageTitle');
   if (titleEl) titleEl.textContent = titles[hash] || 'Все';
 
@@ -450,7 +537,9 @@ function render() {
     if (hash === '/') initHomeView();
     if (hash === '/search') initSearchView();
     if (hash === '/charts') initChartTabs();
-    if (hash === '/library') { /* static view */ }
+    if (hash === '/library') {
+      /* static view */
+    }
   }, 10);
 }
 
@@ -480,9 +569,12 @@ async function loadNewWave() {
   try {
     const data = await api('/api/recommendations?limit=8');
     if (data && data.tracks) {
-      container.innerHTML = '<div class="wave-scroll">' +
-        data.tracks.map(t => `<div class="track-card track-card--default stagger__item" data-id="${t.id}">
-          <img class="track-card__cover" src="${t.cover || 'https://img.youtube.com/vi/'+t.id+'/hqdefault.jpg'}" alt="${t.title}" loading="lazy">
+      container.innerHTML =
+        '<div class="wave-scroll">' +
+        data.tracks
+          .map(
+            t => `<div class="track-card track-card--default stagger__item" data-id="${t.id}">
+          <img class="track-card__cover" src="${t.cover || 'https://img.youtube.com/vi/' + t.id + '/hqdefault.jpg'}" alt="${t.title}" loading="lazy">
           <div class="track-card__content">
             <div class="track-card__title">${t.title}</div>
             <div class="track-card__artist">${t.artist}</div>
@@ -492,7 +584,9 @@ async function loadNewWave() {
               </button>
             </div>
           </div>
-        </div>`).join('') +
+        </div>`
+          )
+          .join('') +
         '</div>';
       // Bind
       container.querySelectorAll('.track-card__play-btn').forEach(btn => {
@@ -510,7 +604,8 @@ async function loadNewWave() {
       });
     }
   } catch (e) {
-    container.innerHTML = '<div class="wave-empty">Не удалось загрузить волну. Попробуй поиск.</div>';
+    container.innerHTML =
+      '<div class="wave-empty">Не удалось загрузить волну. Попробуй поиск.</div>';
   }
 }
 
@@ -520,15 +615,19 @@ async function loadHomeCharts() {
   try {
     const data = await api('/api/recommendations?limit=6');
     if (data && data.tracks) {
-      container.innerHTML = data.tracks.map((t, i) => `
+      container.innerHTML = data.tracks
+        .map(
+          (t, i) => `
         <div class="track-card track-card--default stagger__item" data-id="${t.id}">
-          <img class="track-card__cover" src="${t.cover || 'https://img.youtube.com/vi/'+t.id+'/hqdefault.jpg'}" alt="${t.title}" loading="lazy">
+          <img class="track-card__cover" src="${t.cover || 'https://img.youtube.com/vi/' + t.id + '/hqdefault.jpg'}" alt="${t.title}" loading="lazy">
           <div class="track-card__content">
             <div class="track-card__title">${t.title}</div>
             <div class="track-card__artist">${t.artist}</div>
           </div>
         </div>
-      `).join('');
+      `
+        )
+        .join('');
       container.querySelectorAll('.track-card').forEach(card => {
         card.addEventListener('click', () => {
           const track = data.tracks.find(t => t.id === card.dataset.id);
@@ -546,7 +645,7 @@ function initSearchView() {
   const clearHistoryBtn = document.getElementById('clearHistory');
 
   if (input) {
-    input.addEventListener('keydown', (e) => {
+    input.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
         const q = input.value.trim();
         if (!q) return;
@@ -610,7 +709,7 @@ async function loadCurrentTabChart() {
   const list = document.getElementById('chartList');
   if (!list) return;
   list.innerHTML = '<div class="chart-item">Информация о чартах недоступна в офлайн режиме</div>';
-  
+
   // Try loading from cached API
   try {
     const data = await api(`/api/search?q=music&limit=10`);
@@ -620,8 +719,8 @@ async function loadCurrentTabChart() {
         const div = document.createElement('div');
         div.className = 'chart-item';
         div.innerHTML = `
-          <span class="chart-item__rank${i < 3 ? ' is-top'+(i+1) : ''}">${i + 1}</span>
-          <img class="chart-item__cover" src="${t.cover || 'https://img.youtube.com/vi/'+t.id+'/hqdefault.jpg'}" alt="${t.title}" loading="lazy">
+          <span class="chart-item__rank${i < 3 ? ' is-top' + (i + 1) : ''}">${i + 1}</span>
+          <img class="chart-item__cover" src="${t.cover || 'https://img.youtube.com/vi/' + t.id + '/hqdefault.jpg'}" alt="${t.title}" loading="lazy">
           <div class="chart-item__info">
             <div class="chart-item__title">${t.title}</div>
             <div class="chart-item__artist">${t.artist}</div>
@@ -641,23 +740,60 @@ async function loadCurrentTabChart() {
 // ==========================================
 // KEYBOARD SHORTCUTS
 // ==========================================
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', e => {
   // Don't trigger in inputs
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+  if (
+    e.target.tagName === 'INPUT' ||
+    e.target.tagName === 'TEXTAREA' ||
+    e.target.isContentEditable
+  ) {
     if (e.key === 'Escape' && e.target.tagName === 'INPUT') e.target.blur();
     return;
   }
 
   switch (e.key) {
-    case ' ': e.preventDefault(); togglePlay(); break;
-    case 'ArrowLeft': e.preventDefault(); audio.currentTime -= 5; break;
-    case 'ArrowRight': e.preventDefault(); audio.currentTime += 5; break;
-    case 'ArrowUp': e.preventDefault(); state.volume = Math.min(1, state.volume + 0.05); audio.volume = state.volume; break;
-    case 'ArrowDown': e.preventDefault(); state.volume = Math.max(0, state.volume - 0.05); audio.volume = state.volume; break;
-    case 'n': case 'N': e.preventDefault(); onNext(); break;
-    case 'p': case 'P': e.preventDefault(); onPrev(); break;
-    case 'm': case 'M': e.preventDefault(); state.volume = state.volume > 0 ? 0 : 0.8; audio.volume = state.volume; break;
-    case '/': e.preventDefault(); navigate('/search'); break;
+    case ' ':
+      e.preventDefault();
+      togglePlay();
+      break;
+    case 'ArrowLeft':
+      e.preventDefault();
+      audio.currentTime -= 5;
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      audio.currentTime += 5;
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      state.volume = Math.min(1, state.volume + 0.05);
+      audio.volume = state.volume;
+      break;
+    case 'ArrowDown':
+      e.preventDefault();
+      state.volume = Math.max(0, state.volume - 0.05);
+      audio.volume = state.volume;
+      break;
+    case 'n':
+    case 'N':
+      e.preventDefault();
+      onNext();
+      break;
+    case 'p':
+    case 'P':
+      e.preventDefault();
+      onPrev();
+      break;
+    case 'm':
+    case 'M':
+      e.preventDefault();
+      state.volume = state.volume > 0 ? 0 : 0.8;
+      audio.volume = state.volume;
+      break;
+    case '/':
+      e.preventDefault();
+      navigate('/search');
+      break;
   }
 });
 
@@ -674,10 +810,10 @@ function initPlayerBar() {
   $('.player-bar__prev')?.addEventListener('click', onPrev);
 
   // Shuffle/Repeat
-  $('.player-bar__shuffle')?.addEventListener('click', function() { 
-    this.classList.toggle('is-active'); 
+  $('.player-bar__shuffle')?.addEventListener('click', function () {
+    this.classList.toggle('is-active');
   });
-  $('.player-bar__repeat')?.addEventListener('click', function() { 
+  $('.player-bar__repeat')?.addEventListener('click', function () {
     this.classList.toggle('is-active');
   });
 
@@ -705,14 +841,20 @@ function initPlayerBar() {
   // reactive updates
   on('state:currentTime', time => {
     const fill = $('.player-bar__progress-fill');
-    if (fill && state.duration > 0) fill.style.width = (time / state.duration * 100) + '%';
+    if (fill && state.duration > 0) fill.style.width = (time / state.duration) * 100 + '%';
     const currentEl = $('.player-bar__current');
-    if (currentEl) currentEl.textContent = `${Math.floor(time/60)}:${Math.floor(time%60).toString().padStart(2, '0')}`;
+    if (currentEl)
+      currentEl.textContent = `${Math.floor(time / 60)}:${Math.floor(time % 60)
+        .toString()
+        .padStart(2, '0')}`;
   });
 
   on('state:duration', dur => {
     const durEl = $('.player-bar__duration');
-    if (durEl) durEl.textContent = `${Math.floor(dur/60)}:${Math.floor(dur%60).toString().padStart(2, '0')}`;
+    if (durEl)
+      durEl.textContent = `${Math.floor(dur / 60)}:${Math.floor(dur % 60)
+        .toString()
+        .padStart(2, '0')}`;
   });
 
   on('state:currentTrack', track => {
@@ -720,7 +862,8 @@ function initPlayerBar() {
     const titleEl = $('.player-bar__title');
     const artistEl = $('.player-bar__artist');
     if (track) {
-      if (coverEl) coverEl.src = track.cover || `https://img.youtube.com/vi/${track.id}/hqdefault.jpg`;
+      if (coverEl)
+        coverEl.src = track.cover || `https://img.youtube.com/vi/${track.id}/hqdefault.jpg`;
       if (titleEl) titleEl.textContent = track.title || 'Неизвестен';
       if (artistEl) artistEl.textContent = track.artist || '';
     }
@@ -759,7 +902,9 @@ on('toast', ({ text, type = 'info' }) => {
     pointer-events: auto;
     `;
   container.appendChild(toast);
-  setTimeout(() => { toast.remove(); }, 3000);
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
 });
 
 // ==========================================
@@ -778,11 +923,14 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('sidebarExpanded', String(isExpanded));
     state.sidebarCollapsed = !isExpanded;
   });
-  
+
   // Restore sidebar state
   const savedExpanded = localStorage.getItem('sidebarExpanded') !== 'false';
-  if (savedExpanded) { sidebar?.classList.add('is-expanded'); }
-  else { sidebar?.classList.remove('is-expanded'); }
+  if (savedExpanded) {
+    sidebar?.classList.add('is-expanded');
+  } else {
+    sidebar?.classList.remove('is-expanded');
+  }
   state.sidebarCollapsed = !savedExpanded;
 
   // Sidebar navigation
@@ -817,7 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
   render();
 
   // Keyboard: / to focus search
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', e => {
     if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
       e.preventDefault();
       navigate('/search');
@@ -826,14 +974,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Global click handler for dynamic elements
-  $('mainContent')?.addEventListener('click', (e) => {
-    const playBtn = e.target.closest('.track-card__play, .search-result-item__play, .chart-item__play');
+  $('mainContent')?.addEventListener('click', e => {
+    const playBtn = e.target.closest(
+      '.track-card__play, .search-result-item__play, .chart-item__play'
+    );
     if (playBtn) {
       e.stopPropagation();
       const card = playBtn.closest('[data-id], [data-track-id]');
       const id = card?.dataset.id || card?.dataset.trackId;
-      const title = card?.querySelector('.track-card__title, .search-result-item__title')?.textContent;
-      const artist = card?.querySelector('.track-card__artist, .search-result-item__artist')?.textContent;
+      const title = card?.querySelector(
+        '.track-card__title, .search-result-item__title'
+      )?.textContent;
+      const artist = card?.querySelector(
+        '.track-card__artist, .search-result-item__artist'
+      )?.textContent;
       if (id) {
         const cover = card?.querySelector('img')?.src;
         playTrack({ id, title, artist: artist || '', cover });
@@ -850,16 +1004,16 @@ document.addEventListener('DOMContentLoaded', () => {
 function migrateOldData() {
   const migrationDone = localStorage.getItem('v2_migrated');
   if (migrationDone) return;
-  
+
   // Migrate playlists
   const oldPlaylists = JSON.parse(localStorage.getItem('votify-playlists') || '{}');
   localStorage.setItem('playlists', JSON.stringify(oldPlaylists));
-  
+
   // Migrate settings
   const oldSettings = JSON.parse(localStorage.getItem('votify-settings') || '{}');
   if (oldSettings.theme) localStorage.setItem('theme', oldSettings.theme);
-  
+
   // Migrate auth (skip)
-  
+
   localStorage.setItem('v2_migrated', Date.now().toString());
 }

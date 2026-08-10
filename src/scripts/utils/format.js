@@ -17,7 +17,8 @@ export function formatDuration(ms) {
   const hours = Math.floor(totalSecs / 3600);
   const mins = Math.floor((totalSecs % 3600) / 60);
   const secs = totalSecs % 60;
-  if (hours > 0) return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  if (hours > 0)
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
@@ -68,7 +69,11 @@ export function capitalize(str) {
 
 export function titleCase(str) {
   if (!str) return '';
-  return str.toLowerCase().split(' ').map(w => capitalize(w)).join(' ');
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(w => capitalize(w))
+    .join(' ');
 }
 
 export function slugify(str) {
@@ -114,4 +119,18 @@ export function formatTags(tags, max = 3) {
   return str;
 }
 
-export default { formatTime, formatDuration, formatRelativeTime, formatNumber, formatCount, truncate, capitalize, titleCase, slugify, highlight, formatFileSize, formatMs, formatTags };
+export default {
+  formatTime,
+  formatDuration,
+  formatRelativeTime,
+  formatNumber,
+  formatCount,
+  truncate,
+  capitalize,
+  titleCase,
+  slugify,
+  highlight,
+  formatFileSize,
+  formatMs,
+  formatTags,
+};

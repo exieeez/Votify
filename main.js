@@ -14,7 +14,9 @@ let isQuitting = false;
 
 // Force persistent user data dir so settings/playlists survive restarts
 const userDataPath = path.join(app.getPath('home'), '.votify');
-try { fs.mkdirSync(userDataPath, { recursive: true }); } catch {}
+try {
+  fs.mkdirSync(userDataPath, { recursive: true });
+} catch {}
 app.setPath('userData', userDataPath);
 
 // Allow autoplay of audio without user gesture
@@ -75,10 +77,14 @@ async function startServer() {
   });
 
   serverProcess.stdout?.on('data', d => {
-    try { console.log('[server]', d.toString().trim()); } catch (e) {}
+    try {
+      console.log('[server]', d.toString().trim());
+    } catch (e) {}
   });
   serverProcess.stderr?.on('data', d => {
-    try { console.error('[server]', d.toString().trim()); } catch (e) {}
+    try {
+      console.error('[server]', d.toString().trim());
+    } catch (e) {}
   });
   serverProcess.on('error', err => console.error('Server process error:', err.message));
   serverProcess.on('exit', (code, signal) => {

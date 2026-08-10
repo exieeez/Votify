@@ -1,4 +1,16 @@
-const { parseBody, sendJson, getAuthUser, generateToken, loadUsers, saveUsers, bcrypt, SALT_ROUNDS, generateResetCode, createEmailTransporter, resetCodes } = require('./utils.js');
+const {
+  parseBody,
+  sendJson,
+  getAuthUser,
+  generateToken,
+  loadUsers,
+  saveUsers,
+  bcrypt,
+  SALT_ROUNDS,
+  generateResetCode,
+  createEmailTransporter,
+  resetCodes,
+} = require('./utils.js');
 
 const fs = require('fs');
 const path = require('path');
@@ -147,7 +159,11 @@ async function handleAuthRoutes(req, res, u) {
     user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
     saveUsers(users);
     const token = generateToken(user.id, user.email);
-    sendJson(res, 200, { message: 'Password reset successful', token, user: { id: user.id, email: user.email, username: user.username } });
+    sendJson(res, 200, {
+      message: 'Password reset successful',
+      token,
+      user: { id: user.id, email: user.email, username: user.username },
+    });
     return true;
   }
 
