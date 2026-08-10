@@ -450,8 +450,8 @@
                 <div class="lib-sidebar-header">
                   <span>СИСТЕМНЫЕ</span>
                   <div class="lib-header-actions">
-                    <button class="lib-icon-btn" title="Настройки"><i class="material-icons">auto_fix_high</i></button>
-                    <button class="lib-icon-btn" title="Устройства"><i class="material-icons">phone_iphone</i></button>
+                    <button class="lib-icon-btn" id="lib-system-settings-btn" title="Настройки"><i class="material-icons">auto_fix_high</i></button>
+                    <button class="lib-icon-btn" id="lib-system-devices-btn" title="Устройства"><i class="material-icons">phone_iphone</i></button>
                   </div>
                 </div>
                 <div class="lib-item" id="lib-item-favorites" data-system="favorites">
@@ -463,16 +463,6 @@
                     <div class="lib-item-sub" id="lib-fav-count">0 треков</div>
                   </div>
                 </div>
-
-                <div class="lib-item" id="lib-item-offline" data-system="offline">
-                  <div class="lib-item-icon badge-cloud">
-                    <i class="material-icons">cloud_queue</i>
-                  </div>
-                  <div class="lib-item-text">
-                    <div class="lib-item-title">Оффлайн треки</div>
-                    <div class="lib-item-sub" id="lib-offline-count">0 треков</div>
-                  </div>
-                </div>
               </div>
 
               <!-- PLAYLISTS SECTION -->
@@ -482,7 +472,7 @@
                   <div class="lib-header-actions">
                     <button class="lib-icon-btn" id="lib-refresh-btn" title="Обновить"><i class="material-icons">sync</i></button>
                     <button class="lib-icon-btn" id="lib-add-playlist-btn" title="Создать плейлист"><i class="material-icons">add</i></button>
-                    <button class="lib-icon-btn" id="lib-download-all-btn" title="Скачать все"><i class="material-icons">cloud_download</i></button>
+                    <button class="lib-icon-btn" id="import-playlist-btn" title="Импорт плейлиста (Spotify, YouTube, SoundCloud)"><i class="material-icons">link</i></button>
                   </div>
                 </div>
                 <div class="lib-playlists-list" id="lib-playlists-list">
@@ -508,7 +498,6 @@
                 <div class="lib-detail-actions">
                   <button class="lib-action-circle-btn" id="lib-play-all-btn" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
                   <button class="lib-action-circle-btn" id="lib-shuffle-all-btn" title="Перемешать"><i class="material-icons">shuffle</i></button>
-                  <button class="lib-action-circle-btn" id="lib-download-active-btn" title="Скачать"><i class="material-icons">download</i></button>
                   <button class="lib-action-circle-btn" id="lib-delete-active-btn" title="Удалить"><i class="material-icons">delete_outline</i></button>
                 </div>
               </div>
@@ -520,6 +509,10 @@
                   <div class="lib-empty-icon"><i class="material-icons">folder_open</i></div>
                   <h3 class="lib-empty-title">Добавьте первый трек</h3>
                   <p class="lib-empty-sub">У вас еще нет тут треков</p>
+                  <div style="display:flex;gap:10px;margin-top:16px;">
+                    <button class="btn-secondary" id="create-playlist-btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;background:var(--bg-elevated);border:1px solid var(--bg-highlight);color:var(--text-primary);cursor:pointer;"><i class="material-icons" style="font-size:18px;">add</i> Создать плейлист</button>
+                    <button class="btn-secondary" id="import-playlist-btn-empty" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;background:var(--bg-elevated);border:1px solid var(--bg-highlight);color:var(--text-primary);cursor:pointer;"><i class="material-icons" style="font-size:18px;">link</i> Импортировать</button>
+                  </div>
                 </div>
                 <!-- Tracklist container -->
                 <div class="lib-tracklist-wrap" id="lib-tracklist-wrap" style="display:none;"></div>
@@ -1177,11 +1170,7 @@
                 <div class="setting-item">
                   <div class="setting-row"><label>Локальные данные (настройки, плейлисты)</label><span class="setting-value" id="storage-local-size">— КБ</span></div>
                 </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Офлайн-кэш треков</label><span class="setting-value" id="storage-cache-size">—</span></div>
-                </div>
                 <div class="storage-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-                  <button class="btn-secondary btn-sm" id="clear-offline-cache-btn">Очистить офлайн-кэш</button>
                   <button class="btn-secondary btn-sm" id="clear-listening-history-btn">Очистить историю прослушивания</button>
                   <button class="btn-secondary btn-sm" id="settings-clear-search-history-btn">Очистить историю поиска</button>
                 </div>

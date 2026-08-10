@@ -97,6 +97,10 @@ async function handleMusicRoutes(req, res, u) {
     return true;
   }
 
+  // Shared keep-alive agents for stream proxying
+  const proxyHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 32, keepAliveMsecs: 2000 });
+  const proxyHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 32, keepAliveMsecs: 2000 });
+
   // --- STREAM PROXY (NEW) ---
   if (u.pathname === '/api/stream') {
     const id = u.searchParams.get('id')?.trim();
@@ -104,69 +108,15 @@ async function handleMusicRoutes(req, res, u) {
       sendJson(res, 400, { error: 'No id' });
       return true;
     }
+    const isDownload = u.searchParams.get('download') === '1';
+    const upstreamTimeoutMs = isDownload ? 300000 : 30000;
     try {
       const streamUrl = await fetchStreamUrl(id);
       if (!streamUrl) {
         sendJson(res, 502, { error: 'No stream available' });
         return true;
       }
-      // Proxy the stream to bypass CORS/SSL issues
-      const remote = new URL(streamUrl);
-      const transport = remote.protocol === 'https:' ? https : http;
-      
-      // Use a fresh agent for each request to avoid connection pooling issues
-      const agent = remote.protocol === 'https:' 
-        ? new https.Agent({ keepAlive: false, maxSockets: 1 })
-        : new http.Agent({ keepAlive: false, maxSockets: 1 });
-      
-      const headers = { 
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-        'Accept-Encoding': 'identity',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.youtube.com/',
-        'Origin': 'https://www.youtube.com',
-        'Sec-Fetch-Dest': 'audio',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'cross-site',
-      };
-      if (req.headers.range) headers.Range = req.headers.range;
-      
-      const upstream = transport.request(remote, { method: 'GET', headers, agent }, upRes => {
-        const sc = upRes.statusCode || 500;
-        if ([301, 302, 303, 307, 308].includes(sc) && upRes.headers.location) {
-          upRes.resume();
-          // Follow redirect
-          const newUrl = upRes.headers.location;
-          proxyStream(newUrl, req, res);
-          return;
-        }
-        const rh = {
-          'Content-Type': upRes.headers['content-type'] || 'audio/webm',
-          'Cache-Control': 'no-store',
-          'Accept-Ranges': 'bytes',
-        };
-        if (upRes.headers['content-length']) rh['Content-Length'] = upRes.headers['content-length'];
-        if (upRes.headers['content-range']) rh['Content-Range'] = upRes.headers['content-range'];
-        res.writeHead(sc, rh);
-        upRes.pipe(res);
-      });
-      upstream.on('error', e => {
-        console.error('Stream proxy error:', e.message);
-        if (!res.headersSent) sendJson(res, 502, { error: 'Stream proxy failed' });
-      });
-      upstream.setTimeout(30000, () => {
-        upstream.destroy(new Error('Stream upstream timeout'));
-      });
-      upstream.end(); // Important: send the request
-      // IncomingMessage may emit `close` as soon as the browser has finished
-      // sending this GET request. Destroying the upstream there cuts audio off
-      // before the response starts (especially noticeable with SoundCloud).
-      // The response lifecycle is the correct signal for client disconnects.
-      res.once('close', () => {
-        if (!res.writableEnded) upstream.destroy();
-        agent.destroy();
-      });
+      proxyStream(streamUrl, req, res, 0, upstreamTimeoutMs);
       return true;
     } catch (e) {
       console.error('Stream setup error:', e.message);
@@ -175,8 +125,8 @@ async function handleMusicRoutes(req, res, u) {
     }
   }
 
-  // Helper function for redirects
-  function proxyStream(url, req, res, depth = 0) {
+  // Helper function for redirects & stream proxying
+  function proxyStream(url, req, res, depth = 0, upstreamTimeoutMs = 30000) {
     if (depth > 5) {
       if (!res.headersSent) sendJson(res, 502, { error: 'Too many redirects' });
       return;
@@ -184,11 +134,7 @@ async function handleMusicRoutes(req, res, u) {
     try {
       const remote = new URL(url);
       const transport = remote.protocol === 'https:' ? https : http;
-      
-      // Use a fresh agent for each request
-      const agent = remote.protocol === 'https:' 
-        ? new https.Agent({ keepAlive: false, maxSockets: 1 })
-        : new http.Agent({ keepAlive: false, maxSockets: 1 });
+      const agent = remote.protocol === 'https:' ? proxyHttpsAgent : proxyHttpAgent;
       
       const headers = { 
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -207,7 +153,7 @@ async function handleMusicRoutes(req, res, u) {
         const sc = upRes.statusCode || 500;
         if ([301, 302, 303, 307, 308].includes(sc) && upRes.headers.location) {
           upRes.resume();
-          proxyStream(upRes.headers.location, req, res, depth + 1);
+          proxyStream(upRes.headers.location, req, res, depth + 1, upstreamTimeoutMs);
           return;
         }
         const rh = {
@@ -220,18 +166,21 @@ async function handleMusicRoutes(req, res, u) {
         res.writeHead(sc, rh);
         upRes.pipe(res);
       });
+
+      const onClose = () => {
+        if (!res.writableEnded) upstream.destroy();
+      };
+      res.once('close', onClose);
+
       upstream.on('error', e => {
+        res.removeListener('close', onClose);
         console.error('Stream proxy error:', e.message);
         if (!res.headersSent) sendJson(res, 502, { error: 'Stream proxy failed' });
       });
-      upstream.setTimeout(30000, () => {
+      upstream.setTimeout(upstreamTimeoutMs, () => {
         upstream.destroy(new Error('Stream upstream timeout'));
       });
-      upstream.end(); // Important: send the request
-      res.once('close', () => {
-        if (!res.writableEnded) upstream.destroy();
-        agent.destroy();
-      });
+      upstream.end();
     } catch (e) {
       console.error('Stream redirect error:', e.message);
       if (!res.headersSent) sendJson(res, 502, { error: 'Stream redirect failed' });

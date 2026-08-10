@@ -712,30 +712,24 @@ async function fetchStreamUrl(videoId) {
     return null;
   }
 
-  // Try yt-dlp first with robust options
+  // Try yt-dlp
   try {
     const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
-    console.log('[yt-dlp] Path:', ytdlpPath);
-    console.log('[yt-dlp] Exists:', fs.existsSync(ytdlpPath));
     const ytdlpArgs = [
       '--no-check-certificates',
       '--no-warnings',
+      '--no-playlist',
       '--quiet',
       '-g',
       '-f', AUDIO_QUALITY_FORMATS[quality] || 'ba/b',
-      '--socket-timeout', '15',
-      '--max-filesize', '50M',
+      '--socket-timeout', '10',
       '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      '--extractor-retries', '3',
-      '--retry-sleep', '2',
     ];
     if (networkConfig.httpProxy) {
       ytdlpArgs.push('--proxy', networkConfig.httpProxy);
     }
     ytdlpArgs.push('https://www.youtube.com/watch?v=' + videoId);
     const proc = spawn(ytdlpPath, ytdlpArgs, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-    let stderr = '';
-    proc.stderr.on('data', d => { stderr += d; });
     const url = await new Promise((resolve, reject) => {
       let out = '';
       proc.stdout.on('data', d => {
@@ -749,48 +743,19 @@ async function fetchStreamUrl(videoId) {
       proc.on('error', reject);
       proc.on('close', code => {
         if (out.trim()) resolve(out.trim().split('\n')[0]);
-        else reject(new Error('exit ' + code + ' stderr: ' + stderr.slice(0, 500)));
+        else reject(new Error('exit ' + code));
       });
       setTimeout(() => {
         proc.kill();
         reject(new Error('timeout'));
-      }, 30000);
+      }, 15000);
     });
     streamCache.set(cacheKey, { url, expires: Date.now() + STREAM_CACHE_TTL });
     return url;
   } catch (e) {
-    console.log('[yt-dlp] ERROR for', videoId, ':', e.message);
+    console.log('[yt-dlp] Stream error for', videoId, ':', e.message);
   }
-  
-  // Fallback: Try multiple Invidious instances for direct stream URL
-  const invidiousInstances = [
-    networkConfig.invidiousInstance.replace(/\/$/, ''),
-    'https://yewtu.be',
-    'https://inv.nadeko.net',
-    'https://invidious.snopyta.org',
-    'https://invidious.fdn.fr',
-    'https://invidious.privacydev.net',
-    'https://invidious.buzz',
-  ];
 
-  for (const instance of invidiousInstances) {
-    if (!instance) continue;
-    try {
-      console.log('[fetchStreamUrl] Trying Invidious fallback:', instance, 'for', videoId);
-      const data = await httpGet(`${instance}/api/v1/videos/${videoId}?fields=format_streams`, 10000);
-      if (data && data.format_streams) {
-        const audioStream = data.format_streams.find(s => s.type === 'audio' || s.container === 'webm');
-        if (audioStream && audioStream.url) {
-          console.log('[fetchStreamUrl] Invidious fallback succeeded:', instance, 'for', videoId);
-          streamCache.set(cacheKey, { url: audioStream.url, expires: Date.now() + STREAM_CACHE_TTL });
-          return audioStream.url;
-        }
-      }
-    } catch (e) {
-      console.log('[fetchStreamUrl] Invidious fallback failed:', instance, 'for', videoId, ':', e.message);
-    }
-  }
-  
   return null;
 }
 
