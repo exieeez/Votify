@@ -1,0 +1,236 @@
+const { app, BrowserWindow, shell, ipcMain, Tray, Menu } = require('electron');
+const path = require('path');
+const http = require('http');
+const { fork } = require('child_process');
+const fs = require('fs');
+const net = require('net');
+
+let PORT = 17217;
+let mainWindow = null;
+let serverProcess = null;
+let tray = null;
+let closeToTrayEnabled = false;
+let isQuitting = false;
+
+// Force persistent user data dir so settings/playlists survive restarts
+const userDataPath = path.join(app.getPath('home'), '.votify');
+try { fs.mkdirSync(userDataPath, { recursive: true }); } catch {}
+app.setPath('userData', userDataPath);
+
+// Allow autoplay of audio without user gesture
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+// Fix cache errors with --no-sandbox
+app.commandLine.appendSwitch('disk-cache-dir', path.join(userDataPath, 'cache'));
+// UI files are served by the bundled local server. Caching them causes source
+// runs to show an older interface after an update.
+app.commandLine.appendSwitch('disable-http-cache');
+
+function findYtDlp() {
+  const isWindows = process.platform === 'win32';
+  const binaryName = isWindows ? 'yt-dlp.exe' : 'yt-dlp';
+
+  const candidates = [
+    path.join(process.resourcesPath || '', 'app.asar.unpacked', 'bin', binaryName),
+    path.join(__dirname, 'bin', binaryName),
+    path.join(__dirname, binaryName),
+    path.join(process.resourcesPath || '', binaryName),
+    path.join(process.resourcesPath || '', 'app', 'bin', binaryName),
+  ];
+  for (const c of candidates) {
+    if (c.includes(`app.asar${path.sep}`) && !c.includes(`app.asar.unpacked${path.sep}`)) continue;
+    try {
+      const stat = fs.statSync(c);
+      if (stat.isFile()) return c;
+    } catch (e) {
+      // ignore missing candidate
+    }
+  }
+  return path.join(process.resourcesPath || __dirname, 'app.asar.unpacked', 'bin', binaryName);
+}
+
+function isPortFree(port) {
+  return new Promise(resolve => {
+    const srv = net.createServer();
+    srv.once('error', () => resolve(false));
+    srv.once('listening', () => {
+      srv.close();
+      resolve(true);
+    });
+    srv.listen(port, '127.0.0.1');
+  });
+}
+
+async function startServer() {
+  // Do not attach a new window to a stale server left by a previous Electron
+  // process. Pick the next local port when the default one is occupied.
+  while (!(await isPortFree(PORT))) PORT += 1;
+  const env = { ...process.env };
+  env.YT_DLP_PATH = findYtDlp();
+  env.VOTIFY_SRC_DIR = path.join(__dirname, 'src');
+  env.VOTIFY_PORT = String(PORT);
+
+  serverProcess = fork(path.join(__dirname, 'server.js'), {
+    env,
+    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+  });
+
+  serverProcess.stdout?.on('data', d => {
+    try { console.log('[server]', d.toString().trim()); } catch (e) {}
+  });
+  serverProcess.stderr?.on('data', d => {
+    try { console.error('[server]', d.toString().trim()); } catch (e) {}
+  });
+  serverProcess.on('error', err => console.error('Server process error:', err.message));
+  serverProcess.on('exit', (code, signal) => {
+    console.log(`Server exited with code ${code}, signal ${signal}`);
+  });
+
+  for (let i = 0; i < 30; i++) {
+    if (await isPortFree(PORT)) {
+      await new Promise(r => setTimeout(r, 500));
+    } else {
+      break;
+    }
+  }
+}
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
+    frame: false,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+    icon: path.join(__dirname, 'src/icon.png'),
+    show: false,
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
+  // Load via HTTP to avoid file:// CORS issues
+  mainWindow.loadURL(`http://localhost:${PORT}/index.html?v=${Date.now()}`);
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  mainWindow.on('close', event => {
+    if (closeToTrayEnabled && !isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
+}
+
+function createTray() {
+  if (tray) return;
+  try {
+    tray = new Tray(path.join(__dirname, 'src/icon.png'));
+    tray.setToolTip('Votify');
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Открыть Votify',
+        click: () => {
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Выход',
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        },
+      },
+    ]);
+    tray.setContextMenu(contextMenu);
+    tray.on('click', () => {
+      if (!mainWindow) return;
+      if (mainWindow.isVisible()) {
+        mainWindow.hide();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  } catch (e) {
+    console.error('Tray creation failed:', e.message);
+  }
+}
+
+app.whenReady().then(async () => {
+  await startServer();
+  createWindow();
+  createTray();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    if (serverProcess) {
+      serverProcess.kill();
+    }
+    app.quit();
+  }
+});
+
+app.on('before-quit', () => {
+  isQuitting = true;
+  if (serverProcess) {
+    serverProcess.kill();
+  }
+});
+
+ipcMain.handle('minimize', () => mainWindow?.minimize());
+ipcMain.handle('maximize', () => {
+  if (!mainWindow) return false;
+  if (mainWindow.isMaximized()) mainWindow.unmaximize();
+  else mainWindow.maximize();
+  return mainWindow.isMaximized();
+});
+ipcMain.handle('close', () => mainWindow?.close());
+ipcMain.handle('isMaximized', () => mainWindow?.isMaximized());
+
+// --- Settings-related IPC ---
+ipcMain.handle('get-launch-at-login', () => {
+  try {
+    return app.getLoginItemSettings().openAtLogin;
+  } catch (e) {
+    return false;
+  }
+});
+
+ipcMain.handle('set-launch-at-login', (event, enabled) => {
+  try {
+    app.setLoginItemSettings({ openAtLogin: !!enabled });
+    return true;
+  } catch (e) {
+    console.error('Failed to set launch at login:', e.message);
+    return false;
+  }
+});
+
+ipcMain.on('set-close-to-tray', (event, enabled) => {
+  closeToTrayEnabled = !!enabled;
+});

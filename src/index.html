@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Votify</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/png" href="icon.png" />
+    <meta name="theme-color" content="#121212" />
+  </head>
+  <body>
+    <!-- SPLASH -->
+    <div class="splash-screen" id="splash-screen">
+      <div class="splash-content">
+        <img src="icon.png" alt="Votify" class="splash-app-icon" />
+        <div class="splash-title" id="splash-title">Votify</div>
+        <div class="splash-subtitle" id="splash-subtitle">Your music, your vibe</div>
+        <div class="splash-dots">
+          <span class="splash-dot"></span><span class="splash-dot"></span><span class="splash-dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BG LAYERS -->
+    <div class="bg-image-layer" id="bg-image-layer"></div>
+    <div class="bg-overlay" id="bg-overlay"></div>
+
+    <!-- LOADING -->
+    <div class="loading-overlay hidden" id="loading-overlay" aria-hidden="true">
+      <div class="loading-card">
+        <div class="loading-visual">
+          <div class="loading-vinyl"><div class="loading-vinyl-core"></div></div>
+          <div class="loading-eq"><span class="loading-bar"></span><span class="loading-bar"></span><span class="loading-bar"></span><span class="loading-bar"></span></div>
+        </div>
+        <div class="loading-copy">
+          <div class="loading-title" id="loading-title">Загрузка музыки</div>
+          <div class="loading-subtitle" id="loading-subtitle">Ищем треки и собираем свежую выдачу…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTH -->
+    <div class="auth-overlay" id="auth-overlay" style="display:none">
+      <div class="auth-card">
+        <div class="auth-logo">
+          <img src="icon.png" alt="Votify" class="auth-logo-icon" />
+          <h1>Votify</h1>
+        </div>
+        <div class="auth-form" id="auth-login">
+          <h2>Sign In</h2>
+          <div class="auth-field"><i class="material-icons">email</i><input type="email" id="login-email" placeholder="Email" autocomplete="email" /></div>
+          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="login-password" placeholder="Password" autocomplete="current-password" /></div>
+          <div class="auth-error" id="login-error"></div>
+          <button class="auth-btn" id="login-btn">Sign In</button>
+          <div class="auth-links"><a href="#" id="show-register">Create account</a><a href="#" id="show-forgot">Forgot password?</a></div>
+        </div>
+        <div class="auth-form" id="auth-register" style="display:none">
+          <h2>Create Account</h2>
+          <div class="auth-field"><i class="material-icons">person</i><input type="text" id="register-username" placeholder="Username" autocomplete="username" /></div>
+          <div class="auth-field"><i class="material-icons">email</i><input type="email" id="register-email" placeholder="Email" autocomplete="email" /></div>
+          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="register-password" placeholder="Password" autocomplete="new-password" /></div>
+          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="register-password2" placeholder="Confirm password" autocomplete="new-password" /></div>
+          <div class="auth-error" id="register-error"></div>
+          <button class="auth-btn" id="register-btn">Create Account</button>
+          <div class="auth-links"><a href="#" id="show-login-from-register">Already have an account? Sign in</a></div>
+        </div>
+        <div class="auth-form" id="auth-forgot" style="display:none">
+          <h2>Reset Password</h2>
+          <p class="auth-desc">Enter your email and we'll send you a reset code.</p>
+          <div class="auth-field"><i class="material-icons">email</i><input type="email" id="forgot-email" placeholder="Email" autocomplete="email" /></div>
+          <div class="auth-error" id="forgot-error"></div>
+          <div class="auth-success" id="forgot-success"></div>
+          <button class="auth-btn" id="forgot-btn">Send Code</button>
+          <div class="auth-links"><a href="#" id="show-login-from-forgot">Back to sign in</a></div>
+        </div>
+        <div class="auth-form" id="auth-reset" style="display:none">
+          <h2>Enter Code</h2>
+          <p class="auth-desc">Enter the 6-digit code from your email.</p>
+          <div class="auth-field"><i class="material-icons">pin</i><input type="text" id="reset-code" placeholder="000000" maxlength="6" autocomplete="one-time-code" /></div>
+          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="reset-password" placeholder="New password" autocomplete="new-password" /></div>
+          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="reset-password2" placeholder="Confirm new password" autocomplete="new-password" /></div>
+          <div class="auth-error" id="reset-error"></div>
+          <button class="auth-btn" id="reset-btn">Reset Password</button>
+          <div class="auth-links"><a href="#" id="show-login-from-reset">Back to sign in</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div class="app-container">
+      <!-- TITLEBAR -->
+      <header class="titlebar-strip">
+        <div class="titlebar-left">
+          <span class="titlebar-logo">Votify</span>
+        </div>
+        <div class="titlebar-center">
+          <span class="titlebar-page-title" id="page-title">Главная</span>
+        </div>
+        <div class="titlebar-drag-area"></div>
+        <div class="titlebar-buttons">
+          <button class="titlebar-btn" id="tb-minimize" title="Minimize">
+            <svg width="12" height="12" viewBox="0 0 12 12"><rect y="5" width="12" height="1.5" rx="0.75" fill="currentColor"/></svg>
+          </button>
+          <button class="titlebar-btn" id="tb-maximize" title="Maximize">
+            <svg width="12" height="12" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+          </button>
+          <button class="titlebar-btn titlebar-btn-close" id="tb-close" title="Close">
+            <svg width="12" height="12" viewBox="0 0 12 12"><line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- SIDEBAR (Reference Rail Layout) -->
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <button class="nav-btn active" id="nav-home-btn" title="Главная">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3.5L3.5 10v9.5a1 1 0 0 0 1 1h15a1 1 0 0 0 1-1V10L12 3.5z"/>
+              <circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+          </button>
+        </div>
+        <nav class="sidebar-nav">
+          <button class="nav-btn" id="nav-player-btn" title="Плеер">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="6,3 20,12 6,21"/>
+            </svg>
+          </button>
+          <button class="nav-btn" id="nav-search-btn" title="Поиск">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="11" cy="11" r="7"/>
+              <line x1="16.5" y1="16.5" x2="21" y2="21"/>
+            </svg>
+          </button>
+          <button class="nav-btn" id="nav-folders-btn" title="Медиатека">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 8h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
+              <path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
+        </nav>
+        <div class="sidebar-bottom">
+          <button class="nav-btn" id="nav-settings-btn" title="Настройки">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="8"/>
+              <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- RIGHT PLAYER PANEL -->
+      <aside class="right-player-panel" id="right-player-panel">
+        <div class="right-player-bg" id="right-player-bg"></div>
+        <div class="right-player-header">
+          <div class="right-player-heading">
+            <span class="right-player-kicker">VOTIFY PLAYER</span>
+            <span class="right-player-now-label">Сейчас играет</span>
+          </div>
+          <div class="right-player-header-actions">
+            <button class="skiper99-icon-btn" id="right-player-fullscreen" title="Полный экран"><span class="material-icons" style="font-size:18px">fullscreen</span></button>
+            <button class="skiper99-icon-btn" id="right-player-close" title="Закрыть">
+              <div class="skiper99-menu" data-toggled="false">
+                <span class="skiper99-menu-bar"></span>
+                <span class="skiper99-menu-bar"></span>
+                <span class="skiper99-menu-bar"></span>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="right-player-art">
+          <div class="right-player-cover-shell">
+            <div class="right-player-cover-glow"></div>
+            <img class="right-player-cover" id="right-player-cover" src="" alt="" style="display:none"/>
+            <div class="right-player-cover-shine"></div>
+          </div>
+          <div class="right-player-info">
+            <h3 class="right-player-title" id="right-player-title">—</h3>
+            <p class="right-player-artist" id="right-player-artist">—</p>
+          </div>
+        </div>
+        <div class="right-player-progress">
+          <div class="right-timeline" id="right-timeline">
+            <div class="right-timeline-track" id="right-timeline-track">
+              <svg class="right-timeline-svg" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="rightTlGrad" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stop-color="var(--accent)"/>
+                    <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.65"/>
+                  </linearGradient>
+                </defs>
+                <path d="" fill="rgba(255,255,255,0.1)" class="right-tl-bg" id="right-tl-bg"></path>
+                <path d="" fill="url(#rightTlGrad)" class="right-tl-active" id="right-tl-active"></path>
+              </svg>
+              <div class="right-timeline-thumb" id="right-timeline-thumb" style="left:0%">
+                <div class="right-timeline-dot"></div>
+              </div>
+            </div>
+          </div>
+          <div class="right-player-times">
+            <span id="right-player-current">0:00</span>
+            <span id="right-player-total">0:00</span>
+          </div>
+        </div>
+        <div class="right-player-controls">
+          <div class="right-player-main-controls">
+            <button class="control-btn skiper99-arrow-btn" id="right-player-prev" title="Предыдущий">
+              <div class="skiper99-arrow">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="skiper99-chevron"><polyline points="15 18 9 12 15 6"/></svg>
+                <span class="skiper99-arrow-line skiper99-arrow-line-left"></span>
+              </div>
+            </button>
+            <button class="control-btn play-btn" id="right-player-play"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg></button>
+            <button class="control-btn skiper99-arrow-btn" id="right-player-next" title="Следующий">
+              <div class="skiper99-arrow">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="skiper99-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+                <span class="skiper99-arrow-line"></span>
+              </div>
+            </button>
+          </div>
+          <div class="right-player-extra-controls">
+            <button class="control-btn" id="right-player-shuffle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 22 3 22 9"/><path d="M2 20.5C2 15.2 6.2 11 11.5 11C13.3 11 15 11.7 16 12.8"/><polyline points="8 21 2 21 2 15"/></svg></button>
+            <button class="control-btn" id="right-player-repeat" title="Зациклить фрагмент" aria-label="Зациклить фрагмент"><i class="material-icons">repeat_one</i></button>
+          </div>
+        </div>
+        <div class="right-player-volume">
+          <!-- Skiper99 VolumeIcon (animated mute toggle) -->
+          <button class="skiper99-icon-btn" id="right-player-mute" title="Звук">
+            <div class="skiper99-volume" data-muted="false">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/>
+              </svg>
+              <svg class="skiper99-vol-waves" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M16 9a5 5 0 0 1 0 6"/>
+                <path d="M19.364 18.364a9 9 0 0 0 0-12.728"/>
+              </svg>
+              <div class="skiper99-vol-mute-line"></div>
+            </div>
+          </button>
+          <input type="range" id="right-player-volume" value="80" min="0" max="100" />
+        </div>
+        <div class="right-player-extras">
+          <button class="right-extra-btn" id="right-eq-btn" title="Эквалайзер"><i class="material-icons">equalizer</i></button>
+          <button class="right-extra-btn" id="right-lyrics-btn" title="Текст песни"><i class="material-icons">lyrics</i></button>
+        </div>
+        <div class="custom-eq" id="right-player-eq" style="display:none" data-eq-id="right">
+          <div class="custom-eq-presets" id="right-eq-presets">
+            <button class="custom-eq-preset active" data-preset="neutral">Neutral</button>
+            <button class="custom-eq-preset" data-preset="bass">Bass Boost</button>
+            <button class="custom-eq-preset" data-preset="treble">Treble</button>
+            <button class="custom-eq-preset" data-preset="vocal">Vocal</button>
+          </div>
+          <div class="custom-eq-graph" id="right-eq-graph">
+            <svg class="custom-eq-svg" id="right-eq-svg" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="rightEqGrad" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#ffffff" stop-opacity="0.2"/>
+                  <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="" fill="url(#rightEqGrad)" class="custom-eq-fill" id="right-eq-fill"></path>
+              <path d="" fill="none" stroke="#ffffff" stroke-width="2" vector-effect="non-scaling-stroke" class="custom-eq-curve" id="right-eq-curve"></path>
+            </svg>
+            <div class="custom-eq-nodes" id="right-eq-nodes"></div>
+          </div>
+          <div class="custom-eq-labels" id="right-eq-labels"></div>
+        </div>
+        <div class="right-player-lyrics" id="right-player-lyrics" style="display:none">
+          <div class="lyrics-label">Текст песни</div>
+          <div class="lyrics-body" id="right-lyrics-body"><div class="lyrics-placeholder">Нет текста</div></div>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content">
+        <!-- HOME -->
+        <section id="home-screen" class="screen">
+          <!-- CARD 1: МОЯ ВОЛНА -->
+          <div class="my-wave-card" id="my-wave-card">
+            <svg class="my-wave-bg-svg" viewBox="0 0 1000 100" preserveAspectRatio="none">
+              <path d="M0,50 Q250,20 500,50 T1000,50" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+              <path d="M0,65 Q300,80 600,45 T1000,60" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+            </svg>
+            <div class="my-wave-left">
+              <button class="my-wave-play-btn" id="home-play-wave-btn" title="Слушать волну">
+                <i class="material-icons">play_arrow</i>
+              </button>
+              <div class="my-wave-text">
+                <div class="my-wave-title">Моя волна</div>
+                <div class="my-wave-subtitle">Послушайте минимум 5 треков, чтобы погрузиться в волну</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW OF 2 CARDS: ИСТОРИЯ & ЛЮБИМЫЕ -->
+          <div class="home-quick-grid">
+            <div class="home-quick-card" id="tile-history">
+              <div class="home-quick-icon-badge">
+                <i class="material-icons">schedule</i>
+              </div>
+              <div class="home-quick-text">
+                <div class="home-quick-title">История прослушивания</div>
+                <div class="home-quick-subtitle">Ваши недавно прослушанные треки</div>
+              </div>
+            </div>
+
+            <div class="home-quick-card" id="tile-liked">
+              <div class="home-quick-icon-badge">
+                <i class="material-icons">favorite</i>
+              </div>
+              <div class="home-quick-text">
+                <div class="home-quick-title">Любимые треки</div>
+                <div class="home-quick-subtitle">Ваша коллекция любимой музыки</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION: НЕДАВНО ПРОСЛУШАННЫЕ АВТОРЫ -->
+          <div class="home-section" id="home-recent-artists-section">
+            <h2 class="home-heading">Недавно прослушанные авторы</h2>
+            <div class="artists-grid" id="home-recent-artists"></div>
+          </div>
+
+          <!-- SECTION: ПРОДОЛЖИТЬ СЛУШАТЬ -->
+          <div class="home-section">
+            <h2 class="home-heading">Продолжить слушать</h2>
+            <div class="scroll-fade-wrap"><div class="scroll-fade-content" id="home-continue" class="results-list"></div></div>
+          </div>
+        </section>
+
+        <!-- PLAYER SCREEN -->
+        <section id="player-screen" class="screen hidden" style="display:none">
+          <div class="player-page-container">
+            <div class="player-page-top">
+              <!-- LEFT: Cover with Hover Overlay -->
+              <div class="pp-cover-wrap">
+                <img class="pp-cover" id="page-player-cover" src="" alt="Обложка трека" />
+                <div class="pp-cover-overlay">
+                  <button class="pp-overlay-btn pp-fullscreen-btn" id="page-player-fs" title="На весь экран">
+                    <i class="material-icons">fullscreen</i>
+                  </button>
+                  <div class="pp-overlay-bottom">
+                    <button class="pp-overlay-btn pp-like-btn" id="page-player-like" title="В любимое">
+                      <i class="material-icons">favorite_border</i>
+                    </button>
+                    <button class="pp-overlay-btn pp-playlist-btn" id="page-player-playlist" title="В плейлист">
+                      <i class="material-icons">playlist_add</i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RIGHT: Details, Controls, Volume & Extras -->
+              <div class="pp-details">
+                <div class="pp-info">
+                  <h1 class="pp-title" id="page-player-title">Votify</h1>
+                  <p class="pp-artist" id="page-player-artist">Выберите трек</p>
+                </div>
+
+                <!-- Timeline Progress Bar -->
+                <div class="pp-progress-container">
+                  <span id="page-player-current" class="pp-time">0:00</span>
+                  <div class="pp-timeline-bar">
+                    <input type="range" id="page-player-progress" min="0" max="100" value="0" step="0.1" />
+                  </div>
+                  <span id="page-player-total" class="pp-time">0:00</span>
+                </div>
+
+                <!-- Playback Controls -->
+                <div class="pp-controls">
+                  <button class="pp-btn" id="page-player-shuffle" title="Перемешать"><i class="material-icons">shuffle</i></button>
+                  <button class="pp-btn" id="page-player-prev" title="Предыдущий"><i class="material-icons">skip_previous</i></button>
+                  <button class="pp-btn pp-play-main" id="page-player-play" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
+                  <button class="pp-btn" id="page-player-next" title="Следующий"><i class="material-icons">skip_next</i></button>
+                  <button class="pp-btn" id="page-player-repeat" title="Зациклить фрагмент"><i class="material-icons">repeat_one</i></button>
+                </div>
+
+                <!-- Volume and Extras -->
+                <div class="pp-volume-extras">
+                  <div class="pp-volume-wrap">
+                    <i class="material-icons" id="page-player-vol-icon">volume_up</i>
+                    <input type="range" id="page-player-volume" min="0" max="100" value="80" />
+                  </div>
+                  <button class="pp-extra-btn" id="page-player-eq-btn" title="Эквалайзер"><i class="material-icons">equalizer</i></button>
+                  <button class="pp-extra-btn" id="page-player-lyrics-btn" title="Текст песни"><i class="material-icons">lyrics</i></button>
+                </div>
+
+                <!-- Inline Lyrics panel toggle -->
+                <div class="pp-lyrics-panel" id="page-player-lyrics-panel" style="display:none;">
+                  <div class="pp-lyrics-header">Текст песни</div>
+                  <div class="pp-lyrics-body" id="page-player-lyrics-body">
+                    <div class="lyrics-placeholder">Нет текста</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTTOM CENTER: Similar Tracks -->
+            <div class="pp-similar-section">
+              <h2 class="pp-similar-heading">Похожие треки</h2>
+              <div class="pp-similar-list results-list" id="page-player-similar">
+                <p class="empty-msg">Выберите трек для просмотра похожих композиций</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SEARCH -->
+        <section id="search-screen" class="screen hidden" style="display:none">
+          <div class="search-container">
+            <div class="skiper106-wrap">
+              <div class="skiper106-container" id="skiper106-container">
+                <input type="text" id="search-input" class="skiper106-input" placeholder="Что хотите послушать?" data-i18n-placeholder="search-placeholder" autocomplete="off" />
+                <span class="skiper106-measure" id="skiper106-measure"></span>
+                <div class="skiper106-caret" id="smooth-caret"></div>
+              </div>
+              <div class="skiper106-search-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+            </div>
+            <div class="search-suggestions" id="search-suggestions" style="display:none"></div>
+          </div>
+          <div class="search-filters" id="search-filters">
+            <button class="filter-pill active" data-filter="all">Все</button>
+            <button class="filter-pill" data-filter="tracks">Треки</button>
+            <button class="filter-pill" data-filter="playlists">Плейлисты</button>
+            <button class="filter-pill" data-filter="albums">Альбомы</button>
+            <button class="filter-pill" data-filter="art">Арт</button>
+          </div>
+          <div class="search-history" id="search-history" style="display:none">
+            <div class="search-history-header">
+              <span>Недавние</span>
+              <button class="btn-icon-sm" id="clear-search-history"><i class="material-icons">close</i></button>
+            </div>
+            <div class="search-history-items" id="search-history-items"></div>
+          </div>
+          <div class="status-message" id="status-message"></div>
+          <div id="search-results" class="results-list"></div>
+        </section>
+
+        <!-- FOLDERS (Media Library Master-Detail Layout) -->
+        <section id="folders-screen" class="screen hidden" style="display:none">
+          <div class="lib-master-detail">
+            <!-- LEFT SIDEBAR: SYSTEM & PLAYLISTS -->
+            <div class="lib-sidebar">
+              <!-- SYSTEM SECTION -->
+              <div class="lib-sidebar-section">
+                <div class="lib-sidebar-header">
+                  <span>СИСТЕМНЫЕ</span>
+                  <div class="lib-header-actions">
+                    <button class="lib-icon-btn" title="Настройки"><i class="material-icons">auto_fix_high</i></button>
+                    <button class="lib-icon-btn" title="Устройства"><i class="material-icons">phone_iphone</i></button>
+                  </div>
+                </div>
+                <div class="lib-item" id="lib-item-favorites" data-system="favorites">
+                  <div class="lib-item-icon badge-red">
+                    <i class="material-icons">favorite</i>
+                  </div>
+                  <div class="lib-item-text">
+                    <div class="lib-item-title">Любимые</div>
+                    <div class="lib-item-sub" id="lib-fav-count">0 треков</div>
+                  </div>
+                </div>
+
+                <div class="lib-item" id="lib-item-offline" data-system="offline">
+                  <div class="lib-item-icon badge-cloud">
+                    <i class="material-icons">cloud_queue</i>
+                  </div>
+                  <div class="lib-item-text">
+                    <div class="lib-item-title">Оффлайн треки</div>
+                    <div class="lib-item-sub" id="lib-offline-count">0 треков</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PLAYLISTS SECTION -->
+              <div class="lib-sidebar-section">
+                <div class="lib-sidebar-header">
+                  <span>ПЛЕЙЛИСТЫ</span>
+                  <div class="lib-header-actions">
+                    <button class="lib-icon-btn" id="lib-refresh-btn" title="Обновить"><i class="material-icons">sync</i></button>
+                    <button class="lib-icon-btn" id="lib-add-playlist-btn" title="Создать плейлист"><i class="material-icons">add</i></button>
+                    <button class="lib-icon-btn" id="lib-download-all-btn" title="Скачать все"><i class="material-icons">cloud_download</i></button>
+                  </div>
+                </div>
+                <div class="lib-playlists-list" id="lib-playlists-list">
+                  <!-- Dynamically rendered playlist items -->
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT DETAIL PANE: HEADER & CONTENT -->
+            <div class="lib-detail-pane" id="lib-detail-pane">
+              <!-- TOP ACTIVE PLAYLIST HEADER CARD -->
+              <div class="lib-detail-header-card" id="lib-header-card">
+                <div class="lib-detail-left">
+                  <div class="lib-detail-cover" id="lib-detail-cover">
+                    <i class="material-icons" id="lib-detail-cover-icon">queue_music</i>
+                    <img id="lib-detail-cover-img" src="" alt="Cover" style="display:none;" />
+                  </div>
+                  <div class="lib-detail-info">
+                    <h1 class="lib-detail-title" id="lib-detail-title">Плейлист</h1>
+                    <div class="lib-detail-sub" id="lib-detail-sub">Создан Votify</div>
+                  </div>
+                </div>
+                <div class="lib-detail-actions">
+                  <button class="lib-action-circle-btn" id="lib-play-all-btn" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
+                  <button class="lib-action-circle-btn" id="lib-shuffle-all-btn" title="Перемешать"><i class="material-icons">shuffle</i></button>
+                  <button class="lib-action-circle-btn" id="lib-download-active-btn" title="Скачать"><i class="material-icons">download</i></button>
+                  <button class="lib-action-circle-btn" id="lib-delete-active-btn" title="Удалить"><i class="material-icons">delete_outline</i></button>
+                </div>
+              </div>
+
+              <!-- MAIN TRACKLIST OR EMPTY STATE CONTAINER -->
+              <div class="lib-detail-content" id="lib-detail-content">
+                <!-- Empty state template -->
+                <div class="lib-empty-state" id="lib-empty-state">
+                  <div class="lib-empty-icon"><i class="material-icons">folder_open</i></div>
+                  <h3 class="lib-empty-title">Добавьте первый трек</h3>
+                  <p class="lib-empty-sub">У вас еще нет тут треков</p>
+                </div>
+                <!-- Tracklist container -->
+                <div class="lib-tracklist-wrap" id="lib-tracklist-wrap" style="display:none;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ARTIST -->
+        <section id="artist-screen" class="screen hidden" style="display:none">
+          <div class="screen-header">
+            <button class="btn-secondary" id="back-from-artist-btn"><i class="material-icons">arrow_back</i> Назад</button>
+          </div>
+          <div class="artist-header">
+            <div class="artist-avatar-large" id="artist-avatar"><i class="material-icons">person</i></div>
+            <div class="artist-info-block">
+              <h2 id="artist-name">Artist</h2>
+              <div class="artist-meta">
+                <span class="artist-listeners" id="artist-listeners"><i class="material-icons">headphones</i> <span id="artist-listeners-count">0</span> слушателей за месяц</span>
+                <span class="artist-track-count" id="artist-track-count">0 треков</span>
+              </div>
+            </div>
+          </div>
+          <div class="status-message" id="artist-status"></div>
+
+          <!-- Section 1: Top Hits -->
+          <div class="artist-section">
+            <h3 class="artist-section-title"><i class="material-icons">local_fire_department</i> Главные хиты</h3>
+            <div id="artist-tracks" class="results-list"></div>
+          </div>
+
+          <!-- Section 2: Albums & Singles -->
+          <div class="artist-section" id="artist-albums-section">
+            <h3 class="artist-section-title"><i class="material-icons">album</i> Альбомы и синглы</h3>
+            <div id="artist-albums" class="artist-albums-grid"></div>
+          </div>
+        </section>
+
+        <!-- ALBUM SCREEN -->
+        <section id="album-screen" class="screen hidden" style="display:none">
+          <div class="screen-header">
+            <button class="btn-secondary" id="back-from-album-btn"><i class="material-icons">arrow_back</i> Назад</button>
+          </div>
+          <div class="album-screen-header">
+            <div class="album-screen-cover-wrap">
+              <img id="album-screen-cover" src="" alt="Album Cover" />
+            </div>
+            <div class="album-screen-info">
+              <span class="album-screen-badge" id="album-screen-badge">Альбом</span>
+              <h2 class="album-screen-title" id="album-screen-title">Название альбома</h2>
+              <div class="album-screen-artist-row">
+                <span class="album-screen-artist clickable-artist" id="album-screen-artist">Исполнитель</span>
+                <span class="album-screen-dot">•</span>
+                <span class="album-screen-meta" id="album-screen-meta">0 треков</span>
+              </div>
+              <button class="pp-btn pp-play-main album-play-all-btn" id="album-screen-play-btn" title="Воспроизвести всё">
+                <i class="material-icons">play_arrow</i>
+              </button>
+            </div>
+          </div>
+          <div class="artist-section">
+            <h3 class="artist-section-title"><i class="material-icons">audiotrack</i> Треки альбома</h3>
+            <div id="album-screen-tracks" class="results-list"></div>
+          </div>
+        </section>
+      </main>
+
+      <!-- OLD PLAYER BAR (hidden, keeps IDs alive for existing JS) -->
+      <footer class="player-bar" id="player-bar" style="display:none!important">
+        <div class="player-bar-left" id="player-expand-btn">
+          <div class="player-bar-cover-wrap">
+            <img id="player-bar-cover" class="player-bar-cover" src="" alt="" />
+            <canvas id="mini-visualizer" class="mini-visualizer"></canvas>
+          </div>
+          <div class="player-bar-info">
+            <div class="player-track-title" id="player-track-title" data-i18n="player-no-track">Votify</div>
+            <div class="player-track-artist clickable-artist" id="player-track-artist" data-i18n="player-unknown">Выберите трек</div>
+            <div class="player-track-lyrics" id="player-track-lyrics"></div>
+          </div>
+        </div>
+        <div class="player-bar-center">
+          <div class="control-buttons">
+            <button class="control-btn" id="shuffle-btn"><i class="material-icons">shuffle</i></button>
+            <button class="control-btn" id="prev-btn"><i class="material-icons">skip_previous</i></button>
+            <button class="control-btn play-main-btn" id="play-btn"><i class="material-icons">play_arrow</i></button>
+            <button class="control-btn" id="next-btn"><i class="material-icons">skip_next</i></button>
+            <button class="control-btn" id="repeat-btn"><i class="material-icons">repeat</i></button>
+          </div>
+          <div class="progress-container" id="progress-container">
+            <span id="current-time">0:00</span>
+            <div class="bar-timeline" id="bar-timeline">
+              <div class="bar-timeline-track" id="bar-timeline-track">
+                <svg class="bar-timeline-svg" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="barTlGrad" x1="0" x2="1" y1="0" y2="0">
+                      <stop offset="0%" stop-color="var(--accent)"/>
+                      <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.6"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="" fill="rgba(255,255,255,0.08)" class="bar-tl-bg" id="bar-tl-bg"></path>
+                  <path d="" fill="url(#barTlGrad)" class="bar-tl-active" id="bar-tl-active"></path>
+                </svg>
+                <div class="bar-timeline-thumb" id="bar-timeline-thumb" style="left:0%">
+                  <div class="bar-timeline-dot"></div>
+                </div>
+              </div>
+            </div>
+            <span id="total-time">0:00</span>
+          </div>
+        </div>
+        <div class="player-bar-right">
+          <button class="control-btn" id="open-fullscreen-btn" title="Открыть плеер"><i class="material-icons">fullscreen</i></button>
+          <button class="skiper99-icon-btn" id="mute-btn" title="Звук">
+            <div class="skiper99-volume" id="skiper99-main-vol" data-muted="false">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/>
+              </svg>
+              <svg class="skiper99-vol-waves" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M16 9a5 5 0 0 1 0 6"/>
+                <path d="M19.364 18.364a9 9 0 0 0 0-12.728"/>
+              </svg>
+              <div class="skiper99-vol-mute-line"></div>
+            </div>
+          </button>
+          <input type="range" id="volume-bar" min="0" max="100" value="80" />
+        </div>
+      </footer>
+
+      <!-- FLOATING ISLAND — Bottom Player -->
+      <footer class="floating-island" id="floating-island">
+        <!-- LEFT: cover + info + like -->
+        <div class="fi-left">
+          <img class="fi-cover" id="fi-cover" src="" alt="" />
+          <div class="fi-info">
+            <div class="fi-title" id="fi-title">Votify</div>
+            <div class="fi-artist" id="fi-artist">Выберите трек</div>
+          </div>
+          <button class="fi-btn fi-like" id="fi-like" title="В избранное">
+            <i class="material-icons">favorite_border</i>
+          </button>
+        </div>
+
+        <!-- CENTER: controls -->
+        <div class="fi-center">
+          <button class="fi-btn" id="fi-shuffle" title="Перемешать"><i class="material-icons">shuffle</i></button>
+          <button class="fi-btn" id="fi-prev" title="Предыдущий"><i class="material-icons">skip_previous</i></button>
+          <button class="fi-btn fi-play" id="fi-play" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
+          <button class="fi-btn" id="fi-next" title="Следующий"><i class="material-icons">skip_next</i></button>
+        </div>
+
+        <!-- RIGHT: extra actions + volume popup -->
+        <div class="fi-right">
+          <button class="fi-btn" id="fi-eq" title="Эквалайзер"><i class="material-icons">equalizer</i></button>
+          <button class="fi-btn" id="fi-fullscreen" title="Полный экран"><i class="material-icons">fullscreen</i></button>
+          <button class="fi-btn" id="fi-add-playlist" title="Добавить в плейлист"><i class="material-icons">playlist_add</i></button>
+          <button class="fi-btn" id="fi-side-player" title="Боковой плеер"><i class="material-icons">picture_in_picture_alt</i></button>
+          <div class="fi-volume-wrap" id="fi-volume-wrap">
+            <button class="fi-btn fi-volume-btn" id="fi-mute" title="Громкость">
+              <div class="skiper99-volume" id="fi-vol-icon" data-muted="false">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/>
+                </svg>
+                <svg class="skiper99-vol-waves" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M16 9a5 5 0 0 1 0 6"/>
+                  <path d="M19.364 18.364a9 9 0 0 0 0-12.728"/>
+                </svg>
+                <div class="skiper99-vol-mute-line"></div>
+              </div>
+            </button>
+            <div class="fi-volume-popup" id="fi-volume-popup">
+              <input type="range" id="fi-volume" orient="vertical" min="0" max="100" value="80" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Small Equalizer Popup Window -->
+        <div class="fi-eq-popup" id="fi-eq-popup" style="display:none;">
+          <div class="fi-eq-header">
+            <span class="fi-eq-title">Эквалайзер</span>
+            <button class="fi-eq-close" id="fi-eq-close" title="Закрыть"><i class="material-icons">close</i></button>
+          </div>
+          <div class="custom-eq" id="fi-player-eq" data-eq-id="fi">
+            <div class="custom-eq-presets" id="fi-eq-presets">
+              <button class="custom-eq-preset active" data-preset="neutral">Neutral</button>
+              <button class="custom-eq-preset" data-preset="bass">Bass Boost</button>
+              <button class="custom-eq-preset" data-preset="treble">Treble</button>
+              <button class="custom-eq-preset" data-preset="vocal">Vocal</button>
+            </div>
+            <div class="custom-eq-graph" id="fi-eq-graph">
+              <svg class="custom-eq-svg" id="fi-eq-svg" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="fiEqGrad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="" fill="url(#fiEqGrad)" class="custom-eq-fill" id="fi-eq-fill"></path>
+                <path d="" fill="none" stroke="#ffffff" stroke-width="2" vector-effect="non-scaling-stroke" class="custom-eq-curve" id="fi-eq-curve"></path>
+              </svg>
+              <div class="custom-eq-nodes" id="fi-eq-nodes"></div>
+            </div>
+            <div class="custom-eq-labels" id="fi-eq-labels"></div>
+          </div>
+        </div>
+      </footer>
+
+      <!-- FULLSCREEN PLAYER (100% FULL SCREEN) -->
+      <div class="fullscreen-player" id="fullscreen-player">
+        <div class="fs-gradient-bg" id="fs-gradient-bg"></div>
+
+        <!-- TOP BAR -->
+        <div class="fs-top-bar">
+          <button class="fs-circle-btn fs-close-btn" id="fs-close-btn" title="Скрыть плеер" aria-label="Скрыть плеер" onclick="closeFullscreenPlayer()">
+            <i class="material-icons">keyboard_arrow_down</i>
+          </button>
+          <span class="fs-now-playing-label">Сейчас играет</span>
+          <div style="width:44px"></div>
+        </div>
+
+        <!-- MAIN SPLIT CONTENT (FULL SCREEN) -->
+        <div class="fs-split-container">
+          <!-- LEFT COLUMN: Cover, Overlay Buttons, Meta, Timeline, Controls -->
+          <div class="fs-left-column">
+            <!-- COVER CONTAINER WITH INSET OVERLAY BUTTONS -->
+            <div class="fs-cover-container">
+              <img class="fs-cover" id="fs-cover" src="" alt="Album Cover" />
+              <div class="fs-cover-overlay-bar">
+                <button class="fs-cover-btn fs-fav-btn" id="fs-fav-btn" title="В любимое">
+                  <i class="material-icons">favorite_border</i>
+                </button>
+                <button class="fs-cover-btn fs-lrc-btn" id="fs-lrc-badge" title="Текст песни">LRC</button>
+                <button class="fs-cover-btn fs-dislike-btn" id="fs-dislike-btn" title="Не нравится">
+                  <i class="material-icons">thumb_down_off_alt</i>
+                </button>
+              </div>
+            </div>
+
+            <!-- TRACK DETAILS -->
+            <div class="fs-track-details">
+              <div class="fs-title" id="fs-title">—</div>
+              <div class="fs-artist" id="fs-artist">—</div>
+            </div>
+
+            <!-- ORIGINAL WAVE TIMELINE -->
+            <div class="fs-timeline" id="fs-timeline">
+              <div class="fs-timeline-track" id="fs-timeline-track">
+                <svg class="fs-timeline-svg" id="fs-timeline-svg" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="tlGrad" x1="0" x2="1" y1="0" y2="0">
+                      <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.9"/>
+                      <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.5"/>
+                    </linearGradient>
+                    <linearGradient id="tlBgGrad" x1="0" x2="1" y1="0" y2="0">
+                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
+                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.06"/>
+                    </linearGradient>
+                    <filter id="tlGlow">
+                      <feGaussianBlur stdDeviation="3" result="blur"/>
+                      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                  </defs>
+                  <path d="" fill="url(#tlBgGrad)" class="tl-bg-curve" id="tl-bg-curve"></path>
+                  <path d="" fill="url(#tlGrad)" class="tl-active-curve" id="tl-active-curve"></path>
+                </svg>
+                <div class="fs-timeline-thumb" id="fs-timeline-thumb" style="left:0%">
+                  <div class="fs-timeline-thumb-glow"></div>
+                  <div class="fs-timeline-thumb-dot"></div>
+                </div>
+              </div>
+              <div class="fs-timeline-times">
+                <span id="fs-current">0:00</span>
+                <span id="fs-total">0:00</span>
+              </div>
+            </div>
+
+            <!-- PLAYBACK CONTROLS -->
+            <div class="fs-playback-controls">
+              <button class="fs-icon-btn" id="fs-shuffle" title="Перемешать"><i class="material-icons">shuffle</i></button>
+              <button class="fs-icon-btn" id="fs-prev" title="Предыдущий"><i class="material-icons">skip_previous</i></button>
+              <button class="fs-icon-btn fs-play-main-btn" id="fs-play" title="Воспроизведение"><i class="material-icons">play_arrow</i></button>
+              <button class="fs-icon-btn" id="fs-next" title="Следующий"><i class="material-icons">skip_next</i></button>
+              <button class="fs-icon-btn" id="fs-repeat" title="Зациклить фрагмент"><i class="material-icons">repeat</i></button>
+            </div>
+
+            <!-- HIDDEN VOLUME BAR FOR STATE SYNC -->
+            <input type="range" id="fs-volume" min="0" max="100" value="80" style="display:none;" />
+          </div>
+
+          <!-- RIGHT COLUMN: Synced Lyrics -->
+          <div class="fs-right-column">
+            <div class="fs-lyrics-container" id="fs-player-lyrics">
+              <div class="lyrics-body" id="fs-lyrics-body">
+                <div class="lyrics-placeholder">Загрузка текста...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS OVERLAY -->
+    <div class="settings-overlay" id="settings-overlay" style="display:none">
+      <div class="settings-modal">
+        <div class="settings-modal-header">
+          <h2>Настройки</h2>
+          <button class="btn-icon-sm" id="settings-close-btn"><i class="material-icons">close</i></button>
+        </div>
+        <div class="settings-modal-body">
+          <div class="settings-left-menu">
+            <button class="settings-menu-item active" data-settings-section="general"><i class="material-icons">tune</i>ОСНОВНЫЕ</button>
+            <button class="settings-menu-item" data-settings-section="appearance"><i class="material-icons">palette</i>ОФОРМЛЕНИЕ</button>
+            <button class="settings-menu-item" data-settings-section="misc"><i class="material-icons">extension</i>ПРОЧЕЕ</button>
+          </div>
+          <div class="settings-right-content">
+            <!-- GENERAL -->
+            <div class="settings-panel active" id="settings-panel-general">
+              <div class="general-settings-hero">
+                <div class="general-settings-hero-icon"><i class="material-icons">tune</i></div>
+                <div><h3>Основные настройки</h3><p>Управляйте запуском, звуком, воспроизведением и поведением Votify.</p></div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">power_settings_new</i><h3>Приложение</h3></div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Запуск при старте системы</span><span class="setting-toggle-desc">Открывать Votify автоматически после входа в систему</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-launch-at-startup" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Сворачивать в трей</span><span class="setting-toggle-desc">Закрытие окна прячет Votify в системный трей вместо выхода</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-close-to-tray" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Пауза при сворачивании</span><span class="setting-toggle-desc">Приостанавливать музыку, когда окно скрыто</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-pause-when-hidden" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Запоминать громкость</span><span class="setting-toggle-desc">Использовать последнюю громкость при следующем запуске</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-remember-volume" checked /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">volume_up</i><h3>Звук и аудио</h3></div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Громкость по умолчанию</label><span class="setting-value" id="volume-value">80%</span></div>
+                  <input type="range" id="default-volume" min="0" max="100" value="80" />
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Звуки интерфейса</span><span class="setting-toggle-desc">Короткие звуки при нажатиях</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-ui-sounds" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Звук загрузки</span><span class="setting-toggle-desc">Мелодия при поиске и рекомендациях</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-loading-sound" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-item">
+                  <label>Скорость воспроизведения</label>
+                  <select id="setting-playback-rate" class="m3-select"><option value="0.75">0.75×</option><option value="1" selected>Обычная — 1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">audiotrack</i><h3>Воспроизведение</h3></div>
+                <div class="setting-item">
+                  <label>Качество аудио</label>
+                  <select id="setting-audio-quality" class="m3-select"><option value="high">Высокое (256-320 kbps)</option><option value="medium" selected>Среднее (128-192 kbps)</option><option value="low">Низкое (64-96 kbps)</option></select>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Автовоспроизведение</span><span class="setting-toggle-desc">Играть следующий трек из очереди</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-autoplay" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Кроссфейд</label><span class="setting-value" id="crossfade-value">0 сек</span></div>
+                  <input type="range" id="crossfade-duration" min="0" max="12" value="0" step="1" />
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Бесшовное воспроизведение</span><span class="setting-toggle-desc">Убрать паузы между треками</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-gapless" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Нормализация громкости</span><span class="setting-toggle-desc">Выравнивать громкость разных треков</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-normalize" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Продолжать с прежнего места</span><span class="setting-toggle-desc">Запоминать позицию незавершённых треков</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-resume-position" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Сохранять историю прослушивания</span><span class="setting-toggle-desc">Показывать недавно прослушанные треки на главной</span></div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-save-history" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-item">
+                  <label>Размер истории</label>
+                  <select id="setting-history-limit" class="m3-select"><option value="25">25 треков</option><option value="50" selected>50 треков</option><option value="100">100 треков</option><option value="200">200 треков</option></select>
+                </div>
+                <div class="setting-item">
+                  <label>Предзагрузка аудио</label>
+                  <select id="setting-preload" class="m3-select"><option value="auto" selected>Полная</option><option value="metadata">Только информация</option><option value="none">Выключена</option></select>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">bedtime</i><h3>Таймер сна</h3></div>
+                <div class="sleep-timer-row">
+                  <label>Остановить через</label>
+                  <select id="sleep-timer-select" class="m3-select"><option value="0" selected>Выкл.</option><option value="15">15 минут</option><option value="30">30 минут</option><option value="45">45 минут</option><option value="60">1 час</option><option value="90">1.5 часа</option><option value="120">2 часа</option></select>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">public</i><h3>Сеть</h3></div>
+                <div class="setting-item"><label>Движок</label><select id="setting-stream-source" class="m3-select"><option value="yt-dlp">yt-dlp</option><option value="piped">Piped (для РФ)</option><option value="invidious">Invidious API</option><option value="soundcloud">SoundCloud</option></select></div>
+                <div id="invidious-settings" style="display:none">
+                  <div class="setting-item"><label>Инстанс Invidious</label><div class="input-row"><input type="text" id="setting-invidious-instance" class="m3-input-text" placeholder="https://inv.tux.rs" /><button class="btn-accent" id="apply-invidious-btn">Применить</button></div></div>
+                </div>
+                <div id="piped-settings" style="display:none">
+                  <div class="setting-item"><label>Инстанс Piped</label><div class="input-row"><input type="text" id="setting-piped-instance" class="m3-input-text" placeholder="https://pipedapi.adminforge.de" /><button class="btn-accent" id="apply-piped-btn">Применить</button></div></div>
+                </div>
+                <div class="setting-item" id="proxy-settings-item"><label>HTTP Прокси</label><div class="input-row"><input type="text" id="setting-http-proxy" class="m3-input-text" placeholder="http://user:pass@host:port" /><button class="btn-accent" id="apply-proxy-btn">Применить</button></div></div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">keyboard</i><h3>Горячие клавиши</h3><button class="btn-secondary btn-sm" id="reset-hotkeys-btn">Сброс</button></div>
+                <div class="hotkeys-list" id="hotkeys-list">
+                  <div class="hotkey-row" data-action="play"><span class="hotkey-action">Play / Pause</span><button class="hotkey-key-btn" data-action="play"><kbd><span>Space</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="next"><span class="hotkey-action">Следующий трек</span><button class="hotkey-key-btn" data-action="next"><kbd><span>N</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="prev"><span class="hotkey-action">Предыдущий трек</span><button class="hotkey-key-btn" data-action="prev"><kbd><span>P</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="volup"><span class="hotkey-action">Громкость +</span><button class="hotkey-key-btn" data-action="volup"><kbd><span>↑</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="voldown"><span class="hotkey-action">Громкость −</span><button class="hotkey-key-btn" data-action="voldown"><kbd><span>↓</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="forward"><span class="hotkey-action">Перемотка +5с</span><button class="hotkey-key-btn" data-action="forward"><kbd><span>→</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="backward"><span class="hotkey-action">Перемотка −5с</span><button class="hotkey-key-btn" data-action="backward"><kbd><span>←</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="mute"><span class="hotkey-action">Mute</span><button class="hotkey-key-btn" data-action="mute"><kbd><span>M</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="like"><span class="hotkey-action">Нравится / В избранное</span><button class="hotkey-key-btn" data-action="like"><kbd><span>L</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="search"><span class="hotkey-action">Поиск</span><button class="hotkey-key-btn" data-action="search"><kbd><span>Ctrl+K</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="fullscreen"><span class="hotkey-action">Полный экран плеера</span><button class="hotkey-key-btn" data-action="fullscreen"><kbd><span>F</span></kbd></button></div>
+                  <div class="hotkey-row" data-action="lyrics"><span class="hotkey-action">Текст песни</span><button class="hotkey-key-btn" data-action="lyrics"><kbd><span>Ctrl+L</span></kbd></button></div>
+                </div>
+                <div class="hotkey-hint" style="margin-top:8px;font-size:12px;color:var(--text-tertiary)">Нажмите на клавишу для изменения. ESC для отмены.</div>
+              </div>
+            </div>
+
+            <!-- APPEARANCE — Morphing Sidebar Controls -->
+            <div class="settings-panel" id="settings-panel-appearance">
+              <div class="morph-settings" id="morph-settings">
+                <div class="morph-settings-header">
+                  <span class="morph-settings-title">Оформление</span>
+                  <div class="morph-settings-header-btn" id="morph-reset-all" title="Сбросить всё"><i class="material-icons">restart_alt</i></div>
+                </div>
+
+                <!-- Live Preview -->
+                <div class="appearance-preview" id="appearance-preview">
+                  <div class="appearance-preview-cover"><i class="material-icons">music_note</i></div>
+                  <div class="appearance-preview-info">
+                    <div class="appearance-preview-title">Пример трека</div>
+                    <div class="appearance-preview-artist">Сюда применяются цвет, шрифт и скругление углов</div>
+                  </div>
+                  <button class="appearance-preview-play" id="appearance-preview-play" title="Нажмите, чтобы увидеть анимацию"><i class="material-icons">play_arrow</i></button>
+                </div>
+
+                <!-- Accent Color -->
+                <div class="morph-settings-group">
+                  <div class="morph-settings-group-header"><i class="material-icons">palette</i><span>Акцентный цвет</span></div>
+                  <div class="morph-settings-item">
+                    <div class="theme-presets" id="theme-presets">
+                      <button class="theme-card active" data-accent="#1DB954" style="background:#1DB954;--sw:#1DB954" title="Зелёный"></button>
+                      <button class="theme-card" data-accent="#E91E63" style="background:#E91E63;--sw:#E91E63" title="Розовый"></button>
+                      <button class="theme-card" data-accent="#FF9800" style="background:#FF9800;--sw:#FF9800" title="Оранжевый"></button>
+                      <button class="theme-card" data-accent="#0B57D0" style="background:#0B57D0;--sw:#0B57D0" title="Синий"></button>
+                      <button class="theme-card" data-accent="#6750A4" style="background:#6750A4;--sw:#6750A4" title="Фиолетовый"></button>
+                      <button class="theme-card" data-accent="#FFEB3B" style="background:#FFEB3B;--sw:#FFEB3B" title="Жёлтый"></button>
+                      <button class="theme-card" data-accent="#00BCD4" style="background:#00BCD4;--sw:#00BCD4" title="Циан"></button>
+                      <button class="theme-card" data-accent="#F44336" style="background:#F44336;--sw:#F44336" title="Красный"></button>
+                      <button class="theme-card" data-accent="#3F51B5" style="background:#3F51B5;--sw:#3F51B5" title="Индиго"></button>
+                      <button class="theme-card" data-accent="#00E5A0" style="background:#00E5A0;--sw:#00E5A0" title="Мята"></button>
+                      <button class="theme-card" data-accent="#FF6F61" style="background:#FF6F61;--sw:#FF6F61" title="Коралл"></button>
+                      <button class="theme-card" data-accent="#D500F9" style="background:#D500F9;--sw:#D500F9" title="Магента"></button>
+                      <button class="theme-card theme-card-custom" data-accent="custom" title="Свой"><input type="color" id="accent-color" value="#1DB954" class="hidden-color-input" /></button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Theme mode -->
+                <div class="morph-settings-group">
+                  <div class="morph-settings-group-header"><i class="material-icons">contrast</i><span>Тема</span></div>
+                  <div class="theme-mode-presets" id="theme-mode-presets">
+                    <button class="theme-mode-card active" data-theme-mode="dark" title="Тёмная"><span class="theme-mode-swatch theme-mode-swatch-dark"></span><span>Тёмная</span></button>
+                    <button class="theme-mode-card" data-theme-mode="midnight" title="Полночь"><span class="theme-mode-swatch theme-mode-swatch-midnight"></span><span>Полночь</span></button>
+                    <button class="theme-mode-card" data-theme-mode="contrast" title="Контраст"><span class="theme-mode-swatch theme-mode-swatch-contrast"></span><span>Контраст</span></button>
+                  </div>
+                </div>
+
+                <!-- Text -->
+                <div class="morph-settings-group">
+                  <div class="morph-settings-group-header"><i class="material-icons">text_fields</i><span>Текст</span></div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Гарнитура</span>
+                    <select id="font-family-select" class="morph-select">
+                      <option value="default">Inter</option>
+                      <option value="roboto">Roboto</option>
+                      <option value="mono">Mono</option>
+                      <option value="rounded">Rounded</option>
+                      <option value="serif">Serif</option>
+                      <option value="system">System</option>
+                    </select>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Размер текста</span>
+                    <div class="morph-slider-row">
+                      <input type="range" id="font-size-slider" min="13" max="20" step="1" value="16" class="morph-slider" />
+                      <span class="morph-settings-item-value" id="font-size-slider-value">16px</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Interface -->
+                <div class="morph-settings-group">
+                  <div class="morph-settings-group-header"><i class="material-icons">tune</i><span>Интерфейс</span></div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Включить прозрачность (Liquid Glass)</span>
+                    <label class="morph-toggle"><input type="checkbox" id="toggle-liquid-glass" class="toggle-input"><div class="morph-toggle-knob"></div></label>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Компактный режим</span>
+                    <label class="morph-toggle"><input type="checkbox" id="toggle-compact" class="toggle-input"><div class="morph-toggle-knob"></div></label>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Скругление углов</span>
+                    <div class="morph-slider-row">
+                      <input type="range" id="corner-radius-slider" min="0" max="24" step="2" value="8" class="morph-slider" />
+                      <span class="morph-settings-item-value" id="corner-radius-slider-value">8px</span>
+                    </div>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Прозрачность окна</span>
+                    <div class="morph-slider-row">
+                      <input type="range" id="window-opacity-slider" min="70" max="100" step="1" value="98" class="morph-slider" />
+                      <span class="morph-settings-item-value" id="window-opacity-slider-value">98%</span>
+                    </div>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Анимации интерфейса</span>
+                    <label class="morph-toggle"><input type="checkbox" id="toggle-animations" class="toggle-input" checked><div class="morph-toggle-knob"></div></label>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Обложка в плеере</span>
+                    <label class="morph-toggle"><input type="checkbox" id="toggle-cover-in-player" class="toggle-input" checked><div class="morph-toggle-knob"></div></label>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Форма обложки плеера</span>
+                    <button class="morph-pill-btn" id="player-cover-shape-btn">
+                      <span id="player-cover-shape-value">Закруглённый квадрат</span>
+                    </button>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Заставка при запуске</span>
+                    <label class="morph-toggle"><input type="checkbox" id="toggle-splash-screen" class="toggle-input" checked><div class="morph-toggle-knob"></div></label>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Плотность интерфейса</span>
+                    <select id="interface-density-select" class="morph-select">
+                      <option value="comfortable">Комфортная</option>
+                      <option value="compact">Плотная</option>
+                      <option value="spacious">Свободная</option>
+                    </select>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Свечение акцентного цвета</span>
+                    <label class="morph-toggle"><input type="checkbox" id="toggle-accent-glow" class="toggle-input" checked><div class="morph-toggle-knob"></div></label>
+                  </div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Стиль карточек треков</span>
+                    <select id="track-card-style-select" class="morph-select">
+                      <option value="default">Стандартный</option>
+                      <option value="glass">Стекло</option>
+                      <option value="outline">Контур</option>
+                      <option value="flat">Плоский</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Background -->
+                <div class="morph-settings-group">
+                  <div class="morph-settings-group-header"><i class="material-icons">wallpaper</i><span>Фон</span></div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Размытие изображения</span>
+                    <div class="morph-slider-row">
+                      <input type="range" id="background-blur-slider" min="0" max="30" step="2" value="0" class="morph-slider" />
+                      <span class="morph-settings-item-value" id="background-blur-value">0px</span>
+                    </div>
+                  </div>
+                  <div class="bg-presets" id="bg-presets">
+                    <button class="bg-card bg-card-active" data-bg="default"><div class="bg-swatch bg-none"></div><span class="bg-label">Стандарт</span></button>
+                    <button class="bg-card" data-bg="grad-1"><div class="bg-swatch" style="background:linear-gradient(135deg,#1a1040,#0d0620)"></div><span class="bg-label">Глубина</span></button>
+                    <button class="bg-card" data-bg="grad-2"><div class="bg-swatch" style="background:linear-gradient(135deg,#0a1628,#061020)"></div><span class="bg-label">Ночь</span></button>
+                    <button class="bg-card" data-bg="grad-3"><div class="bg-swatch" style="background:linear-gradient(135deg,#0a1a10,#060d08)"></div><span class="bg-label">Лес</span></button>
+                    <button class="bg-card" data-bg="grad-4"><div class="bg-swatch" style="background:linear-gradient(135deg,#1a0a18,#0d0610)"></div><span class="bg-label">Лаванда</span></button>
+                    <button class="bg-card" data-bg="grad-5"><div class="bg-swatch" style="background:linear-gradient(135deg,#080818,#040410)"></div><span class="bg-label">Космос</span></button>
+                    <button class="bg-card" data-bg="grad-6"><div class="bg-swatch" style="background:linear-gradient(135deg,#1a0808,#100404)"></div><span class="bg-label">Огонь</span></button>
+                  </div>
+                  <div class="bg-custom-row">
+                    <div class="bg-color-picker-wrap">
+                      <span class="material-icons" style="font-size:16px;color:var(--text-secondary)">palette</span>
+                      <label class="bg-color-btn" id="bg-color-btn">
+                        <input type="color" id="bg-color-input" value="#121212" style="position:absolute;opacity:0;width:0;height:0" />
+                        <div class="bg-color-preview" id="bg-color-preview" style="background:#121212"></div>
+                        <span>Цвет фона</span>
+                      </label>
+                    </div>
+                    <div class="bg-url-input-wrap">
+                      <span class="material-icons bg-url-icon">link</span>
+                      <input type="text" id="bg-url-input" class="bg-url-input" placeholder="URL изображения..." />
+                      <button class="bg-url-btn" id="bg-url-apply" title="Применить"><span class="material-icons">check</span></button>
+                    </div>
+                    <button class="bg-file-btn" id="bg-file-btn" title="Загрузить файл">
+                      <span class="material-icons">upload</span>
+                      <span>Файл</span>
+                    </button>
+                    <input type="file" id="bg-file-input" accept="image/*" style="display:none" />
+                  </div>
+                  <button class="bg-reset-btn" id="bg-reset-btn" title="Сбросить фон">
+                    <span class="material-icons">restart_alt</span>
+                    <span>Сбросить фон</span>
+                  </button>
+                </div>
+
+                <!-- Language -->
+                <div class="morph-settings-group">
+                  <div class="morph-settings-group-header"><i class="material-icons">translate</i><span>Язык</span></div>
+                  <div class="morph-settings-item">
+                    <span class="morph-settings-item-label">Язык интерфейса</span>
+                    <select id="lang-select" class="morph-select">
+                      <option value="ru">Русский</option>
+                      <option value="en">English</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MISC (ПРОЧЕЕ) -->
+            <div class="settings-panel" id="settings-panel-misc">
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">chat</i><h3>Discord Rich Presence</h3></div>
+                <div class="discord-config-row"><input type="text" id="discord-app-id" placeholder="Discord Application ID" class="settings-input" /><button class="btn-accent" id="discord-connect-btn">Connect</button><button class="btn-accent" id="discord-disconnect-btn" style="display:none">Disconnect</button></div>
+                <div class="discord-status" id="discord-status"><span class="discord-status-dot" id="discord-status-dot"></span><span id="discord-status-text">Not connected</span></div>
+                <div class="setting-toggle-item" style="margin-top:12px"><div class="setting-toggle-info"><span class="setting-toggle-label">Прогресс трека</span><span class="setting-toggle-desc">Таймстамп в статусе</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-discord-progress" checked /><span class="toggle-slider"></span></label></div>
+                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Обложка альбома</span><span class="setting-toggle-desc">Большая картинка в статусе</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-discord-cover" /><span class="toggle-slider"></span></label></div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">lyrics</i><h3>Тексты песен</h3></div>
+                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Автозагрузка</span><span class="setting-toggle-desc">Искать текст при смене трека</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-auto-lyrics" checked /><span class="toggle-slider"></span></label></div>
+                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Синхронизированные (LRC)</span><span class="setting-toggle-desc">Текст по строчкам в ритме</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-synced-lyrics" checked /><span class="toggle-slider"></span></label></div>
+                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Автоперевод</span><span class="setting-toggle-desc">Переводить текст (экспериментально)</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-translate-lyrics" /><span class="toggle-slider"></span></label></div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">notifications</i><h3>Уведомления</h3></div>
+                <div class="setting-toggle-item"><div class="setting-toggle-info"><span class="setting-toggle-label">Уведомление о треке</span><span class="setting-toggle-desc">Показывать системное уведомление при смене трека</span></div><label class="toggle-switch"><input type="checkbox" id="toggle-track-notifications" /><span class="toggle-slider"></span></label></div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">storage</i><h3>Хранилище</h3></div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Локальные данные (настройки, плейлисты)</label><span class="setting-value" id="storage-local-size">— КБ</span></div>
+                </div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Офлайн-кэш треков</label><span class="setting-value" id="storage-cache-size">—</span></div>
+                </div>
+                <div class="storage-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                  <button class="btn-secondary btn-sm" id="clear-offline-cache-btn">Очистить офлайн-кэш</button>
+                  <button class="btn-secondary btn-sm" id="clear-listening-history-btn">Очистить историю прослушивания</button>
+                  <button class="btn-secondary btn-sm" id="settings-clear-search-history-btn">Очистить историю поиска</button>
+                </div>
+              </div>
+              <div class="settings-section settings-about">
+                <div class="settings-section-header"><i class="material-icons">info</i><h3>О приложении</h3></div>
+                <div class="about-card">
+                  <div class="about-logo"><img src="icon.png" alt="Votify" class="about-logo-icon" /><span>Votify</span></div>
+                  <div class="about-version">v0.4.0 — Dotify Edition</div>
+                  <div class="about-links">
+                    <a class="about-link" href="https://github.com/exieeez/Votify" target="_blank" rel="noopener"><i class="material-icons">code</i> GitHub</a>
+                    <a class="about-link" href="https://t.me/votifymusic" target="_blank" rel="noopener"><i class="material-icons">send</i> Telegram</a>
+                  </div>
+                </div>
+                <button class="btn-danger settings-reset-btn" id="settings-reset-btn"><i class="material-icons">restart_alt</i> Сбросить все настройки</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LYRICS PANEL -->
+    <div class="lyrics-panel" id="lyrics-panel" style="display:none">
+      <div class="lyrics-header">
+        <span class="lyrics-title" id="lyrics-panel-title">Текст</span>
+        <button class="control-btn" id="lyrics-close-btn"><i class="material-icons">close</i></button>
+      </div>
+      <div class="lyrics-body" id="lyrics-body"><div class="lyrics-placeholder">Нет текста</div></div>
+    </div>
+
+    <div class="full-lyrics-overlay" id="full-lyrics-overlay" aria-hidden="true">
+      <div class="full-lyrics-backdrop" id="full-lyrics-backdrop"></div>
+      <div class="full-lyrics-content">
+        <header class="full-lyrics-header">
+          <div>
+            <span class="full-lyrics-kicker">NOW PLAYING</span>
+            <h1 id="full-lyrics-title">Текст песни</h1>
+            <p id="full-lyrics-artist">—</p>
+          </div>
+          <button class="full-lyrics-close" id="full-lyrics-close" aria-label="Закрыть"><i class="material-icons">close</i></button>
+        </header>
+        <div class="full-lyrics-scroll" id="full-lyrics-scroll">
+          <div class="full-lyrics-body" id="full-lyrics-body"><div class="lyrics-placeholder">Нет текста</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="votify-modal-overlay hidden" id="votify-modal-overlay">
+      <div class="votify-modal">
+        <div class="votify-modal-header" id="votify-modal-header">Ввод</div>
+        <div class="votify-modal-body" id="votify-modal-body"></div>
+        <div class="votify-modal-footer">
+          <button class="votify-modal-btn votify-modal-cancel" id="votify-modal-cancel" data-i18n="back-btn">Отмена</button>
+          <button class="votify-modal-btn votify-modal-ok" id="votify-modal-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.addEventListener('unhandledrejection', e => { console.error('UNHANDLED REJECTION:', e.reason); if (e.reason?.message?.includes('fetch') || e.reason?.message?.includes('Network')) e.preventDefault(); });
+      window.addEventListener('error', e => { console.error('WINDOW ERROR:', e.message, e.filename, e.lineno); if (e.message?.includes('fetch') || e.message?.includes('Network')) e.preventDefault(); });
+    </script>
+    <script src="main.js"></script>
+  </body>
+</html>

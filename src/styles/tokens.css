@@ -1,0 +1,209 @@
+/* ==========================================
+   DESIGN TOKENS — Votify Night Studio
+   ========================================== */
+
+/* Colors — Night Studio Palette */
+:root {
+  /* Base — Deep Night */
+  --bg-deep: #0A0A0A;                    /* Основной фон */
+  --bg-elevated: #121212;                /* Карточки, сайдбар, модалки */
+  --bg-overlay: rgba(18, 18, 18, 0.92);  /* Полупрозрачные слои */
+  --bg-hover: #1A1A1A;                   /* Ховер состояния */
+  --bg-active: #222222;                  /* Активное/нажатое */
+
+  /* Foreground */
+  --fg-primary: #FAFAFA;                 /* Основной текст */
+  --fg-secondary: #CCCCCC;               /* Вторичный текст */
+  --fg-muted: #888888;                   /* Приглушённый */
+  --fg-disabled: #555555;                /* Отключённый */
+
+  /* Accent — Warm Amber */
+  --accent: #D4A843;                     /* Основной акцент */
+  --accent-hover: #E8C060;
+  --accent-active: #B89030;
+  --accent-glow: rgba(212, 168, 67, 0.25);
+  --accent-glow-strong: rgba(212, 168, 67, 0.4);
+
+  /* Semantic */
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --error: #F87171;
+  --info: #60A5FA;
+
+  /* Borders & Dividers */
+  --border: #1F1F1F;
+  --border-hover: #333333;
+  --border-active: var(--accent);
+  --divider: rgba(255, 255, 255, 0.06);
+
+  /* Typography — Space Grotesk (Display) + DM Sans (Body) */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --text-xs: 0.7rem;      /* 11.2px */
+  --text-sm: 0.8125rem;   /* 13px */
+  --text-base: 0.9375rem; /* 15px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.5rem;      /* 24px */
+  --text-2xl: 2.25rem;    /* 36px */
+  --text-3xl: 3.5rem;     /* 56px */
+
+  --font-light: 300;
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  --leading-tight: 1.1;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  /* Spacing Scale (4px base) */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Border Radius */
+  --radius-none: 0;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
+
+  /* Shadows — Layered Depth */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 40px var(--accent-glow);
+  --shadow-glow-strong: 0 0 60px var(--accent-glow-strong);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+
+  /* Transitions — Refined Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-out-in: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  --duration-instant: 50ms;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-slower: 480ms;
+
+  /* Z-Index Scale */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sidebar: 300;
+  --z-player: 400;
+  --z-modal-backdrop: 500;
+  --z-modal: 600;
+  --z-toast: 700;
+  --z-tooltip: 800;
+
+  /* Layout */
+  --sidebar-width: 64px;
+  --sidebar-width-expanded: 240px;
+  --sidebar-transition: var(--duration-base) var(--ease-out);
+  --player-height-collapsed: 48px;
+  --player-height-expanded: 80px;
+  --header-height: 0; /* No top header */
+  --content-max-width: 1400px;
+  --content-padding: var(--space-6);
+
+  /* Breakpoints */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1440px;
+  --bp-2xl: 1920px;
+
+  /* Icon Sizes */
+  --icon-xs: 14px;
+  --icon-sm: 18px;
+  --icon-md: 22px;
+  --icon-lg: 28px;
+  --icon-xl: 36px;
+}
+
+/* Theme Variants */
+[data-theme="oled"] {
+  --bg-deep: #000000;
+  --bg-elevated: #0A0A0A;
+  --bg-hover: #121212;
+}
+
+[data-theme="sepia"] {
+  --bg-deep: #1A1610;
+  --bg-elevated: #231D16;
+  --fg-primary: #F5E6D3;
+  --fg-muted: #A89680;
+  --accent: #D4A843;
+}
+
+[data-theme="high-contrast"] {
+  --bg-deep: #000000;
+  --bg-elevated: #000000;
+  --fg-primary: #FFFFFF;
+  --fg-secondary: #FFFFFF;
+  --fg-muted: #CCCCCC;
+  --accent: #FFFF00;
+  --border: #FFFFFF;
+  --divider: #FFFFFF;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+    --duration-slower: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus Visible — Accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Scrollbar — Subtle */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--fg-muted); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* Selection */
+::selection {
+  background: var(--accent-glow);
+  color: var(--fg-primary);
+}
