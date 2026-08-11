@@ -6662,6 +6662,30 @@ body[data-player-title-align="right"] .fs-player-info {
   justify-content: flex-end !important;
 }
 
+/* Big Player (Page Player) Settings */
+body[data-page-player-cover-size="compact"] .pp-cover-wrap {
+  width: 240px !important;
+  height: 240px !important;
+}
+body[data-page-player-cover-size="large"] .pp-cover-wrap {
+  width: 420px !important;
+  height: 420px !important;
+}
+body[data-page-player-glow="false"] .pp-cover-wrap {
+  box-shadow: none !important;
+}
+
+/* Fullscreen Player Settings */
+body[data-fs-cover-scale="compact"] .fs-cover-container {
+  max-width: 300px !important;
+}
+body[data-fs-cover-scale="large"] .fs-cover-container {
+  max-width: 480px !important;
+}
+body[data-fs-cover-glow="false"] .fs-cover-container {
+  box-shadow: none !important;
+}
+
 /* Player Layout Styles */
 
 /* Vinyl & Rotation Cover Style */

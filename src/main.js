@@ -6854,10 +6854,28 @@ function applyPlayerSettings() {
   const sliderType = appSettings.playerSliderType || 'normal';
   const dynamicBg = appSettings.dynamicPlayerBg !== false;
 
+  const pageCoverSize = appSettings.pagePlayerCoverSize || 'standard';
+  const pageGlow = appSettings.pagePlayerGlow !== false;
+  const pageSimilar = appSettings.pagePlayerSimilar !== false;
+
+  const fsCoverScale = appSettings.fsCoverScale || 'normal';
+  const fsCoverGlow = appSettings.fsCoverGlow !== false;
+
   document.body.dataset.playerTitleAlign = align;
   document.body.dataset.playerStyle = style;
   document.body.dataset.playerSliderType = sliderType;
   document.body.dataset.dynamicPlayerBg = dynamicBg ? 'true' : 'false';
+
+  document.body.dataset.pagePlayerCoverSize = pageCoverSize;
+  document.body.dataset.pagePlayerGlow = pageGlow ? 'true' : 'false';
+
+  document.body.dataset.fsCoverScale = fsCoverScale;
+  document.body.dataset.fsCoverGlow = fsCoverGlow ? 'true' : 'false';
+
+  const similarSection = document.querySelector('.pp-similar-section');
+  if (similarSection) {
+    similarSection.style.display = pageSimilar ? '' : 'none';
+  }
 
   const trackInfos = document.querySelectorAll(
     '.fi-info, .player-track-info, .right-player-info, .fs-track-details, .pp-info, .fs-player-info'
@@ -7236,7 +7254,26 @@ function initRedesignedSettings() {
   wireInput('setting-player-slider-type', 'playerSliderType', 'normal', null, '', () =>
     applyPlayerSettings()
   );
+
+  // Big Player
+  wireInput('setting-page-player-cover-size', 'pagePlayerCoverSize', 'standard', null, '', () =>
+    applyPlayerSettings()
+  );
+  wireInput('toggle-page-player-glow', 'pagePlayerGlow', true, null, '', () =>
+    applyPlayerSettings()
+  );
+  wireInput('toggle-page-player-similar', 'pagePlayerSimilar', true, null, '', () =>
+    applyPlayerSettings()
+  );
+
+  // Fullscreen Player
   wireInput('toggle-dynamic-player-bg', 'dynamicPlayerBg', true, null, '', () =>
+    applyPlayerSettings()
+  );
+  wireInput('setting-fs-cover-scale', 'fsCoverScale', 'normal', null, '', () =>
+    applyPlayerSettings()
+  );
+  wireInput('toggle-fs-cover-glow', 'fsCoverGlow', true, null, '', () =>
     applyPlayerSettings()
   );
 
