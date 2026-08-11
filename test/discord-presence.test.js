@@ -96,6 +96,36 @@ test('normalizes and truncates untrusted metadata', () => {
   assert.equal(activity.startTimestamp, undefined);
 });
 
+test('clears stale sample game presence when Discord connects', async () => {
+  const calls = [];
+  class FakeClient extends EventEmitter {
+    constructor() {
+      super();
+      this.user = {
+        setActivity: async activity => calls.push(activity),
+        clearActivity: async () => calls.push(null),
+      };
+    }
+
+    async login() {
+      queueMicrotask(() => this.emit('ready'));
+    }
+
+    async destroy() {}
+  }
+
+  const presence = new DiscordPresence({
+    clientId: '123456789012345678',
+    ClientClass: FakeClient,
+    logger: { log() {}, warn() {} },
+  });
+  presence.start();
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.deepEqual(calls, [null]);
+  await presence.stop();
+});
+
 test('queues renderer updates until Discord is connected', async () => {
   const calls = [];
   class FakeClient extends EventEmitter {

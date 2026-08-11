@@ -1,5 +1,7 @@
 const { Client } = require('@xhayper/discord-rpc');
 
+// Discord ActivityType.Listening. This field controls the profile heading
+// ("Слушает" / "Listening to"), not the details text shown under it.
 const LISTENING_ACTIVITY_TYPE = 2;
 const DETAILS_STATUS_DISPLAY_TYPE = 2;
 const MAX_ACTIVITY_TEXT_LENGTH = 128;
@@ -96,6 +98,14 @@ class DiscordPresence {
   start() {
     if (!this.enabled) return false;
     this.stopped = false;
+    // Remove stale Developer Portal visualizer/sample data before the first
+    // real track is sent. This also prevents old party/join fields from
+    // making a music activity look like a game.
+    if (!this.hasDesiredActivity) {
+      this.desiredActivity = null;
+      this.hasDesiredActivity = true;
+      this.desiredVersion += 1;
+    }
     this.connect();
     return true;
   }
