@@ -44,46 +44,69 @@
     <!-- AUTH -->
     <div class="auth-overlay" id="auth-overlay" style="display:none">
       <div class="auth-card">
+        <button class="auth-close-btn" id="auth-close-btn" aria-label="Закрыть"><i class="material-icons">close</i></button>
         <div class="auth-logo">
           <img src="icon.png" alt="Votify" class="auth-logo-icon" />
           <h1>Votify</h1>
+          <span>Аккаунт и облачная синхронизация</span>
         </div>
         <div class="auth-form" id="auth-login">
-          <h2>Sign In</h2>
+          <h2>Вход</h2>
           <div class="auth-field"><i class="material-icons">email</i><input type="email" id="login-email" placeholder="Email" autocomplete="email" /></div>
-          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="login-password" placeholder="Password" autocomplete="current-password" /></div>
+          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="login-password" placeholder="Пароль" autocomplete="current-password" /></div>
           <div class="auth-error" id="login-error"></div>
-          <button class="auth-btn" id="login-btn">Sign In</button>
-          <div class="auth-links"><a href="#" id="show-register">Create account</a><a href="#" id="show-forgot">Forgot password?</a></div>
+          <button class="auth-btn" id="login-btn">Войти</button>
+          <button class="auth-btn auth-btn-secondary" id="guest-login-btn"><i class="material-icons">person_outline</i> Продолжить как гость</button>
+          <div class="auth-links"><a href="#" id="show-register">Создать аккаунт</a><a href="#" id="show-forgot">Забыли пароль?</a></div>
         </div>
         <div class="auth-form" id="auth-register" style="display:none">
-          <h2>Create Account</h2>
-          <div class="auth-field"><i class="material-icons">person</i><input type="text" id="register-username" placeholder="Username" autocomplete="username" /></div>
+          <h2>Регистрация</h2>
+          <div class="auth-field"><i class="material-icons">person</i><input type="text" id="register-username" placeholder="Имя профиля" autocomplete="username" maxlength="40" /></div>
           <div class="auth-field"><i class="material-icons">email</i><input type="email" id="register-email" placeholder="Email" autocomplete="email" /></div>
-          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="register-password" placeholder="Password" autocomplete="new-password" /></div>
-          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="register-password2" placeholder="Confirm password" autocomplete="new-password" /></div>
+          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="register-password" placeholder="Пароль — минимум 6 символов" autocomplete="new-password" /></div>
+          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="register-password2" placeholder="Повторите пароль" autocomplete="new-password" /></div>
           <div class="auth-error" id="register-error"></div>
-          <button class="auth-btn" id="register-btn">Create Account</button>
-          <div class="auth-links"><a href="#" id="show-login-from-register">Already have an account? Sign in</a></div>
+          <button class="auth-btn" id="register-btn">Создать аккаунт</button>
+          <div class="auth-links"><a href="#" id="show-login-from-register">Уже есть аккаунт? Войти</a></div>
         </div>
         <div class="auth-form" id="auth-forgot" style="display:none">
-          <h2>Reset Password</h2>
-          <p class="auth-desc">Enter your email and we'll send you a reset code.</p>
+          <h2>Сброс пароля</h2>
+          <p class="auth-desc">Firebase отправит ссылку для создания нового пароля.</p>
           <div class="auth-field"><i class="material-icons">email</i><input type="email" id="forgot-email" placeholder="Email" autocomplete="email" /></div>
           <div class="auth-error" id="forgot-error"></div>
           <div class="auth-success" id="forgot-success"></div>
-          <button class="auth-btn" id="forgot-btn">Send Code</button>
-          <div class="auth-links"><a href="#" id="show-login-from-forgot">Back to sign in</a></div>
+          <button class="auth-btn" id="forgot-btn">Отправить ссылку</button>
+          <div class="auth-links"><a href="#" id="show-login-from-forgot">Вернуться ко входу</a></div>
         </div>
-        <div class="auth-form" id="auth-reset" style="display:none">
-          <h2>Enter Code</h2>
-          <p class="auth-desc">Enter the 6-digit code from your email.</p>
-          <div class="auth-field"><i class="material-icons">pin</i><input type="text" id="reset-code" placeholder="000000" maxlength="6" autocomplete="one-time-code" /></div>
-          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="reset-password" placeholder="New password" autocomplete="new-password" /></div>
-          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="reset-password2" placeholder="Confirm new password" autocomplete="new-password" /></div>
-          <div class="auth-error" id="reset-error"></div>
-          <button class="auth-btn" id="reset-btn">Reset Password</button>
-          <div class="auth-links"><a href="#" id="show-login-from-reset">Back to sign in</a></div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="profile-overlay" id="profile-overlay" style="display:none">
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <div><span class="profile-kicker">VOTIFY ACCOUNT</span><h2>Профиль</h2></div>
+          <button class="btn-icon-sm" id="profile-close-btn" aria-label="Закрыть"><i class="material-icons">close</i></button>
+        </div>
+        <div class="profile-avatar-section">
+          <div class="profile-avatar-large">
+            <img id="profile-avatar-image" alt="Аватар" style="display:none" />
+            <span id="profile-avatar-fallback">V</span>
+          </div>
+          <label class="profile-avatar-button" for="profile-avatar-input"><i class="material-icons">photo_camera</i> Сменить аватар</label>
+          <input type="file" id="profile-avatar-input" accept="image/*" hidden />
+        </div>
+        <div class="profile-fields">
+          <label>Имя профиля<input type="text" id="profile-display-name" maxlength="40" placeholder="Имя" /></label>
+          <div class="profile-meta-row"><span>Email</span><strong id="profile-email">—</strong></div>
+          <div class="profile-meta-row"><span>Тип аккаунта</span><strong id="profile-account-kind">—</strong></div>
+          <div class="profile-sync-status"><i class="material-icons">cloud_done</i><span id="profile-cloud-status">Проверка Firebase…</span></div>
+        </div>
+        <div class="profile-message" id="profile-message"></div>
+        <div class="profile-actions">
+          <button class="auth-btn" id="profile-save-btn">Сохранить профиль</button>
+          <button class="auth-btn auth-btn-secondary" id="profile-login-btn">Войти в другой аккаунт</button>
+          <button class="profile-danger-btn" id="profile-logout-btn">Выйти</button>
         </div>
       </div>
     </div>
@@ -142,6 +165,7 @@
           </button>
         </nav>
         <div class="sidebar-bottom">
+          <button class="nav-btn" id="nav-profile-btn" title="Войти в аккаунт"><i class="material-icons">person_outline</i></button>
           <button class="nav-btn" id="nav-settings-btn" title="Настройки">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
               <circle cx="12" cy="12" r="8"/>
@@ -1411,6 +1435,10 @@
         }, 800);
       }, 4000);
     </script>
+    <script src="/vendor/firebase-app-compat.js"></script>
+    <script src="/vendor/firebase-auth-compat.js"></script>
+    <script src="/vendor/firebase-firestore-compat.js"></script>
+    <script src="firebase-client.js"></script>
     <script src="main.js"></script>
   </body>
 </html>

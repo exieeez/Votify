@@ -457,51 +457,168 @@ audio.addEventListener('volumechange', () => {
   emit('state:volume', audio.volume);
 });
 
+let cloudPushTimer = null;
+let cloudSyncApplying = false;
+let lastCloudUserId = null;
+
+function scheduleCloudPush() {
+  if (cloudSyncApplying || !isUserAuthenticated()) return;
+  if (cloudPushTimer) clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(() => syncWithCloud('push'), 1200);
+}
+
 function savePlaylists() {
   localStorage.setItem('votify-playlists', JSON.stringify(playlists));
-  if (isUserAuthenticated()) syncWithCloud('push');
+  scheduleCloudPush();
 }
 function saveSettings() {
   localStorage.setItem('votify-settings', JSON.stringify(appSettings));
-  if (isUserAuthenticated()) syncWithCloud('push');
+  scheduleCloudPush();
 }
 function isUserAuthenticated() {
+  return !!window.VotifyCloud?.getCurrentUser?.();
+}
+
+function setCloudSyncLabel(text) {
+  const label = document.getElementById('profile-cloud-status');
+  if (label) label.textContent = text;
+}
+
+function cloudCacheKey(uid) {
+  return `votify-cloud-cache-${uid}`;
+}
+
+function getCloudSafeSettings() {
+  const settings = { ...appSettings };
+  if (String(settings.bgUrl || '').startsWith('data:')) delete settings.bgUrl;
+  Object.keys(settings).forEach(key => {
+    if (key.startsWith('_cache')) delete settings[key];
+  });
+  return settings;
+}
+
+function cacheCurrentCloudState(uid) {
+  if (!uid) return;
+  localStorage.setItem(
+    cloudCacheKey(uid),
+    JSON.stringify({
+      settings: appSettings,
+      playlists,
+      history: readStoredJson('listeningHistory', []),
+    })
+  );
+}
+
+function restoreCachedCloudState(uid) {
+  const cached = readStoredJson(cloudCacheKey(uid), null);
+  if (!cached) return false;
+  if (cached.settings && typeof cached.settings === 'object') {
+    appSettings = { ...appSettings, ...cached.settings };
+    localStorage.setItem('votify-settings', JSON.stringify(appSettings));
+  }
+  if (cached.playlists && typeof cached.playlists === 'object') {
+    playlists = cached.playlists;
+    if (!playlists['Избранное']) playlists['Избранное'] = [];
+    localStorage.setItem('votify-playlists', JSON.stringify(playlists));
+  }
+  if (Array.isArray(cached.history)) {
+    localStorage.setItem('listeningHistory', JSON.stringify(cached.history));
+  }
   return true;
 }
 
+function clearPersonalCloudState() {
+  playlists = { Избранное: [] };
+  localStorage.setItem('votify-playlists', JSON.stringify(playlists));
+  localStorage.setItem('listeningHistory', '[]');
+  renderSidebarPlaylists();
+}
+
 async function syncWithCloud(direction = 'pull') {
-  if (!isUserAuthenticated()) return;
+  const cloud = window.VotifyCloud;
+  if (!cloud) return;
+  await cloud.whenReady().catch(() => false);
+  const user = cloud.getCurrentUser();
+  if (!user) return;
+
   if (direction === 'pull') {
+    setCloudSyncLabel('Загрузка данных из облака…');
     try {
-      const data = await apiFetch('/api/sync/get');
-      if (data && !data.error) {
-        if (data.settings && Object.keys(data.settings).length > 0) {
+      const data = await cloud.pullState();
+      cloudSyncApplying = true;
+      if (data.exists) {
+        if (data.settings && typeof data.settings === 'object') {
           appSettings = { ...appSettings, ...data.settings };
           localStorage.setItem('votify-settings', JSON.stringify(appSettings));
-          applyLanguage(appSettings.lang);
+          applyLanguage(appSettings.lang || 'ru');
         }
-        if (data.playlists && Object.keys(data.playlists).length > 0) {
+        if (data.playlists && typeof data.playlists === 'object') {
           playlists = data.playlists;
+          if (!playlists['Избранное']) playlists['Избранное'] = [];
           localStorage.setItem('votify-playlists', JSON.stringify(playlists));
           renderSidebarPlaylists();
           const foldersScreen = document.getElementById('folders-screen');
           if (foldersScreen && foldersScreen.style.display !== 'none') renderPlaylists();
         }
+        if (Array.isArray(data.history)) {
+          localStorage.setItem('listeningHistory', JSON.stringify(data.history));
+        }
+        if (typeof applyAllSettings === 'function') applyAllSettings();
+        cacheCurrentCloudState(user.uid);
+      } else {
+        cloudSyncApplying = false;
+        await syncWithCloud('push');
+        return;
       }
-    } catch (e) {
-      console.error('[Sync] Pull error:', e);
+      setCloudSyncLabel('Синхронизация завершена');
+    } catch (error) {
+      console.error('[Firebase Sync] Pull error:', error);
+      setCloudSyncLabel('Ошибка загрузки облачных данных');
+    } finally {
+      cloudSyncApplying = false;
     }
-  } else if (direction === 'push') {
-    try {
-      await apiFetch('/api/sync/push', {
-        method: 'POST',
-        body: JSON.stringify({ settings: appSettings, playlists }),
-      });
-    } catch (e) {
-      console.error('[Sync] Push error:', e);
-    }
+    return;
+  }
+
+  setCloudSyncLabel('Сохранение в облако…');
+  try {
+    const history = readStoredJson('listeningHistory', []);
+    await cloud.pushState({ settings: getCloudSafeSettings(), playlists, history });
+    cacheCurrentCloudState(user.uid);
+    setCloudSyncLabel('Все данные сохранены');
+  } catch (error) {
+    console.error('[Firebase Sync] Push error:', error);
+    setCloudSyncLabel('Ошибка сохранения в облако');
   }
 }
+
+window.addEventListener('votify:auth-changed', event => {
+  const uid = event.detail?.user?.uid || null;
+  if (!uid) {
+    if (lastCloudUserId) {
+      cacheCurrentCloudState(lastCloudUserId);
+      clearPersonalCloudState();
+    }
+    lastCloudUserId = null;
+    return;
+  }
+  if (uid !== lastCloudUserId) {
+    const previousUid = lastCloudUserId;
+    if (previousUid) cacheCurrentCloudState(previousUid);
+    const restored = restoreCachedCloudState(uid);
+    if (previousUid && !restored) clearPersonalCloudState();
+    lastCloudUserId = uid;
+    syncWithCloud('pull');
+  }
+});
+
+window.VotifyCloud?.whenReady().then(() => {
+  const uid = window.VotifyCloud?.getCurrentUser?.()?.uid;
+  if (uid && uid !== lastCloudUserId) {
+    lastCloudUserId = uid;
+    syncWithCloud('pull');
+  }
+});
 
 // ==========================================
 // i18n
@@ -5754,6 +5871,7 @@ function addToListeningHistory(track) {
   const limit = Math.max(10, Math.min(200, Number(appSettings.historyLimit) || 50));
   if (history.length > limit) history = history.slice(0, limit);
   localStorage.setItem('listeningHistory', JSON.stringify(history));
+  scheduleCloudPush();
 }
 
 async function playTrack(track) {
