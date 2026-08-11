@@ -6837,22 +6837,27 @@ body[data-player-style="neon"] .fs-cover-container {
 }
 
 /* Progress Slider Types across ALL players */
-/* Thin */
-body[data-player-slider-type="thin"] .floating-island .custom-eq-container,
+
+/* 1. THIN (Тонкий) */
 body[data-player-slider-type="thin"] .custom-eq-container,
 body[data-player-slider-type="thin"] .bar-timeline-track,
 body[data-player-slider-type="thin"] .fs-timeline-track,
 body[data-player-slider-type="thin"] .pp-timeline-bar,
 body[data-player-slider-type="thin"] .right-timeline-track {
-  height: 4px !important;
-  opacity: 0.8;
+  height: 3px !important;
 }
-body[data-player-slider-type="thin"] .custom-eq-fill,
-body[data-player-slider-type="thin"] #fi-eq-fill {
-  opacity: 0.6 !important;
+body[data-player-slider-type="thin"] input[type="range"]::-webkit-slider-thumb {
+  width: 8px !important;
+  height: 8px !important;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+body[data-player-slider-type="thin"] input[type="range"]:hover::-webkit-slider-thumb {
+  opacity: 1;
+  transform: scale(1.2);
 }
 
-/* iOS Pill Capsule Style */
+/* 2. iOS CAPSULE (Стиль iOS) */
 body[data-player-slider-type="ios"] .floating-island,
 body[data-player-slider-type="ios"] .player-bar {
   border-radius: 999px !important;
@@ -6860,33 +6865,47 @@ body[data-player-slider-type="ios"] .player-bar {
   background: rgba(255, 255, 255, 0.12) !important;
   backdrop-filter: blur(24px) saturate(1.8) !important;
 }
-body[data-player-slider-type="ios"] .custom-eq-container {
-  height: 18px !important;
-  border-radius: 12px !important;
-  padding: 2px !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-}
+body[data-player-slider-type="ios"] .custom-eq-container,
 body[data-player-slider-type="ios"] .fs-timeline-track,
 body[data-player-slider-type="ios"] .pp-timeline-bar,
 body[data-player-slider-type="ios"] .right-timeline-track {
-  height: 10px !important;
+  height: 12px !important;
   border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  padding: 1px !important;
+}
+body[data-player-slider-type="ios"] input[type="range"]::-webkit-slider-thumb {
+  width: 18px !important;
+  height: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45) !important;
+  border-radius: 50% !important;
+  border: none !important;
 }
 
-/* Neon Waveform Style */
+/* 3. WAVEFORM (Волновой) */
+body[data-player-slider-type="wave"] .custom-eq-container,
+body[data-player-slider-type="wave"] .fs-timeline-track,
+body[data-player-slider-type="wave"] .pp-timeline-bar,
+body[data-player-slider-type="wave"] .right-timeline-track,
+body[data-player-slider-type="wave"] .bar-timeline-track {
+  height: 16px !important;
+  border-radius: 8px !important;
+  background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0px, rgba(255, 255, 255, 0.22) 3px, transparent 3px, transparent 6px) !important;
+  box-shadow: 0 0 14px rgba(var(--accent-rgb, 29, 185, 84), 0.5) !important;
+}
 body[data-player-slider-type="wave"] .custom-eq-curve,
 body[data-player-slider-type="wave"] #fi-eq-curve,
-body[data-player-slider-type="wave"] #tl-active-curve,
-body[data-player-slider-type="wave"] .pp-timeline-bar,
-body[data-player-slider-type="wave"] .fs-timeline-track {
-  stroke-width: 6px !important;
-  filter: drop-shadow(0 0 12px var(--accent)) drop-shadow(0 0 4px #ffffff) !important;
+body[data-player-slider-type="wave"] #tl-active-curve {
+  stroke-width: 8px !important;
+  filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 3px #ffffff) !important;
 }
-body[data-player-slider-type="wave"] .custom-eq-fill,
-body[data-player-slider-type="wave"] #fi-eq-fill {
-  fill: url(#fiEqGrad) !important;
-  opacity: 0.9 !important;
+body[data-player-slider-type="wave"] input[type="range"]::-webkit-slider-thumb {
+  width: 6px !important;
+  height: 22px !important;
+  border-radius: 3px !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 12px #ffffff, 0 0 16px var(--accent) !important;
 }
 
 /* Cover Animations Keyframes */
