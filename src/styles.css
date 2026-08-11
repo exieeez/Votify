@@ -7193,8 +7193,8 @@ body[data-cover-effects="inversion"] #lib-detail-cover-img {
    ========================================== */
 .votify-pet-widget {
   position: fixed;
-  bottom: 85px;
-  right: 28px;
+  bottom: 60px;
+  right: 60px;
   z-index: 50000;
   display: flex;
   flex-direction: column;
@@ -7271,8 +7271,8 @@ body[data-cover-effects="inversion"] #lib-detail-cover-img {
 
 .pet-avatar {
   position: relative;
-  width: 72px;
-  height: 72px;
+  width: 84px;
+  height: 104px;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -7280,16 +7280,17 @@ body[data-cover-effects="inversion"] #lib-detail-cover-img {
   align-items: center;
   justify-content: center;
   transition: transform 0.15s ease;
+  margin-bottom: -15px; /* Sit right on top of player bar! */
 }
 
 .votify-pet-widget:hover .pet-avatar {
-  transform: scale(1.12);
+  transform: scale(1.1);
 }
 
 .pet-anime-svg {
-  width: 72px;
-  height: 72px;
-  filter: drop-shadow(0 8px 18px rgba(0,0,0,0.45));
+  width: 84px;
+  height: 104px;
+  filter: drop-shadow(0 4px 14px rgba(0,0,0,0.5));
   transition: transform 0.15s ease;
 }
 
