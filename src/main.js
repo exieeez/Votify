@@ -6860,7 +6860,7 @@ function applyPlayerSettings() {
   document.body.dataset.dynamicPlayerBg = dynamicBg ? 'true' : 'false';
 
   const trackInfos = document.querySelectorAll(
-    '.fi-info, .player-track-info, .right-player-info, .fs-track-details, .pp-info, .fs-player-info'
+    '.fi-info, .player-track-info, .right-player-info, .fs-track-details, .pp-info, .pp-details, .player-bar-info, .fs-player-info'
   );
   trackInfos.forEach(el => {
     el.style.textAlign = align;
