@@ -16,7 +16,9 @@ let isQuitting = false;
 const userDataPath = path.join(app.getPath('home'), '.votify');
 try {
   fs.mkdirSync(userDataPath, { recursive: true });
-} catch {}
+} catch (e) {
+  /* ignore */
+}
 app.setPath('userData', userDataPath);
 
 // Allow autoplay of audio without user gesture
@@ -79,12 +81,16 @@ async function startServer() {
   serverProcess.stdout?.on('data', d => {
     try {
       console.log('[server]', d.toString().trim());
-    } catch (e) {}
+    } catch (e) {
+      /* ignore */
+    }
   });
   serverProcess.stderr?.on('data', d => {
     try {
       console.error('[server]', d.toString().trim());
-    } catch (e) {}
+    } catch (e) {
+      /* ignore */
+    }
   });
   serverProcess.on('error', err => console.error('Server process error:', err.message));
   serverProcess.on('exit', (code, signal) => {

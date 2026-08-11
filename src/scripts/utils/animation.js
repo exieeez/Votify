@@ -33,6 +33,7 @@ export function spring(el, props, options = {}) {
   const { stiffness = 300, damping = 30, mass = 1, velocity = 0, onUpdate, onComplete } = options;
 
   let frameId;
+  let currentVelocity = velocity;
   const startTime = performance.now();
   const initialProps = {};
 
@@ -51,17 +52,17 @@ export function spring(el, props, options = {}) {
 
       // Spring physics
       const springForce = -stiffness * displacement;
-      const dampingForce = -damping * velocity;
+      const dampingForce = -damping * currentVelocity;
       const acceleration = (springForce + dampingForce) / mass;
 
-      velocity += acceleration * 0.016;
-      const current = initial + displacement + velocity * elapsed;
+      currentVelocity += acceleration * 0.016;
+      const current = initial + displacement + currentVelocity * elapsed;
 
       el.style[key] =
         current +
         (key.includes('translate') || key.includes('width') || key.includes('height') ? 'px' : '');
 
-      if (Math.abs(velocity) > 0.1 || Math.abs(displacement) > 0.1) done = false;
+      if (Math.abs(currentVelocity) > 0.1 || Math.abs(displacement) > 0.1) done = false;
     });
 
     onUpdate?.(el);
