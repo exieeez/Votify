@@ -65,23 +65,26 @@ npm start
 
 ### Discord Rich Presence
 
-Votify показывает в Discord название трека, исполнителя, обложку и таймлайн воспроизведения. Для подключения создайте приложение в [Discord Developer Portal](https://discord.com/developers/applications), скопируйте его **Application ID** и передайте через переменную окружения:
+Application ID Votify уже встроен в приложение, поэтому дополнительная настройка переменных окружения не требуется. Запустите Discord Desktop, затем Votify:
 
 ```bash
-# Linux / macOS
-VOTIFY_DISCORD_CLIENT_ID=123456789012345678 npm start
+npm install
+npm start
+```
 
-# Windows PowerShell
-$env:VOTIFY_DISCORD_CLIENT_ID="123456789012345678"; npm start
+Votify показывает в Discord название трека, исполнителя, обложку и таймлайн воспроизведения. На паузе таймлайн скрывается, чтобы он не продолжал идти; после возобновления или перемотки он автоматически синхронизируется.
+
+При необходимости встроенный Application ID можно переопределить:
+
+```bash
+VOTIFY_DISCORD_CLIENT_ID=другой_application_id npm start
 ```
 
 Для локальных треков без публичной обложки можно дополнительно указать ключ изображения, загруженного в Rich Presence Art Assets:
 
 ```bash
-VOTIFY_DISCORD_LARGE_IMAGE_KEY=votify
+VOTIFY_DISCORD_LARGE_IMAGE_KEY=votify npm start
 ```
-
-Discord Desktop должен быть запущен. На паузе таймлайн скрывается, чтобы он не продолжал идти; после возобновления или перемотки он автоматически синхронизируется.
 
 ### Сборка релизных дистрибутивов (Linux AppImage & deb)
 

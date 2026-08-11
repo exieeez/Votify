@@ -13,8 +13,9 @@ let tray = null;
 let closeToTrayEnabled = false;
 let isQuitting = false;
 
+const VOTIFY_DISCORD_CLIENT_ID = '1536826368615256146';
 const discordPresence = new DiscordPresence({
-  clientId: process.env.VOTIFY_DISCORD_CLIENT_ID,
+  clientId: process.env.VOTIFY_DISCORD_CLIENT_ID || VOTIFY_DISCORD_CLIENT_ID,
   applicationName: 'Votify',
   fallbackImageKey: process.env.VOTIFY_DISCORD_LARGE_IMAGE_KEY,
 });
@@ -202,7 +203,7 @@ function createTray() {
 
 app.whenReady().then(async () => {
   if (!discordPresence.start()) {
-    console.log('[discord] Rich Presence disabled: set VOTIFY_DISCORD_CLIENT_ID to enable it');
+    console.warn('[discord] Rich Presence disabled: invalid Discord Application ID');
   }
   await startServer();
   createWindow();
