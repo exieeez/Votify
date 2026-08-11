@@ -136,6 +136,16 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   justify-content: center;
   background: #000;
   transition: opacity 0.8s ease, transform 0.8s ease;
+  /* Compositor-level fallback: even a renderer initialization failure must
+     never leave the application permanently covered by the splash. */
+  animation: splashWatchdog 0.4s ease 4s forwards;
+}
+@keyframes splashWatchdog {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
 }
 .splash-screen.hiding {
   opacity: 0;
