@@ -45,9 +45,6 @@
 ### 🎨 8. Настройки — Оформление
 ![Настройки Оформление](assets/screenshots/08-settings-appearance.png)
 
-### 🧩 9. Настройки — Прочее (Discord RPC / Тексты)
-![Настройки Прочее](assets/screenshots/09-settings-misc.png)
-
 ---
 
 ## 📦 Сборка и запуск

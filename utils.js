@@ -76,7 +76,6 @@ const DATA_DIR = path.join(PERSISTENT_DIR, 'data');
 
 let networkConfig = {
   streamSource: 'yt-dlp',
-  httpProxy: '',
   invidiousInstance: 'https://inv.tux.rs',
 };
 
@@ -540,7 +539,6 @@ async function fetchStreamUrl(videoId) {
   const fetchYtDlp = async () => {
     const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
     const args = ['--no-check-certificates', '--no-warnings', '--quiet', '-g', '-f', 'ba/b', '--socket-timeout', '4', 'https://www.youtube.com/watch?v=' + videoId];
-    if (networkConfig.httpProxy) args.push('--proxy', networkConfig.httpProxy);
 
     const proc = spawn(ytdlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     return new Promise((resolve, reject) => {

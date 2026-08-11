@@ -76,7 +76,6 @@ const DATA_DIR = path.join(PERSISTENT_DIR, 'data');
 
 let networkConfig = {
   streamSource: 'yt-dlp',
-  httpProxy: '',
   invidiousInstance: 'https://yewtu.be',
   pipedInstance: 'https://pipedapi.adminforge.de',
   audioQuality: 'medium',
@@ -771,7 +770,6 @@ async function fetchStreamUrl(videoId) {
       '--user-agent',
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     ];
-    if (networkConfig.httpProxy) ytdlpArgs.push('--proxy', networkConfig.httpProxy);
     ytdlpArgs.push('https://www.youtube.com/watch?v=' + videoId);
 
     const proc = spawn(ytdlpPath, ytdlpArgs, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
