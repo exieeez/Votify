@@ -4,6 +4,7 @@ const http = require('http');
 const { fork } = require('child_process');
 const fs = require('fs');
 const net = require('net');
+const { DiscordPresence } = require('./discord-presence.js');
 
 let PORT = 17217;
 let mainWindow = null;
@@ -11,6 +12,12 @@ let serverProcess = null;
 let tray = null;
 let closeToTrayEnabled = false;
 let isQuitting = false;
+
+const discordPresence = new DiscordPresence({
+  clientId: process.env.VOTIFY_DISCORD_CLIENT_ID,
+  applicationName: 'Votify',
+  fallbackImageKey: process.env.VOTIFY_DISCORD_LARGE_IMAGE_KEY,
+});
 
 // Force persistent user data dir so settings/playlists survive restarts
 const userDataPath = path.join(app.getPath('home'), '.votify');
@@ -137,7 +144,12 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  mainWindow.webContents.on('render-process-gone', () => {
+    discordPresence.clear();
+  });
+
   mainWindow.on('closed', () => {
+    discordPresence.clear();
     mainWindow = null;
   });
 
@@ -189,6 +201,9 @@ function createTray() {
 }
 
 app.whenReady().then(async () => {
+  if (!discordPresence.start()) {
+    console.log('[discord] Rich Presence disabled: set VOTIFY_DISCORD_CLIENT_ID to enable it');
+  }
   await startServer();
   createWindow();
   createTray();
@@ -209,6 +224,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  void discordPresence.stop();
   if (serverProcess) {
     serverProcess.kill();
   }
@@ -223,6 +239,16 @@ ipcMain.handle('maximize', () => {
 });
 ipcMain.handle('close', () => mainWindow?.close());
 ipcMain.handle('isMaximized', () => mainWindow?.isMaximized());
+
+ipcMain.on('discord-presence:update', (event, playback) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents) return;
+  discordPresence.update(playback);
+});
+
+ipcMain.on('discord-presence:clear', event => {
+  if (!mainWindow || event.sender !== mainWindow.webContents) return;
+  discordPresence.clear();
+});
 
 // --- Settings-related IPC ---
 ipcMain.handle('get-launch-at-login', () => {
