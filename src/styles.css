@@ -3569,37 +3569,6 @@ input[type="range"]::-moz-range-thumb {
 .about-link:hover { color: var(--accent); }
 .about-link .material-icons { font-size: 16px; }
 
-/* Discord */
-.discord-config-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.discord-config-row .settings-input {
-  flex: 1;
-  padding: 8px 12px;
-  background: var(--bg-base);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 13px;
-}
-.discord-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-.discord-status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #e74c3c;
-}
-.discord-status-dot.connected { background: var(--accent); }
-
 /* Hotkeys */
 .hotkeys-list {
   display: flex;

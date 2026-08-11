@@ -8,7 +8,6 @@ const {
 } = require('./routes/utils.js');
 const { handleAuthRoutes } = require('./routes/auth.js');
 const { handleMusicRoutes } = require('./routes/music.js');
-const { handleDiscordRoutes } = require('./routes/discord.js');
 const { handleSmtpRoutes } = require('./routes/smtp.js');
 const { handleSyncRoutes } = require('./routes/sync.js');
 
@@ -47,9 +46,6 @@ const server = http.createServer(async (req, res) => {
 
     // --- AUTH ENDPOINTS ---
     if (await handleAuthRoutes(req, res, u)) return;
-
-    // --- DISCORD ENDPOINTS ---
-    if (await handleDiscordRoutes(req, res, u)) return;
 
     // --- SMTP CONFIG ---
     if (await handleSmtpRoutes(req, res, u)) return;

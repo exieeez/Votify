@@ -115,7 +115,6 @@ function emit(event, data) {
 function getAuthToken() {
   return localStorage.getItem('votify-token');
 }
-function updateDiscordPresence() {}
 let currentLyricsLines = [];
 let currentLyricIndex = -1;
 
@@ -323,14 +322,9 @@ let appSettings = JSON.parse(localStorage.getItem('votify-settings')) || {
   autoLyrics: true,
   syncedLyrics: true,
   translateLyrics: false,
-  discordProgress: true,
-  discordCover: false,
-  discordAppId: '',
-  discordEnabled: false,
   recDiversity: true,
   recCount: 16,
   streamSource: 'yt-dlp',
-  httpProxy: '',
   invidiousInstance: 'https://inv.tux.rs',
   uiSounds: true,
   loadingSound: true,
@@ -554,8 +548,8 @@ function applyLanguage(lang) {
   );
 
   const categoryLabels = {
-    ru: ['ОСНОВНЫЕ', 'ОФОРМЛЕНИЕ', 'ИНТЕГРАЦИИ'],
-    en: ['GENERAL', 'APPEARANCE', 'INTEGRATIONS'],
+    ru: ['ОСНОВНЫЕ', 'ОФОРМЛЕНИЕ'],
+    en: ['GENERAL', 'APPEARANCE'],
   };
   document.querySelectorAll('.settings-menu-category').forEach((el, i) => {
     if (categoryLabels[lang]?.[i]) el.textContent = categoryLabels[lang][i];
@@ -574,11 +568,6 @@ function applyLanguage(lang) {
     'app-tabs': { ru: 'Вкладки', en: 'Tabs' },
     'app-bg': { ru: 'Фон', en: 'Background' },
     'app-custom': { ru: 'Кастомизация', en: 'Customization' },
-    'int-discord': { ru: 'Discord', en: 'Discord' },
-    'int-obs': { ru: 'OBS', en: 'OBS' },
-    'int-zapret': { ru: 'Zapret', en: 'Zapret' },
-    'int-server': { ru: 'Локальный сервер', en: 'Local Server' },
-    'int-proxy': { ru: 'Прокси', en: 'Proxy' },
   };
 
   document.querySelectorAll('.settings-menu-item').forEach(el => {
@@ -4045,21 +4034,18 @@ if (sleepTimerSelect) {
 }
 
 // ==========================================
-// Network Settings (stream source / Invidious / proxy)
+// Network Settings (stream source / Invidious / Piped)
 // ==========================================
 const streamSourceSelect = document.getElementById('setting-stream-source');
 const invidiousSettingsBlock = document.getElementById('invidious-settings');
 const pipedSettingsBlock = document.getElementById('piped-settings');
-const proxySettingsItem = document.getElementById('proxy-settings-item');
 const invidiousInstanceInput = document.getElementById('setting-invidious-instance');
 const pipedInstanceInput = document.getElementById('setting-piped-instance');
-const httpProxyInput = document.getElementById('setting-http-proxy');
 
 function updateNetworkSettingsVisibility(source) {
   if (invidiousSettingsBlock)
     invidiousSettingsBlock.style.display = source === 'invidious' ? 'block' : 'none';
   if (pipedSettingsBlock) pipedSettingsBlock.style.display = source === 'piped' ? 'block' : 'none';
-  if (proxySettingsItem) proxySettingsItem.style.display = source === 'soundcloud' ? 'none' : '';
 }
 
 async function loadNetworkSettingsFromServer() {
@@ -4067,7 +4053,6 @@ async function loadNetworkSettingsFromServer() {
     const data = await apiFetch('/api/network/settings');
     if (data && !data.error) {
       appSettings.streamSource = data.streamSource || appSettings.streamSource;
-      appSettings.httpProxy = data.httpProxy || appSettings.httpProxy;
       appSettings.invidiousInstance = data.invidiousInstance || appSettings.invidiousInstance;
       appSettings.pipedInstance =
         data.pipedInstance && !/pipedapi\.kavin\.rocks/i.test(data.pipedInstance)
@@ -4080,7 +4065,6 @@ async function loadNetworkSettingsFromServer() {
       if (invidiousInstanceInput)
         invidiousInstanceInput.value = appSettings.invidiousInstance || '';
       if (pipedInstanceInput) pipedInstanceInput.value = appSettings.pipedInstance || '';
-      if (httpProxyInput) httpProxyInput.value = appSettings.httpProxy || '';
       if (audioQualitySelect) audioQualitySelect.value = appSettings.audioQuality || 'medium';
       updateNetworkSettingsVisibility(appSettings.streamSource);
     }
@@ -4149,21 +4133,6 @@ safeClick('apply-piped-btn', async () => {
   }
 });
 
-safeClick('apply-proxy-btn', async () => {
-  if (!httpProxyInput) return;
-  appSettings.httpProxy = httpProxyInput.value.trim();
-  saveSettings();
-  try {
-    await apiFetch('/api/network/settings', {
-      method: 'POST',
-      body: JSON.stringify({ httpProxy: appSettings.httpProxy }),
-    });
-    showToast('Прокси применён');
-  } catch (e) {
-    showToast('Ошибка применения прокси');
-  }
-});
-
 loadNetworkSettingsFromServer();
 
 // ==========================================
@@ -4193,37 +4162,6 @@ if (translateLyricsToggle) {
     saveSettings();
   });
 }
-
-// ==========================================
-// Discord Rich Presence settings (persisted; connection itself needs the desktop app)
-// ==========================================
-const discordProgressToggle = document.getElementById('toggle-discord-progress');
-if (discordProgressToggle) {
-  discordProgressToggle.checked = appSettings.discordProgress !== false;
-  discordProgressToggle.addEventListener('change', () => {
-    appSettings.discordProgress = discordProgressToggle.checked;
-    saveSettings();
-  });
-}
-const discordCoverToggle = document.getElementById('toggle-discord-cover');
-if (discordCoverToggle) {
-  discordCoverToggle.checked = !!appSettings.discordCover;
-  discordCoverToggle.addEventListener('change', () => {
-    appSettings.discordCover = discordCoverToggle.checked;
-    saveSettings();
-  });
-}
-const discordAppIdInput = document.getElementById('discord-app-id');
-if (discordAppIdInput) {
-  discordAppIdInput.value = appSettings.discordAppId || '';
-  discordAppIdInput.addEventListener('change', () => {
-    appSettings.discordAppId = discordAppIdInput.value.trim();
-    saveSettings();
-  });
-}
-safeClick('discord-connect-btn', () => {
-  showToast('Discord Rich Presence пока не реализован в этой сборке');
-});
 
 // ==========================================
 // Track notifications
@@ -5882,7 +5820,6 @@ async function playTrack(track) {
     .querySelectorAll(`.track-item[data-track-id="${track.id}"]`)
     .forEach(el => el.classList.add('playing'));
 
-  updateDiscordPresence(track.title, track.artist);
   notifyTrackChange(track);
 
   // Auto-load lyrics
@@ -7627,130 +7564,6 @@ function initRedesignedSettings() {
   wirePicker('picker-color-cards', 'customColorCards', '#181818');
   wirePicker('picker-color-borders', 'customColorBorders', '#2a2a2a');
   wirePicker('picker-color-focus', 'customColorFocus', '#1DB954');
-
-  // --- 13. Discord (int-discord) ---
-  wireInput('toggle-discord-progress', 'discordProgress', true);
-  wireInput('toggle-discord-cover', 'discordCover', false);
-
-  // --- 14. OBS (int-obs) ---
-  wireInput('input-obs-widget-url', 'obsWidgetUrl', 'http://localhost:17217/obs-widget.html');
-  wireInput('slider-obs-opacity', 'obsWidgetOpacity', 0, 'obs-widget-opacity-val', '%');
-  wirePicker('picker-obs-text-color', 'obsWidgetTextColor', '#ffffff');
-
-  safeClick('btn-obs-copy-url', () => {
-    const urlInput = document.getElementById('input-obs-widget-url');
-    if (urlInput) {
-      urlInput.select();
-      navigator.clipboard.writeText(urlInput.value).then(() => {
-        showToast('Ссылка на OBS виджет скопирована!');
-      });
-    }
-  });
-
-  // --- 15. Zapret (int-zapret) ---
-  wireInput('input-zapret-path', 'zapretPath', 'C:\\\\Zapret');
-  wireInput('toggle-zapret-ipset', 'zapretIpset', false);
-  wireInput('toggle-zapret-game-filters', 'zapretGameFilters', true);
-
-  safeClick('btn-zapret-save-path', () => {
-    const path = document.getElementById('input-zapret-path')?.value || 'C:\\\\Zapret';
-    showToast('Путь к Zapret применен: ' + path);
-  });
-
-  // Domain manager
-  const domainsContainer = document.getElementById('zapret-domains-list');
-  const addDomainBtn = document.getElementById('btn-zapret-add-domain');
-  const newDomainInput = document.getElementById('input-zapret-custom-domain');
-
-  let customDomains = appSettings.zapretCustomDomains || [];
-
-  function renderCustomDomains() {
-    if (!domainsContainer) return;
-
-    // Clear dynamic items, keeping only defaults
-    document.querySelectorAll('.zapret-custom-domain-item').forEach(el => el.remove());
-
-    customDomains.forEach((domain, index) => {
-      const div = document.createElement('div');
-      div.className = 'zapret-custom-domain-item';
-      div.style.cssText =
-        'display: flex; align-items: center; justify-content: space-between; margin-top: 4px;';
-      div.innerHTML = `
-        <label style="font-size: 13px; display: inline-flex; align-items: center; gap: 8px;">
-          <input type="checkbox" checked /> ${escapeHtml(domain)}
-        </label>
-        <button class="btn-icon-sm zapret-delete-domain" data-idx="${index}" style="width: 24px; height: 24px;"><i class="material-icons" style="font-size: 16px;">close</i></button>
-      `;
-      domainsContainer.appendChild(div);
-    });
-
-    domainsContainer.querySelectorAll('.zapret-delete-domain').forEach(btn => {
-      btn.onclick = () => {
-        const idx = Number(btn.getAttribute('data-idx'));
-        customDomains.splice(idx, 1);
-        appSettings.zapretCustomDomains = customDomains;
-        saveSettings();
-        renderCustomDomains();
-        showToast('Домен удален из списка Zapret');
-      };
-    });
-  }
-
-  renderCustomDomains();
-
-  if (addDomainBtn && newDomainInput) {
-    addDomainBtn.addEventListener('click', () => {
-      const dom = newDomainInput.value.trim().toLowerCase();
-      if (!dom) return;
-      if (customDomains.includes(dom)) {
-        showToast('Этот домен уже добавлен');
-        return;
-      }
-      customDomains.push(dom);
-      appSettings.zapretCustomDomains = customDomains;
-      saveSettings();
-      renderCustomDomains();
-      newDomainInput.value = '';
-      showToast('Домен ' + dom + ' добавлен в обход блокировок');
-    });
-  }
-
-  // --- 16. Локальный сервер (int-server) ---
-  wireInput('input-server-port', 'serverPort', 17217);
-  wireInput('toggle-server-enabled', 'serverEnabled', true);
-
-  safeClick('btn-server-save-port', () => {
-    const portVal = document.getElementById('input-server-port')?.value || '17217';
-    showToast('Порт локального сервера переопределен на: ' + portVal);
-  });
-
-  safeClick('btn-server-open-browser', () => {
-    const portVal = document.getElementById('input-server-port')?.value || '17217';
-    window.open(`http://localhost:${portVal}`);
-  });
-
-  // --- 17. Прокси (int-proxy) ---
-  const proxyTestBtn = document.getElementById('btn-proxy-test-connection');
-  const proxyStatusLabel = document.getElementById('proxy-test-status-label');
-
-  if (proxyTestBtn && proxyStatusLabel) {
-    proxyTestBtn.addEventListener('click', () => {
-      proxyStatusLabel.innerHTML =
-        '<span class="discord-status-dot connected" style="background: #e91e63;"></span> Проверка...';
-      setTimeout(() => {
-        const proxyUri = document.getElementById('setting-http-proxy')?.value || '';
-        if (proxyUri) {
-          proxyStatusLabel.innerHTML =
-            '<span class="discord-status-dot connected"></span> Соединение успешно';
-          showToast('Соединение через прокси-сервер успешно установлено!');
-        } else {
-          proxyStatusLabel.innerHTML =
-            '<span class="discord-status-dot" style="background: #e74c3c;"></span> Ошибка (пустой адрес)';
-          showToast('Пожалуйста, укажите адрес прокси-сервера перед проверкой');
-        }
-      }, 1000);
-    });
-  }
 
   // Initial application of all active settings
   applyAllSettings();
