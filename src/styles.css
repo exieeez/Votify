@@ -6631,9 +6631,13 @@ body.light-theme .card {
 body[data-player-title-align="left"] .fi-info,
 body[data-player-title-align="left"] .player-track-info,
 body[data-player-title-align="left"] .fs-track-details,
+body[data-player-title-align="left"] .fs-track-details .fs-title,
+body[data-player-title-align="left"] .fs-track-details .fs-artist,
 body[data-player-title-align="left"] .right-player-info,
 body[data-player-title-align="left"] .pp-info,
 body[data-player-title-align="left"] .pp-details,
+body[data-player-title-align="left"] .pp-title,
+body[data-player-title-align="left"] .pp-artist,
 body[data-player-title-align="left"] .player-bar-info,
 body[data-player-title-align="left"] .fs-player-info {
   text-align: left !important;
@@ -6643,9 +6647,13 @@ body[data-player-title-align="left"] .fs-player-info {
 body[data-player-title-align="center"] .fi-info,
 body[data-player-title-align="center"] .player-track-info,
 body[data-player-title-align="center"] .fs-track-details,
+body[data-player-title-align="center"] .fs-track-details .fs-title,
+body[data-player-title-align="center"] .fs-track-details .fs-artist,
 body[data-player-title-align="center"] .right-player-info,
 body[data-player-title-align="center"] .pp-info,
 body[data-player-title-align="center"] .pp-details,
+body[data-player-title-align="center"] .pp-title,
+body[data-player-title-align="center"] .pp-artist,
 body[data-player-title-align="center"] .player-bar-info,
 body[data-player-title-align="center"] .fs-player-info {
   text-align: center !important;
@@ -6655,9 +6663,13 @@ body[data-player-title-align="center"] .fs-player-info {
 body[data-player-title-align="right"] .fi-info,
 body[data-player-title-align="right"] .player-track-info,
 body[data-player-title-align="right"] .fs-track-details,
+body[data-player-title-align="right"] .fs-track-details .fs-title,
+body[data-player-title-align="right"] .fs-track-details .fs-artist,
 body[data-player-title-align="right"] .right-player-info,
 body[data-player-title-align="right"] .pp-info,
 body[data-player-title-align="right"] .pp-details,
+body[data-player-title-align="right"] .pp-title,
+body[data-player-title-align="right"] .pp-artist,
 body[data-player-title-align="right"] .player-bar-info,
 body[data-player-title-align="right"] .fs-player-info {
   text-align: right !important;
@@ -6772,28 +6784,56 @@ body[data-player-style="compact"] img.fi-cover {
 body[data-player-style="compact"] .fi-title {
   font-size: 12px !important;
 }
+body[data-player-style="compact"] .player-page-top {
+  padding: 16px !important;
+  gap: 20px !important;
+}
+body[data-player-style="compact"] .pp-cover-wrap {
+  max-width: 220px !important;
+}
+body[data-player-style="compact"] .fs-cover-container {
+  max-width: 280px !important;
+}
 
-/* Frosted Glass Style */
+/* Large Hero Style */
+body[data-player-style="large"] .player-page-top {
+  padding: 36px !important;
+  gap: 40px !important;
+}
+body[data-player-style="large"] .pp-cover-wrap {
+  max-width: 400px !important;
+}
+body[data-player-style="large"] .fs-cover-container {
+  max-width: 460px !important;
+}
+
+/* Frosted Glass Style across ALL players */
 body[data-player-style="glass"] .floating-island,
 body[data-player-style="glass"] .player-bar,
-body[data-player-style="glass"] .right-player {
+body[data-player-style="glass"] .right-player,
+body[data-player-style="glass"] .player-page-top,
+body[data-player-style="glass"] .fullscreen-player {
   background: rgba(255, 255, 255, 0.12) !important;
   backdrop-filter: blur(30px) saturate(200%) !important;
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Cyberpunk Neon Glow Style */
+/* Cyberpunk Neon Glow Style across ALL players */
 body[data-player-style="neon"] .floating-island,
 body[data-player-style="neon"] .player-bar,
-body[data-player-style="neon"] .right-player {
+body[data-player-style="neon"] .right-player,
+body[data-player-style="neon"] .player-page-top,
+body[data-player-style="neon"] .fullscreen-player {
   background: rgba(10, 10, 20, 0.9) !important;
   border: 2px solid var(--accent) !important;
   box-shadow: 0 0 20px var(--accent), inset 0 0 15px rgba(var(--accent-rgb), 0.3) !important;
 }
-body[data-player-style="neon"] img.fi-cover {
+body[data-player-style="neon"] img.fi-cover,
+body[data-player-style="neon"] .pp-cover-wrap,
+body[data-player-style="neon"] .fs-cover-container {
   border: 2px solid var(--accent) !important;
-  box-shadow: 0 0 12px var(--accent) !important;
+  box-shadow: 0 0 16px var(--accent) !important;
 }
 
 /* Progress Slider Types across ALL players */
