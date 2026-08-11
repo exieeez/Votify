@@ -7040,23 +7040,36 @@ async function populateMicrophones() {
   const micSelect = document.getElementById('setting-soundpad-mic-device');
   if (!micSelect) return;
   try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const mics = devices.filter(d => d.kind === 'audioinput');
+    let devices = await navigator.mediaDevices.enumerateDevices();
+    let mics = devices.filter(d => d.kind === 'audioinput');
+
+    // If device labels are blank (unpermitted), prompt getUserMedia to reveal microphone names
+    if (mics.length > 0 && mics.every(m => !m.label)) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+        devices = await navigator.mediaDevices.enumerateDevices();
+        mics = devices.filter(d => d.kind === 'audioinput');
+      } catch (err) {
+        console.warn('[Soundpad] User mic permission prompt error:', err);
+      }
+    }
+
     micSelect.innerHTML = '';
 
     const defaultOpt = document.createElement('option');
     defaultOpt.value = 'default';
-    defaultOpt.textContent = 'Системный микрофон по умолчанию';
+    defaultOpt.textContent = '🎙️ Системный микрофон по умолчанию';
     micSelect.appendChild(defaultOpt);
 
     mics.forEach((m, idx) => {
       const opt = document.createElement('option');
-      opt.value = m.deviceId;
-      opt.textContent = m.label || `Микрофон ${idx + 1}`;
+      opt.value = m.deviceId || `mic-${idx}`;
+      opt.textContent = `🎙️ ${m.label || ('Микрофон ' + (idx + 1))}`;
       micSelect.appendChild(opt);
     });
 
-    if (appSettings.soundpadMicDeviceId) {
+    if (appSettings.soundpadMicDeviceId && Array.from(micSelect.options).some(o => o.value === appSettings.soundpadMicDeviceId)) {
       micSelect.value = appSettings.soundpadMicDeviceId;
     }
   } catch (e) {
@@ -7356,8 +7369,16 @@ function initRedesignedSettings() {
       appSettings._cacheLyricsMB = 0.0;
       saveSettings();
       updateStorageSizes();
+      showToast('Все локальные кэши успешно сброшены!');
+    }
+  });
+
   // --- Soundpad (Mic + Music Mixer Engine) ---
   populateMicrophones();
+  safeClick('btn-soundpad-refresh-mics', async () => {
+    await populateMicrophones();
+    showToast('Список микрофонов обновлен!');
+  });
   wireInput('toggle-soundpad-enabled', 'soundpadEnabled', false, null, '', () => {
     updateSoundpadMixer();
   });
