@@ -8,5 +8,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLaunchAtLogin: () => ipcRenderer.invoke('get-launch-at-login'),
   setLaunchAtLogin: enabled => ipcRenderer.invoke('set-launch-at-login', enabled),
   setCloseToTray: enabled => ipcRenderer.send('set-close-to-tray', enabled),
-  installSoundpadDriver: () => ipcRenderer.invoke('install-soundpad-driver'),
+  throwCursor: (dx, dy) => ipcRenderer.invoke('throw-cursor', { dx, dy }),
 });
