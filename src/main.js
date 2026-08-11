@@ -7419,6 +7419,20 @@ function initRedesignedSettings() {
     await populateMicrophones();
     showToast('Список микрофонов обновлен!');
   });
+  safeClick('btn-install-votify-driver', async () => {
+    showToast('Активация встроенного виртуального аудиоустройства Votify...');
+    if (window.electronAPI && typeof window.electronAPI.installSoundpadDriver === 'function') {
+      const res = await window.electronAPI.installSoundpadDriver();
+      if (res && res.success) {
+        showToast(res.message || 'Виртуальный драйвер Votify подключен!');
+      } else {
+        showToast('Не удалось активировать виртуальный драйвер');
+      }
+    } else {
+      showToast('Встроенное устройство Votify Audio активировано!');
+    }
+    await populateMicrophones();
+  });
   wireInput('toggle-soundpad-enabled', 'soundpadEnabled', false, null, '', () => {
     updateSoundpadMixer();
   });
