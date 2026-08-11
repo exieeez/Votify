@@ -616,7 +616,8 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
 .right-player-main-controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .right-player-extra-controls { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .right-player-controls .control-btn { width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.06); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s, transform 0.15s; }
-.right-player-controls .control-btn:hover, .right-player-controls .control-btn.active { background: rgba(var(--accent-rgb),0.2); color: var(--accent); }
+.right-player-controls .control-btn:hover { background: rgba(255, 255, 255, 0.14); color: var(--text-primary); }
+.right-player-controls .control-btn.active { background: rgba(var(--accent-rgb, 29, 185, 84), 0.2); color: var(--accent); border-color: rgba(var(--accent-rgb, 29, 185, 84), 0.35); }
 .right-player-controls .control-btn.play-btn {
   width: 54px;
   height: 54px;
@@ -644,7 +645,8 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   border-radius: 10px; color: var(--text-secondary); font-size: 13px; cursor: pointer;
   transition: all 0.15s;
 }
-.right-extra-btn:hover, .right-extra-btn.active { background: rgba(var(--accent-rgb),0.12); color: var(--accent); border-color: rgba(var(--accent-rgb),0.2); }
+.right-extra-btn:hover { background: rgba(255, 255, 255, 0.12); color: var(--text-primary); border-color: rgba(255, 255, 255, 0.15); }
+.right-extra-btn.active { background: rgba(var(--accent-rgb, 29, 185, 84), 0.18); color: var(--accent); border-color: rgba(var(--accent-rgb, 29, 185, 84), 0.35); }
 .right-extra-btn .material-icons { font-size: 18px; }
 
 /* Equalizer panel */
@@ -961,7 +963,8 @@ body[data-density="spacious"] .nav-btn { width: 54px; height: 54px; }
   border-radius: 12px; color: var(--text-secondary); cursor: pointer;
   transition: all 0.15s; font-size: 13px;
 }
-.fs-extra-btn:hover, .fs-extra-btn.active { background: rgba(var(--accent-rgb),0.12); color: var(--accent); border-color: rgba(var(--accent-rgb),0.2); }
+.fs-extra-btn:hover { background: rgba(255, 255, 255, 0.12); color: var(--text-primary); border-color: rgba(255, 255, 255, 0.15); }
+.fs-extra-btn.active { background: rgba(var(--accent-rgb, 29, 185, 84), 0.18); color: var(--accent); border-color: rgba(var(--accent-rgb, 29, 185, 84), 0.35); }
 .fs-extra-btn .material-icons { font-size: 18px; }
 .fs-player-eq, .fs-player-lyrics {
   width: 100%; max-width: 480px; padding: 16px;
@@ -6987,13 +6990,18 @@ body[data-player-slider-type="ios"] input[type="range"]::-webkit-slider-thumb {
 body[data-player-slider-type="wave"] .custom-eq-container,
 body[data-player-slider-type="wave"] .fs-timeline-track,
 body[data-player-slider-type="wave"] .pp-timeline-bar,
+/* 3. WAVEFORM (Волновой - Аудио Спектрограмма) */
+body[data-player-slider-type="wave"] .custom-eq-container,
+body[data-player-slider-type="wave"] .fs-timeline-track,
+body[data-player-slider-type="wave"] .pp-timeline-bar,
 body[data-player-slider-type="wave"] .right-timeline-track,
 body[data-player-slider-type="wave"] .bar-timeline-track {
-  height: 22px !important;
+  height: 20px !important;
+  border-radius: 6px !important;
   background: transparent !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M 0 12 Q 12.5 0 25 12 T 50 12 T 75 12 T 100 12' fill='none' stroke='rgba(255,255,255,0.25)' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20' preserveAspectRatio='none'%3E%3Crect x='2' y='6' width='3' height='8' rx='1.5' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='7' y='3' width='3' height='14' rx='1.5' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='12' y='8' width='3' height='4' rx='1.5' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='17' y='1' width='3' height='18' rx='1.5' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='22' y='5' width='3' height='10' rx='1.5' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='27' y='2' width='3' height='16' rx='1.5' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='32' y='7' width='3' height='6' rx='1.5' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='37' y='4' width='3' height='12' rx='1.5' fill='rgba(255,255,255,0.25)'/%3E%3C/svg%3E") !important;
   background-repeat: repeat-x !important;
-  background-size: 50px 22px !important;
+  background-size: 40px 20px !important;
   box-shadow: none !important;
   border: none !important;
 }
@@ -7001,15 +7009,17 @@ body[data-player-slider-type="wave"] .bar-timeline-track {
 body[data-player-slider-type="wave"] .pp-timeline-bar input[type="range"],
 body[data-player-slider-type="wave"] .fs-timeline-track input[type="range"],
 body[data-player-slider-type="wave"] .progress-container input[type="range"] {
-  height: 22px !important;
+  height: 20px !important;
   background: transparent !important;
 }
 
 body[data-player-slider-type="wave"] input[type="range"]::-webkit-slider-runnable-track {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M 0 12 Q 12.5 0 25 12 T 50 12 T 75 12 T 100 12' fill='none' stroke='%231DB954' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  height: 20px !important;
+  border-radius: 6px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20' preserveAspectRatio='none'%3E%3Crect x='2' y='6' width='3' height='8' rx='1.5' fill='%231DB954'/%3E%3Crect x='7' y='3' width='3' height='14' rx='1.5' fill='%231DB954'/%3E%3Crect x='12' y='8' width='3' height='4' rx='1.5' fill='%231DB954'/%3E%3Crect x='17' y='1' width='3' height='18' rx='1.5' fill='%231DB954'/%3E%3Crect x='22' y='5' width='3' height='10' rx='1.5' fill='%231DB954'/%3E%3Crect x='27' y='2' width='3' height='16' rx='1.5' fill='%231DB954'/%3E%3Crect x='32' y='7' width='3' height='6' rx='1.5' fill='%231DB954'/%3E%3Crect x='37' y='4' width='3' height='12' rx='1.5' fill='%231DB954'/%3E%3C/svg%3E") !important;
   background-repeat: repeat-x !important;
-  background-size: 50px 22px !important;
-  filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 2px #ffffff) !important;
+  background-size: 40px 20px !important;
+  filter: drop-shadow(0 0 6px var(--accent)) !important;
 }
 
 body[data-player-slider-type="wave"] input[type="range"]::-webkit-slider-thumb {
@@ -7017,8 +7027,35 @@ body[data-player-slider-type="wave"] input[type="range"]::-webkit-slider-thumb {
   height: 14px !important;
   border-radius: 50% !important;
   background: #ffffff !important;
-  box-shadow: 0 0 10px #ffffff, 0 0 16px var(--accent) !important;
-  margin-top: -4px !important;
+  box-shadow: 0 0 10px #ffffff, 0 0 14px var(--accent) !important;
+  margin-top: 3px !important;
+}
+
+/* Universal Text Overflows Prevention */
+.fi-title,
+.fi-artist,
+.player-track-title,
+.player-track-artist,
+.right-player-title,
+.right-player-artist,
+.pp-title,
+.pp-artist,
+.fs-title,
+.fs-artist,
+.track-title,
+.track-artist,
+.track-name,
+.card-title,
+.home-quick-title,
+.playlist-card-title,
+.lib-item-title,
+.lib-item-subtitle,
+.history-item-title,
+.history-item-artist {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
 }
 
 /* Cover Animations Keyframes */
