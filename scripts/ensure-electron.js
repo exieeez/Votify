@@ -34,9 +34,16 @@ if (!fs.existsSync(installer)) {
 }
 
 console.log('[electron] Binary is missing because its install script was blocked; repairing...');
+const installerEnv = { ...process.env };
+// These variables are useful in CI, but make an interactive desktop checkout
+// silently skip the binary that `npm start` requires. The repair is explicit,
+// so always install into this project's local Electron package.
+delete installerEnv.ELECTRON_SKIP_BINARY_DOWNLOAD;
+delete installerEnv.ELECTRON_OVERRIDE_DIST_PATH;
+
 const result = spawnSync(process.execPath, [installer], {
   cwd: electronDir,
-  env: process.env,
+  env: installerEnv,
   stdio: 'inherit',
 });
 
