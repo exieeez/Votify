@@ -6737,32 +6737,21 @@ function initVotifyPet() {
 
     if (petClicks === 1) {
       if (speechText) speechText.textContent = 'Хэй! Не тыкай в меня! (•_•)';
-      if (mouthSvg) mouthSvg.setAttribute('d', 'M 45 68 Q 50 68 55 68');
+      if (mouthSvg) mouthSvg.setAttribute('d', 'M 45 52 Q 50 52 55 52');
     } else if (petClicks === 2) {
       if (speechText) speechText.textContent = 'Прекрати тыкать, я слушаю музыку! (>_<)';
-      if (mouthSvg) mouthSvg.setAttribute('d', 'M 44 70 Q 50 66 56 70');
+      if (mouthSvg) mouthSvg.setAttribute('d', 'M 44 55 Q 50 50 56 55');
       if (avatar) avatar.classList.add('angry');
     } else if (petClicks >= 3) {
-      if (speechText) speechText.textContent = 'ВСЁ! Ты меня разозлил! (>_<#)';
-      if (mouthSvg) mouthSvg.setAttribute('d', 'M 44 72 Q 50 64 56 72');
+      if (speechText) speechText.textContent = 'Ну и чего ты добиваешься? >_<#';
+      if (mouthSvg) mouthSvg.setAttribute('d', 'M 44 56 Q 50 48 56 56');
       if (avatar) avatar.classList.add('angry');
       if (angryMark) angryMark.classList.remove('hidden');
 
-      if (petConfig.canThrowCursor) {
-        widget.style.transform = 'scale(1.5) rotate(-22deg)';
-        setTimeout(() => {
-          widget.style.transform = 'none';
-        }, 350);
-
-        // PHYSICAL CURSOR KNOCKBACK / DISPLACEMENT
-        if (window.electronAPI?.throwCursor) {
-          window.electronAPI.throwCursor(-350, -350);
-        }
-
-        if (typeof showToast === 'function') {
-          showToast('💥 Кохару разозлилась и физически отбросила ваш курсор! >_<#');
-        }
-      }
+      widget.style.transform = 'scale(1.2) rotate(-8deg)';
+      setTimeout(() => {
+        widget.style.transform = 'none';
+      }, 300);
     }
   };
 

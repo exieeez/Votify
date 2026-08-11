@@ -1061,7 +1061,7 @@
                 <div class="general-settings-hero-icon"><i class="material-icons">pets</i></div>
                 <div>
                   <h3>Аниме-спутник Votify (Кохару-чан)</h3>
-                  <p>2D пиксельный питомец, который сидит на плеере, привозит подарки из-за экрана, реагирует на курсор и откидывает его при злости!</p>
+                  <p>2D чиби-аниме спутник, которая сидит прямо на вашей панели плеера, уходит за подарками и общается с вами!</p>
                 </div>
               </div>
 
@@ -1070,7 +1070,7 @@
                 <div class="setting-toggle-item">
                   <div class="setting-toggle-info">
                     <span class="setting-toggle-label">Включить питомца</span>
-                    <span class="setting-toggle-desc">Показывать аниме-спутника на вашем плеере</span>
+                    <span class="setting-toggle-desc">Показывать аниме-спутника на панели плеера</span>
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-pet-enabled" checked /><span class="toggle-slider"></span></label>
                 </div>
@@ -1078,18 +1078,10 @@
                 <div class="setting-item" style="margin-top: 14px;">
                   <label for="setting-pet-character">Характер и эмоции</label>
                   <select id="setting-pet-character" class="m3-select">
-                    <option value="tsundere" selected>Цундэрэ (Злится и откидывает курсор! >_<)</option>
+                    <option value="tsundere" selected>Цундэрэ (Ворчит, но любит музыку)</option>
                     <option value="gamer">Геймерша (Слушает музыку и говорит мемы)</option>
                     <option value="cheerful">Весёлая (Танцует и часто носит подарки)</option>
                   </select>
-                </div>
-
-                <div class="setting-toggle-item" style="margin-top: 12px;">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Откидывание курсора при кликах</span>
-                    <span class="setting-toggle-desc">При частых кликах по питомцу она разозлится и физически отбросит ваш курсор</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-pet-throw" checked /><span class="toggle-slider"></span></label>
                 </div>
 
                 <div class="setting-toggle-item">
@@ -1590,50 +1582,65 @@
         <i class="material-icons">card_giftcard</i>
       </div>
       <div class="pet-avatar" id="pet-avatar">
-        <svg class="pet-anime-svg" viewBox="0 0 100 100" id="pet-anime-svg">
-          <!-- Sparkles -->
+        <svg class="pet-anime-svg" viewBox="0 0 100 130" id="pet-anime-svg">
+          <!-- Floating Music Notes / Sparkles -->
           <g class="pet-sparkles">
-            <circle cx="15" cy="20" r="2" fill="#ffd1dc" />
-            <circle cx="85" cy="25" r="2" fill="#ffd1dc" />
-            <path d="M 88 12 L 90 15 L 88 18 L 86 15 Z" fill="#ff9ff3" />
+            <path d="M 12 18 Q 18 12 14 6" fill="none" stroke="#ff9ff3" stroke-width="2" />
+            <circle cx="14" cy="6" r="3" fill="#ff9ff3" />
+            <path d="M 85 22 Q 92 16 88 10" fill="none" stroke="#ff758c" stroke-width="2" />
+            <circle cx="88" cy="10" r="3" fill="#ff758c" />
           </g>
-          <!-- Cat Ears -->
+          <!-- Long Hair Tails -->
+          <path d="M 18 35 Q 5 60 12 90 Q 25 70 24 45 Z" fill="#ff6b81" />
+          <path d="M 82 35 Q 95 60 88 90 Q 75 70 76 45 Z" fill="#ff6b81" />
+          <!-- Neko Cat Ears -->
           <g class="pet-ears-svg">
-            <polygon points="18,35 32,10 44,28" fill="#ff758c" />
-            <polygon points="23,32 32,16 40,28" fill="#ffb8c6" />
-            <polygon points="82,35 68,10 56,28" fill="#ff758c" />
-            <polygon points="77,32 68,16 60,28" fill="#ffb8c6" />
+            <polygon points="20,28 32,5 42,22" fill="#ff4757" />
+            <polygon points="25,25 32,11 38,22" fill="#ffa8a8" />
+            <polygon points="80,28 68,5 58,22" fill="#ff4757" />
+            <polygon points="75,25 68,11 62,22" fill="#ffa8a8" />
           </g>
-          <!-- Hair Back -->
-          <circle cx="50" cy="50" r="38" fill="#ff758c" />
-          <!-- Head Base -->
-          <ellipse cx="50" cy="54" rx="28" ry="26" fill="#fff0f5" />
+          <!-- Chibi Head Base -->
+          <ellipse cx="50" cy="42" rx="26" ry="23" fill="#fff0f3" />
           <!-- Cheeks / Blush -->
-          <ellipse cx="32" cy="62" rx="6" ry="3.5" fill="#ff8fa3" opacity="0.7" />
-          <ellipse cx="68" cy="62" rx="6" ry="3.5" fill="#ff8fa3" opacity="0.7" />
-          <!-- Hair Bangs -->
-          <path d="M 22 45 Q 35 25 50 35 Q 65 25 78 45 Q 68 30 50 32 Q 32 30 22 45 Z" fill="#ff5252" />
-          <path d="M 40 33 Q 50 45 60 33 Z" fill="#ff758c" />
+          <ellipse cx="32" cy="49" rx="5.5" ry="3" fill="#ff758c" opacity="0.75" />
+          <ellipse cx="68" cy="49" rx="5.5" ry="3" fill="#ff758c" opacity="0.75" />
+          <!-- Bangs -->
+          <path d="M 24 35 Q 35 18 50 28 Q 65 18 76 35 Q 66 22 50 24 Q 34 22 24 35 Z" fill="#ff4757" />
           <!-- Eyes -->
           <g class="pet-eyes-svg" id="pet-eyes-svg">
-            <ellipse cx="36" cy="54" rx="6" ry="8" fill="#2d3436" />
-            <ellipse cx="64" cy="54" rx="6" ry="8" fill="#2d3436" />
-            <!-- Pupils / Highlights -->
-            <circle cx="34" cy="51" r="2.5" fill="#ffffff" />
-            <circle cx="62" cy="51" r="2.5" fill="#ffffff" />
-            <circle cx="37" cy="57" r="1.2" fill="#ff9ff3" />
-            <circle cx="65" cy="57" r="1.2" fill="#ff9ff3" />
+            <ellipse cx="36" cy="42" rx="5.5" ry="7" fill="#2f3542" />
+            <ellipse cx="64" cy="42" rx="5.5" ry="7" fill="#2f3542" />
+            <circle cx="34" cy="39" r="2.2" fill="#ffffff" />
+            <circle cx="62" cy="39" r="2.2" fill="#ffffff" />
+            <circle cx="37" cy="45" r="1.2" fill="#ff9ff3" />
+            <circle cx="65" cy="45" r="1.2" fill="#ff9ff3" />
           </g>
-          <!-- Mouth -->
-          <path class="pet-mouth-svg" id="pet-mouth-svg" d="M 44 67 Q 50 73 56 67" fill="none" stroke="#ff4757" stroke-width="2.5" stroke-linecap="round" />
+          <!-- Smile Mouth -->
+          <path class="pet-mouth-svg" id="pet-mouth-svg" d="M 44 53 Q 50 59 56 53" fill="none" stroke="#ff4757" stroke-width="2.2" stroke-linecap="round" />
           <!-- Angry Mark -->
           <g class="pet-angry-mark hidden" id="pet-angry-mark">
-            <path d="M 72 25 L 82 35 M 82 25 L 72 35" stroke="#ff4757" stroke-width="3" stroke-linecap="round" />
+            <path d="M 70 18 L 78 26 M 78 18 L 70 26" stroke="#ff4757" stroke-width="2.5" stroke-linecap="round" />
           </g>
-          <!-- Hair Bow -->
-          <path d="M 46 26 Q 36 20 44 14 Q 50 20 46 26 Z" fill="#ff4757" />
-          <path d="M 54 26 Q 64 20 56 14 Q 50 20 54 26 Z" fill="#ff4757" />
-          <circle cx="50" cy="20" r="3" fill="#ffffff" />
+          <!-- Hair Ribbon Bow -->
+          <path d="M 46 18 Q 36 12 44 6 Q 50 12 46 18 Z" fill="#ff6b81" />
+          <path d="M 54 18 Q 64 12 56 6 Q 50 12 54 18 Z" fill="#ff6b81" />
+          <circle cx="50" cy="12" r="2.5" fill="#ffffff" />
+          <!-- Chibi Body / Sailor Dress -->
+          <path d="M 34 62 L 66 62 L 70 82 L 30 82 Z" fill="#3742fa" />
+          <polygon points="42,62 50,74 58,62" fill="#ffffff" />
+          <path d="M 47 62 Q 50 67 53 62" fill="none" stroke="#ff4757" stroke-width="3" />
+          <!-- Cute Hands resting on player bar -->
+          <ellipse cx="32" cy="82" rx="5" ry="3.5" fill="#fff0f3" />
+          <ellipse cx="68" cy="82" rx="5" ry="3.5" fill="#fff0f3" />
+          <!-- Legs Dangling Down Over Player Bar Edge -->
+          <g class="pet-legs-svg">
+            <rect x="38" y="82" width="7" height="24" rx="3.5" fill="#fff0f3" />
+            <rect x="55" y="82" width="7" height="24" rx="3.5" fill="#fff0f3" />
+            <!-- Shoes -->
+            <ellipse cx="41.5" cy="106" rx="4.5" ry="3" fill="#ff4757" />
+            <ellipse cx="58.5" cy="106" rx="4.5" ry="3" fill="#ff4757" />
+          </g>
         </svg>
       </div>
     </div>
