@@ -1590,16 +1590,51 @@
         <i class="material-icons">card_giftcard</i>
       </div>
       <div class="pet-avatar" id="pet-avatar">
-        <div class="pet-pixel-art" id="pet-pixel-art">
-          <div class="pet-ears"><span>∧</span><span>∧</span></div>
-          <div class="pet-head">
-            <div class="pet-eyes" id="pet-eyes"><span class="eye left">●</span><span class="eye right">●</span></div>
-            <div class="pet-mouth" id="pet-mouth">‿</div>
-          </div>
-          <div class="pet-body">
-            <div class="pet-hands"><span class="hand left">/</span><span class="hand right">\</span></div>
-          </div>
-        </div>
+        <svg class="pet-anime-svg" viewBox="0 0 100 100" id="pet-anime-svg">
+          <!-- Sparkles -->
+          <g class="pet-sparkles">
+            <circle cx="15" cy="20" r="2" fill="#ffd1dc" />
+            <circle cx="85" cy="25" r="2" fill="#ffd1dc" />
+            <path d="M 88 12 L 90 15 L 88 18 L 86 15 Z" fill="#ff9ff3" />
+          </g>
+          <!-- Cat Ears -->
+          <g class="pet-ears-svg">
+            <polygon points="18,35 32,10 44,28" fill="#ff758c" />
+            <polygon points="23,32 32,16 40,28" fill="#ffb8c6" />
+            <polygon points="82,35 68,10 56,28" fill="#ff758c" />
+            <polygon points="77,32 68,16 60,28" fill="#ffb8c6" />
+          </g>
+          <!-- Hair Back -->
+          <circle cx="50" cy="50" r="38" fill="#ff758c" />
+          <!-- Head Base -->
+          <ellipse cx="50" cy="54" rx="28" ry="26" fill="#fff0f5" />
+          <!-- Cheeks / Blush -->
+          <ellipse cx="32" cy="62" rx="6" ry="3.5" fill="#ff8fa3" opacity="0.7" />
+          <ellipse cx="68" cy="62" rx="6" ry="3.5" fill="#ff8fa3" opacity="0.7" />
+          <!-- Hair Bangs -->
+          <path d="M 22 45 Q 35 25 50 35 Q 65 25 78 45 Q 68 30 50 32 Q 32 30 22 45 Z" fill="#ff5252" />
+          <path d="M 40 33 Q 50 45 60 33 Z" fill="#ff758c" />
+          <!-- Eyes -->
+          <g class="pet-eyes-svg" id="pet-eyes-svg">
+            <ellipse cx="36" cy="54" rx="6" ry="8" fill="#2d3436" />
+            <ellipse cx="64" cy="54" rx="6" ry="8" fill="#2d3436" />
+            <!-- Pupils / Highlights -->
+            <circle cx="34" cy="51" r="2.5" fill="#ffffff" />
+            <circle cx="62" cy="51" r="2.5" fill="#ffffff" />
+            <circle cx="37" cy="57" r="1.2" fill="#ff9ff3" />
+            <circle cx="65" cy="57" r="1.2" fill="#ff9ff3" />
+          </g>
+          <!-- Mouth -->
+          <path class="pet-mouth-svg" id="pet-mouth-svg" d="M 44 67 Q 50 73 56 67" fill="none" stroke="#ff4757" stroke-width="2.5" stroke-linecap="round" />
+          <!-- Angry Mark -->
+          <g class="pet-angry-mark hidden" id="pet-angry-mark">
+            <path d="M 72 25 L 82 35 M 82 25 L 72 35" stroke="#ff4757" stroke-width="3" stroke-linecap="round" />
+          </g>
+          <!-- Hair Bow -->
+          <path d="M 46 26 Q 36 20 44 14 Q 50 20 46 26 Z" fill="#ff4757" />
+          <path d="M 54 26 Q 64 20 56 14 Q 50 20 54 26 Z" fill="#ff4757" />
+          <circle cx="50" cy="20" r="3" fill="#ffffff" />
+        </svg>
       </div>
     </div>
 

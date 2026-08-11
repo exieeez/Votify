@@ -243,6 +243,26 @@ ipcMain.handle('set-launch-at-login', (event, enabled) => {
   }
 });
 
+// IPC Handler to physically throw/knockback OS cursor when pet gets angry
+ipcMain.handle('throw-cursor', (event, { dx = -250, dy = -250 }) => {
+  try {
+    const { exec } = require('child_process');
+    if (process.platform === 'linux') {
+      exec(`xdotool mousemove_relative -- ${dx} ${dy}`, (err) => {
+        if (err) {
+          exec(`python3 -c "import pyautogui; pyautogui.moveRel(${dx}, ${dy})"`);
+        }
+      });
+    } else if (process.platform === 'win32') {
+      exec(`powershell -command "[reflection.assembly]::loadwithpartialname('System.Windows.Forms'); $p = [System.Windows.Forms.Cursor]::Position; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(($p.X + ${dx}), ($p.Y + ${dy}))"`);
+    }
+    return true;
+  } catch (e) {
+    console.error('Failed to throw cursor:', e.message);
+    return false;
+  }
+});
+
 ipcMain.on('set-close-to-tray', (event, enabled) => {
   closeToTrayEnabled = !!enabled;
 });
