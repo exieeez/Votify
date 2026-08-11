@@ -6883,29 +6883,42 @@ body[data-player-slider-type="ios"] input[type="range"]::-webkit-slider-thumb {
   border: none !important;
 }
 
-/* 3. WAVEFORM (Волновой) */
+/* 3. WAVEFORM (Волновой - Синусоидальная волна) */
 body[data-player-slider-type="wave"] .custom-eq-container,
 body[data-player-slider-type="wave"] .fs-timeline-track,
 body[data-player-slider-type="wave"] .pp-timeline-bar,
 body[data-player-slider-type="wave"] .right-timeline-track,
 body[data-player-slider-type="wave"] .bar-timeline-track {
-  height: 16px !important;
-  border-radius: 8px !important;
-  background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0px, rgba(255, 255, 255, 0.22) 3px, transparent 3px, transparent 6px) !important;
-  box-shadow: 0 0 14px rgba(var(--accent-rgb, 29, 185, 84), 0.5) !important;
-}
-body[data-player-slider-type="wave"] .custom-eq-curve,
-body[data-player-slider-type="wave"] #fi-eq-curve,
-body[data-player-slider-type="wave"] #tl-active-curve {
-  stroke-width: 8px !important;
-  filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 3px #ffffff) !important;
-}
-body[data-player-slider-type="wave"] input[type="range"]::-webkit-slider-thumb {
-  width: 6px !important;
   height: 22px !important;
-  border-radius: 3px !important;
+  background: transparent !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M 0 12 Q 12.5 0 25 12 T 50 12 T 75 12 T 100 12' fill='none' stroke='rgba(255,255,255,0.25)' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  background-repeat: repeat-x !important;
+  background-size: 50px 22px !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+body[data-player-slider-type="wave"] .pp-timeline-bar input[type="range"],
+body[data-player-slider-type="wave"] .fs-timeline-track input[type="range"],
+body[data-player-slider-type="wave"] .progress-container input[type="range"] {
+  height: 22px !important;
+  background: transparent !important;
+}
+
+body[data-player-slider-type="wave"] input[type="range"]::-webkit-slider-runnable-track {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M 0 12 Q 12.5 0 25 12 T 50 12 T 75 12 T 100 12' fill='none' stroke='%231DB954' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  background-repeat: repeat-x !important;
+  background-size: 50px 22px !important;
+  filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 2px #ffffff) !important;
+}
+
+body[data-player-slider-type="wave"] input[type="range"]::-webkit-slider-thumb {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 50% !important;
   background: #ffffff !important;
-  box-shadow: 0 0 12px #ffffff, 0 0 16px var(--accent) !important;
+  box-shadow: 0 0 10px #ffffff, 0 0 16px var(--accent) !important;
+  margin-top: 4px !important;
 }
 
 /* Cover Animations Keyframes */
