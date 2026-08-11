@@ -5,6 +5,7 @@
   "author": "Votify Team",
   "main": "main.js",
   "scripts": {
+    "prestart": "node scripts/ensure-electron.js",
     "start": "electron .",
     "test": "node --test",
     "build": "electron-builder --linux AppImage deb rpm",
@@ -62,5 +63,9 @@
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^9.0.3"
+  },
+  "allowScripts": {
+    "electron@35.7.5": true,
+    "electron-winstaller@5.4.0": true
   }
 }
