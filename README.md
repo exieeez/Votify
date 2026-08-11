@@ -86,6 +86,28 @@ VOTIFY_DISCORD_CLIENT_ID=другой_application_id npm start
 VOTIFY_DISCORD_LARGE_IMAGE_KEY=votify npm start
 ```
 
+### Firebase: аккаунты и синхронизация
+
+Votify поддерживает регистрацию по email, гостевой вход, профили, аватары и облачную синхронизацию настроек, плейлистов и истории через Firebase Authentication и Firestore.
+
+1. Включите Email/Password и Anonymous в Firebase Authentication.
+2. Создайте Firestore и опубликуйте правила из `firestore.rules`.
+3. Создайте Web App в Firebase.
+4. Сохраните публичную Web-конфигурацию в `firebase-config.json` в корне проекта.
+
+```json
+{
+  "apiKey": "...",
+  "authDomain": "project.firebaseapp.com",
+  "projectId": "project",
+  "storageBucket": "project.firebasestorage.app",
+  "messagingSenderId": "...",
+  "appId": "..."
+}
+```
+
+`firebase-config.json` не попадает в Git. Для CI и сборки релиза ту же конфигурацию можно передать в `VOTIFY_FIREBASE_CONFIG` одной JSON-строкой. Service Account и Admin SDK приложению не нужны.
+
 ### Сборка релизных дистрибутивов (Linux AppImage & deb)
 
 ```bash

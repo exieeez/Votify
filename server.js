@@ -1,4 +1,6 @@
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const {
   sendJson,
   serveStatic,
@@ -10,6 +12,58 @@ const { handleAuthRoutes } = require('./routes/auth.js');
 const { handleMusicRoutes } = require('./routes/music.js');
 const { handleSmtpRoutes } = require('./routes/smtp.js');
 const { handleSyncRoutes } = require('./routes/sync.js');
+
+const FIREBASE_CONFIG_FIELDS = [
+  'apiKey',
+  'authDomain',
+  'projectId',
+  'storageBucket',
+  'messagingSenderId',
+  'appId',
+];
+const FIREBASE_VENDOR_FILES = {
+  '/vendor/firebase-app-compat.js': 'firebase-app-compat.js',
+  '/vendor/firebase-auth-compat.js': 'firebase-auth-compat.js',
+  '/vendor/firebase-firestore-compat.js': 'firebase-firestore-compat.js',
+};
+
+function loadFirebaseConfig() {
+  let rawConfig = null;
+  if (process.env.VOTIFY_FIREBASE_CONFIG) {
+    rawConfig = JSON.parse(process.env.VOTIFY_FIREBASE_CONFIG);
+  } else {
+    const configPath = path.join(__dirname, 'firebase-config.json');
+    if (fs.existsSync(configPath)) rawConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  }
+  if (!rawConfig) return null;
+  if (rawConfig.private_key || rawConfig.privateKey || rawConfig.type === 'service_account') {
+    throw new Error('Service Account JSON cannot be used as Firebase Web Config');
+  }
+  const config = {};
+  FIREBASE_CONFIG_FIELDS.forEach(field => {
+    if (rawConfig[field]) config[field] = String(rawConfig[field]);
+  });
+  const required = ['apiKey', 'authDomain', 'projectId', 'appId'];
+  if (required.some(field => !config[field])) throw new Error('Incomplete Firebase Web Config');
+  return config;
+}
+
+function serveFirebaseVendor(pathname, res) {
+  const filename = FIREBASE_VENDOR_FILES[pathname];
+  if (!filename) return false;
+  const fullPath = path.join(__dirname, 'node_modules', 'firebase', filename);
+  try {
+    const data = fs.readFileSync(fullPath);
+    res.writeHead(200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    });
+    res.end(data);
+  } catch (error) {
+    sendJson(res, 500, { error: `Firebase SDK is unavailable: ${error.message}` });
+  }
+  return true;
+}
 
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -29,6 +83,21 @@ const server = http.createServer(async (req, res) => {
 
   const u = new URL(req.url, `http://${req.headers.host}`);
   try {
+    if (u.pathname === '/api/firebase/config' && req.method === 'GET') {
+      try {
+        const config = loadFirebaseConfig();
+        if (!config) {
+          sendJson(res, 503, { error: 'Firebase Web Config not found' });
+        } else {
+          sendJson(res, 200, { config });
+        }
+      } catch (error) {
+        sendJson(res, 500, { error: error.message });
+      }
+      return;
+    }
+    if (serveFirebaseVendor(u.pathname, res)) return;
+
     // --- NETWORK ENDPOINTS ---
     if (u.pathname === '/api/network/settings' && req.method === 'GET') {
       sendJson(res, 200, getNetworkConfig());
