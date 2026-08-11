@@ -7189,47 +7189,69 @@ body[data-cover-effects="inversion"] #lib-detail-cover-img {
 }
 
 /* ==========================================
-   VOTIFY PET (КОХАРУ-ЧАН) 2D ANIME COMPANION
+   DESKTOP GOOSE ENGINE (TogoFire/DesktopGoose)
    ========================================== */
-.votify-pet-widget {
+.desktop-goose-wrapper {
   position: fixed;
-  bottom: 60px;
-  right: 60px;
-  z-index: 50000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  user-select: none;
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
+  top: 150px;
+  left: 200px;
+  z-index: 55000;
+  width: 76px;
+  height: 76px;
+  pointer-events: auto;
   cursor: pointer;
+  user-select: none;
+  transition: transform 0.05s linear;
 }
 
-.votify-pet-widget.offscreen-left {
-  transform: translateX(-120vw) !important;
+.desktop-goose-sprite {
+  width: 100%;
+  height: 100%;
 }
 
-.votify-pet-widget.offscreen-right {
-  transform: translateX(120vw) !important;
+.goose-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
 }
 
-.pet-speech-bubble {
-  background: rgba(20, 20, 28, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 12px;
-  padding: 7px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #ffffff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  margin-bottom: 6px;
-  max-width: 190px;
-  text-align: center;
-  backdrop-filter: blur(8px);
-  position: relative;
-  animation: petFloatBubble 3s ease-in-out infinite;
+.desktop-goose-wrapper.waddling .goose-svg {
+  animation: gooseWaddle 0.25s infinite alternate ease-in-out;
 }
 
-.pet-speech-bubble::after {
+@keyframes gooseWaddle {
+  0% { transform: translateY(0) rotate(-4deg); }
+  100% { transform: translateY(-5px) rotate(4deg); }
+}
+
+.desktop-goose-wrapper.honking .goose-svg {
+  animation: gooseHonk 0.15s ease infinite alternate;
+}
+
+@keyframes gooseHonk {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.18) rotate(-6deg); }
+}
+
+.goose-speech-bubble {
+  position: absolute;
+  top: -42px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 2px solid #2d3436;
+  color: #2d3436;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 56000;
+}
+
+.goose-speech-bubble::after {
   content: '';
   position: absolute;
   bottom: -6px;
@@ -7237,86 +7259,65 @@ body[data-cover-effects="inversion"] #lib-detail-cover-img {
   transform: translateX(-50%);
   border-width: 6px 6px 0;
   border-style: solid;
-  border-color: rgba(20, 20, 28, 0.92) transparent;
+  border-color: #2d3436 transparent;
   display: block;
   width: 0;
 }
 
-@keyframes petFloatBubble {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+.goose-tracks-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 54000;
 }
 
-.pet-gift-badge {
+.goose-footprint {
   position: absolute;
-  top: -12px;
-  right: -10px;
-  background: linear-gradient(135deg, #ff4757, #ff6b81);
-  color: #fff;
+  width: 12px;
+  height: 10px;
+  background: rgba(160, 110, 60, 0.45);
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.6);
-  animation: petBounceGift 1.2s ease infinite;
-  cursor: pointer;
-  z-index: 2;
+  pointer-events: none;
+  animation: fadeOutFootprint 8s forwards ease-out;
 }
 
-@keyframes petBounceGift {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2) rotate(12deg); }
+@keyframes fadeOutFootprint {
+  0% { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.6); }
 }
 
-.pet-avatar {
-  position: relative;
-  width: 84px;
-  height: 104px;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+.goose-memes-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 54500;
+}
+
+.goose-meme-card {
+  position: absolute;
+  padding: 10px 14px;
+  background: #fffb8f;
+  border: 2px solid #333;
+  box-shadow: 4px 8px 20px rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  font-family: 'Comic Sans MS', 'Chalkboard SE', cursive, sans-serif;
+  font-size: 13px;
+  color: #222;
+  font-weight: 700;
+  max-width: 240px;
+  pointer-events: auto;
+  cursor: move;
+  transform: rotate(-2deg);
+  transition: opacity 0.3s;
+}
+
+.goose-meme-card-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  transition: transform 0.15s ease;
-  margin-bottom: -15px; /* Sit right on top of player bar! */
-}
-
-.votify-pet-widget:hover .pet-avatar {
-  transform: scale(1.1);
-}
-
-.pet-anime-svg {
-  width: 84px;
-  height: 104px;
-  filter: drop-shadow(0 4px 14px rgba(0,0,0,0.5));
-  transition: transform 0.15s ease;
-}
-
-.pet-avatar.angry {
-  animation: petShake 0.25s ease infinite !important;
-}
-
-.pet-avatar.angry .pet-anime-svg {
-  filter: drop-shadow(0 0 16px rgba(255, 71, 87, 0.95)) !important;
-}
-
-.pet-avatar.bounce {
-  animation: petBounceBeat 0.6s ease infinite;
-}
-
-@keyframes petShake {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(-4px, 3px) rotate(-8deg); }
-  75% { transform: translate(4px, -3px) rotate(8deg); }
-}
-
-@keyframes petBounceBeat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-.pet-eyes-svg {
-  transition: transform 0.08s ease-out;
+  border-bottom: 1px dashed #777;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #555;
 }

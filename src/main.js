@@ -6595,7 +6595,7 @@ function initApp() {
     }
 
     console.log('Votify initialized successfully.');
-    initVotifyPet();
+    initDesktopGooseEngine();
   } catch (e) {
     console.error('Critical init error:', e);
   } finally {
@@ -6608,231 +6608,215 @@ function initApp() {
 /* ==========================================
    VOTIFY ANIME PET COMPANION LOGIC (КОХАРУ)
    ========================================== */
-let petConfig = {
+/* ==========================================
+   AUTHENTIC DESKTOP GOOSE ENGINE (TogoFire/DesktopGoose)
+   ========================================== */
+let gooseConfig = {
   enabled: true,
-  skin: 'goose',
-  character: 'chaotic',
-  canBringGifts: true,
-  canChat: true,
+  tracks: true,
+  memes: true,
 };
-let petClicks = 0;
-let petAngerTimer = null;
-let petGiftTimer = null;
-let petMemeTimer = null;
 
-const GOOSE_MEMES = [
-  'HONK! 🪿 (Desktop Goose в Votify!)',
-  'Га-га-га! Где мои семечки?! 🪿',
-  'HONK! Я утащу твою песню на болотце! 🪿',
-  'Мир был тихим, пока не пришел я... HONK!',
-  'Записки на столе? Это я принес! 🪿',
-  'HONK HONK HONK! 💥',
-  'Принес тебе свежий мем из интернета 🪿',
+let gooseX = 250;
+let gooseY = 200;
+let gooseTargetX = 400;
+let gooseTargetY = 300;
+let gooseSpeed = 3.5;
+let gooseState = 'IDLE'; // IDLE, WANDERING, DRAGGING_MEME, HONKING, RUNNING
+let gooseActionTimer = null;
+
+const GOOSE_QUOTES = [
+  'HONK! 🪿',
+  'Га-га-га! 🪿',
+  'Где мои семечки?! 🌾',
+  'Я утащу этот трек!',
+  'HONK HONK! 💥',
+  'Desktop Goose в Votify! 🪿',
+  'Официально украл твое окно ✨',
 ];
 
-const KOHARU_MEMES = [
-  'Нян~! Я с тобой слушаю музыку! ♫',
-  'Опять этот трек? Он нормас~ (◕‿◕)',
-  'Попей водички, ты сидишь уже 2 часа!',
-  'Гигачад в здании! 🗿',
-  'Nyan~ =^.^=',
-  'Я слежу за твоим плейлистом!',
-  'Принесла тебе вайб из альтернативной реальности ✨',
+const GOOSE_STICKY_MEMES = [
+  { title: 'Записка от Гуся 🪿', body: 'HONK! Ты слушаешь слишком хороший музыкос!' },
+  { title: 'Внимание! ⚠️', body: 'Гусь объявляет этот трек официальным гимном семечек!' },
+  { title: 'desktop_goose.exe 🪿', body: 'Я зашел в Votify, чтобы похлопать крыльями!' },
+  { title: 'Мем от Гуся ✨', body: 'Когда включил фонк и гусь начал флексить: HONK!' },
 ];
 
-const CAT_MEMES = [
-  'Мур-мяу~ Шлепа отдыхает на плеере 🐱',
-  'Погладь меня за ушком~ =^.^=',
-  'Мяу! Музыка качает лоток! 🎧',
-  'Я поймал мышку! Точнее, твой курсор 🐾',
-  'Мурррр~ Хрусь хрусь!',
-];
+function initDesktopGooseEngine() {
+  const wrapper = document.getElementById('desktop-goose-wrapper');
+  const speechBubble = document.getElementById('goose-speech-bubble');
+  const speechText = document.getElementById('goose-speech-text');
+  const tracksLayer = document.getElementById('goose-tracks-layer');
+  const memesContainer = document.getElementById('goose-memes-container');
 
-const DRAGON_MEMES = [
-  'Рррр! Кибер-дракон охраняет твой плейлист 🐉',
-  'Осторожно, басы слишком горячие! ⚡',
-  'Дышу огнем в ритме трека! 🔥',
-  'Рррар! Votify под моей защитой!',
-];
+  if (!wrapper) return;
 
-const PET_GIFTS = [
-  'Золотая коллекционная кассета 📼',
-  'Легендарный ретро-винил 💿',
-  'Кошачьи ушки 🐱',
-  'Секретная записка от Гуся 🪿',
-  'Редкий стикер Votify (◕‿◕)',
-];
+  const toggleEnabled = document.getElementById('toggle-goose-enabled');
+  const toggleTracks = document.getElementById('toggle-goose-tracks');
+  const toggleMemes = document.getElementById('toggle-goose-memes');
 
-function initVotifyPet() {
-  const widget = document.getElementById('votify-pet-widget');
-  const speechText = document.getElementById('pet-speech-text');
-  const avatar = document.getElementById('pet-avatar');
-  const giftBadge = document.getElementById('pet-gift-badge');
-  const eyesSvg = document.getElementById('pet-eyes-svg');
-
-  if (!widget) return;
-
-  const toggleEnabled = document.getElementById('toggle-pet-enabled');
-  const selectSkin = document.getElementById('setting-pet-skin');
-  const selectChar = document.getElementById('setting-pet-character');
-  const toggleGifts = document.getElementById('toggle-pet-gifts');
-  const toggleChat = document.getElementById('toggle-pet-chat');
-
-  const saved = localStorage.getItem('votify-pet-config');
+  const saved = localStorage.getItem('votify-goose-config');
   if (saved) {
     try {
-      petConfig = { ...petConfig, ...JSON.parse(saved) };
+      gooseConfig = { ...gooseConfig, ...JSON.parse(saved) };
     } catch (e) {}
   }
 
   if (toggleEnabled) {
-    toggleEnabled.checked = petConfig.enabled;
+    toggleEnabled.checked = gooseConfig.enabled;
     toggleEnabled.onchange = e => {
-      petConfig.enabled = e.target.checked;
-      savePetConfig();
+      gooseConfig.enabled = e.target.checked;
+      saveGooseConfig();
     };
   }
-  if (selectSkin) {
-    selectSkin.value = petConfig.skin || 'goose';
-    selectSkin.onchange = e => {
-      petConfig.skin = e.target.value;
-      savePetConfig();
-      updatePetSkinUI();
+  if (toggleTracks) {
+    toggleTracks.checked = gooseConfig.tracks;
+    toggleTracks.onchange = e => {
+      gooseConfig.tracks = e.target.checked;
+      saveGooseConfig();
     };
   }
-  if (selectChar) {
-    selectChar.value = petConfig.character || 'chaotic';
-    selectChar.onchange = e => {
-      petConfig.character = e.target.value;
-      savePetConfig();
-    };
-  }
-  if (toggleGifts) {
-    toggleGifts.checked = petConfig.canBringGifts;
-    toggleGifts.onchange = e => {
-      petConfig.canBringGifts = e.target.checked;
-      savePetConfig();
-    };
-  }
-  if (toggleChat) {
-    toggleChat.checked = petConfig.canChat;
-    toggleChat.onchange = e => {
-      petConfig.canChat = e.target.checked;
-      savePetConfig();
+  if (toggleMemes) {
+    toggleMemes.checked = gooseConfig.memes;
+    toggleMemes.onchange = e => {
+      gooseConfig.memes = e.target.checked;
+      saveGooseConfig();
     };
   }
 
-  function savePetConfig() {
-    localStorage.setItem('votify-pet-config', JSON.stringify(petConfig));
-    updatePetVisibility();
+  function saveGooseConfig() {
+    localStorage.setItem('votify-goose-config', JSON.stringify(gooseConfig));
+    updateGooseVisibility();
   }
 
-  function updatePetVisibility() {
-    if (widget) widget.style.display = petConfig.enabled ? 'flex' : 'none';
+  function updateGooseVisibility() {
+    if (wrapper) wrapper.style.display = gooseConfig.enabled ? 'block' : 'none';
   }
+  updateGooseVisibility();
 
-  function updatePetSkinUI() {
-    const gooseSvg = document.getElementById('pet-goose-svg');
-    const koharuSvg = document.getElementById('pet-anime-svg');
-    const catSvg = document.getElementById('pet-cat-svg');
-    const dragonSvg = document.getElementById('pet-dragon-svg');
+  // Position goose randomly at start
+  gooseX = Math.floor(Math.random() * (window.innerWidth - 200)) + 100;
+  gooseY = Math.floor(Math.random() * (window.innerHeight - 250)) + 100;
+  wrapper.style.left = gooseX + 'px';
+  wrapper.style.top = gooseY + 'px';
 
-    if (gooseSvg) gooseSvg.classList.toggle('hidden', petConfig.skin !== 'goose');
-    if (koharuSvg) koharuSvg.classList.toggle('hidden', petConfig.skin !== 'koharu');
-    if (catSvg) catSvg.classList.toggle('hidden', petConfig.skin !== 'cat');
-    if (dragonSvg) dragonSvg.classList.toggle('hidden', petConfig.skin !== 'dragon');
+  // Goose click reaction (Angry Run + HONK!)
+  wrapper.onclick = () => {
+    if (!gooseConfig.enabled) return;
+    gooseState = 'RUNNING';
+    gooseSpeed = 8;
+    honkGoose('HONK HONK HONK!! 🪿⚡');
 
-    if (speechText) {
-      if (petConfig.skin === 'goose') speechText.textContent = 'HONK! 🪿 Я твой Гусь Desktop Goose!';
-      else if (petConfig.skin === 'koharu') speechText.textContent = 'Нян~! Я твой музыкальный спутник Кохару! ♪';
-      else if (petConfig.skin === 'cat') speechText.textContent = 'Мяу~! Шлепа сидит на плеере! 🐱';
-      else if (petConfig.skin === 'dragon') speechText.textContent = 'Рррар! Кибер-Дракон в здании! 🐉';
-    }
-  }
-
-  updatePetVisibility();
-  updatePetSkinUI();
-
-  // Eye tracking cursor
-  document.addEventListener('mousemove', e => {
-    if (!petConfig.enabled || !eyesSvg || petConfig.skin !== 'koharu') return;
-    const rect = avatar.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = Math.min(5, Math.max(-5, (e.clientX - cx) / (window.innerWidth / 10)));
-    const dy = Math.min(5, Math.max(-5, (e.clientY - cy) / (window.innerHeight / 10)));
-    eyesSvg.style.transform = `translate(${dx}px, ${dy}px)`;
-  });
-
-  // Clicking pet interaction
-  avatar.onclick = () => {
-    if (!petConfig.enabled) return;
-    petClicks++;
-
-    clearTimeout(petAngerTimer);
-    petAngerTimer = setTimeout(() => { petClicks = 0; }, 4000);
-
-    if (petConfig.skin === 'goose') {
-      if (speechText) speechText.textContent = 'HONK HONK! 🪿 (Га-га-га!)';
-      widget.style.transform = 'scale(1.2) rotate(10deg)';
-      setTimeout(() => { widget.style.transform = 'none'; }, 250);
-    } else if (petConfig.skin === 'cat') {
-      if (speechText) speechText.textContent = 'Муррр-мяу! (Чешет лапкой) 🐾';
-      widget.style.transform = 'scale(1.15)';
-      setTimeout(() => { widget.style.transform = 'none'; }, 250);
-    } else if (petConfig.skin === 'dragon') {
-      if (speechText) speechText.textContent = 'Рррр! 🔥 (Выдыхает огонек)';
-      widget.style.transform = 'scale(1.2)';
-      setTimeout(() => { widget.style.transform = 'none'; }, 250);
-    } else {
-      if (speechText) speechText.textContent = 'Хэй! Не тыкай в меня! (•_•)';
-      widget.style.transform = 'scale(1.15) rotate(-5deg)';
-      setTimeout(() => { widget.style.transform = 'none'; }, 250);
-    }
+    // Pick random far target to run away
+    gooseTargetX = Math.floor(Math.random() * (window.innerWidth - 150));
+    gooseTargetY = Math.floor(Math.random() * (window.innerHeight - 200));
   };
 
-  // Gift collection
-  if (giftBadge) {
-    giftBadge.onclick = e => {
-      e.stopPropagation();
-      const randomGift = PET_GIFTS[Math.floor(Math.random() * PET_GIFTS.length)];
-      if (typeof showToast === 'function') {
-        showToast(`🎁 Вы получили подарок от спутника: ${randomGift}!`);
-      }
-      giftBadge.classList.add('hidden');
-    };
+  function honkGoose(text) {
+    if (!speechBubble || !speechText) return;
+    speechText.textContent = text || GOOSE_QUOTES[Math.floor(Math.random() * GOOSE_QUOTES.length)];
+    speechBubble.classList.remove('hidden');
+    wrapper.classList.add('honking');
+
+    setTimeout(() => {
+      speechBubble.classList.add('hidden');
+      wrapper.classList.remove('honking');
+    }, 2500);
   }
 
-  // Periodic Off-Screen Gift Bringing
-  clearInterval(petGiftTimer);
-  petGiftTimer = setInterval(() => {
-    if (!petConfig.enabled || !petConfig.canBringGifts) return;
-    if (speechText) {
-      speechText.textContent = petConfig.skin === 'goose'
-        ? 'Ушел за мемом и подарком из-за экрана! 🪿'
-        : 'Ушла за подарком из-за экрана! 🏃‍♀️';
+  function dropFootprint(x, y) {
+    if (!gooseConfig.tracks || !tracksLayer) return;
+    const print = document.createElement('div');
+    print.className = 'goose-footprint';
+    print.style.left = x + 30 + 'px';
+    print.style.top = y + 55 + 'px';
+    tracksLayer.appendChild(print);
+
+    setTimeout(() => {
+      if (print.parentNode) print.parentNode.removeChild(print);
+    }, 8000);
+  }
+
+  function spawnMemeWindow() {
+    if (!gooseConfig.memes || !memesContainer) return;
+    const data = GOOSE_STICKY_MEMES[Math.floor(Math.random() * GOOSE_STICKY_MEMES.length)];
+
+    const card = document.createElement('div');
+    card.className = 'goose-meme-card';
+    card.style.left = gooseX - 50 + 'px';
+    card.style.top = gooseY - 80 + 'px';
+    card.innerHTML = `
+      <div class="goose-meme-card-header">
+        <span>${escapeHtml(data.title)}</span>
+        <span style="cursor:pointer;" onclick="this.parentNode.parentNode.remove()">✕</span>
+      </div>
+      <div>${escapeHtml(data.body)}</div>
+    `;
+    memesContainer.appendChild(card);
+  }
+
+  // Main DesktopGoose Walking Physics Loop (60 FPS tick)
+  function gooseStep() {
+    if (!gooseConfig.enabled) {
+      requestAnimationFrame(gooseStep);
+      return;
     }
 
-    widget.classList.add('offscreen-right');
-    setTimeout(() => {
-      widget.classList.remove('offscreen-right');
-      if (giftBadge) giftBadge.classList.remove('hidden');
-      if (speechText) speechText.textContent = 'Смотри, что я принес! 🎁';
-    }, 3500);
-  }, 100000);
+    if (gooseState === 'WANDERING' || gooseState === 'RUNNING' || gooseState === 'DRAGGING_MEME') {
+      const dx = gooseTargetX - gooseX;
+      const dy = gooseTargetY - gooseY;
+      const dist = Math.hypot(dx, dy);
 
-  // Periodic Chat Memes
-  clearInterval(petMemeTimer);
-  petMemeTimer = setInterval(() => {
-    if (!petConfig.enabled || !petConfig.canChat || petClicks > 0) return;
-    let pool = GOOSE_MEMES;
-    if (petConfig.skin === 'koharu') pool = KOHARU_MEMES;
-    else if (petConfig.skin === 'cat') pool = CAT_MEMES;
-    else if (petConfig.skin === 'dragon') pool = DRAGON_MEMES;
+      if (dist > 6) {
+        const step = Math.min(dist, gooseSpeed);
+        gooseX += (dx / dist) * step;
+        gooseY += (dy / dist) * step;
 
-    const meme = pool[Math.floor(Math.random() * pool.length)];
-    if (speechText) speechText.textContent = meme;
-  }, 18000);
+        wrapper.style.left = gooseX + 'px';
+        wrapper.style.top = gooseY + 'px';
+        wrapper.classList.add('waddling');
+
+        const flip = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+        wrapper.style.transform = flip;
+
+        if (Math.random() < 0.12) dropFootprint(gooseX, gooseY);
+      } else {
+        wrapper.classList.remove('waddling');
+        gooseState = 'IDLE';
+        gooseSpeed = 3.5;
+
+        if (Math.random() < 0.35) {
+          honkGoose();
+        }
+      }
+    }
+
+    requestAnimationFrame(gooseStep);
+  }
+
+  requestAnimationFrame(gooseStep);
+
+  // Periodic Goose AI Behavior Loop (Every 6-12 seconds pick new goal)
+  clearInterval(gooseActionTimer);
+  gooseActionTimer = setInterval(() => {
+    if (!gooseConfig.enabled || gooseState === 'RUNNING') return;
+
+    const roll = Math.random();
+    if (roll < 0.55) {
+      gooseState = 'WANDERING';
+      gooseTargetX = Math.floor(Math.random() * (window.innerWidth - 160)) + 40;
+      gooseTargetY = Math.floor(Math.random() * (window.innerHeight - 200)) + 60;
+    } else if (roll < 0.85) {
+      gooseState = 'HONKING';
+      honkGoose();
+    } else {
+      gooseState = 'DRAGGING_MEME';
+      honkGoose('Смотри, что я нашел! 🪿');
+      spawnMemeWindow();
+      gooseTargetX = Math.floor(Math.random() * (window.innerWidth - 160)) + 40;
+      gooseTargetY = Math.floor(Math.random() * (window.innerHeight - 200)) + 60;
+    }
+  }, 9000);
 }
 
 // Failsafe: hide splash even if a later initialization task fails or stalls.
