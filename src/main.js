@@ -7038,10 +7038,12 @@ let soundpadVirtualAudioElem = null;
 
 async function populateMicrophones() {
   const micSelect = document.getElementById('setting-soundpad-mic-device');
+  const outSelect = document.getElementById('setting-soundpad-out-device');
   if (!micSelect) return;
   try {
     let devices = await navigator.mediaDevices.enumerateDevices();
     let mics = devices.filter(d => d.kind === 'audioinput');
+    let outs = devices.filter(d => d.kind === 'audiooutput');
 
     // If device labels are blank (unpermitted), prompt getUserMedia to reveal microphone names
     if (mics.length > 0 && mics.every(m => !m.label)) {
@@ -7050,13 +7052,13 @@ async function populateMicrophones() {
         stream.getTracks().forEach(t => t.stop());
         devices = await navigator.mediaDevices.enumerateDevices();
         mics = devices.filter(d => d.kind === 'audioinput');
+        outs = devices.filter(d => d.kind === 'audiooutput');
       } catch (err) {
         console.warn('[Soundpad] User mic permission prompt error:', err);
       }
     }
 
     micSelect.innerHTML = '';
-
     const defaultOpt = document.createElement('option');
     defaultOpt.value = 'default';
     defaultOpt.textContent = '🎙️ Системный микрофон по умолчанию';
@@ -7071,6 +7073,25 @@ async function populateMicrophones() {
 
     if (appSettings.soundpadMicDeviceId && Array.from(micSelect.options).some(o => o.value === appSettings.soundpadMicDeviceId)) {
       micSelect.value = appSettings.soundpadMicDeviceId;
+    }
+
+    if (outSelect) {
+      outSelect.innerHTML = '';
+      const defaultOutOpt = document.createElement('option');
+      defaultOutOpt.value = 'default';
+      defaultOutOpt.textContent = '🔊 Виртуальный аудиопоток Votify (По умолчанию)';
+      outSelect.appendChild(defaultOutOpt);
+
+      outs.forEach((o, idx) => {
+        const opt = document.createElement('option');
+        opt.value = o.deviceId || `out-${idx}`;
+        opt.textContent = `🔊 ${o.label || ('Аудиовход / Кабель ' + (idx + 1))}`;
+        outSelect.appendChild(opt);
+      });
+
+      if (appSettings.soundpadOutDeviceId && Array.from(outSelect.options).some(o => o.value === appSettings.soundpadOutDeviceId)) {
+        outSelect.value = appSettings.soundpadOutDeviceId;
+      }
     }
   } catch (e) {
     console.error('[Soundpad] Error enumerating mics:', e);
@@ -7138,10 +7159,21 @@ async function updateSoundpadMixer() {
       soundpadVirtualAudioElem = document.createElement('audio');
       soundpadVirtualAudioElem.id = 'soundpad-mixed-output';
       soundpadVirtualAudioElem.autoplay = true;
-      soundpadVirtualAudioElem.muted = true;
+      soundpadVirtualAudioElem.muted = false;
       document.body.appendChild(soundpadVirtualAudioElem);
     }
     soundpadVirtualAudioElem.srcObject = soundpadDestinationNode.stream;
+
+    // Apply setSinkId if virtual output device selected
+    const outDeviceId = appSettings.soundpadOutDeviceId || 'default';
+    if (typeof soundpadVirtualAudioElem.setSinkId === 'function' && outDeviceId !== 'default') {
+      try {
+        await soundpadVirtualAudioElem.setSinkId(outDeviceId);
+        console.log('[Soundpad] Output routed via setSinkId to:', outDeviceId);
+      } catch (err) {
+        console.warn('[Soundpad] setSinkId error:', err);
+      }
+    }
 
     console.log('[Soundpad] Mixed Mic + Music stream active');
     showToast('Soundpad включен: Микрофон и Музыка смешаны!');
@@ -7383,6 +7415,9 @@ function initRedesignedSettings() {
     updateSoundpadMixer();
   });
   wireInput('setting-soundpad-mic-device', 'soundpadMicDeviceId', 'default', null, '', () => {
+    updateSoundpadMixer();
+  });
+  wireInput('setting-soundpad-out-device', 'soundpadOutDeviceId', 'default', null, '', () => {
     updateSoundpadMixer();
   });
   wireInput('setting-soundpad-mic-vol', 'soundpadMicVol', 100, 'soundpad-mic-vol-val', '%', () => {

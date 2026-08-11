@@ -976,18 +976,29 @@
                     <input type="range" id="setting-soundpad-mic-vol" min="0" max="200" value="100" />
                   </div>
                   <div class="setting-item" style="margin-bottom: 16px;">
-                    <div class="setting-row">
-                      <label for="setting-soundpad-music-vol">Громкость Музыки Votify в микрофоне</label>
-                      <span class="setting-value" id="soundpad-music-vol-val">80%</span>
+                    <label for="setting-soundpad-out-device">Куда направлять смешанный звук (Виртуальный Кабель)</label>
+                    <select id="setting-soundpad-out-device" class="m3-select">
+                      <option value="default">🔊 Виртуальный аудиопоток Votify (По умолчанию)</option>
+                    </select>
+                  </div>
+
+                  <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 14px; margin-top: 14px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                      <i class="material-icons" style="color: #38bdf8;">info</i> Как выводить звук Votify в Discord / Telegram / Игры:
                     </div>
-                    <input type="range" id="setting-soundpad-music-vol" min="0" max="200" value="80" />
+                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+                      Для появления отдельного устройства "Votify / Cable" в списке микрофонов Discord необходим виртуальный аудиокабель (VB-Cable):<br/>
+                      1. Скачайте бесплатный <a href="https://vb-audio.com/Cable/" target="_blank" style="color: var(--accent); text-decoration: underline;">VB-Audio Virtual Cable</a>.<br/>
+                      2. В списке выберите устройство вывода <b>CABLE Input (VB-Audio)</b>.<br/>
+                      3. В Discord в Настройках голоса выберите микрофон <b>CABLE Output</b>.
+                    </div>
                   </div>
 
                   <div style="background: rgba(29, 185, 84, 0.1); border: 1px solid rgba(29, 185, 84, 0.3); border-radius: 12px; padding: 14px; margin-top: 12px; display: flex; align-items: center; gap: 12px;">
                     <i class="material-icons" style="color: var(--accent); font-size: 28px;">graphic_eq</i>
                     <div style="flex: 1;">
                       <div style="font-weight: 700; font-size: 13px; color: var(--accent);" id="soundpad-status-title">Soundpad активен</div>
-                      <div style="font-size: 12px; color: var(--text-secondary);" id="soundpad-status-desc">Смешанный сигнал (Микрофон + Музыка Votify) создан. В Discord/Telegram выберите входящий поток Votify.</div>
+                      <div style="font-size: 12px; color: var(--text-secondary);" id="soundpad-status-desc">Смешанный сигнал (Микрофон + Музыка Votify) транслируется.</div>
                     </div>
                   </div>
                 </div>
