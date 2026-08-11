@@ -833,6 +833,7 @@
 
             <!-- ОФОРМЛЕНИЕ -->
             <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ОФОРМЛЕНИЕ</div>
+            <button class="settings-menu-item" data-settings-section="app-pet"><i class="material-icons">pets</i>Питомец</button>
             <button class="settings-menu-item" data-settings-section="app-player"><i class="material-icons">play_circle_filled</i>Плеер</button>
             <button class="settings-menu-item" data-settings-section="app-cover"><i class="material-icons">image</i>Обложка</button>
             <button class="settings-menu-item" data-settings-section="app-ui"><i class="material-icons">widgets</i>Интерфейс</button>
@@ -1050,6 +1051,61 @@
                 </div>
                 <div style="margin-top: 18px; display: flex; gap: 8px;">
                   <button class="btn-danger" id="clear-all-storage-btn" style="flex: 1; justify-content: center;"><i class="material-icons">delete_sweep</i> Очистить весь кэш и данные</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION PET: Питомец (app-pet) -->
+            <div class="settings-panel" id="settings-panel-app-pet">
+              <div class="general-settings-hero">
+                <div class="general-settings-hero-icon"><i class="material-icons">pets</i></div>
+                <div>
+                  <h3>Аниме-спутник Votify (Кохару-чан)</h3>
+                  <p>2D пиксельный питомец, который сидит на плеере, привозит подарки из-за экрана, реагирует на курсор и откидывает его при злости!</p>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">smart_toy</i><h3>Управление спутником</h3></div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Включить питомца</span>
+                    <span class="setting-toggle-desc">Показывать аниме-спутника на вашем плеере</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-pet-enabled" checked /><span class="toggle-slider"></span></label>
+                </div>
+
+                <div class="setting-item" style="margin-top: 14px;">
+                  <label for="setting-pet-character">Характер и эмоции</label>
+                  <select id="setting-pet-character" class="m3-select">
+                    <option value="tsundere" selected>Цундэрэ (Злится и откидывает курсор! >_<)</option>
+                    <option value="gamer">Геймерша (Слушает музыку и говорит мемы)</option>
+                    <option value="cheerful">Весёлая (Танцует и часто носит подарки)</option>
+                  </select>
+                </div>
+
+                <div class="setting-toggle-item" style="margin-top: 12px;">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Откидывание курсора при кликах</span>
+                    <span class="setting-toggle-desc">При частых кликах по питомцу она разозлится и физически отбросит ваш курсор</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-pet-throw" checked /><span class="toggle-slider"></span></label>
+                </div>
+
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Подарки из-за экрана</span>
+                    <span class="setting-toggle-desc">Периодически питомец уходит за край экрана и выносит винилы и артефакты</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-pet-gifts" checked /><span class="toggle-slider"></span></label>
+                </div>
+
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Реплики и аниме-мемы</span>
+                    <span class="setting-toggle-desc">Показывать всплывающие облачка мыслей над головой Кохару</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-pet-chat" checked /><span class="toggle-slider"></span></label>
                 </div>
               </div>
             </div>
@@ -1521,6 +1577,28 @@
         </header>
         <div class="full-lyrics-scroll" id="full-lyrics-scroll">
           <div class="full-lyrics-body" id="full-lyrics-body"><div class="lyrics-placeholder">Нет текста</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PET WIDGET: Кохару (Votify Companion) -->
+    <div class="votify-pet-widget" id="votify-pet-widget">
+      <div class="pet-speech-bubble" id="pet-speech-bubble">
+        <span id="pet-speech-text">Нян~! Я твой музыкальный спутник Кохару! ♪</span>
+      </div>
+      <div class="pet-gift-badge hidden" id="pet-gift-badge" title="Кликни, чтобы забрать подарок!">
+        <i class="material-icons">card_giftcard</i>
+      </div>
+      <div class="pet-avatar" id="pet-avatar">
+        <div class="pet-pixel-art" id="pet-pixel-art">
+          <div class="pet-ears"><span>∧</span><span>∧</span></div>
+          <div class="pet-head">
+            <div class="pet-eyes" id="pet-eyes"><span class="eye left">●</span><span class="eye right">●</span></div>
+            <div class="pet-mouth" id="pet-mouth">‿</div>
+          </div>
+          <div class="pet-body">
+            <div class="pet-hands"><span class="hand left">/</span><span class="hand right">\</span></div>
+          </div>
         </div>
       </div>
     </div>

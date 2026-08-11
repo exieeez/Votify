@@ -536,42 +536,14 @@ async function fetchStreamUrl(videoId) {
   const cached = streamCache.get(videoId);
   if (cached && cached.expires > Date.now()) return cached.url;
 
-  if (networkConfig.streamSource === 'invidious') {
-    try {
-      const instance = networkConfig.invidiousInstance.replace(/\/$/, '');
-      const data = await httpGet(`${instance}/api/v1/videos/${videoId}`, 10000);
-      if (data && data.formatStreams && data.formatStreams.length > 0) {
-        // Находим аудио поток или лучший доступный
-        const stream =
-          data.adaptiveFormats.find(f => f.type.includes('audio')) || data.formatStreams[0];
-        if (stream && stream.url) {
-          streamCache.set(videoId, { url: stream.url, expires: Date.now() + STREAM_CACHE_TTL });
-          return stream.url;
-        }
-      }
-    } catch (e) {
-      console.log('Invidious error for', videoId, ':', e.message);
-    }
-  }
-
-  try {
+  // Fast Parallel Stream Retrieval (yt-dlp 4.5s vs Piped 4s)
+  const fetchYtDlp = async () => {
     const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
-    const args = [
-      '--no-check-certificates',
-      '--no-warnings',
-      '--quiet',
-      '-g',
-      '-f',
-      'ba',
-      'https://www.youtube.com/watch?v=' + videoId,
-    ];
-
-    if (networkConfig.httpProxy) {
-      args.push('--proxy', networkConfig.httpProxy);
-    }
+    const args = ['--no-check-certificates', '--no-warnings', '--quiet', '-g', '-f', 'ba/b', '--socket-timeout', '4', 'https://www.youtube.com/watch?v=' + videoId];
+    if (networkConfig.httpProxy) args.push('--proxy', networkConfig.httpProxy);
 
     const proc = spawn(ytdlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-    const url = await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let out = '';
       proc.stdout.on('data', d => {
         out += d;
@@ -586,23 +558,33 @@ async function fetchStreamUrl(videoId) {
         if (out.trim()) resolve(out.trim().split('\n')[0]);
         else reject(new Error('no output'));
       });
-      setTimeout(() => {
-        proc.kill();
-        reject(new Error('timeout'));
-      }, 20000);
+      setTimeout(() => { proc.kill(); reject(new Error('timeout')); }, 4500);
     });
+  };
+
+  const fetchPipedFast = async () => {
+    for (const instance of PIPED_INSTANCES.slice(0, 3)) {
+      try {
+        const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 4000);
+        const streams = (data?.audioStreams || []).filter(s => s?.url);
+        const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
+        if (stream?.url) return stream.url;
+      } catch (e) {}
+    }
+    throw new Error('Piped failed');
+  };
+
+  try {
+    const url = await Promise.any([fetchYtDlp(), fetchPipedFast()]);
     if (url) {
       streamCache.set(videoId, { url, expires: Date.now() + STREAM_CACHE_TTL });
       return url;
     }
-  } catch (e) {
-    console.log('yt-dlp error for', videoId, ':', e.message);
-  }
+  } catch (e) {}
 
-  // Fallback to Piped
   for (const instance of PIPED_INSTANCES) {
     try {
-      const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 8000);
+      const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 5000);
       const streams = (data?.audioStreams || []).filter(s => s?.url);
       const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
       if (stream?.url) {

@@ -743,7 +743,7 @@ async function fetchStreamUrl(videoId) {
     );
     for (const instance of instances) {
       try {
-        const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 12000);
+        const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 5000);
         const streams = (data?.audioStreams || []).filter(s => s?.url);
         const stream =
           streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
@@ -751,15 +751,12 @@ async function fetchStreamUrl(videoId) {
           streamCache.set(cacheKey, { url: stream.url, expires: Date.now() + STREAM_CACHE_TTL });
           return stream.url;
         }
-      } catch (e) {
-        console.log('[piped] Stream failed:', instance, videoId, e.message);
-      }
+      } catch (e) {}
     }
-    return null;
   }
 
-  // Try yt-dlp
-  try {
+  // Fast Parallel Stream Retrieval (yt-dlp 4s timeout vs Piped 4s)
+  const fetchYtDlp = async () => {
     const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
     const ytdlpArgs = [
       '--no-check-certificates',
@@ -770,19 +767,15 @@ async function fetchStreamUrl(videoId) {
       '-f',
       AUDIO_QUALITY_FORMATS[quality] || 'ba/b',
       '--socket-timeout',
-      '10',
+      '4',
       '--user-agent',
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     ];
-    if (networkConfig.httpProxy) {
-      ytdlpArgs.push('--proxy', networkConfig.httpProxy);
-    }
+    if (networkConfig.httpProxy) ytdlpArgs.push('--proxy', networkConfig.httpProxy);
     ytdlpArgs.push('https://www.youtube.com/watch?v=' + videoId);
-    const proc = spawn(ytdlpPath, ytdlpArgs, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-    });
-    const url = await new Promise((resolve, reject) => {
+
+    const proc = spawn(ytdlpPath, ytdlpArgs, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    return new Promise((resolve, reject) => {
       let out = '';
       proc.stdout.on('data', d => {
         out += d;
@@ -797,32 +790,43 @@ async function fetchStreamUrl(videoId) {
         if (out.trim()) resolve(out.trim().split('\n')[0]);
         else reject(new Error('exit ' + code));
       });
-      setTimeout(() => {
-        proc.kill();
-        reject(new Error('timeout'));
-      }, 15000);
+      setTimeout(() => { proc.kill(); reject(new Error('timeout')); }, 4500);
     });
-    streamCache.set(cacheKey, { url, expires: Date.now() + STREAM_CACHE_TTL });
-    return url;
+  };
+
+  const fetchPipedFast = async () => {
+    for (const instance of PIPED_INSTANCES.slice(0, 3)) {
+      try {
+        const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 4000);
+        const streams = (data?.audioStreams || []).filter(s => s?.url);
+        const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
+        if (stream?.url) return stream.url;
+      } catch (e) {}
+    }
+    throw new Error('Piped failed');
+  };
+
+  try {
+    const url = await Promise.any([fetchYtDlp(), fetchPipedFast()]);
+    if (url) {
+      streamCache.set(cacheKey, { url, expires: Date.now() + STREAM_CACHE_TTL });
+      return url;
+    }
   } catch (e) {
-    console.log('[yt-dlp] Stream error for', videoId, ':', e.message);
+    console.log('[stream] Fast resolution fallback for:', videoId);
   }
 
-  // Fallback to Piped API instances if yt-dlp failed
+  // Final fallback iterate Piped
   for (const instance of PIPED_INSTANCES) {
     try {
-      const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 8000);
+      const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 5000);
       const streams = (data?.audioStreams || []).filter(s => s?.url);
-      const stream =
-        streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
+      const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
       if (stream?.url) {
-        console.log('[stream fallback] Obtained audio stream via Piped:', instance);
         streamCache.set(cacheKey, { url: stream.url, expires: Date.now() + STREAM_CACHE_TTL });
         return stream.url;
       }
-    } catch (e) {
-      // try next piped instance
-    }
+    } catch (e) {}
   }
 
   return null;
