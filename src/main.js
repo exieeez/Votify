@@ -356,6 +356,44 @@ let appSettings = JSON.parse(localStorage.getItem('votify-settings')) || {
   backgroundBlur: 0,
 };
 
+let isChangingTrack = false;
+let discordPresenceSyncTimer = null;
+
+function syncDiscordPresence(delay = 0) {
+  const api = window.electronAPI;
+  if (!api?.updateDiscordPresence) return;
+  if (discordPresenceSyncTimer) clearTimeout(discordPresenceSyncTimer);
+
+  const sendPresence = () => {
+    discordPresenceSyncTimer = null;
+    const track = state.currentTrack;
+    if (!track) {
+      api.clearDiscordPresence?.();
+      return;
+    }
+    api.updateDiscordPresence({
+      title: track.title,
+      artist: track.artist,
+      cover: track.cover,
+      position: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
+      duration: Number.isFinite(audio.duration) ? audio.duration : 0,
+      playbackRate: Number.isFinite(audio.playbackRate) ? audio.playbackRate : 1,
+      isPlaying: !audio.paused && !audio.ended,
+    });
+  };
+
+  if (delay > 0) discordPresenceSyncTimer = setTimeout(sendPresence, delay);
+  else sendPresence();
+}
+
+function clearDiscordPresence() {
+  if (discordPresenceSyncTimer) {
+    clearTimeout(discordPresenceSyncTimer);
+    discordPresenceSyncTimer = null;
+  }
+  window.electronAPI?.clearDiscordPresence?.();
+}
+
 // If the user disabled the launch splash screen, skip it immediately instead
 // of waiting for the usual post-init delay.
 if (appSettings.splashScreen === false) {
@@ -368,10 +406,12 @@ audio.addEventListener('play', () => {
   state.isPlaying = true;
   emit('state:isPlaying', true);
   initEQ();
+  if (!isChangingTrack) syncDiscordPresence();
 });
 audio.addEventListener('pause', () => {
   state.isPlaying = false;
   emit('state:isPlaying', false);
+  if (!isChangingTrack) syncDiscordPresence();
 });
 audio.addEventListener('timeupdate', () => {
   state.currentTime = audio.currentTime;
@@ -380,6 +420,7 @@ audio.addEventListener('timeupdate', () => {
 audio.addEventListener('durationchange', () => {
   state.duration = audio.duration;
   emit('state:duration', audio.duration);
+  if (!isChangingTrack) syncDiscordPresence(100);
 });
 audio.addEventListener('volumechange', () => {
   state.volume = audio.volume;
@@ -5768,6 +5809,8 @@ function addToListeningHistory(track) {
 
 async function playTrack(track) {
   if (!track) return;
+  isChangingTrack = true;
+  let didStartPlayback = false;
   playRetryCount = 0;
   preFadeVolume = null;
   gaplessPreloadedFor = null;
@@ -5803,10 +5846,15 @@ async function playTrack(track) {
     audio.src = streamUrl;
     audio.load(); // ensure the new source is picked up immediately
     await audio.play();
+    didStartPlayback = true;
     if (playBtn) playBtn.innerHTML = '<i class="material-icons">pause</i>';
   } catch (e) {
     console.warn('[playTrack] failed:', e.message);
     if (playBtn) playBtn.innerHTML = '<i class="material-icons">play_arrow</i>';
+  } finally {
+    isChangingTrack = false;
+    if (didStartPlayback) syncDiscordPresence();
+    else clearDiscordPresence();
   }
 
   localStorage.setItem('votify-last-track', JSON.stringify(track));
@@ -5830,6 +5878,7 @@ async function playTrack(track) {
 
 audio.addEventListener('error', () => {
   if (playBtn) playBtn.innerHTML = '<i class="material-icons">play_arrow</i>';
+  if (!isChangingTrack) clearDiscordPresence();
 });
 audio.addEventListener('playing', () => {
   if (playBtn) playBtn.innerHTML = '<i class="material-icons">pause</i>';
@@ -5930,7 +5979,15 @@ audio.onloadedmetadata = () => {
     if (Number.isFinite(savedPosition) && savedPosition > 2 && savedPosition < audio.duration - 3)
       audio.currentTime = savedPosition;
   }
+  if (!isChangingTrack) syncDiscordPresence(100);
 };
+
+audio.addEventListener('seeked', () => {
+  if (!isChangingTrack) syncDiscordPresence(200);
+});
+audio.addEventListener('ratechange', () => {
+  if (!isChangingTrack) syncDiscordPresence();
+});
 
 // ==========================================
 // BAR TIMELINE — Bottom Player

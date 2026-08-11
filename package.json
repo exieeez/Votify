@@ -6,6 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "test": "node --test",
     "build": "electron-builder --linux AppImage deb rpm",
     "build:appimage": "electron-builder --linux AppImage",
     "build:win": "electron-builder --win nsis --x64",
@@ -24,6 +25,7 @@
     },
     "files": [
       "main.js",
+      "discord-presence.js",
       "preload.js",
       "server.js",
       "routes/**/*",
@@ -56,6 +58,7 @@
     "typescript": "^5.4.0"
   },
   "dependencies": {
+    "@xhayper/discord-rpc": "^1.3.4",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^9.0.3"
