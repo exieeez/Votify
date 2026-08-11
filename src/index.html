@@ -1056,19 +1056,21 @@
 
             <!-- SECTION 7: Плеер (app-player) -->
             <div class="settings-panel" id="settings-panel-app-player">
-              <!-- MINI PLAYER -->
               <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">subtitles</i><h3>Мини-плеер и боковая панель</h3></div>
+                <div class="settings-section-header"><i class="material-icons">format_align_center</i><h3>Выравнивание заголовка</h3></div>
                 <div class="setting-item">
-                  <label for="setting-player-title-align">Выравнивание текста</label>
+                  <label for="setting-player-title-align">Выравнивание текста (для всех плееров)</label>
                   <select id="setting-player-title-align" class="m3-select">
                     <option value="left">По левому краю</option>
                     <option value="center" selected>По центру</option>
                     <option value="right">По правому краю</option>
                   </select>
                 </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">play_circle_outline</i><h3>Стиль плееров</h3></div>
                 <div class="setting-item">
-                  <label for="setting-player-style">Оформление окна плеера</label>
+                  <label for="setting-player-style">Оформление всех плееров</label>
                   <select id="setting-player-style" class="m3-select">
                     <option value="standard" selected>Обычный (Классика)</option>
                     <option value="vinyl">Пластинка (Винил)</option>
@@ -1078,8 +1080,11 @@
                     <option value="neon">Неоновый (Cyberpunk Neon)</option>
                   </select>
                 </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">linear_scale</i><h3>Тип ползунка перемотки</h3></div>
                 <div class="setting-item">
-                  <label for="setting-player-slider-type">Дизайн ползунка перемотки</label>
+                  <label for="setting-player-slider-type">Дизайн ползунка (для всех плееров)</label>
                   <select id="setting-player-slider-type" class="m3-select">
                     <option value="normal" selected>Обычный</option>
                     <option value="thin">Тонкий</option>
@@ -1088,58 +1093,14 @@
                   </select>
                 </div>
               </div>
-
-              <!-- BIG PLAYER (PAGE PLAYER) -->
               <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">aspect_ratio</i><h3>Большой плеер (Page Player)</h3></div>
-                <div class="setting-item">
-                  <label for="setting-page-player-cover-size">Размер обложки трека</label>
-                  <select id="setting-page-player-cover-size" class="m3-select">
-                    <option value="compact">Компактная (240px)</option>
-                    <option value="standard" selected>Стандартная (320px)</option>
-                    <option value="large">Крупная (420px)</option>
-                  </select>
-                </div>
+                <div class="settings-section-header"><i class="material-icons">opacity</i><h3>Динамический фон</h3></div>
                 <div class="setting-toggle-item">
                   <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Свечение обложки</span>
-                    <span class="setting-toggle-desc">Объемная тень с оттенком обложки</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-page-player-glow" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item" style="margin-top: 10px;">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Секция «Похожие треки»</span>
-                    <span class="setting-toggle-desc">Отображать блок рекомендаций внизу большого плеера</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-page-player-similar" checked /><span class="toggle-slider"></span></label>
-                </div>
-              </div>
-
-              <!-- FULLSCREEN PLAYER -->
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">fullscreen</i><h3>Полноэкранный плеер</h3></div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Динамический фон (Лава-лампа)</span>
-                    <span class="setting-toggle-desc">Плавные градиентные фигуры под цвет обложки</span>
+                    <span class="setting-toggle-label">Динамический фон плееров (Лава-лампа)</span>
+                    <span class="setting-toggle-desc">Плавные градиенты под цвет обложки в полноэкранном и большом плеере</span>
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-dynamic-player-bg" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-item" style="margin-top: 12px;">
-                  <label for="setting-fs-cover-scale">Масштаб обложки</label>
-                  <select id="setting-fs-cover-scale" class="m3-select">
-                    <option value="compact">Компактная (300px)</option>
-                    <option value="normal" selected>Стандартная (400px)</option>
-                    <option value="large">Крупная (480px)</option>
-                  </select>
-                </div>
-                <div class="setting-toggle-item" style="margin-top: 10px;">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Глубокие тени и свечение</span>
-                    <span class="setting-toggle-desc">Эффект объёмного свечения вокруг обложки</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-fs-cover-glow" checked /><span class="toggle-slider"></span></label>
                 </div>
               </div>
             </div>

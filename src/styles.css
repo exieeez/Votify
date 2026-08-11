@@ -6633,6 +6633,7 @@ body[data-player-title-align="left"] .player-track-info,
 body[data-player-title-align="left"] .fs-track-details,
 body[data-player-title-align="left"] .right-player-info,
 body[data-player-title-align="left"] .pp-info,
+body[data-player-title-align="left"] .pp-details,
 body[data-player-title-align="left"] .player-bar-info,
 body[data-player-title-align="left"] .fs-player-info {
   text-align: left !important;
@@ -6644,6 +6645,7 @@ body[data-player-title-align="center"] .player-track-info,
 body[data-player-title-align="center"] .fs-track-details,
 body[data-player-title-align="center"] .right-player-info,
 body[data-player-title-align="center"] .pp-info,
+body[data-player-title-align="center"] .pp-details,
 body[data-player-title-align="center"] .player-bar-info,
 body[data-player-title-align="center"] .fs-player-info {
   text-align: center !important;
@@ -6655,6 +6657,7 @@ body[data-player-title-align="right"] .player-track-info,
 body[data-player-title-align="right"] .fs-track-details,
 body[data-player-title-align="right"] .right-player-info,
 body[data-player-title-align="right"] .pp-info,
+body[data-player-title-align="right"] .pp-details,
 body[data-player-title-align="right"] .player-bar-info,
 body[data-player-title-align="right"] .fs-player-info {
   text-align: right !important;
@@ -6793,12 +6796,14 @@ body[data-player-style="neon"] img.fi-cover {
   box-shadow: 0 0 12px var(--accent) !important;
 }
 
-/* Progress Slider Types */
+/* Progress Slider Types across ALL players */
 /* Thin */
 body[data-player-slider-type="thin"] .floating-island .custom-eq-container,
 body[data-player-slider-type="thin"] .custom-eq-container,
 body[data-player-slider-type="thin"] .bar-timeline-track,
-body[data-player-slider-type="thin"] .fs-timeline-track {
+body[data-player-slider-type="thin"] .fs-timeline-track,
+body[data-player-slider-type="thin"] .pp-timeline-bar,
+body[data-player-slider-type="thin"] .right-timeline-track {
   height: 4px !important;
   opacity: 0.8;
 }
@@ -6821,7 +6826,9 @@ body[data-player-slider-type="ios"] .custom-eq-container {
   padding: 2px !important;
   background: rgba(255, 255, 255, 0.08) !important;
 }
-body[data-player-slider-type="ios"] .fs-timeline-track {
+body[data-player-slider-type="ios"] .fs-timeline-track,
+body[data-player-slider-type="ios"] .pp-timeline-bar,
+body[data-player-slider-type="ios"] .right-timeline-track {
   height: 10px !important;
   border-radius: 999px !important;
   background: rgba(255, 255, 255, 0.15) !important;
@@ -6830,9 +6837,10 @@ body[data-player-slider-type="ios"] .fs-timeline-track {
 /* Neon Waveform Style */
 body[data-player-slider-type="wave"] .custom-eq-curve,
 body[data-player-slider-type="wave"] #fi-eq-curve,
-body[data-player-slider-type="wave"] #tl-active-curve {
+body[data-player-slider-type="wave"] #tl-active-curve,
+body[data-player-slider-type="wave"] .pp-timeline-bar,
+body[data-player-slider-type="wave"] .fs-timeline-track {
   stroke-width: 6px !important;
-  stroke: var(--accent) !important;
   filter: drop-shadow(0 0 12px var(--accent)) drop-shadow(0 0 4px #ffffff) !important;
 }
 body[data-player-slider-type="wave"] .custom-eq-fill,
