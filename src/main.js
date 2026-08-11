@@ -2,6 +2,11 @@
 // Votify — Dotify Edition — Main Script
 // ==========================================
 
+// Register the splash watchdog before any other initialization. If corrupted
+// local data or another top-level feature throws, the loading screen must not
+// cover the application forever.
+let startupSplashFailsafe = setTimeout(() => hideSplash(), 4000);
+
 // --- Titlebar Buttons ---
 function setupTitlebarButtons() {
   var api = window.electronAPI;
@@ -297,6 +302,18 @@ function updateFullscreenLyrics(time) {
   });
 }
 
+function readStoredJson(key, fallback) {
+  const raw = localStorage.getItem(key);
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) ?? fallback;
+  } catch (error) {
+    console.warn(`Ignoring corrupted local setting: ${key}`, error);
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
 let audio = new Audio();
 audio.preload = 'auto';
 let currentPlaylist = [];
@@ -306,8 +323,8 @@ let shuffleHistory = [];
 let recommendationsLoaded = false;
 let loadingOperations = 0;
 let loadingAudioContext = null;
-let playlists = JSON.parse(localStorage.getItem('votify-playlists')) || { Избранное: [] };
-let appSettings = JSON.parse(localStorage.getItem('votify-settings')) || {
+let playlists = readStoredJson('votify-playlists', { Избранное: [] });
+let appSettings = readStoredJson('votify-settings', {
   lang: 'ru',
   font: 'default',
   bgUrl: '',
@@ -354,7 +371,7 @@ let appSettings = JSON.parse(localStorage.getItem('votify-settings')) || {
   accentGlow: true,
   trackCardStyle: 'default',
   backgroundBlur: 0,
-};
+});
 
 let isChangingTrack = false;
 let discordPresenceSyncTimer = null;
@@ -4432,7 +4449,7 @@ if (settingsOverlayEl) {
 // ==========================================
 // Hotkey Editing
 // ==========================================
-let hotkeyOverrides = JSON.parse(localStorage.getItem('votify-hotkeys') || '{}');
+let hotkeyOverrides = readStoredJson('votify-hotkeys', {});
 const defaultHotkeys = {
   play: ' ',
   next: 'n',
@@ -6541,6 +6558,10 @@ function syncVolumeBars() {
 }
 
 function hideSplash() {
+  if (startupSplashFailsafe) {
+    clearTimeout(startupSplashFailsafe);
+    startupSplashFailsafe = null;
+  }
   const splash = document.getElementById('splash-screen');
   if (splash) {
     if (splash.dataset.hidden) return;
@@ -6812,9 +6833,6 @@ function initDesktopGooseEngine() {
     }
   }, 9000);
 }
-
-// Failsafe: hide splash even if a later initialization task fails or stalls.
-setTimeout(hideSplash, 3000);
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
