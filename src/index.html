@@ -959,9 +959,14 @@
                 <div id="soundpad-controls-group" style="margin-top: 16px; display: none;">
                   <div class="setting-item" style="margin-bottom: 16px;">
                     <label for="setting-soundpad-mic-device">Ваш Микрофон (Входное устройство)</label>
-                    <select id="setting-soundpad-mic-device" class="m3-select">
-                      <option value="default">Устройство по умолчанию</option>
-                    </select>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <select id="setting-soundpad-mic-device" class="m3-select" style="flex: 1;">
+                        <option value="default">🎙️ Устройство по умолчанию</option>
+                      </select>
+                      <button class="btn-secondary" id="btn-soundpad-refresh-mics" style="padding: 10px 14px; font-size: 13px;" title="Обновить список устройств">
+                        <i class="material-icons" style="font-size: 18px;">refresh</i>
+                      </button>
+                    </div>
                   </div>
                   <div class="setting-item" style="margin-bottom: 16px;">
                     <div class="setting-row">
