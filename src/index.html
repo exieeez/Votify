@@ -1477,6 +1477,19 @@
     <script>
       window.addEventListener('unhandledrejection', e => { console.error('UNHANDLED REJECTION:', e.reason); if (e.reason?.message?.includes('fetch') || e.reason?.message?.includes('Network')) e.preventDefault(); });
       window.addEventListener('error', e => { console.error('WINDOW ERROR:', e.message, e.filename, e.lineno); if (e.message?.includes('fetch') || e.message?.includes('Network')) e.preventDefault(); });
+
+      // This watchdog is deliberately independent from main.js. It still
+      // unlocks the interface if that script fails before its own startup
+      // cleanup is registered.
+      window.setTimeout(() => {
+        const splash = document.getElementById('splash-screen');
+        if (!splash || splash.dataset.hidden === 'true') return;
+        splash.dataset.hidden = 'true';
+        splash.classList.add('hiding');
+        window.setTimeout(() => {
+          splash.style.display = 'none';
+        }, 800);
+      }, 4000);
     </script>
     <script src="main.js"></script>
   </body>
