@@ -88,7 +88,9 @@ function loadNetworkConfig() {
       const data = JSON.parse(fs.readFileSync(NETWORK_FILE, 'utf-8'));
       networkConfig = { ...networkConfig, ...data };
     }
-  } catch (e) {}
+  } catch (e) {
+    /* ignore */
+  }
 }
 loadNetworkConfig();
 
@@ -657,7 +659,9 @@ async function ytSearchScrape(query, limit) {
             }
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        /* ignore fallback search errors */
+      }
     }
   }
 

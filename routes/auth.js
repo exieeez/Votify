@@ -23,7 +23,9 @@ function loadSmtpConfig() {
     if (fs.existsSync(smtpFile)) {
       smtpConfig = JSON.parse(fs.readFileSync(smtpFile, 'utf-8'));
     }
-  } catch (e) {}
+  } catch (e) {
+    /* ignore */
+  }
 }
 loadSmtpConfig();
 
@@ -130,7 +132,9 @@ async function handleAuthRoutes(req, res, u) {
           text: `Your password reset code is: ${code}`,
           html: `<div style="font-family:sans-serif;padding:20px;"><h2 style="color:#6750A4;">Votify</h2><p>Your password reset code:</p><h1 style="font-size:48px;color:#6750A4;letter-spacing:8px;">${code}</h1></div>`,
         });
-      } catch (err) {}
+      } catch (err) {
+        /* ignore email transport failure */
+      }
     }
     sendJson(res, 200, { message: 'If this email exists, a code was sent', code: code });
     return true;

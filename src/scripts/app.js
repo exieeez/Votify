@@ -635,7 +635,9 @@ async function loadHomeCharts() {
         });
       });
     }
-  } catch (e) {}
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 function initSearchView() {
@@ -734,7 +736,9 @@ async function loadCurrentTabChart() {
         list.appendChild(div);
       });
     }
-  } catch (e) {}
+  } catch (e) {
+    /* ignore chart load error */
+  }
 }
 
 // ==========================================

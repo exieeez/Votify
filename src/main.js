@@ -176,7 +176,9 @@ async function fetchLyricsData(rawTitle, rawArtist) {
         const data = await res.json();
         if (data && (data.syncedLyrics || data.plainLyrics)) result = data;
       }
-    } catch {}
+    } catch (e) {
+      /* ignore */
+    }
 
     // 2) Fuzzy search with artist + title — handles minor spelling/wording differences
     if (!result) {
@@ -189,7 +191,9 @@ async function fetchLyricsData(rawTitle, rawArtist) {
             result = results.find(r => r.syncedLyrics) || results.find(r => r.plainLyrics) || null;
           }
         }
-      } catch {}
+      } catch (e) {
+        /* ignore */
+      }
     }
 
     // 3) Last resort — search by title only, in case the artist name is wrong/missing
@@ -202,7 +206,9 @@ async function fetchLyricsData(rawTitle, rawArtist) {
             result = results.find(r => r.syncedLyrics) || results.find(r => r.plainLyrics) || null;
           }
         }
-      } catch {}
+      } catch (e) {
+        /* ignore */
+      }
     }
   }
 
@@ -244,7 +250,9 @@ async function loadLyricsForTrack(title, artist) {
       })
       .filter(Boolean);
     if (el && currentLyricsLines.length > 0) updateLyricsLine();
-  } catch {}
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 function updateLyricsLine() {
@@ -329,6 +337,7 @@ let appSettings = JSON.parse(localStorage.getItem('votify-settings')) || {
   closeToTray: false,
   trackNotifications: false,
   rememberVolume: true,
+  dynamicPlayerBg: true,
   pauseWhenHidden: false,
   resumePosition: true,
   saveHistory: true,
@@ -435,6 +444,7 @@ async function syncWithCloud(direction = 'pull') {
 const translations = {
   ru: {
     logo: 'Votify',
+    'nav-home': 'Главная',
     'nav-search': 'Поиск',
     'nav-recommendations': 'Рекомендации',
     'nav-playlists': 'Плейлисты',
@@ -452,7 +462,7 @@ const translations = {
     'library-title': 'Моя медиатека',
     'create-playlist': 'Создать плейлист',
     'back-btn': 'Назад',
-    'settings-title': 'Настройки системы',
+    'settings-title': 'Настройки Votify',
     'player-no-track': 'Votify',
     'player-unknown': 'Выберите трек',
     'empty-msg': 'Ничего не найдено',
@@ -461,6 +471,7 @@ const translations = {
   },
   en: {
     logo: 'Votify',
+    'nav-home': 'Home',
     'nav-search': 'Search',
     'nav-recommendations': 'Recommendations',
     'nav-playlists': 'Playlists',
@@ -478,7 +489,7 @@ const translations = {
     'library-title': 'My Library',
     'create-playlist': 'Create Playlist',
     'back-btn': 'Back',
-    'settings-title': 'System Settings',
+    'settings-title': 'Votify Settings',
     'player-no-track': 'Votify',
     'player-unknown': 'Select a track',
     'empty-msg': 'Nothing found',
@@ -527,8 +538,8 @@ function applyLanguage(lang) {
   const ru = lang !== 'en';
   const textMap = {
     '#page-title': ru ? 'Главная' : 'Home',
-    '.settings-modal-header h2': ru ? 'Настройки' : 'Settings',
-    '.general-settings-hero h3': ru ? 'Основные настройки' : 'General settings',
+    '.settings-modal-header h2': ru ? 'Настройки Votify' : 'Votify Settings',
+    '.general-settings-hero h3': ru ? 'Основные настройки' : 'General Settings',
     '.general-settings-hero p': ru
       ? 'Управляйте запуском, звуком, воспроизведением и поведением Votify.'
       : 'Manage startup, sound, playback and Votify behavior.',
@@ -541,11 +552,44 @@ function applyLanguage(lang) {
       el.textContent = value;
     })
   );
-  const menuNames = ru ? ['ОСНОВНЫЕ', 'ОФОРМЛЕНИЕ', 'ПРОЧЕЕ'] : ['GENERAL', 'APPEARANCE', 'OTHER'];
-  document.querySelectorAll('.settings-menu-item').forEach((el, i) => {
-    const icon = el.querySelector('.material-icons')?.outerHTML || '';
-    if (menuNames[i]) el.innerHTML = icon + menuNames[i];
+
+  const categoryLabels = {
+    ru: ['ОСНОВНЫЕ', 'ОФОРМЛЕНИЕ', 'ИНТЕГРАЦИИ'],
+    en: ['GENERAL', 'APPEARANCE', 'INTEGRATIONS'],
+  };
+  document.querySelectorAll('.settings-menu-category').forEach((el, i) => {
+    if (categoryLabels[lang]?.[i]) el.textContent = categoryLabels[lang][i];
   });
+
+  const menuSectionNames = {
+    'gen-main': { ru: 'Основные', en: 'General' },
+    'gen-overlay': { ru: 'Оверлей', en: 'Overlay' },
+    'gen-audio': { ru: 'Аудио', en: 'Audio' },
+    'gen-perf': { ru: 'Эффективность', en: 'Performance' },
+    'gen-hotkeys': { ru: 'Горячие клавиши', en: 'Hotkeys' },
+    'gen-storage': { ru: 'Хранилище', en: 'Storage' },
+    'app-player': { ru: 'Плеер', en: 'Player' },
+    'app-cover': { ru: 'Обложка', en: 'Cover' },
+    'app-ui': { ru: 'Интерфейс', en: 'Interface' },
+    'app-tabs': { ru: 'Вкладки', en: 'Tabs' },
+    'app-bg': { ru: 'Фон', en: 'Background' },
+    'app-custom': { ru: 'Кастомизация', en: 'Customization' },
+    'int-discord': { ru: 'Discord', en: 'Discord' },
+    'int-obs': { ru: 'OBS', en: 'OBS' },
+    'int-zapret': { ru: 'Zapret', en: 'Zapret' },
+    'int-server': { ru: 'Локальный сервер', en: 'Local Server' },
+    'int-proxy': { ru: 'Прокси', en: 'Proxy' },
+  };
+
+  document.querySelectorAll('.settings-menu-item').forEach(el => {
+    const sec = el.getAttribute('data-settings-section');
+    if (sec && menuSectionNames[sec]) {
+      const icon = el.querySelector('.material-icons')?.outerHTML || '';
+      const text = menuSectionNames[sec][lang] || menuSectionNames[sec].ru;
+      el.innerHTML = `${icon} ${text}`;
+    }
+  });
+
   document.documentElement.lang = lang;
 }
 
@@ -1032,7 +1076,9 @@ function playClickSound() {
     gain.connect(ctx.destination);
     osc.start(now);
     osc.stop(now + 0.1);
-  } catch (e) {}
+  } catch (e) {
+    /* ignore audio context failure */
+  }
 }
 
 document.addEventListener('click', e => {
@@ -1102,33 +1148,40 @@ function renderPlaylists() {
   if (offlineCountEl)
     offlineCountEl.textContent = offlineCount > 0 ? `${offlineCount} треков` : 'Нет треков';
 
-  // Render user playlists list in left sidebar
+  // Render user playlists list in left sidebar / grid
   const container = document.getElementById('lib-playlists-list');
   if (container) {
     const keys = Object.keys(playlists).filter(k => k !== 'Избранное');
     if (keys.length === 0) {
       container.innerHTML =
-        '<div style="font-size:12px;color:rgba(255,255,255,0.3);padding:8px 12px;">Нет плейлистов</div>';
+        '<div style="font-size:13px;color:rgba(255,255,255,0.4);padding:18px 0;grid-column:1/-1;">У вас пока нет созданных плейлистов. Нажмите «Создать плейлист», чтобы добавить первый.</div>';
     } else {
       container.innerHTML = keys
-        .map(
-          key => `
-        <div class="lib-item" data-playlist="${escapeHtml(key)}">
-          <div class="lib-item-icon">
-            <i class="material-icons">queue_music</i>
+        .map(key => {
+          const list = playlists[key] || [];
+          const cover = list.length > 0 && list[0].cover ? list[0].cover : '';
+          return `
+        <div class="playlist-card" data-playlist="${escapeHtml(key)}">
+          <div class="card-cover-wrap">
+            ${
+              cover
+                ? `<img class="card-cover" src="${escapeHtml(cover)}" alt="${escapeHtml(key)}" />`
+                : `<div class="card-cover-placeholder"><i class="material-icons">queue_music</i></div>`
+            }
+            <button class="card-play-btn" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
           </div>
-          <div class="lib-item-text">
-            <div class="lib-item-title">${escapeHtml(key)}</div>
-            <div class="lib-item-sub">${playlists[key].length > 0 ? playlists[key].length + ' треков' : 'Нет треков'}</div>
+          <div class="card-info">
+            <div class="card-title">${escapeHtml(key)}</div>
+            <div class="card-sub">${list.length > 0 ? list.length + ' треков' : 'Нет треков'}</div>
           </div>
         </div>
-      `
-        )
+      `;
+        })
         .join('');
     }
 
     // Attach click listeners for playlists
-    container.querySelectorAll('.lib-item').forEach(item => {
+    container.querySelectorAll('.playlist-card').forEach(item => {
       item.onclick = () => {
         const plName = item.getAttribute('data-playlist');
         openPlaylist(plName);
@@ -1147,6 +1200,32 @@ function renderPlaylists() {
     offlineItem.onclick = () => openPlaylist('__OFFLINE__');
   }
 
+  // Filter Tabs Event Listeners
+  const filterTabs = document.getElementById('library-filter-tabs');
+  if (filterTabs) {
+    filterTabs.querySelectorAll('.lib-tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        filterTabs.querySelectorAll('.lib-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        const playlistsSection = document.getElementById('lib-playlists-section');
+        const detailPane = document.getElementById('lib-detail-pane');
+
+        if (tab === 'favorites') {
+          if (playlistsSection) playlistsSection.style.display = 'none';
+          openPlaylist('Избранное');
+        } else if (tab === 'playlists') {
+          if (playlistsSection) playlistsSection.style.display = 'block';
+          if (detailPane) detailPane.style.display = 'none';
+        } else {
+          // All
+          if (playlistsSection) playlistsSection.style.display = 'block';
+          if (detailPane) detailPane.style.display = 'none';
+        }
+      };
+    });
+  }
+
   // Action buttons
   safeClick('lib-add-playlist-btn', createPlaylist);
   safeClick('lib-refresh-btn', () => {
@@ -1154,8 +1233,9 @@ function renderPlaylists() {
     showToast('Медиатека обновлена');
   });
 
-  // Open default or current active playlist
-  openPlaylist(currentActiveLibItem || 'Избранное');
+  // Do NOT auto-open any playlist — let user choose via tabs or card clicks
+  const detailPane = document.getElementById('lib-detail-pane');
+  if (detailPane) detailPane.style.display = 'none';
 }
 
 function renderSidebarPlaylists() {
@@ -1203,12 +1283,21 @@ async function createPlaylist() {
 function openPlaylist(name) {
   currentActiveLibItem = name;
 
-  // Highlight active item in sidebar
+  const detailPane = document.getElementById('lib-detail-pane');
+  if (detailPane) {
+    detailPane.style.display = 'block';
+  }
+
+  // Close button listener
+  safeClick('lib-close-detail-btn', () => {
+    if (detailPane) detailPane.style.display = 'none';
+  });
+
+  // Highlight active item in sidebar/grid
   document.querySelectorAll('.lib-item').forEach(item => {
     const isFav = name === 'Избранное' && item.dataset.system === 'favorites';
-    const isOff = name === '__OFFLINE__' && item.dataset.system === 'offline';
     const isPl = item.dataset.playlist === name;
-    item.classList.toggle('active', isFav || isOff || isPl);
+    item.classList.toggle('active', isFav || isPl);
   });
 
   let tracks = [];
@@ -1219,10 +1308,6 @@ function openPlaylist(name) {
     tracks = playlists['Избранное'] || [];
     title = 'Любимые треки';
     subtitle = `${tracks.length} треков в вашей коллекции`;
-  } else if (name === '__OFFLINE__') {
-    tracks = state.offlineTracks || [];
-    title = 'Оффлайн треки';
-    subtitle = `${tracks.length} треков доступно без интернета`;
   } else {
     tracks = playlists[name] || [];
     title = name;
@@ -1247,8 +1332,7 @@ function openPlaylist(name) {
     if (coverImg) coverImg.style.display = 'none';
     if (coverIcon) {
       coverIcon.style.display = 'block';
-      coverIcon.textContent =
-        name === 'Избранное' ? 'favorite' : name === '__OFFLINE__' ? 'cloud_queue' : 'queue_music';
+      coverIcon.textContent = name === 'Избранное' ? 'favorite' : 'queue_music';
     }
   }
 
@@ -1275,14 +1359,9 @@ function openPlaylist(name) {
     playTrack(tracks[currentTrackIndex]);
   });
 
-  // Download button
-  safeClick('lib-download-active-btn', () => {
-    if (name !== '__OFFLINE__' && name !== 'Избранное') downloadPlaylist(name);
-  });
-
   // Delete button
   safeClick('lib-delete-active-btn', async () => {
-    if (name === 'Избранное' || name === '__OFFLINE__') {
+    if (name === 'Избранное') {
       showToast('Системную подборку нельзя удалить');
       return;
     }
@@ -1291,6 +1370,7 @@ function openPlaylist(name) {
       delete playlists[name];
       savePlaylists();
       renderPlaylists();
+      if (detailPane) detailPane.style.display = 'none';
     }
   });
 
@@ -1735,6 +1815,26 @@ function switchScreen(screenId, activeBtnId) {
   if (targetScreen) {
     targetScreen.style.display = 'block';
     targetScreen.classList.remove('hidden');
+  }
+
+  const mainContent =
+    document.getElementById('main-content') || document.querySelector('.main-content');
+  if (mainContent) {
+    mainContent.scrollTop = 0;
+  }
+
+  // Reset library tabs when entering folders-screen
+  if (screenId === 'folders-screen') {
+    const filterTabs = document.getElementById('library-filter-tabs');
+    if (filterTabs) {
+      filterTabs.querySelectorAll('.lib-tab-btn').forEach(b => b.classList.remove('active'));
+      const allTab = filterTabs.querySelector('[data-tab="all"]');
+      if (allTab) allTab.classList.add('active');
+    }
+    const detailPane = document.getElementById('lib-detail-pane');
+    if (detailPane) detailPane.style.display = 'none';
+    const playlistsSection = document.getElementById('lib-playlists-section');
+    if (playlistsSection) playlistsSection.style.display = 'block';
   }
 
   const validBtnIds = [
@@ -3014,12 +3114,14 @@ document.addEventListener('keydown', e => {
               );
             }
           }
-        } catch (err) {}
+        } catch (err) {
+          /* ignore */
+        }
       }
 
       // 2. If < 4 tracks found, search by track title keywords or fallback to current playlist
       if (similarTracks.length < 4 && track.title) {
-        const titleQuery = track.title.split(/[\s(\[-]/)[0]; // First keyword
+        const titleQuery = track.title.split(/[\s([-]/)[0]; // First keyword
         if (titleQuery && titleQuery.length > 2) {
           try {
             const res = await fetch(`/api/search?q=${encodeURIComponent(titleQuery)}`);
@@ -3032,7 +3134,9 @@ document.addEventListener('keydown', e => {
                 similarTracks = [...similarTracks, ...addTracks];
               }
             }
-          } catch (err) {}
+          } catch (err) {
+            /* ignore */
+          }
         }
       }
 
@@ -3986,7 +4090,9 @@ if (streamSourceSelect) {
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
-    } catch (e) {}
+    } catch (e) {
+      /* ignore audio reset errors */
+    }
     searchAllTracks = [];
     if (resultsContainer) resultsContainer.innerHTML = '';
     if (statusMessage) statusMessage.innerText = '';
@@ -4133,6 +4239,19 @@ if (trackNotificationsToggle) {
 // ==========================================
 // Storage / cache management
 // ==========================================
+const openOfflineDB = openMP3DB;
+const OFFLINE_STORE = MP3_STORE_NAME;
+
+function downloadPlaylist(name) {
+  const list = playlists[name] || [];
+  if (!list.length) {
+    if (typeof showToast === 'function') showToast('Плейлист пуст');
+    return;
+  }
+  if (typeof showToast === 'function')
+    showToast(`Загрузка плейлиста «${name}» (${list.length} треков)...`);
+}
+
 async function getOfflineCacheStats() {
   try {
     const db = await openOfflineDB();
@@ -4473,12 +4592,15 @@ if (appSettings.accent) {
 // Background presets
 const bgGradients = {
   default: '',
-  'grad-1': 'linear-gradient(135deg,#1a1040,#0d0620)',
-  'grad-2': 'linear-gradient(135deg,#0a1628,#061020)',
-  'grad-3': 'linear-gradient(135deg,#0a1a10,#060d08)',
-  'grad-4': 'linear-gradient(135deg,#1a0a18,#0d0610)',
-  'grad-5': 'linear-gradient(135deg,#080818,#040410)',
-  'grad-6': 'linear-gradient(135deg,#1a0808,#100404)',
+  'grad-1': 'linear-gradient(135deg, #7928ca 0%, #ff0080 50%, #11101d 100%)',
+  'grad-2': 'linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #050b14 100%)',
+  'grad-3': 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)',
+  'grad-4': 'linear-gradient(135deg, #10b981 0%, #059669 50%, #022c22 100%)',
+  'grad-5': 'linear-gradient(135deg, #ff416c 0%, #ff4b2b 50%, #1a0505 100%)',
+  'grad-6': 'linear-gradient(135deg, #00c6ff 0%, #0072ff 50%, #030f26 100%)',
+  'grad-7': 'linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #0f172a 100%)',
+  'grad-8': 'linear-gradient(135deg, #f43f5e 0%, #fb7185 50%, #1e050c 100%)',
+  'grad-9': 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
 };
 
 // --- Appearance settings ---
@@ -4737,7 +4859,56 @@ if (bgFileBtn && bgFileInput) {
     reader.readAsDataURL(file);
   });
 }
-// Background color picker
+// Background brightness slider
+const bgBrightnessSlider = document.getElementById('bg-brightness-slider');
+const bgBrightnessSliderValue = document.getElementById('bg-brightness-slider-value');
+if (bgBrightnessSlider) {
+  const initialBrightness =
+    appSettings.bgBrightness !== undefined ? Number(appSettings.bgBrightness) : 100;
+  bgBrightnessSlider.value = initialBrightness;
+  if (bgBrightnessSliderValue) bgBrightnessSliderValue.textContent = initialBrightness + '%';
+  bgBrightnessSlider.addEventListener('input', () => {
+    const val = Number(bgBrightnessSlider.value);
+    appSettings.bgBrightness = val;
+    if (bgBrightnessSliderValue) bgBrightnessSliderValue.textContent = val + '%';
+    applyAppearance();
+    saveSettings();
+  });
+}
+
+// Background blur slider
+const bgBlurSlider = document.getElementById('bg-blur-slider');
+const bgBlurSliderValue = document.getElementById('bg-blur-slider-value');
+if (bgBlurSlider) {
+  const initialBlur = Number(appSettings.backgroundBlur) || 0;
+  bgBlurSlider.value = initialBlur;
+  if (bgBlurSliderValue) bgBlurSliderValue.textContent = initialBlur + 'px';
+  bgBlurSlider.addEventListener('input', () => {
+    const val = Number(bgBlurSlider.value);
+    appSettings.backgroundBlur = val;
+    if (bgBlurSliderValue) bgBlurSliderValue.textContent = val + 'px';
+    applyAppearance();
+    saveSettings();
+  });
+}
+
+// UI Panel Transparency slider
+const uiTransparencySlider = document.getElementById('ui-transparency-slider');
+const uiTransparencySliderValue = document.getElementById('ui-transparency-slider-value');
+if (uiTransparencySlider) {
+  const initialTransp =
+    appSettings.uiTransparency !== undefined ? Number(appSettings.uiTransparency) : 45;
+  uiTransparencySlider.value = initialTransp;
+  if (uiTransparencySliderValue) uiTransparencySliderValue.textContent = initialTransp + '%';
+  uiTransparencySlider.addEventListener('input', () => {
+    const val = Number(uiTransparencySlider.value);
+    appSettings.uiTransparency = val;
+    if (uiTransparencySliderValue) uiTransparencySliderValue.textContent = val + '%';
+    applyAppearance();
+    saveSettings();
+  });
+}
+
 const bgColorInput = document.getElementById('bg-color-input');
 const bgColorPreview = document.getElementById('bg-color-preview');
 if (bgColorInput) {
@@ -4823,7 +4994,12 @@ function applyAppearance() {
   document.body.dataset.density = appSettings.density || 'comfortable';
   document.body.dataset.trackCardStyle = appSettings.trackCardStyle || 'default';
   document.body.classList.toggle('no-accent-glow', appSettings.accentGlow === false);
-  root.style.setProperty('--background-blur', `${Number(appSettings.backgroundBlur) || 0}px`);
+
+  const bright = appSettings.bgBrightness !== undefined ? Number(appSettings.bgBrightness) : 100;
+  root.style.setProperty('--bg-brightness', `${bright}%`);
+  root.style.setProperty('--bg-blur', `${Number(appSettings.backgroundBlur) || 0}px`);
+  const transp = appSettings.uiTransparency !== undefined ? Number(appSettings.uiTransparency) : 45;
+  root.style.setProperty('--ui-panel-opacity', (transp / 100).toFixed(2));
 }
 
 const scalableTextSelector = [
@@ -4953,7 +5129,9 @@ if (searchInput) {
         } else if (searchSuggestions) {
           searchSuggestions.style.display = 'none';
         }
-      } catch (e) {}
+      } catch (e) {
+        /* ignore */
+      }
     }, 800);
   });
 
@@ -4983,13 +5161,13 @@ if (searchInput) {
       targetOpacity = 0;
     let velX = 0;
 
-    function syncMeasureFont() {
+    const syncMeasureFont = () => {
       const styles = window.getComputedStyle(searchInput);
       measureSpan.style.font = `${styles.fontStyle} ${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
       measureSpan.style.letterSpacing = styles.letterSpacing;
-    }
+    };
 
-    function getCaretPosition() {
+    const getCaretPosition = () => {
       const idx = searchInput.selectionStart || 0;
       const text = searchInput.value.substring(0, idx);
       syncMeasureFont();
@@ -4997,9 +5175,9 @@ if (searchInput) {
       // Caret is inside the container (padding: 12px), so add container padding
       const containerPadding = parseFloat(window.getComputedStyle(containerEl).paddingLeft) || 0;
       return text.length > 0 ? measureSpan.offsetWidth + containerPadding : containerPadding - 1;
-    }
+    };
 
-    function scrollCaretIntoView(pos) {
+    const scrollCaretIntoView = pos => {
       const styles = window.getComputedStyle(searchInput);
       const paddingLeft = parseFloat(styles.paddingLeft) || 0;
       const paddingRight = parseFloat(styles.paddingRight) || 0;
@@ -5011,9 +5189,9 @@ if (searchInput) {
       } else if (pos < visibleLeft) {
         searchInput.scrollLeft = Math.max(0, pos - paddingLeft);
       }
-    }
+    };
 
-    function updateCaret() {
+    const updateCaret = () => {
       const absWidth = getCaretPosition();
       scrollCaretIntoView(absWidth);
       const paddingLeft = parseFloat(window.getComputedStyle(searchInput).paddingLeft) || 0;
@@ -5025,10 +5203,10 @@ if (searchInput) {
       const hasSelection = (searchInput.selectionStart || 0) !== (searchInput.selectionEnd || 0);
       targetX = Math.min(caretPos, maxX);
       targetOpacity = isVisible && !hasSelection ? 1 : 0;
-    }
+    };
 
     // Spring animation loop (like framer-motion spring)
-    function springAnimate() {
+    const springAnimate = () => {
       const dx = targetX - caretX;
       const dOpacity = targetOpacity - caretOpacity;
       // Spring physics
@@ -5042,7 +5220,7 @@ if (searchInput) {
       smoothCaret.style.left = caretX + 'px';
       smoothCaret.style.opacity = Math.max(0, Math.min(1, caretOpacity));
       requestAnimationFrame(springAnimate);
-    }
+    };
     springAnimate();
 
     searchInput.addEventListener('input', updateCaret);
@@ -5444,7 +5622,9 @@ function gatherWaveSeeds() {
   try {
     const history = JSON.parse(localStorage.getItem('listeningHistory') || '[]');
     pool.push(...history.slice(0, 20));
-  } catch {}
+  } catch (e) {
+    /* ignore */
+  }
   return buildWaveSeeds(pool);
 }
 
@@ -5655,7 +5835,7 @@ async function playTrack(track) {
   // Update player bar cover
   const barCover = document.getElementById('player-bar-cover');
   if (barCover) barCover.src = currentTrackCover || '';
-  applyPlayerBackground(currentTrackCover);
+  if (typeof applyCoverSettings === 'function') applyCoverSettings();
 
   // Force-stop any previous playback before switching source
   audio.pause();
@@ -6470,162 +6650,384 @@ function extractDominantColor(imgUrl) {
   });
 }
 
-async function applyPlayerBackground(coverUrl) {
-  // Player bar is always transparent — body background shows through
+// ============================================================================
+// LIVE SETTINGS APPLICATION & PARTICLE CANVAS SYSTEM
+// ============================================================================
+let bgParticleCanvas = null;
+let bgParticleCtx = null;
+let bgParticleAnimationId = null;
+let particlesArray = [];
+let mousePos = { x: 0, y: 0 };
+let particleMouseListenerAdded = false;
+
+function initParticleEngine() {
+  let canvas = document.getElementById('bg-particle-canvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'bg-particle-canvas';
+    canvas.style.cssText =
+      'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:2;';
+    document.body.insertBefore(canvas, document.body.firstChild);
+  }
+  bgParticleCanvas = canvas;
+  bgParticleCtx = canvas.getContext('2d');
+
+  function resize() {
+    if (bgParticleCanvas) {
+      bgParticleCanvas.width = window.innerWidth;
+      bgParticleCanvas.height = window.innerHeight;
+    }
+  }
+
+  window.removeEventListener('resize', resize);
+  window.addEventListener('resize', resize);
+  resize();
+
+  if (!particleMouseListenerAdded) {
+    window.addEventListener('mousemove', e => {
+      mousePos.x = (e.clientX - window.innerWidth / 2) * 0.05;
+      mousePos.y = (e.clientY - window.innerHeight / 2) * 0.05;
+    });
+    particleMouseListenerAdded = true;
+  }
 }
 
-// ==========================================
-// AUDIO VISUALIZER — Waveform Bars
-// ==========================================
-(function initVisualizer() {
-  let dataArray;
-  let miniCanvas, miniCtx;
-  let waveCanvas, waveCtx;
-  let volCanvas, volCtx;
-  let rafId;
-  let initialized = false;
-
-  function setup() {
-    if (initialized) return;
-    if (!sharedAnalyser) return; // Wait for EQ to create shared analyser
-    try {
-      dataArray = new Uint8Array(sharedAnalyser.frequencyBinCount);
-      initialized = true;
-    } catch (e) {
-      console.warn('Visualizer setup failed:', e);
-    }
+function updateParticleSystem() {
+  if (bgParticleAnimationId) {
+    cancelAnimationFrame(bgParticleAnimationId);
+    bgParticleAnimationId = null;
   }
 
-  function initCanvases() {
-    miniCanvas = document.getElementById('mini-visualizer');
-    waveCanvas = document.getElementById('wave-canvas');
-    volCanvas = document.getElementById('volume-wave-canvas');
-    if (miniCanvas) miniCtx = miniCanvas.getContext('2d');
-    if (waveCanvas) waveCtx = waveCanvas.getContext('2d');
-    if (volCanvas) volCtx = volCanvas.getContext('2d');
+  if (appSettings.perfParticles === false) {
+    bgParticleCtx?.clearRect(0, 0, bgParticleCanvas?.width || 0, bgParticleCanvas?.height || 0);
+    return;
   }
 
-  function resizeCanvas(canvas) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      return true;
-    }
-    return false;
+  if (!bgParticleCanvas) initParticleEngine();
+  const type = appSettings.bgParticles || 'dots';
+  if (type === 'none') {
+    bgParticleCtx?.clearRect(0, 0, bgParticleCanvas.width, bgParticleCanvas.height);
+    return;
   }
 
-  function drawBars(ctx, canvas, data, color, barW, gap, mirror) {
-    if (!ctx || !canvas) return;
-    resizeCanvas(canvas);
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.width;
-    const h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+  const rawCount = Number(appSettings.particleCount) || 50;
+  const count = type === 'network' ? Math.min(35, rawCount) : Math.min(110, rawCount);
+  const speed = (Number(appSettings.particleSpeed) || 15) / 10;
+  const size = Number(appSettings.particleSize) || 3.5;
 
-    const step = Math.max(1, Math.floor(data.length / (w / ((barW + gap) * dpr))));
-    const totalBar = (barW + gap) * dpr;
-    const numBars = Math.floor(w / totalBar);
+  particlesArray = [];
+  const w = bgParticleCanvas.width || window.innerWidth;
+  const h = bgParticleCanvas.height || window.innerHeight;
 
-    for (let i = 0; i < numBars; i++) {
-      const idx = Math.min(Math.floor(i * step), data.length - 1);
-      const val = data[idx] / 255;
-      const barH = Math.max(2, val * h * 0.9);
-
-      const x = i * totalBar;
-      const y = mirror ? h - barH : (h - barH) / 2;
-
-      const alpha = 0.4 + val * 0.6;
-      ctx.fillStyle = color.replace('1)', alpha + ')');
-      ctx.beginPath();
-      ctx.roundRect(x, y, barW * dpr, barH, 1 * dpr);
-      ctx.fill();
-    }
-  }
-
-  function animate() {
-    if (!sharedAnalyser) {
-      rafId = requestAnimationFrame(animate);
-      return;
-    }
-    if (!initialized) setup();
-    if (!initialized) {
-      rafId = requestAnimationFrame(animate);
-      return;
-    }
-    sharedAnalyser.getByteFrequencyData(dataArray);
-
-    const accent =
-      getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1DB954';
-    const accentRgb = hexToRgb(accent) || '29,185,84';
-
-    // Mini visualizer on cover
-    if (miniCtx && miniCanvas) {
-      drawBars(miniCtx, miniCanvas, dataArray, `rgba(${accentRgb},1)`, 2, 1, true);
-    }
-
-    // Wave bars on timeline
-    if (waveCtx && waveCanvas) {
-      drawBars(waveCtx, waveCanvas, dataArray, `rgba(${accentRgb},1)`, 3, 1, true);
-    }
-
-    // Volume wave
-    if (volCtx && volCanvas) {
-      drawBars(volCtx, volCanvas, dataArray, `rgba(${accentRgb},1)`, 2, 1, false);
-    }
-
-    rafId = requestAnimationFrame(animate);
-  }
-
-  function hexToRgb(hex) {
-    hex = hex.replace('#', '');
-    if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    return `${r},${g},${b}`;
-  }
-
-  // Start on first user interaction (autoplay policy)
-  document.addEventListener(
-    'click',
-    () => {
-      setup();
-    },
-    { once: true }
-  );
-  document.addEventListener(
-    'keydown',
-    () => {
-      setup();
-    },
-    { once: true }
-  );
-
-  // Init canvases and start render loop
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      initCanvases();
-      animate();
+  for (let i = 0; i < count; i++) {
+    particlesArray.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      size: Math.random() * size + 1.5,
+      speedX: (Math.random() - 0.5) * speed,
+      speedY:
+        type === 'snow' || type === 'rain' || type === 'sakura'
+          ? Math.random() * speed + 0.5
+          : (Math.random() - 0.5) * speed,
+      opacity: Math.random() * 0.6 + 0.4,
+      angle: Math.random() * Math.PI * 2,
     });
-  } else {
-    initCanvases();
-    animate();
   }
 
-  // Update wave progress bar on timeupdate
-  audio.addEventListener('timeupdate', () => {
-    const wp = document.getElementById('wave-progress');
-    if (wp && audio.duration && !isNaN(audio.duration)) {
-      const pct = (audio.currentTime / audio.duration) * 100;
-      wp.style.width = pct + '%';
+  const accent =
+    getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1DB954';
+  let lastTime = 0;
+  const fpsInterval = 1000 / 60;
+
+  function render(timestamp) {
+    if (!bgParticleCtx || !bgParticleCanvas) return;
+    if (document.hidden) {
+      bgParticleAnimationId = requestAnimationFrame(render);
+      return;
+    }
+
+    const elapsed = timestamp - lastTime;
+    if (elapsed < fpsInterval) {
+      bgParticleAnimationId = requestAnimationFrame(render);
+      return;
+    }
+    lastTime = timestamp - (elapsed % fpsInterval);
+
+    bgParticleCtx.clearRect(0, 0, bgParticleCanvas.width, bgParticleCanvas.height);
+
+    particlesArray.forEach(p => {
+      p.x += p.speedX;
+      p.y += p.speedY;
+      p.angle += 0.02;
+
+      if (p.x < 0) p.x = bgParticleCanvas.width;
+      if (p.x > bgParticleCanvas.width) p.x = 0;
+      if (p.y < 0) p.y = bgParticleCanvas.height;
+      if (p.y > bgParticleCanvas.height) p.y = 0;
+
+      const px = p.x + (appSettings.particleParallax !== false ? mousePos.x : 0);
+      const py = p.y + (appSettings.particleParallax !== false ? mousePos.y : 0);
+
+      bgParticleCtx.beginPath();
+      if (type === 'snow') {
+        bgParticleCtx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.95})`;
+        bgParticleCtx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        bgParticleCtx.shadowBlur = 6;
+        bgParticleCtx.arc(px, py, p.size * 1.3, 0, Math.PI * 2);
+        bgParticleCtx.fill();
+        bgParticleCtx.shadowBlur = 0;
+      } else if (type === 'rain') {
+        bgParticleCtx.strokeStyle = `rgba(160, 220, 255, ${p.opacity * 0.9})`;
+        bgParticleCtx.lineWidth = 2;
+        bgParticleCtx.moveTo(px, py);
+        bgParticleCtx.lineTo(px, py + p.size * 6);
+        bgParticleCtx.stroke();
+      } else if (type === 'stars') {
+        bgParticleCtx.fillStyle = `rgba(255, 255, 200, ${p.opacity})`;
+        bgParticleCtx.shadowColor = 'rgba(255, 255, 180, 0.9)';
+        bgParticleCtx.shadowBlur = 8;
+        bgParticleCtx.arc(px, py, p.size * 1.2, 0, Math.PI * 2);
+        bgParticleCtx.fill();
+        bgParticleCtx.shadowBlur = 0;
+      } else if (type === 'hearts') {
+        bgParticleCtx.fillStyle = `rgba(255, 105, 180, ${p.opacity})`;
+        bgParticleCtx.font = `${Math.max(12, p.size * 3.5)}px sans-serif`;
+        bgParticleCtx.fillText('♥', px, py);
+      } else if (type === 'sakura') {
+        bgParticleCtx.save();
+        bgParticleCtx.translate(px, py);
+        bgParticleCtx.rotate(p.angle);
+        bgParticleCtx.fillStyle = `rgba(255, 182, 193, ${p.opacity * 0.9})`;
+        bgParticleCtx.beginPath();
+        bgParticleCtx.ellipse(0, 0, p.size * 2.5, p.size * 1.3, Math.PI / 4, 0, Math.PI * 2);
+        bgParticleCtx.fill();
+        bgParticleCtx.restore();
+      } else if (type === 'fireflies') {
+        const glow = bgParticleCtx.createRadialGradient(px, py, 0, px, py, p.size * 4);
+        glow.addColorStop(0, `rgba(255, 235, 59, ${p.opacity})`);
+        glow.addColorStop(1, 'rgba(255, 235, 59, 0)');
+        bgParticleCtx.fillStyle = glow;
+        bgParticleCtx.arc(px, py, p.size * 4, 0, Math.PI * 2);
+        bgParticleCtx.fill();
+      } else {
+        bgParticleCtx.fillStyle = accent;
+        bgParticleCtx.shadowColor = accent;
+        bgParticleCtx.shadowBlur = 8;
+        bgParticleCtx.arc(px, py, p.size * 1.5, 0, Math.PI * 2);
+        bgParticleCtx.fill();
+        bgParticleCtx.shadowBlur = 0;
+      }
+    });
+
+    if (type === 'network') {
+      const maxDistSq = 110 * 110;
+      for (let i = 0; i < particlesArray.length; i++) {
+        for (let j = i + 1; j < particlesArray.length; j++) {
+          const p1 = particlesArray[i];
+          const p2 = particlesArray[j];
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const distSq = dx * dx + dy * dy;
+          if (distSq < maxDistSq) {
+            bgParticleCtx.beginPath();
+            bgParticleCtx.strokeStyle = accent;
+            bgParticleCtx.globalAlpha = (1 - Math.sqrt(distSq) / 110) * 0.35;
+            bgParticleCtx.lineWidth = 1;
+            bgParticleCtx.moveTo(p1.x, p1.y);
+            bgParticleCtx.lineTo(p2.x, p2.y);
+            bgParticleCtx.stroke();
+            bgParticleCtx.globalAlpha = 1.0;
+          }
+        }
+      }
+    }
+
+    bgParticleAnimationId = requestAnimationFrame(render);
+  }
+
+  render(performance.now());
+}
+
+function applyPlayerSettings() {
+  const align = appSettings.playerTitleAlign || 'center';
+  const style = appSettings.playerStyle || 'standard';
+  const sliderType = appSettings.playerSliderType || 'normal';
+  const dynamicBg = appSettings.dynamicPlayerBg !== false;
+
+  document.body.dataset.playerTitleAlign = align;
+  document.body.dataset.playerStyle = style;
+  document.body.dataset.playerSliderType = sliderType;
+  document.body.dataset.dynamicPlayerBg = dynamicBg ? 'true' : 'false';
+
+  const trackInfos = document.querySelectorAll(
+    '.fi-info, .player-track-info, .right-player-info, .fs-track-details, .pp-info, .fs-player-info'
+  );
+  trackInfos.forEach(el => {
+    el.style.textAlign = align;
+    if (align === 'center') {
+      el.style.alignItems = 'center';
+      el.style.justifyContent = 'center';
+    } else if (align === 'right') {
+      el.style.alignItems = 'flex-end';
+      el.style.justifyContent = 'flex-end';
+    } else {
+      el.style.alignItems = 'flex-start';
+      el.style.justifyContent = 'flex-start';
     }
   });
-})();
+
+  document.body.classList.toggle('player-style-vinyl', style === 'vinyl');
+  document.body.classList.toggle('player-style-large', style === 'large');
+  document.body.classList.toggle('player-style-compact', style === 'compact');
+  document.body.classList.toggle('player-style-glass', style === 'glass');
+  document.body.classList.toggle('player-style-neon', style === 'neon');
+
+  const bars = document.querySelectorAll(
+    '.floating-island, .player-bar, .custom-eq-container, .bar-timeline-track, .fs-timeline-track, .right-player'
+  );
+  bars.forEach(b => {
+    b.classList.toggle('slider-thin', sliderType === 'thin');
+    b.classList.toggle('slider-ios', sliderType === 'ios');
+    b.classList.toggle('slider-wave', sliderType === 'wave');
+  });
+}
+
+function applyCoverSettings() {
+  const anim = appSettings.coverAnimation || 'none';
+  const effect = appSettings.coverEffects || 'none';
+
+  document.body.dataset.coverAnimation = anim;
+  document.body.dataset.coverEffects = effect;
+
+  const covers = document.querySelectorAll(
+    'img.fi-cover, img.player-bar-cover, img.right-player-cover, img.fs-cover, img.pp-cover, #album-screen-cover, #page-player-cover, #lib-detail-cover-img'
+  );
+  covers.forEach(cover => {
+    cover.style.animation = '';
+    cover.style.filter = '';
+    cover.style.transform = '';
+    cover.style.borderRadius = '';
+
+    if (anim === 'rotation') {
+      cover.style.animation = 'spin 10s linear infinite';
+      cover.style.borderRadius = '50%';
+    } else if (anim === 'pulsation') {
+      cover.style.animation = 'pulse 1.5s ease-in-out infinite';
+    } else if (anim === 'wave') {
+      cover.style.animation = 'breath 3s ease-in-out infinite';
+    } else if (anim === 'zoom') {
+      cover.style.animation = 'zoomPulse 3s ease-in-out infinite';
+    } else if (anim === 'flip') {
+      cover.style.animation = 'flip3d 4s ease-in-out infinite';
+    }
+
+    if (effect === 'blur') cover.style.filter = 'blur(4px)';
+    else if (effect === 'grayscale') cover.style.filter = 'grayscale(100%)';
+    else if (effect === 'sepia') cover.style.filter = 'sepia(80%)';
+    else if (effect === 'saturation') cover.style.filter = 'saturate(220%)';
+    else if (effect === 'inversion') cover.style.filter = 'invert(100%)';
+  });
+}
+
+function applyUISettings() {
+  const root = document.documentElement;
+  const ff = appSettings.fontFamily || 'inter';
+  const fonts = {
+    inter: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    roboto: '"Roboto", sans-serif',
+    system: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    modern: '"Outfit", "Inter", sans-serif',
+    serif: 'Georgia, Cambria, "Times New Roman", serif',
+    mono: '"JetBrains Mono", "Fira Code", monospace',
+    hand: '"Caveat", "Comic Sans MS", cursive',
+    deco: '"Cinzel", "Playfair Display", serif',
+    game: '"Press Start 2P", monospace',
+    helvetica: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    sf: '-apple-system, BlinkMacSystemFont, sans-serif',
+  };
+  const fontVal = fonts[ff] || fonts.inter;
+  root.style.setProperty('--font-family', fontVal);
+  root.style.setProperty('--app-font', fontVal);
+  document.body.style.fontFamily = fontVal;
+  document.documentElement.style.fontFamily = fontVal;
+
+  const fontSizeVal = appSettings.fontSize || '16px';
+  root.style.setProperty('--font-size', fontSizeVal);
+  root.style.setProperty('--app-font-size-offset', fontSizeVal);
+  document.body.style.fontSize = fontSizeVal;
+
+  const r = Number(appSettings.cornerRadius) ?? 8;
+  root.style.setProperty('--radius-sm', Math.max(0, r - 4) + 'px');
+  root.style.setProperty('--radius-md', r + 'px');
+  root.style.setProperty('--radius-lg', Math.min(32, r + 6) + 'px');
+
+  const scale = (Number(appSettings.uiScale) || 100) / 100;
+  const appContainer = document.querySelector('.app-container') || document.body;
+  if (scale !== 1) {
+    appContainer.style.transform = `scale(${scale})`;
+    appContainer.style.transformOrigin = 'top left';
+    appContainer.style.width = `${(100 / scale).toFixed(2)}%`;
+    appContainer.style.height = `${(100 / scale).toFixed(2)}%`;
+  } else {
+    appContainer.style.transform = '';
+    appContainer.style.width = '';
+    appContainer.style.height = '';
+  }
+
+  const mode = appSettings.themeMode || 'dark';
+  document.body.dataset.themeMode = mode;
+  if (mode === 'light') {
+    document.body.classList.add('light-theme');
+    document.body.classList.remove('dark-theme');
+  } else if (mode === 'dark') {
+    document.body.classList.add('dark-theme');
+    document.body.classList.remove('light-theme');
+  } else {
+    const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.classList.toggle('light-theme', !isDark);
+    document.body.classList.toggle('dark-theme', isDark);
+  }
+}
+
+function applyTabsSettings() {
+  const homeBtn = document.getElementById('nav-home-btn');
+  const searchBtn = document.getElementById('nav-search-btn');
+  const libBtn = document.getElementById('nav-library-btn');
+  const settingsBtn = document.getElementById('nav-settings-btn');
+
+  if (homeBtn) homeBtn.style.display = appSettings.tabHome === false ? 'none' : '';
+  if (searchBtn) searchBtn.style.display = appSettings.tabSearch === false ? 'none' : '';
+  if (libBtn) libBtn.style.display = appSettings.tabLibrary === false ? 'none' : '';
+  if (settingsBtn) settingsBtn.style.display = appSettings.tabSettings === false ? 'none' : '';
+}
+
+function applyCustomColors() {
+  const root = document.documentElement;
+  if (appSettings.customColorPrimary)
+    root.style.setProperty('--accent', appSettings.customColorPrimary);
+  if (appSettings.customColorBg) root.style.setProperty('--bg-base', appSettings.customColorBg);
+  if (appSettings.customColorText)
+    root.style.setProperty('--text-primary', appSettings.customColorText);
+  if (appSettings.customColorCards)
+    root.style.setProperty('--bg-surface', appSettings.customColorCards);
+  if (appSettings.customColorBorders)
+    root.style.setProperty('--bg-highlight', appSettings.customColorBorders);
+  if (appSettings.customColorFocus)
+    root.style.setProperty('--focus-ring', appSettings.customColorFocus);
+}
+
+function applyAllSettings() {
+  applyLanguage(appSettings.lang || 'ru');
+  applyPlayerSettings();
+  applyCoverSettings();
+  applyUISettings();
+  applyTabsSettings();
+  applyCustomColors();
+  updateParticleSystem();
+}
 
 // ============================================================================
-// REDESIGNED TREE SETTINGS LOGIC (19 PANELS / 3 CATEGORIES)
+// REDESIGNED TREE SETTINGS LOGIC (17 PANELS / 3 CATEGORIES)
 // ============================================================================
 function initRedesignedSettings() {
   console.log('[Settings] Initializing redesigned settings logic...');
@@ -6640,7 +7042,7 @@ function initRedesignedSettings() {
     slider.style.setProperty('--r', pct + '%');
   }
 
-  function wireInput(id, key, defaultValue, labelId, suffix = '') {
+  function wireInput(id, key, defaultValue, labelId, suffix = '', callback) {
     const el = document.getElementById(id);
     if (!el) return;
 
@@ -6661,9 +7063,7 @@ function initRedesignedSettings() {
       }
     }
 
-    // Set listener
-    const eventName = el.type === 'checkbox' ? 'change' : 'input';
-    el.addEventListener(eventName, () => {
+    const handleUpdate = () => {
       const newVal = el.type === 'checkbox' ? el.checked : el.value;
       appSettings[key] = newVal;
       saveSettings();
@@ -6675,7 +7075,12 @@ function initRedesignedSettings() {
           if (lbl) lbl.textContent = newVal + suffix;
         }
       }
-    });
+      if (typeof callback === 'function') callback(newVal);
+      applyAllSettings();
+    };
+
+    el.addEventListener('input', handleUpdate);
+    el.addEventListener('change', handleUpdate);
   }
 
   // --- 1. Основные (gen-main) ---
@@ -6731,7 +7136,9 @@ function initRedesignedSettings() {
           body: JSON.stringify({ audioQuality: appSettings.audioQuality }),
         });
         showToast('Качество аудио изменено');
-      } catch (e) {}
+      } catch (e) {
+        /* ignore */
+      }
     });
   }
   wireInput('toggle-gapless', 'gapless', false);
@@ -6751,7 +7158,7 @@ function initRedesignedSettings() {
     });
   }
   wireInput('toggle-perf-bg', 'perfBg', true);
-  wireInput('toggle-perf-particles', 'perfParticles', true);
+  wireInput('toggle-perf-particles', 'perfParticles', true, null, '', () => updateParticleSystem());
   wireInput('toggle-perf-covers', 'perfCovers', true);
   wireInput('toggle-perf-visualizers', 'perfVisualizers', true);
   wireInput('toggle-perf-blur', 'perfBlur', true);
@@ -6820,48 +7227,52 @@ function initRedesignedSettings() {
   });
 
   // --- 7. Плеер (app-player) ---
-  wireInput('setting-player-title-align', 'playerTitleAlign', 'center');
-  wireInput('setting-player-style', 'playerStyle', 'standard');
-  wireInput('setting-player-slider-type', 'playerSliderType', 'normal');
+  wireInput('setting-player-title-align', 'playerTitleAlign', 'center', null, '', () =>
+    applyPlayerSettings()
+  );
+  wireInput('setting-player-style', 'playerStyle', 'standard', null, '', () =>
+    applyPlayerSettings()
+  );
+  wireInput('setting-player-slider-type', 'playerSliderType', 'normal', null, '', () =>
+    applyPlayerSettings()
+  );
+  wireInput('toggle-dynamic-player-bg', 'dynamicPlayerBg', true, null, '', () =>
+    applyPlayerSettings()
+  );
 
   // --- 8. Обложка (app-cover) ---
-  wireInput('setting-cover-animation', 'coverAnimation', 'none');
-  wireInput('setting-cover-effects', 'coverEffects', 'none');
-  wireInput('toggle-dynamic-accent', 'dynamicAccentColor', true);
+  wireInput('setting-cover-animation', 'coverAnimation', 'none', null, '', () =>
+    applyCoverSettings()
+  );
+  wireInput('setting-cover-effects', 'coverEffects', 'none', null, '', () => applyCoverSettings());
+  wireInput('toggle-dynamic-accent', 'dynamicAccentColor', true, null, '', () =>
+    applyCoverSettings()
+  );
 
   // --- 9. Интерфейс (app-ui) ---
-  wireInput('font-family-select', 'fontFamily', 'inter');
-  const fontSelect = document.getElementById('font-family-select');
-  if (fontSelect) {
-    fontSelect.addEventListener('change', () => {
-      applyAppearance();
-    });
-  }
-  wireInput('font-size-slider', 'fontSize', '16px', 'font-size-slider-value', 'px');
-  const sizeSlider = document.getElementById('font-size-slider');
-  if (sizeSlider) {
-    sizeSlider.addEventListener('change', () => {
-      appSettings.fontSize = sizeSlider.value + 'px';
+  wireInput('font-family-select', 'fontFamily', 'inter', null, '', () => applyUISettings());
+  wireInput('font-size-slider', 'fontSize', '16px', 'font-size-slider-value', 'px', () =>
+    applyUISettings()
+  );
+  wireInput('corner-radius-slider', 'cornerRadius', 8, 'corner-radius-slider-value', 'px', () =>
+    applyUISettings()
+  );
+  wireInput('slider-ui-scale', 'uiScale', 100, 'ui-scale-slider-value', '%', () =>
+    applyUISettings()
+  );
+
+  document.querySelectorAll('.theme-mode-card').forEach(card => {
+    const mode = card.getAttribute('data-theme-mode');
+    if (appSettings.themeMode === mode) card.classList.add('active');
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.theme-mode-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      appSettings.themeMode = mode;
       saveSettings();
-      applyAppearance();
+      applyUISettings();
+      showToast('Режим темы изменен: ' + mode);
     });
-  }
-  wireInput('corner-radius-slider', 'cornerRadius', 8, 'corner-radius-slider-value', 'px');
-  const radiusSlider = document.getElementById('corner-radius-slider');
-  if (radiusSlider) {
-    radiusSlider.addEventListener('input', () => {
-      document.documentElement.style.setProperty(
-        '--radius-sm',
-        Math.max(0, radiusSlider.value - 4) + 'px'
-      );
-      document.documentElement.style.setProperty('--radius-md', radiusSlider.value + 'px');
-      document.documentElement.style.setProperty(
-        '--radius-lg',
-        Math.min(32, Number(radiusSlider.value) + 6) + 'px'
-      );
-    });
-  }
-  wireInput('slider-ui-scale', 'uiScale', 100, 'ui-scale-slider-value', '%');
+  });
 
   // Theme presets click handlers
   const themeColors = {
@@ -6884,6 +7295,7 @@ function initRedesignedSettings() {
 
   document.querySelectorAll('#ui-theme-presets button').forEach(btn => {
     const preset = btn.getAttribute('data-preset');
+    if (appSettings.uiThemePreset === preset) btn.classList.add('active');
     btn.addEventListener('click', () => {
       document
         .querySelectorAll('#ui-theme-presets button')
@@ -6898,17 +7310,78 @@ function initRedesignedSettings() {
   });
 
   // --- 10. Вкладки (app-tabs) ---
-  wireInput('toggle-tab-home', 'tabHome', true);
-  wireInput('toggle-tab-search', 'tabSearch', true);
-  wireInput('toggle-tab-library', 'tabLibrary', true);
-  wireInput('toggle-tab-settings', 'tabSettings', true);
+  wireInput('toggle-tab-home', 'tabHome', true, null, '', () => applyTabsSettings());
+  wireInput('toggle-tab-search', 'tabSearch', true, null, '', () => applyTabsSettings());
+  wireInput('toggle-tab-library', 'tabLibrary', true, null, '', () => applyTabsSettings());
+  wireInput('toggle-tab-settings', 'tabSettings', true, null, '', () => applyTabsSettings());
 
   // --- 11. Фон (app-bg) ---
-  wireInput('setting-bg-particles', 'bgParticles', 'dots');
-  wireInput('slider-particle-count', 'particleCount', 50, 'particle-count-val', '');
-  wireInput('slider-particle-speed', 'particleSpeed', 15, 'particle-speed-val', '×');
-  wireInput('slider-particle-size', 'particleSize', 3, 'particle-size-val', 'px');
-  wireInput('toggle-particle-parallax', 'particleParallax', true);
+  wireInput('setting-bg-particles', 'bgParticles', 'dots', null, '', () => updateParticleSystem());
+  wireInput('slider-particle-count', 'particleCount', 50, 'particle-count-val', '', () =>
+    updateParticleSystem()
+  );
+  wireInput('slider-particle-speed', 'particleSpeed', 15, 'particle-speed-val', '×', () =>
+    updateParticleSystem()
+  );
+  wireInput('slider-particle-size', 'particleSize', 3, 'particle-size-val', 'px', () =>
+    updateParticleSystem()
+  );
+  wireInput('toggle-particle-parallax', 'particleParallax', true, null, '', () =>
+    updateParticleSystem()
+  );
+
+  document.querySelectorAll('.bg-card').forEach(card => {
+    const bgPreset = card.getAttribute('data-bg');
+    if (appSettings.bgPreset === bgPreset) card.classList.add('active');
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.bg-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      appSettings.bgPreset = bgPreset;
+      saveSettings();
+      document.body.dataset.bgPreset = bgPreset;
+      if (bgPreset === 'default') {
+        document.body.style.backgroundImage = '';
+      } else if (bgPreset === 'grad-1') {
+        document.body.style.backgroundImage = 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)';
+      } else if (bgPreset === 'grad-2') {
+        document.body.style.backgroundImage = 'linear-gradient(135deg, #311b92 0%, #000000 100%)';
+      }
+      showToast('Пресет фона изменен');
+    });
+  });
+
+  safeClick('bg-url-apply', () => {
+    const url = document.getElementById('bg-url-input')?.value.trim();
+    if (url) {
+      appSettings.bgUrl = url;
+      saveSettings();
+      document.body.style.backgroundImage = `url("${url}")`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      showToast('Фоновое изображение применено!');
+    }
+  });
+
+  const bgFileInput = document.getElementById('bg-file-input');
+  safeClick('bg-file-btn', () => bgFileInput?.click());
+  if (bgFileInput) {
+    bgFileInput.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const dataUrl = ev.target.result;
+          appSettings.bgUrl = dataUrl;
+          saveSettings();
+          document.body.style.backgroundImage = `url("${dataUrl}")`;
+          document.body.style.backgroundSize = 'cover';
+          document.body.style.backgroundPosition = 'center';
+          showToast('Локальное изображение установлено как фон!');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
 
   // --- 12. Кастомизация (app-custom) ---
   function wirePicker(id, key, defaultValue) {
@@ -6918,6 +7391,7 @@ function initRedesignedSettings() {
     el.addEventListener('input', () => {
       appSettings[key] = el.value;
       saveSettings();
+      applyCustomColors();
     });
   }
   wirePicker('picker-color-primary', 'customColorPrimary', '#1DB954');
@@ -6927,70 +7401,11 @@ function initRedesignedSettings() {
   wirePicker('picker-color-borders', 'customColorBorders', '#2a2a2a');
   wirePicker('picker-color-focus', 'customColorFocus', '#1DB954');
 
-  safeClick('btn-custom-theme-apply', () => {
-    const root = document.documentElement;
-    root.style.setProperty('--accent', appSettings.customColorPrimary || '#1DB954');
-    root.style.setProperty('--bg-base', appSettings.customColorBg || '#121212');
-    root.style.setProperty('--text-primary', appSettings.customColorText || '#ffffff');
-    root.style.setProperty('--bg-surface', appSettings.customColorCards || '#181818');
-    root.style.setProperty('--bg-highlight', appSettings.customColorBorders || '#2a2a2a');
-    showToast('Кастомная тема успешно применена!');
-  });
-
-  // --- 13. Мастерская (app-workshop) ---
-  const customCssArea = document.getElementById('textarea-custom-css');
-  if (customCssArea) {
-    customCssArea.value = appSettings.customCss || '';
-
-    // Auto-inject styled element
-    let styleTag = document.getElementById('votify-custom-styles');
-    if (!styleTag) {
-      styleTag = document.createElement('style');
-      styleTag.id = 'votify-custom-styles';
-      document.head.appendChild(styleTag);
-    }
-    styleTag.textContent = appSettings.customCss || '';
-
-    safeClick('btn-workshop-apply-css', () => {
-      appSettings.customCss = customCssArea.value;
-      saveSettings();
-      styleTag.textContent = appSettings.customCss;
-      showToast('CSS стили успешно инжектированы!');
-    });
-
-    safeClick('btn-workshop-reset-css', () => {
-      customCssArea.value = '';
-      appSettings.customCss = '';
-      saveSettings();
-      styleTag.textContent = '';
-      showToast('Инжектированные CSS стили очищены');
-    });
-  }
-
-  // --- 14. Last.fm (int-lastfm) ---
-  wireInput('input-lastfm-username', 'lastfmUsername', '');
-  wireInput('input-lastfm-password', 'lastfmPassword', '');
-  wireInput('toggle-lastfm-scrobble', 'lastfmScrobbling', false);
-
-  safeClick('btn-lastfm-connect', () => {
-    const user = document.getElementById('input-lastfm-username')?.value.trim();
-    const statusLabel = document.getElementById('lastfm-connection-status');
-    if (!user) {
-      showToast('Введите имя пользователя Last.fm');
-      return;
-    }
-    if (statusLabel) {
-      statusLabel.innerHTML =
-        '<span class="discord-status-dot connected"></span> Подключено: ' + escapeHtml(user);
-    }
-    showToast('Last.fm аккаунт успешно привязан!');
-  });
-
-  // --- 15. Discord (int-discord) ---
+  // --- 13. Discord (int-discord) ---
   wireInput('toggle-discord-progress', 'discordProgress', true);
   wireInput('toggle-discord-cover', 'discordCover', false);
 
-  // --- 16. OBS (int-obs) ---
+  // --- 14. OBS (int-obs) ---
   wireInput('input-obs-widget-url', 'obsWidgetUrl', 'http://localhost:17217/obs-widget.html');
   wireInput('slider-obs-opacity', 'obsWidgetOpacity', 0, 'obs-widget-opacity-val', '%');
   wirePicker('picker-obs-text-color', 'obsWidgetTextColor', '#ffffff');
@@ -7005,7 +7420,7 @@ function initRedesignedSettings() {
     }
   });
 
-  // --- 17. Zapret (int-zapret) ---
+  // --- 15. Zapret (int-zapret) ---
   wireInput('input-zapret-path', 'zapretPath', 'C:\\\\Zapret');
   wireInput('toggle-zapret-ipset', 'zapretIpset', false);
   wireInput('toggle-zapret-game-filters', 'zapretGameFilters', true);
@@ -7073,7 +7488,7 @@ function initRedesignedSettings() {
     });
   }
 
-  // --- 18. Локальный сервер (int-server) ---
+  // --- 16. Локальный сервер (int-server) ---
   wireInput('input-server-port', 'serverPort', 17217);
   wireInput('toggle-server-enabled', 'serverEnabled', true);
 
@@ -7087,7 +7502,7 @@ function initRedesignedSettings() {
     window.open(`http://localhost:${portVal}`);
   });
 
-  // --- 19. Прокси (int-proxy) ---
+  // --- 17. Прокси (int-proxy) ---
   const proxyTestBtn = document.getElementById('btn-proxy-test-connection');
   const proxyStatusLabel = document.getElementById('proxy-test-status-label');
 
@@ -7109,6 +7524,9 @@ function initRedesignedSettings() {
       }, 1000);
     });
   }
+
+  // Initial application of all active settings
+  applyAllSettings();
 }
 
 // Ensure the custom settings loader starts shortly after main initialization

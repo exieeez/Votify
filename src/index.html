@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Votify</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="icon" type="image/png" href="icon.png" />
     <meta name="theme-color" content="#121212" />
@@ -440,82 +440,72 @@
           <div id="search-results" class="results-list"></div>
         </section>
 
-        <!-- FOLDERS (Media Library Master-Detail Layout) -->
+        <!-- MODERN REDESIGNED MEDIA LIBRARY SCREEN -->
         <section id="folders-screen" class="screen hidden" style="display:none">
-          <div class="lib-master-detail">
-            <!-- LEFT SIDEBAR: SYSTEM & PLAYLISTS -->
-            <div class="lib-sidebar">
-              <!-- SYSTEM SECTION -->
-              <div class="lib-sidebar-section">
-                <div class="lib-sidebar-header">
-                  <span>СИСТЕМНЫЕ</span>
-                  <div class="lib-header-actions">
-                    <button class="lib-icon-btn" id="lib-system-settings-btn" title="Настройки"><i class="material-icons">auto_fix_high</i></button>
-                    <button class="lib-icon-btn" id="lib-system-devices-btn" title="Устройства"><i class="material-icons">phone_iphone</i></button>
-                  </div>
-                </div>
-                <div class="lib-item" id="lib-item-favorites" data-system="favorites">
-                  <div class="lib-item-icon badge-red">
-                    <i class="material-icons">favorite</i>
-                  </div>
-                  <div class="lib-item-text">
-                    <div class="lib-item-title">Любимые</div>
-                    <div class="lib-item-sub" id="lib-fav-count">0 треков</div>
-                  </div>
+          <div class="library-modern-wrap">
+            <!-- TOP HEADER & CONTROLS -->
+            <div class="library-modern-header">
+              <div class="library-header-title-row">
+                <h1 class="library-modern-title">Моя медиатека</h1>
+                <div class="library-header-actions">
+                  <button class="library-action-btn primary" id="lib-add-playlist-btn" title="Создать новый плейлист">
+                    <i class="material-icons">add</i> <span>Создать плейлист</span>
+                  </button>
+                  <button class="library-action-btn secondary" id="import-playlist-btn" title="Импортировать плейлист">
+                    <i class="material-icons">link</i> <span>Импорт</span>
+                  </button>
+                  <button class="library-icon-btn" id="lib-refresh-btn" title="Обновить медиатеку">
+                    <i class="material-icons">sync</i>
+                  </button>
                 </div>
               </div>
 
-              <!-- PLAYLISTS SECTION -->
-              <div class="lib-sidebar-section">
-                <div class="lib-sidebar-header">
-                  <span>ПЛЕЙЛИСТЫ</span>
-                  <div class="lib-header-actions">
-                    <button class="lib-icon-btn" id="lib-refresh-btn" title="Обновить"><i class="material-icons">sync</i></button>
-                    <button class="lib-icon-btn" id="lib-add-playlist-btn" title="Создать плейлист"><i class="material-icons">add</i></button>
-                    <button class="lib-icon-btn" id="import-playlist-btn" title="Импорт плейлиста (Spotify, YouTube, SoundCloud)"><i class="material-icons">link</i></button>
-                  </div>
-                </div>
-                <div class="lib-playlists-list" id="lib-playlists-list">
-                  <!-- Dynamically rendered playlist items -->
-                </div>
+              <!-- FILTER TABS BAR -->
+              <div class="library-filter-tabs" id="library-filter-tabs">
+                <button class="lib-tab-btn active" data-tab="all">Все</button>
+                <button class="lib-tab-btn" data-tab="favorites">Любимые треки</button>
+                <button class="lib-tab-btn" data-tab="playlists">Плейлисты</button>
               </div>
             </div>
 
-            <!-- RIGHT DETAIL PANE: HEADER & CONTENT -->
-            <div class="lib-detail-pane" id="lib-detail-pane">
-              <!-- TOP ACTIVE PLAYLIST HEADER CARD -->
-              <div class="lib-detail-header-card" id="lib-header-card">
-                <div class="lib-detail-left">
-                  <div class="lib-detail-cover" id="lib-detail-cover">
-                    <i class="material-icons" id="lib-detail-cover-icon">queue_music</i>
-                    <img id="lib-detail-cover-img" src="" alt="Cover" style="display:none;" />
-                  </div>
-                  <div class="lib-detail-info">
-                    <h1 class="lib-detail-title" id="lib-detail-title">Плейлист</h1>
-                    <div class="lib-detail-sub" id="lib-detail-sub">Создан Votify</div>
-                  </div>
-                </div>
-                <div class="lib-detail-actions">
-                  <button class="lib-action-circle-btn" id="lib-play-all-btn" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
-                  <button class="lib-action-circle-btn" id="lib-shuffle-all-btn" title="Перемешать"><i class="material-icons">shuffle</i></button>
-                  <button class="lib-action-circle-btn" id="lib-delete-active-btn" title="Удалить"><i class="material-icons">delete_outline</i></button>
+            <!-- MAIN MEDIA LIBRARY CONTENT AREA -->
+            <div class="library-modern-body">
+              <!-- PLAYLISTS SECTION GRID -->
+              <div class="library-section" id="lib-playlists-section">
+                <div class="playlists-grid" id="lib-playlists-list">
+                  <!-- Dynamically rendered playlist cards -->
                 </div>
               </div>
 
-              <!-- MAIN TRACKLIST OR EMPTY STATE CONTAINER -->
-              <div class="lib-detail-content" id="lib-detail-content">
-                <!-- Empty state template -->
-                <div class="lib-empty-state" id="lib-empty-state">
-                  <div class="lib-empty-icon"><i class="material-icons">folder_open</i></div>
-                  <h3 class="lib-empty-title">Добавьте первый трек</h3>
-                  <p class="lib-empty-sub">У вас еще нет тут треков</p>
-                  <div style="display:flex;gap:10px;margin-top:16px;">
-                    <button class="btn-secondary" id="create-playlist-btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;background:var(--bg-elevated);border:1px solid var(--bg-highlight);color:var(--text-primary);cursor:pointer;"><i class="material-icons" style="font-size:18px;">add</i> Создать плейлист</button>
-                    <button class="btn-secondary" id="import-playlist-btn-empty" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;background:var(--bg-elevated);border:1px solid var(--bg-highlight);color:var(--text-primary);cursor:pointer;"><i class="material-icons" style="font-size:18px;">link</i> Импортировать</button>
+              <!-- ACTIVE PLAYLIST TRACKS SECTION -->
+              <div class="library-active-playlist-view" id="lib-detail-pane" style="display:none;">
+                <div class="lib-detail-header-card" id="lib-header-card">
+                  <div class="lib-detail-left">
+                    <div class="lib-detail-cover" id="lib-detail-cover">
+                      <i class="material-icons" id="lib-detail-cover-icon">queue_music</i>
+                      <img id="lib-detail-cover-img" src="" alt="Cover" style="display:none;" />
+                    </div>
+                    <div class="lib-detail-info">
+                      <h2 class="lib-detail-title" id="lib-detail-title">Плейлист</h2>
+                      <div class="lib-detail-sub" id="lib-detail-sub">Создан Votify</div>
+                    </div>
+                  </div>
+                  <div class="lib-detail-actions">
+                    <button class="lib-action-circle-btn" id="lib-play-all-btn" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
+                    <button class="lib-action-circle-btn" id="lib-shuffle-all-btn" title="Перемешать"><i class="material-icons">shuffle</i></button>
+                    <button class="lib-action-circle-btn" id="lib-delete-active-btn" title="Удалить"><i class="material-icons">delete_outline</i></button>
+                    <button class="lib-action-circle-btn secondary" id="lib-close-detail-btn" title="Скрыть плейлист"><i class="material-icons">close</i></button>
                   </div>
                 </div>
-                <!-- Tracklist container -->
-                <div class="lib-tracklist-wrap" id="lib-tracklist-wrap" style="display:none;"></div>
+
+                <div class="lib-detail-content" id="lib-detail-content">
+                  <div class="lib-empty-state" id="lib-empty-state">
+                    <div class="lib-empty-icon"><i class="material-icons">folder_open</i></div>
+                    <h3 class="lib-empty-title">Добавьте первый трек</h3>
+                    <p class="lib-empty-sub">У вас еще нет тут треков</p>
+                  </div>
+                  <div class="lib-tracklist-wrap" id="lib-tracklist-wrap"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -722,96 +712,101 @@
             <div class="custom-eq-labels" id="fi-eq-labels"></div>
           </div>
         </div>
-      </footer>
+      </div>
+    </div>
 
-      <!-- FULLSCREEN PLAYER (100% FULL SCREEN) -->
-      <div class="fullscreen-player" id="fullscreen-player">
-        <div class="fs-gradient-bg" id="fs-gradient-bg"></div>
+    <!-- FULLSCREEN PLAYER (100% FULL SCREEN) -->
+    <div class="fullscreen-player" id="fullscreen-player">
+      <div class="fs-gradient-bg" id="fs-gradient-bg"></div>
+      <div class="fs-lava-lamp" id="fs-lava-lamp">
+        <div class="fs-lava-blob"></div>
+        <div class="fs-lava-blob"></div>
+        <div class="fs-lava-blob"></div>
+      </div>
 
-        <!-- TOP BAR -->
-        <div class="fs-top-bar">
-          <button class="fs-circle-btn fs-close-btn" id="fs-close-btn" title="Скрыть плеер" aria-label="Скрыть плеер" onclick="closeFullscreenPlayer()">
-            <i class="material-icons">keyboard_arrow_down</i>
-          </button>
-          <span class="fs-now-playing-label">Сейчас играет</span>
-          <div style="width:44px"></div>
-        </div>
+      <!-- TOP BAR -->
+      <div class="fs-top-bar">
+        <button class="fs-circle-btn fs-close-btn" id="fs-close-btn" title="Скрыть плеер" aria-label="Скрыть плеер" onclick="closeFullscreenPlayer()">
+          <i class="material-icons">keyboard_arrow_down</i>
+        </button>
+        <span class="fs-now-playing-label">Сейчас играет</span>
+        <div style="width:44px"></div>
+      </div>
 
-        <!-- MAIN SPLIT CONTENT (FULL SCREEN) -->
-        <div class="fs-split-container">
-          <!-- LEFT COLUMN: Cover, Overlay Buttons, Meta, Timeline, Controls -->
-          <div class="fs-left-column">
-            <!-- COVER CONTAINER WITH INSET OVERLAY BUTTONS -->
-            <div class="fs-cover-container">
-              <img class="fs-cover" id="fs-cover" src="" alt="Album Cover" />
-              <div class="fs-cover-overlay-bar">
-                <button class="fs-cover-btn fs-fav-btn" id="fs-fav-btn" title="В любимое">
-                  <i class="material-icons">favorite_border</i>
-                </button>
-                <button class="fs-cover-btn fs-lrc-btn" id="fs-lrc-badge" title="Текст песни">LRC</button>
-                <button class="fs-cover-btn fs-dislike-btn" id="fs-dislike-btn" title="Не нравится">
-                  <i class="material-icons">thumb_down_off_alt</i>
-                </button>
-              </div>
+      <!-- MAIN SPLIT CONTENT (FULL SCREEN) -->
+      <div class="fs-split-container">
+        <!-- LEFT COLUMN: Cover, Overlay Buttons, Meta, Timeline, Controls -->
+        <div class="fs-left-column">
+          <!-- COVER CONTAINER WITH INSET OVERLAY BUTTONS -->
+          <div class="fs-cover-container">
+            <img class="fs-cover" id="fs-cover" src="" alt="Album Cover" />
+            <div class="fs-cover-overlay-bar">
+              <button class="fs-cover-btn fs-fav-btn" id="fs-fav-btn" title="В любимое">
+                <i class="material-icons">favorite_border</i>
+              </button>
+              <button class="fs-cover-btn fs-lrc-btn" id="fs-lrc-badge" title="Текст песни">LRC</button>
+              <button class="fs-cover-btn fs-dislike-btn" id="fs-dislike-btn" title="Не нравится">
+                <i class="material-icons">thumb_down_off_alt</i>
+              </button>
             </div>
-
-            <!-- TRACK DETAILS -->
-            <div class="fs-track-details">
-              <div class="fs-title" id="fs-title">—</div>
-              <div class="fs-artist" id="fs-artist">—</div>
-            </div>
-
-            <!-- ORIGINAL WAVE TIMELINE -->
-            <div class="fs-timeline" id="fs-timeline">
-              <div class="fs-timeline-track" id="fs-timeline-track">
-                <svg class="fs-timeline-svg" id="fs-timeline-svg" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="tlGrad" x1="0" x2="1" y1="0" y2="0">
-                      <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.9"/>
-                      <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.5"/>
-                    </linearGradient>
-                    <linearGradient id="tlBgGrad" x1="0" x2="1" y1="0" y2="0">
-                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
-                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.06"/>
-                    </linearGradient>
-                    <filter id="tlGlow">
-                      <feGaussianBlur stdDeviation="3" result="blur"/>
-                      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                    </filter>
-                  </defs>
-                  <path d="" fill="url(#tlBgGrad)" class="tl-bg-curve" id="tl-bg-curve"></path>
-                  <path d="" fill="url(#tlGrad)" class="tl-active-curve" id="tl-active-curve"></path>
-                </svg>
-                <div class="fs-timeline-thumb" id="fs-timeline-thumb" style="left:0%">
-                  <div class="fs-timeline-thumb-glow"></div>
-                  <div class="fs-timeline-thumb-dot"></div>
-                </div>
-              </div>
-              <div class="fs-timeline-times">
-                <span id="fs-current">0:00</span>
-                <span id="fs-total">0:00</span>
-              </div>
-            </div>
-
-            <!-- PLAYBACK CONTROLS -->
-            <div class="fs-playback-controls">
-              <button class="fs-icon-btn" id="fs-shuffle" title="Перемешать"><i class="material-icons">shuffle</i></button>
-              <button class="fs-icon-btn" id="fs-prev" title="Предыдущий"><i class="material-icons">skip_previous</i></button>
-              <button class="fs-icon-btn fs-play-main-btn" id="fs-play" title="Воспроизведение"><i class="material-icons">play_arrow</i></button>
-              <button class="fs-icon-btn" id="fs-next" title="Следующий"><i class="material-icons">skip_next</i></button>
-              <button class="fs-icon-btn" id="fs-repeat" title="Зациклить фрагмент"><i class="material-icons">repeat</i></button>
-            </div>
-
-            <!-- HIDDEN VOLUME BAR FOR STATE SYNC -->
-            <input type="range" id="fs-volume" min="0" max="100" value="80" style="display:none;" />
           </div>
 
-          <!-- RIGHT COLUMN: Synced Lyrics -->
-          <div class="fs-right-column">
-            <div class="fs-lyrics-container" id="fs-player-lyrics">
-              <div class="lyrics-body" id="fs-lyrics-body">
-                <div class="lyrics-placeholder">Загрузка текста...</div>
+          <!-- TRACK DETAILS -->
+          <div class="fs-track-details">
+            <div class="fs-title" id="fs-title">—</div>
+            <div class="fs-artist" id="fs-artist">—</div>
+          </div>
+
+          <!-- ORIGINAL WAVE TIMELINE -->
+          <div class="fs-timeline" id="fs-timeline">
+            <div class="fs-timeline-track" id="fs-timeline-track">
+              <svg class="fs-timeline-svg" id="fs-timeline-svg" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="tlGrad" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.5"/>
+                  </linearGradient>
+                  <linearGradient id="tlBgGrad" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
+                    <stop offset="100%" stop-color="#ffffff" stop-opacity="0.06"/>
+                  </linearGradient>
+                  <filter id="tlGlow">
+                    <feGaussianBlur stdDeviation="3" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                <path d="" fill="url(#tlBgGrad)" class="tl-bg-curve" id="tl-bg-curve"></path>
+                <path d="" fill="url(#tlGrad)" class="tl-active-curve" id="tl-active-curve"></path>
+              </svg>
+              <div class="fs-timeline-thumb" id="fs-timeline-thumb" style="left:0%">
+                <div class="fs-timeline-thumb-glow"></div>
+                <div class="fs-timeline-thumb-dot"></div>
               </div>
+            </div>
+            <div class="fs-timeline-times">
+              <span id="fs-current">0:00</span>
+              <span id="fs-total">0:00</span>
+            </div>
+          </div>
+
+          <!-- PLAYBACK CONTROLS -->
+          <div class="fs-playback-controls">
+            <button class="fs-icon-btn" id="fs-shuffle" title="Перемешать"><i class="material-icons">shuffle</i></button>
+            <button class="fs-icon-btn" id="fs-prev" title="Предыдущий"><i class="material-icons">skip_previous</i></button>
+            <button class="fs-icon-btn fs-play-main-btn" id="fs-play" title="Воспроизведение"><i class="material-icons">play_arrow</i></button>
+            <button class="fs-icon-btn" id="fs-next" title="Следующий"><i class="material-icons">skip_next</i></button>
+            <button class="fs-icon-btn" id="fs-repeat" title="Зациклить фрагмент"><i class="material-icons">repeat</i></button>
+          </div>
+
+          <!-- HIDDEN VOLUME BAR FOR STATE SYNC -->
+          <input type="range" id="fs-volume" min="0" max="100" value="80" style="display:none;" />
+        </div>
+
+        <!-- RIGHT COLUMN: Synced Lyrics -->
+        <div class="fs-right-column">
+          <div class="fs-lyrics-container" id="fs-player-lyrics">
+            <div class="lyrics-body" id="fs-lyrics-body">
+              <div class="lyrics-placeholder">Загрузка текста...</div>
             </div>
           </div>
         </div>
@@ -830,7 +825,7 @@
             <!-- ОСНОВНЫЕ -->
             <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ОСНОВНЫЕ</div>
             <button class="settings-menu-item active" data-settings-section="gen-main"><i class="material-icons">tune</i>Основные</button>
-            <button class="settings-menu-item" data-settings-section="gen-overlay"><i class="material-icons">layers</i>Оверлей</button>
+
             <button class="settings-menu-item" data-settings-section="gen-audio"><i class="material-icons">volume_up</i>Аудио</button>
             <button class="settings-menu-item" data-settings-section="gen-perf"><i class="material-icons">speed</i>Эффективность</button>
             <button class="settings-menu-item" data-settings-section="gen-hotkeys"><i class="material-icons">keyboard</i>Горячие клавиши</button>
@@ -844,11 +839,9 @@
             <button class="settings-menu-item" data-settings-section="app-tabs"><i class="material-icons">tab</i>Вкладки</button>
             <button class="settings-menu-item" data-settings-section="app-bg"><i class="material-icons">wallpaper</i>Фон</button>
             <button class="settings-menu-item" data-settings-section="app-custom"><i class="material-icons">palette</i>Кастомизация</button>
-            <button class="settings-menu-item" data-settings-section="app-workshop"><i class="material-icons">build</i>Мастерская</button>
 
             <!-- ИНТЕГРАЦИИ -->
             <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ИНТЕГРАЦИИ</div>
-            <button class="settings-menu-item" data-settings-section="int-lastfm"><i class="material-icons">star</i>Last.fm</button>
             <button class="settings-menu-item" data-settings-section="int-discord"><i class="material-icons">chat</i>Discord</button>
             <button class="settings-menu-item" data-settings-section="int-obs"><i class="material-icons">videocam</i>OBS</button>
             <button class="settings-menu-item" data-settings-section="int-zapret"><i class="material-icons">gpp_maybe</i>Zapret</button>
@@ -910,60 +903,7 @@
               </div>
             </div>
 
-            <!-- SECTION 2: Оверлей (gen-overlay) -->
-            <div class="settings-panel" id="settings-panel-gen-overlay">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">layers</i><h3>Режим оверлея</h3></div>
-                <div class="setting-item">
-                  <label for="setting-overlay-mode">Выберите стиль оверлея над окнами</label>
-                  <select id="setting-overlay-mode" class="m3-select">
-                    <option value="disabled">Отключен</option>
-                    <option value="fullscreen">Полноэкранный</option>
-                    <option value="island">Остров (Pill-overlay)</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <label for="setting-overlay-shape">Форма оверлея</label>
-                  <select id="setting-overlay-shape" class="m3-select">
-                    <option value="rounded">Скруглённая</option>
-                    <option value="square">Квадратная</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">grid_on</i><h3>Позиционирование и Размеры</h3></div>
-                <div class="setting-item">
-                  <label>Сетка выравнивания</label>
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; max-width: 240px;">
-                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="top-left">Top-L</button>
-                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="top-center">Top-C</button>
-                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="top-right">Top-R</button>
-                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="center-left">Mid-L</button>
-                    <button class="btn-secondary btn-sm alignment-grid-btn active" data-align="center">Center</button>
-                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="center-right">Mid-R</button>
-                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="bottom-left">Bot-L</button>
-                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="bottom-center">Bot-C</button>
-                    <button class="btn-secondary btn-sm alignment-grid-btn" data-align="bottom-right">Bot-R</button>
-                  </div>
-                </div>
-                <div class="setting-item" style="margin-top: 14px;">
-                  <div class="setting-row"><label>Прозрачность оверлея</label><span class="setting-value" id="overlay-opacity-val">85%</span></div>
-                  <input type="range" id="slider-overlay-opacity" min="10" max="100" value="85" />
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Масштаб</label><span class="setting-value" id="overlay-scale-val">100%</span></div>
-                  <input type="range" id="slider-overlay-scale" min="50" max="200" value="100" />
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Ширина (px)</label><span class="setting-value" id="overlay-width-val">340px</span></div>
-                  <input type="range" id="slider-overlay-width" min="100" max="1000" value="340" />
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Высота (px)</label><span class="setting-value" id="overlay-height-val">220px</span></div>
-                  <input type="range" id="slider-overlay-height" min="50" max="800" value="220" />
-                </div>
-              </div>
-            </div>
+
 
             <!-- SECTION 3: Аудио (gen-audio) -->
             <div class="settings-panel" id="settings-panel-gen-audio">
@@ -1132,9 +1072,12 @@
                 <div class="setting-item">
                   <label for="setting-player-style">Оформление окна плеера</label>
                   <select id="setting-player-style" class="m3-select">
-                    <option value="standard" selected>Обычный</option>
+                    <option value="standard" selected>Обычный (Классика)</option>
                     <option value="vinyl">Пластинка (Винил)</option>
-                    <option value="large">Большой</option>
+                    <option value="large">Большой (Hero Player)</option>
+                    <option value="compact">Компактный (Мини-капсула)</option>
+                    <option value="glass">Стеклянный (Frosted Glass)</option>
+                    <option value="neon">Неоновый (Cyberpunk Neon)</option>
                   </select>
                 </div>
               </div>
@@ -1148,6 +1091,16 @@
                     <option value="ios">Стиль iOS</option>
                     <option value="wave">Волновой (Waveform)</option>
                   </select>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">opacity</i><h3>Динамический фон</h3></div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Динамический фон плеера</span>
+                    <span class="setting-toggle-desc">Фон в полноэкранном плеере под цвет обложки (Лава-лампа)</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-dynamic-player-bg" checked /><span class="toggle-slider"></span></label>
                 </div>
               </div>
             </div>
@@ -1286,10 +1239,17 @@
             <div class="settings-panel" id="settings-panel-app-bg">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">wallpaper</i><h3>Изображение фона</h3></div>
-                <div class="bg-presets" id="bg-presets" style="margin-bottom: 12px;">
+                <div class="bg-presets" id="bg-presets" style="margin-bottom: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;">
                   <button class="bg-card bg-card-active" data-bg="default"><div class="bg-swatch bg-none"></div><span class="bg-label">Стандарт</span></button>
-                  <button class="bg-card" data-bg="grad-1"><div class="bg-swatch" style="background:linear-gradient(135deg,#1a1040,#0d0620)"></div><span class="bg-label">Глубина</span></button>
-                  <button class="bg-card" data-bg="grad-2"><div class="bg-swatch" style="background:linear-gradient(135deg,#0a1628,#061020)"></div><span class="bg-label">Ночь</span></button>
+                  <button class="bg-card" data-bg="grad-1"><div class="bg-swatch" style="background:linear-gradient(135deg, #7928ca 0%, #ff0080 50%, #11101d 100%)"></div><span class="bg-label">Киберпанк</span></button>
+                  <button class="bg-card" data-bg="grad-2"><div class="bg-swatch" style="background:linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #050b14 100%)"></div><span class="bg-label">Океан</span></button>
+                  <button class="bg-card" data-bg="grad-3"><div class="bg-swatch" style="background:linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)"></div><span class="bg-label">Закат</span></button>
+                  <button class="bg-card" data-bg="grad-4"><div class="bg-swatch" style="background:linear-gradient(135deg, #10b981 0%, #059669 50%, #022c22 100%)"></div><span class="bg-label">Изумруд</span></button>
+                  <button class="bg-card" data-bg="grad-5"><div class="bg-swatch" style="background:linear-gradient(135deg, #ff416c 0%, #ff4b2b 50%, #1a0505 100%)"></div><span class="bg-label">Вулкан</span></button>
+                  <button class="bg-card" data-bg="grad-6"><div class="bg-swatch" style="background:linear-gradient(135deg, #00c6ff 0%, #0072ff 50%, #030f26 100%)"></div><span class="bg-label">Аврора</span></button>
+                  <button class="bg-card" data-bg="grad-7"><div class="bg-swatch" style="background:linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #0f172a 100%)"></div><span class="bg-label">Фиолет</span></button>
+                  <button class="bg-card" data-bg="grad-8"><div class="bg-swatch" style="background:linear-gradient(135deg, #f43f5e 0%, #fb7185 50%, #1e050c 100%)"></div><span class="bg-label">Сакура</span></button>
+                  <button class="bg-card" data-bg="grad-9"><div class="bg-swatch" style="background:linear-gradient(135deg, #18181b 0%, #09090b 100%)"></div><span class="bg-label">Amoled</span></button>
                 </div>
                 <div class="bg-custom-row">
                   <div class="bg-color-picker-wrap">
@@ -1309,6 +1269,21 @@
                     <span class="material-icons">upload</span><span>Файл</span>
                   </button>
                   <input type="file" id="bg-file-input" accept="image/*" style="display:none" />
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">tune</i><h3>Яркость и Прозрачность</h3></div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Яркость фона</label><span class="setting-value" id="bg-brightness-slider-value">100%</span></div>
+                  <input type="range" id="bg-brightness-slider" min="20" max="200" value="100" />
+                </div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Размытие изображения фона (Blur)</label><span class="setting-value" id="bg-blur-slider-value">0px</span></div>
+                  <input type="range" id="bg-blur-slider" min="0" max="60" value="0" />
+                </div>
+                <div class="setting-item">
+                  <div class="setting-row"><label>Прозрачность карточек и модулей</label><span class="setting-value" id="ui-transparency-slider-value">45%</span></div>
+                  <input type="range" id="ui-transparency-slider" min="10" max="100" value="45" />
                 </div>
               </div>
               <div class="settings-section">
@@ -1380,48 +1355,6 @@
                 </div>
                 <div style="margin-top: 18px; display: flex; gap: 8px;">
                   <button class="btn-accent" id="btn-custom-theme-apply" style="flex: 1; justify-content: center;"><i class="material-icons">save</i> Сохранить кастомную тему</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 13: Мастерская (app-workshop) -->
-            <div class="settings-panel" id="settings-panel-app-workshop">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">construction</i><h3>Мастерская кастомизации</h3></div>
-                <div class="setting-item">
-                  <label for="textarea-custom-css">Пользовательский CSS код для инъекции</label>
-                  <textarea id="textarea-custom-css" placeholder="/* Напишите ваш CSS здесь, например: 
-body { font-weight: bold; } */" style="width: 100%; height: 160px; padding: 12px; background: var(--bg-base); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; font-family: monospace; font-size: 13px; resize: none; margin-top: 4px;"></textarea>
-                </div>
-                <div style="display: flex; gap: 8px; margin-top: 10px;">
-                  <button class="btn-accent" id="btn-workshop-apply-css"><i class="material-icons">flash_on</i> Применить стили</button>
-                  <button class="btn-secondary" id="btn-workshop-reset-css">Сбросить стили</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 14: Last.fm (int-lastfm) -->
-            <div class="settings-panel" id="settings-panel-int-lastfm">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">star</i><h3>Last.fm Скробблинг</h3></div>
-                <div class="setting-item">
-                  <label>Имя пользователя Last.fm</label>
-                  <input type="text" id="input-lastfm-username" class="m3-input-text" placeholder="Введите никнейм..." />
-                </div>
-                <div class="setting-item">
-                  <label>Пароль или сессионный ключ</label>
-                  <input type="password" id="input-lastfm-password" class="m3-input-text" placeholder="••••••••••••" />
-                </div>
-                <div class="setting-toggle-item" style="margin-top: 12px;">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Активировать скробблинг треков</span>
-                    <span class="setting-toggle-desc">Автоматически отправлять историю прослушивания в Last.fm профиль</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-lastfm-scrobble" /><span class="toggle-slider"></span></label>
-                </div>
-                <div style="margin-top: 18px; display: flex; gap: 10px; align-items: center;">
-                  <button class="btn-accent" id="btn-lastfm-connect">Подключить аккаунт</button>
-                  <span id="lastfm-connection-status" style="font-size: 13px; color: var(--text-secondary);"><span class="discord-status-dot"></span> Отключено</span>
                 </div>
               </div>
             </div>
