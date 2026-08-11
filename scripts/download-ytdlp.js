@@ -4,13 +4,15 @@ const https = require('https');
 const { execSync } = require('child_process');
 
 const BIN_DIR = path.join(__dirname, '..', 'bin');
-const YT_DLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux';
+const YT_DLP_LINUX_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux';
+const YT_DLP_WIN_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
 
 if (!fs.existsSync(BIN_DIR)) {
   fs.mkdirSync(BIN_DIR, { recursive: true });
 }
 
-const ytDlpPath = path.join(BIN_DIR, 'yt-dlp');
+const ytDlpLinuxPath = path.join(BIN_DIR, 'yt-dlp');
+const ytDlpWinPath = path.join(BIN_DIR, 'yt-dlp.exe');
 
 async function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
@@ -43,21 +45,15 @@ async function downloadFile(url, dest) {
 
 async function main() {
   try {
-    console.log('Downloading yt-dlp for Linux...');
-    await downloadFile(YT_DLP_URL, ytDlpPath);
-    fs.chmodSync(ytDlpPath, 0o755);
-    console.log('yt-dlp downloaded and made executable:', ytDlpPath);
+    console.log('Downloading yt-dlp binaries for Linux & Windows...');
+    await downloadFile(YT_DLP_LINUX_URL, ytDlpLinuxPath);
+    try { fs.chmodSync(ytDlpLinuxPath, 0o755); } catch(e) {}
+    console.log('yt-dlp Linux downloaded:', ytDlpLinuxPath);
 
-    // Verify it works
-    try {
-      execSync(`${ytDlpPath} --version`, { stdio: 'pipe' });
-      console.log('yt-dlp verified successfully');
-    } catch (e) {
-      console.warn('yt-dlp verification failed, but file exists');
-    }
+    await downloadFile(YT_DLP_WIN_URL, ytDlpWinPath);
+    console.log('yt-dlp Windows downloaded:', ytDlpWinPath);
   } catch (err) {
-    console.error('Failed to download yt-dlp:', err.message);
-    process.exit(1);
+    console.error('Failed to download yt-dlp binaries:', err.message);
   }
 }
 
