@@ -6467,13 +6467,13 @@ body.liquid-glass-enabled .floating-island {
 /* Light & Dark Theme Modes */
 body.light-theme,
 body[data-theme-mode="light"] {
-  --bg-base: #f5f5f7;
+  --bg-base: #f4f5f9;
   --bg-surface: #ffffff;
-  --bg-elevated: #e8e8ed;
-  --bg-highlight: #d1d1d6;
-  --text-primary: #1c1c1e;
-  --text-secondary: #636366;
-  --text-subdued: #8e8e93;
+  --bg-elevated: #e6e8f0;
+  --bg-highlight: #d9dce8;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-subdued: #94a3b8;
 }
 body.dark-theme,
 body[data-theme-mode="dark"] {
@@ -6594,26 +6594,126 @@ body[data-theme-mode="dark"] {
   border-color: rgba(255, 255, 255, 0.22) !important;
 }
 
+/* Light Theme Overrides */
 body.light-theme .sidebar,
-body.light-theme .right-player,
+body.light-theme .top-bar,
 body.light-theme .floating-island,
+body.light-theme .player-bar,
+body.light-theme .right-player,
+body.light-theme .page-player,
+body.light-theme .player-page-top,
 body.light-theme .home-quick-card,
+body.light-theme #tile-history,
+body.light-theme #tile-liked,
+body.light-theme .history-card,
+body.light-theme .history-item,
+body.light-theme .fav-card,
+body.light-theme .favorite-item,
+body.light-theme .my-wave-card,
+body.light-theme .wave-card,
+body.light-theme #wave-hero-card,
 body.light-theme .lib-master-detail,
 body.light-theme .lib-sidebar,
 body.light-theme .lib-detail-pane,
-body.light-theme .settings-modal,
-body.light-theme .history-card,
-body.light-theme .fav-card,
-body.light-theme .my-wave-card,
-body.light-theme .card {
-  background: rgba(255, 255, 255, var(--ui-panel-opacity, 0.6)) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
+body.light-theme .lib-detail-header-card,
+body.light-theme .lib-item,
+body.light-theme .card,
+body.light-theme .home-rec-card,
+body.light-theme .playlist-card,
+body.light-theme .track-card,
+body.light-theme .track-item,
+body.light-theme .about-card,
+body[data-theme-mode="light"] .sidebar,
+body[data-theme-mode="light"] .top-bar,
+body[data-theme-mode="light"] .floating-island,
+body[data-theme-mode="light"] .player-bar,
+body[data-theme-mode="light"] .right-player,
+body[data-theme-mode="light"] .page-player,
+body[data-theme-mode="light"] .player-page-top,
+body[data-theme-mode="light"] .home-quick-card,
+body[data-theme-mode="light"] #tile-history,
+body[data-theme-mode="light"] #tile-liked,
+body[data-theme-mode="light"] .history-card,
+body[data-theme-mode="light"] .history-item,
+body[data-theme-mode="light"] .fav-card,
+body[data-theme-mode="light"] .favorite-item,
+body[data-theme-mode="light"] .my-wave-card,
+body[data-theme-mode="light"] .wave-card,
+body[data-theme-mode="light"] #wave-hero-card,
+body[data-theme-mode="light"] .lib-master-detail,
+body[data-theme-mode="light"] .lib-sidebar,
+body[data-theme-mode="light"] .lib-detail-pane,
+body[data-theme-mode="light"] .lib-detail-header-card,
+body[data-theme-mode="light"] .lib-item,
+body[data-theme-mode="light"] .card,
+body[data-theme-mode="light"] .home-rec-card,
+body[data-theme-mode="light"] .playlist-card,
+body[data-theme-mode="light"] .track-card,
+body[data-theme-mode="light"] .track-item,
+body[data-theme-mode="light"] .about-card {
+  background: rgba(255, 255, 255, var(--ui-panel-opacity, 0.72)) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
+  color: #0f172a !important;
+}
+
+body.light-theme .settings-modal,
+body.light-theme .settings-dialog,
+body.light-theme .settings-left-menu,
+body.light-theme .settings-right-content,
+body.light-theme .settings-section,
+body.light-theme #redesigned-settings-modal,
+body[data-theme-mode="light"] .settings-modal,
+body[data-theme-mode="light"] .settings-dialog,
+body[data-theme-mode="light"] .settings-left-menu,
+body[data-theme-mode="light"] .settings-right-content,
+body[data-theme-mode="light"] .settings-section,
+body[data-theme-mode="light"] #redesigned-settings-modal {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+}
+
+body.light-theme .settings-left-menu,
+body[data-theme-mode="light"] .settings-left-menu {
+  background: #f1f5f9 !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+body.light-theme .settings-menu-item,
+body[data-theme-mode="light"] .settings-menu-item {
+  color: #475569 !important;
+}
+
+body.light-theme .m3-select,
+body.light-theme input[type="text"],
+body.light-theme input[type="search"],
+body[data-theme-mode="light"] .m3-select,
+body[data-theme-mode="light"] input[type="text"],
+body[data-theme-mode="light"] input[type="search"] {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+body.light-theme .track-item:hover,
+body.light-theme .playlist-card:hover,
+body.light-theme .home-quick-card:hover,
+body.light-theme .lib-item:hover,
+body[data-theme-mode="light"] .track-item:hover,
+body[data-theme-mode="light"] .playlist-card:hover,
+body[data-theme-mode="light"] .home-quick-card:hover,
+body[data-theme-mode="light"] .lib-item:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.14) !important;
 }
 
 .bg-overlay {
   z-index: 0 !important;
-  background: rgba(0, 0, 0, 0.05) !important;
+  background: rgba(244, 245, 249, 0.5) !important;
 }
 
 /* Background Particles Canvas (FLOATING BEHIND UI OVER ENTIRE WINDOW) */
