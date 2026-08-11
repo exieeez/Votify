@@ -76,8 +76,6 @@ const DATA_DIR = path.join(PERSISTENT_DIR, 'data');
 
 let networkConfig = {
   streamSource: 'yt-dlp',
-  invidiousInstance: 'https://yewtu.be',
-  pipedInstance: 'https://pipedapi.adminforge.de',
   audioQuality: 'medium',
 };
 
@@ -85,7 +83,9 @@ function loadNetworkConfig() {
   try {
     if (fs.existsSync(NETWORK_FILE)) {
       const data = JSON.parse(fs.readFileSync(NETWORK_FILE, 'utf-8'));
-      networkConfig = { ...networkConfig, ...data };
+      networkConfig.audioQuality = ['low', 'medium', 'high'].includes(data.audioQuality)
+        ? data.audioQuality
+        : networkConfig.audioQuality;
     }
   } catch (e) {
     /* ignore */
@@ -94,22 +94,15 @@ function loadNetworkConfig() {
 loadNetworkConfig();
 
 function saveNetworkConfig(config) {
-  const sourceChanged =
-    config && config.streamSource && config.streamSource !== networkConfig.streamSource;
-  networkConfig = { ...networkConfig, ...config };
-  if (sourceChanged) {
-    // Stream URLs and search results are source-specific. Never reuse a URL
-    // resolved by the previous engine after switching in the UI.
-    streamCache.clear();
-    searchCache.clear();
-    console.log(`[network] Stream engine changed to ${networkConfig.streamSource}; caches cleared`);
+  if (config && ['low', 'medium', 'high'].includes(config.audioQuality)) {
+    networkConfig.audioQuality = config.audioQuality;
   }
+  networkConfig.streamSource = 'yt-dlp';
   fs.writeFileSync(NETWORK_FILE, JSON.stringify(networkConfig, null, 2), 'utf-8');
   return networkConfig;
 }
 
-// networkConfig is reassigned (not mutated) by saveNetworkConfig, so callers that
-// destructure it once at require-time would otherwise keep a stale reference.
+// Expose the active yt-dlp engine together with the persisted quality setting.
 function getNetworkConfig() {
   return networkConfig;
 }
@@ -309,66 +302,6 @@ function httpGet(url, timeout) {
   });
 }
 
-function pipedGet(url, timeout, redirects = 0) {
-  if (redirects > 5) return Promise.reject(new Error('too many redirects'));
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      req.destroy();
-      reject(new Error('timeout'));
-    }, timeout);
-    const parsed = new URL(url);
-    const req = https.get(
-      url,
-      {
-        agent: new https.Agent({
-          keepAlive: false,
-          minVersion: 'TLSv1.2',
-          maxVersion: 'TLSv1.3',
-          ALPNProtocols: ['http/1.1'],
-        }),
-        headers: { 'User-Agent': YT_UA, Accept: 'application/json' },
-        servername: parsed.hostname,
-      },
-      res => {
-        if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
-          res.resume();
-          clearTimeout(timer);
-          let location = String(res.headers.location).trim();
-          // Some public Piped proxies currently emit a malformed absolute
-          // redirect such as https://adminforge.desearch?... (missing slash).
-          location = location.replace(/(\.[a-z]{2,})(search|streams)(?=[/?])/i, '$1/$2');
-          const next = new URL(location, url).toString();
-          console.log('[piped] Redirect:', parsed.hostname, '->', next);
-          pipedGet(next, timeout, redirects + 1)
-            .then(resolve)
-            .catch(reject);
-          return;
-        }
-        let data = '';
-        res.on('data', c => {
-          data += c;
-        });
-        res.on('end', () => {
-          clearTimeout(timer);
-          if (res.statusCode < 200 || res.statusCode >= 300) {
-            reject(new Error(`HTTP ${res.statusCode}`));
-            return;
-          }
-          try {
-            resolve(JSON.parse(data));
-          } catch {
-            resolve(data);
-          }
-        });
-      }
-    );
-    req.on('error', e => {
-      clearTimeout(timer);
-      reject(e);
-    });
-  });
-}
-
 function httpPostJSON(url, body, timeout) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), timeout);
@@ -489,13 +422,6 @@ async function ytSearchScrape(query, limit) {
   }
 
   let tracks = [];
-
-  if (networkConfig.streamSource === 'piped') {
-    tracks = await pipedSearch(query, limit);
-    console.log(`[search] Piped found ${tracks.length} tracks`);
-    searchCache.set(cacheKey, { tracks, expires: Date.now() + SEARCH_CACHE_TTL });
-    return tracks.slice(0, limit);
-  }
 
   if (networkConfig.streamSource === 'soundcloud') {
     try {
@@ -735,26 +661,7 @@ async function fetchStreamUrl(videoId) {
     return null;
   }
 
-  if (networkConfig.streamSource === 'piped') {
-    const configured = String(networkConfig.pipedInstance || '').replace(/\/$/, '');
-    const instances = [configured, ...PIPED_INSTANCES].filter(
-      (v, i, a) => v && !/pipedapi\.kavin\.rocks/i.test(v) && a.indexOf(v) === i
-    );
-    for (const instance of instances) {
-      try {
-        const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 5000);
-        const streams = (data?.audioStreams || []).filter(s => s?.url);
-        const stream =
-          streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
-        if (stream?.url) {
-          streamCache.set(cacheKey, { url: stream.url, expires: Date.now() + STREAM_CACHE_TTL });
-          return stream.url;
-        }
-      } catch (e) {}
-    }
-  }
-
-  // Fast Parallel Stream Retrieval (yt-dlp 4s timeout vs Piped 4s)
+  // Resolve YouTube streams with the bundled yt-dlp binary.
   const fetchYtDlp = async () => {
     const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
     const ytdlpArgs = [
@@ -766,7 +673,7 @@ async function fetchStreamUrl(videoId) {
       '-f',
       AUDIO_QUALITY_FORMATS[quality] || 'ba/b',
       '--socket-timeout',
-      '4',
+      '12',
       '--user-agent',
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     ];
@@ -788,43 +695,21 @@ async function fetchStreamUrl(videoId) {
         if (out.trim()) resolve(out.trim().split('\n')[0]);
         else reject(new Error('exit ' + code));
       });
-      setTimeout(() => { proc.kill(); reject(new Error('timeout')); }, 4500);
+      setTimeout(() => {
+        proc.kill();
+        reject(new Error('timeout'));
+      }, 20000);
     });
   };
 
-  const fetchPipedFast = async () => {
-    for (const instance of PIPED_INSTANCES.slice(0, 3)) {
-      try {
-        const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 4000);
-        const streams = (data?.audioStreams || []).filter(s => s?.url);
-        const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
-        if (stream?.url) return stream.url;
-      } catch (e) {}
-    }
-    throw new Error('Piped failed');
-  };
-
   try {
-    const url = await Promise.any([fetchYtDlp(), fetchPipedFast()]);
+    const url = await fetchYtDlp();
     if (url) {
       streamCache.set(cacheKey, { url, expires: Date.now() + STREAM_CACHE_TTL });
       return url;
     }
-  } catch (e) {
-    console.log('[stream] Fast resolution fallback for:', videoId);
-  }
-
-  // Final fallback iterate Piped
-  for (const instance of PIPED_INSTANCES) {
-    try {
-      const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 5000);
-      const streams = (data?.audioStreams || []).filter(s => s?.url);
-      const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
-      if (stream?.url) {
-        streamCache.set(cacheKey, { url: stream.url, expires: Date.now() + STREAM_CACHE_TTL });
-        return stream.url;
-      }
-    } catch (e) {}
+  } catch (error) {
+    console.error('[yt-dlp] Stream resolution failed for', videoId, ':', error.message);
   }
 
   return null;
@@ -916,71 +801,6 @@ async function scSearch(query, limit = 12) {
     console.error('[soundcloud] Search error:', e.message);
     return [];
   }
-}
-
-const PIPED_INSTANCES = [
-  'https://pipedapi.adminforge.de',
-  'https://pipedapi.reallyaweso.me',
-  'https://pipedapi.ducks.party',
-];
-
-function pipedVideoId(item) {
-  if (item?.videoId) return String(item.videoId);
-  const value = String(item?.url || '');
-  try {
-    const parsed = new URL(value, 'https://www.youtube.com');
-    if (parsed.searchParams.get('v')) return parsed.searchParams.get('v');
-    const parts = parsed.pathname.split('/').filter(Boolean);
-    if (parts[0] === 'shorts' || parts[0] === 'embed') return parts[1] || '';
-  } catch (e) {
-    // Ignore malformed result URLs.
-  }
-  return '';
-}
-
-async function pipedSearch(query, limit = 12) {
-  const configured = String(networkConfig.pipedInstance || '').replace(/\/$/, '');
-  // kavin.rocks currently returns Cloudflare 403/502. Ignore an old saved
-  // value so it does not delay every search before trying healthy mirrors.
-  const instances = [configured, ...PIPED_INSTANCES].filter(
-    (v, i, a) => v && !/pipedapi\.kavin\.rocks/i.test(v) && a.indexOf(v) === i
-  );
-  for (const instance of instances) {
-    for (const filter of ['music_songs', 'videos', 'all']) {
-      try {
-        const data = await pipedGet(
-          `${instance}/search?q=${encodeURIComponent(query + ' music')}&filter=${filter}`,
-          10000
-        );
-        const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
-        const tracks = items
-          .map(v => ({ item: v, id: pipedVideoId(v) }))
-          .filter(({ item, id }) => id && !/channel|playlist/i.test(String(item.type || '')))
-          .slice(0, limit)
-          .map(({ item, id }) =>
-            makeTrack(
-              id,
-              item.title,
-              item.uploaderName || item.uploader || item.uploaderUrl || 'Unknown',
-              item.thumbnail || item.thumbnailUrl
-            )
-          );
-        if (tracks.length) {
-          console.log('[piped] Search succeeded:', instance, filter, tracks.length);
-          return tracks;
-        }
-      } catch (e) {
-        console.log('[piped] Search failed:', instance, filter, e.message);
-        if (
-          /HTTP (301|401|403|404|429|500|502|503)|EPROTO|handshake|certificate|ENOTFOUND|ECONNREFUSED|timeout/i.test(
-            e.message
-          )
-        )
-          break;
-      }
-    }
-  }
-  return [];
 }
 
 async function scGetStreamUrl(trackId) {

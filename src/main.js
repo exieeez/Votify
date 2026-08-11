@@ -341,8 +341,6 @@ let appSettings = readStoredJson('votify-settings', {
   translateLyrics: false,
   recDiversity: true,
   recCount: 16,
-  streamSource: 'yt-dlp',
-  invidiousInstance: 'https://inv.tux.rs',
   uiSounds: true,
   loadingSound: true,
   closeToTray: false,
@@ -371,7 +369,22 @@ let appSettings = readStoredJson('votify-settings', {
   accentGlow: true,
   trackCardStyle: 'default',
   backgroundBlur: 0,
+  perfParticles: false,
+  bgParticles: 'none',
 });
+
+if (appSettings.perfParticles === undefined) appSettings.perfParticles = false;
+if (appSettings.bgParticles === undefined) appSettings.bgParticles = 'none';
+
+// One-time cleanup for installations that inherited the old intrusive visual
+// defaults. Users can still enable particles again from the appearance panel.
+const cleanPlayerUiMigration = 'votify-clean-player-ui-v1';
+if (localStorage.getItem(cleanPlayerUiMigration) !== 'done') {
+  appSettings.perfParticles = false;
+  appSettings.bgParticles = 'none';
+  localStorage.setItem('votify-settings', JSON.stringify(appSettings));
+  localStorage.setItem(cleanPlayerUiMigration, 'done');
+}
 
 let isChangingTrack = false;
 let discordPresenceSyncTimer = null;
@@ -4092,104 +4105,23 @@ if (sleepTimerSelect) {
 }
 
 // ==========================================
-// Network Settings (stream source / Invidious / Piped)
+// Backend audio quality
 // ==========================================
-const streamSourceSelect = document.getElementById('setting-stream-source');
-const invidiousSettingsBlock = document.getElementById('invidious-settings');
-const pipedSettingsBlock = document.getElementById('piped-settings');
-const invidiousInstanceInput = document.getElementById('setting-invidious-instance');
-const pipedInstanceInput = document.getElementById('setting-piped-instance');
-
-function updateNetworkSettingsVisibility(source) {
-  if (invidiousSettingsBlock)
-    invidiousSettingsBlock.style.display = source === 'invidious' ? 'block' : 'none';
-  if (pipedSettingsBlock) pipedSettingsBlock.style.display = source === 'piped' ? 'block' : 'none';
-}
-
 async function loadNetworkSettingsFromServer() {
   try {
     const data = await apiFetch('/api/network/settings');
     if (data && !data.error) {
-      appSettings.streamSource = data.streamSource || appSettings.streamSource;
-      appSettings.invidiousInstance = data.invidiousInstance || appSettings.invidiousInstance;
-      appSettings.pipedInstance =
-        data.pipedInstance && !/pipedapi\.kavin\.rocks/i.test(data.pipedInstance)
-          ? data.pipedInstance
-          : appSettings.pipedInstance && !/pipedapi\.kavin\.rocks/i.test(appSettings.pipedInstance)
-            ? appSettings.pipedInstance
-            : 'https://pipedapi.adminforge.de';
       appSettings.audioQuality = data.audioQuality || appSettings.audioQuality;
-      if (streamSourceSelect) streamSourceSelect.value = appSettings.streamSource;
-      if (invidiousInstanceInput)
-        invidiousInstanceInput.value = appSettings.invidiousInstance || '';
-      if (pipedInstanceInput) pipedInstanceInput.value = appSettings.pipedInstance || '';
+      delete appSettings.streamSource;
+      delete appSettings.invidiousInstance;
+      delete appSettings.pipedInstance;
       if (audioQualitySelect) audioQualitySelect.value = appSettings.audioQuality || 'medium';
-      updateNetworkSettingsVisibility(appSettings.streamSource);
+      localStorage.setItem('votify-settings', JSON.stringify(appSettings));
     }
   } catch (e) {
     /* server may not be ready yet */
   }
 }
-
-if (streamSourceSelect) {
-  streamSourceSelect.value = appSettings.streamSource || 'yt-dlp';
-  updateNetworkSettingsVisibility(streamSourceSelect.value);
-  streamSourceSelect.addEventListener('change', async () => {
-    // Stop any current stream so the next click cannot keep using the old URL.
-    try {
-      audio.pause();
-      audio.removeAttribute('src');
-      audio.load();
-    } catch (e) {
-      /* ignore audio reset errors */
-    }
-    searchAllTracks = [];
-    if (resultsContainer) resultsContainer.innerHTML = '';
-    if (statusMessage) statusMessage.innerText = '';
-    appSettings.streamSource = streamSourceSelect.value;
-    updateNetworkSettingsVisibility(streamSourceSelect.value);
-    saveSettings();
-    try {
-      await apiFetch('/api/network/settings', {
-        method: 'POST',
-        body: JSON.stringify({ streamSource: appSettings.streamSource }),
-      });
-      showToast('Движок поиска изменён');
-    } catch (e) {
-      showToast('Ошибка сохранения настроек сети');
-    }
-  });
-}
-
-safeClick('apply-invidious-btn', async () => {
-  if (!invidiousInstanceInput) return;
-  appSettings.invidiousInstance = invidiousInstanceInput.value.trim();
-  saveSettings();
-  try {
-    await apiFetch('/api/network/settings', {
-      method: 'POST',
-      body: JSON.stringify({ invidiousInstance: appSettings.invidiousInstance }),
-    });
-    showToast('Инстанс Invidious применён');
-  } catch (e) {
-    showToast('Ошибка применения инстанса');
-  }
-});
-
-safeClick('apply-piped-btn', async () => {
-  if (!pipedInstanceInput) return;
-  appSettings.pipedInstance = pipedInstanceInput.value.trim();
-  saveSettings();
-  try {
-    await apiFetch('/api/network/settings', {
-      method: 'POST',
-      body: JSON.stringify({ pipedInstance: appSettings.pipedInstance }),
-    });
-    showToast('Инстанс Piped применён');
-  } catch (e) {
-    showToast('Ошибка применения инстанса Piped');
-  }
-});
 
 loadNetworkSettingsFromServer();
 
@@ -6610,7 +6542,6 @@ function initApp() {
     }
 
     console.log('Votify initialized successfully.');
-    initDesktopGooseEngine();
   } catch (e) {
     console.error('Critical init error:', e);
   } finally {
@@ -6618,220 +6549,6 @@ function initApp() {
     // Always hide splash after a delay, even if init failed
     setTimeout(hideSplash, 1500);
   }
-}
-
-/* ==========================================
-   VOTIFY ANIME PET COMPANION LOGIC (КОХАРУ)
-   ========================================== */
-/* ==========================================
-   AUTHENTIC DESKTOP GOOSE ENGINE (TogoFire/DesktopGoose)
-   ========================================== */
-let gooseConfig = {
-  enabled: true,
-  tracks: true,
-  memes: true,
-};
-
-let gooseX = 250;
-let gooseY = 200;
-let gooseTargetX = 400;
-let gooseTargetY = 300;
-let gooseSpeed = 3.5;
-let gooseState = 'IDLE'; // IDLE, WANDERING, DRAGGING_MEME, HONKING, RUNNING
-let gooseActionTimer = null;
-
-const GOOSE_QUOTES = [
-  'HONK! 🪿',
-  'Га-га-га! 🪿',
-  'Где мои семечки?! 🌾',
-  'Я утащу этот трек!',
-  'HONK HONK! 💥',
-  'Desktop Goose в Votify! 🪿',
-  'Официально украл твое окно ✨',
-];
-
-const GOOSE_STICKY_MEMES = [
-  { title: 'Записка от Гуся 🪿', body: 'HONK! Ты слушаешь слишком хороший музыкос!' },
-  { title: 'Внимание! ⚠️', body: 'Гусь объявляет этот трек официальным гимном семечек!' },
-  { title: 'desktop_goose.exe 🪿', body: 'Я зашел в Votify, чтобы похлопать крыльями!' },
-  { title: 'Мем от Гуся ✨', body: 'Когда включил фонк и гусь начал флексить: HONK!' },
-];
-
-function initDesktopGooseEngine() {
-  const wrapper = document.getElementById('desktop-goose-wrapper');
-  const speechBubble = document.getElementById('goose-speech-bubble');
-  const speechText = document.getElementById('goose-speech-text');
-  const tracksLayer = document.getElementById('goose-tracks-layer');
-  const memesContainer = document.getElementById('goose-memes-container');
-
-  if (!wrapper) return;
-
-  const toggleEnabled = document.getElementById('toggle-goose-enabled');
-  const toggleTracks = document.getElementById('toggle-goose-tracks');
-  const toggleMemes = document.getElementById('toggle-goose-memes');
-
-  const saved = localStorage.getItem('votify-goose-config');
-  if (saved) {
-    try {
-      gooseConfig = { ...gooseConfig, ...JSON.parse(saved) };
-    } catch (e) {}
-  }
-
-  if (toggleEnabled) {
-    toggleEnabled.checked = gooseConfig.enabled;
-    toggleEnabled.onchange = e => {
-      gooseConfig.enabled = e.target.checked;
-      saveGooseConfig();
-    };
-  }
-  if (toggleTracks) {
-    toggleTracks.checked = gooseConfig.tracks;
-    toggleTracks.onchange = e => {
-      gooseConfig.tracks = e.target.checked;
-      saveGooseConfig();
-    };
-  }
-  if (toggleMemes) {
-    toggleMemes.checked = gooseConfig.memes;
-    toggleMemes.onchange = e => {
-      gooseConfig.memes = e.target.checked;
-      saveGooseConfig();
-    };
-  }
-
-  function saveGooseConfig() {
-    localStorage.setItem('votify-goose-config', JSON.stringify(gooseConfig));
-    updateGooseVisibility();
-  }
-
-  function updateGooseVisibility() {
-    if (wrapper) wrapper.style.display = gooseConfig.enabled ? 'block' : 'none';
-  }
-  updateGooseVisibility();
-
-  // Position goose randomly at start
-  gooseX = Math.floor(Math.random() * (window.innerWidth - 200)) + 100;
-  gooseY = Math.floor(Math.random() * (window.innerHeight - 250)) + 100;
-  wrapper.style.left = gooseX + 'px';
-  wrapper.style.top = gooseY + 'px';
-
-  // Goose click reaction (Angry Run + HONK!)
-  wrapper.onclick = () => {
-    if (!gooseConfig.enabled) return;
-    gooseState = 'RUNNING';
-    gooseSpeed = 8;
-    honkGoose('HONK HONK HONK!! 🪿⚡');
-
-    // Pick random far target to run away
-    gooseTargetX = Math.floor(Math.random() * (window.innerWidth - 150));
-    gooseTargetY = Math.floor(Math.random() * (window.innerHeight - 200));
-  };
-
-  function honkGoose(text) {
-    if (!speechBubble || !speechText) return;
-    speechText.textContent = text || GOOSE_QUOTES[Math.floor(Math.random() * GOOSE_QUOTES.length)];
-    speechBubble.classList.remove('hidden');
-    wrapper.classList.add('honking');
-
-    setTimeout(() => {
-      speechBubble.classList.add('hidden');
-      wrapper.classList.remove('honking');
-    }, 2500);
-  }
-
-  function dropFootprint(x, y) {
-    if (!gooseConfig.tracks || !tracksLayer) return;
-    const print = document.createElement('div');
-    print.className = 'goose-footprint';
-    print.style.left = x + 30 + 'px';
-    print.style.top = y + 55 + 'px';
-    tracksLayer.appendChild(print);
-
-    setTimeout(() => {
-      if (print.parentNode) print.parentNode.removeChild(print);
-    }, 8000);
-  }
-
-  function spawnMemeWindow() {
-    if (!gooseConfig.memes || !memesContainer) return;
-    const data = GOOSE_STICKY_MEMES[Math.floor(Math.random() * GOOSE_STICKY_MEMES.length)];
-
-    const card = document.createElement('div');
-    card.className = 'goose-meme-card';
-    card.style.left = gooseX - 50 + 'px';
-    card.style.top = gooseY - 80 + 'px';
-    card.innerHTML = `
-      <div class="goose-meme-card-header">
-        <span>${escapeHtml(data.title)}</span>
-        <span style="cursor:pointer;" onclick="this.parentNode.parentNode.remove()">✕</span>
-      </div>
-      <div>${escapeHtml(data.body)}</div>
-    `;
-    memesContainer.appendChild(card);
-  }
-
-  // Main DesktopGoose Walking Physics Loop (60 FPS tick)
-  function gooseStep() {
-    if (!gooseConfig.enabled) {
-      requestAnimationFrame(gooseStep);
-      return;
-    }
-
-    if (gooseState === 'WANDERING' || gooseState === 'RUNNING' || gooseState === 'DRAGGING_MEME') {
-      const dx = gooseTargetX - gooseX;
-      const dy = gooseTargetY - gooseY;
-      const dist = Math.hypot(dx, dy);
-
-      if (dist > 6) {
-        const step = Math.min(dist, gooseSpeed);
-        gooseX += (dx / dist) * step;
-        gooseY += (dy / dist) * step;
-
-        wrapper.style.left = gooseX + 'px';
-        wrapper.style.top = gooseY + 'px';
-        wrapper.classList.add('waddling');
-
-        const flip = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
-        wrapper.style.transform = flip;
-
-        if (Math.random() < 0.12) dropFootprint(gooseX, gooseY);
-      } else {
-        wrapper.classList.remove('waddling');
-        gooseState = 'IDLE';
-        gooseSpeed = 3.5;
-
-        if (Math.random() < 0.35) {
-          honkGoose();
-        }
-      }
-    }
-
-    requestAnimationFrame(gooseStep);
-  }
-
-  requestAnimationFrame(gooseStep);
-
-  // Periodic Goose AI Behavior Loop (Every 6-12 seconds pick new goal)
-  clearInterval(gooseActionTimer);
-  gooseActionTimer = setInterval(() => {
-    if (!gooseConfig.enabled || gooseState === 'RUNNING') return;
-
-    const roll = Math.random();
-    if (roll < 0.55) {
-      gooseState = 'WANDERING';
-      gooseTargetX = Math.floor(Math.random() * (window.innerWidth - 160)) + 40;
-      gooseTargetY = Math.floor(Math.random() * (window.innerHeight - 200)) + 60;
-    } else if (roll < 0.85) {
-      gooseState = 'HONKING';
-      honkGoose();
-    } else {
-      gooseState = 'DRAGGING_MEME';
-      honkGoose('Смотри, что я нашел! 🪿');
-      spawnMemeWindow();
-      gooseTargetX = Math.floor(Math.random() * (window.innerWidth - 160)) + 40;
-      gooseTargetY = Math.floor(Math.random() * (window.innerHeight - 200)) + 60;
-    }
-  }, 9000);
 }
 
 if (document.readyState === 'loading') {
@@ -7395,7 +7112,7 @@ function initRedesignedSettings() {
     });
   }
   wireInput('toggle-perf-bg', 'perfBg', true);
-  wireInput('toggle-perf-particles', 'perfParticles', true, null, '', () => updateParticleSystem());
+  wireInput('toggle-perf-particles', 'perfParticles', false, null, '', () => updateParticleSystem());
   wireInput('toggle-perf-covers', 'perfCovers', true);
   wireInput('toggle-perf-visualizers', 'perfVisualizers', true);
   wireInput('toggle-perf-blur', 'perfBlur', true);
@@ -7555,7 +7272,7 @@ function initRedesignedSettings() {
   wireInput('toggle-tab-settings', 'tabSettings', true, null, '', () => applyTabsSettings());
 
   // --- 11. Фон (app-bg) ---
-  wireInput('setting-bg-particles', 'bgParticles', 'dots', null, '', () => updateParticleSystem());
+  wireInput('setting-bg-particles', 'bgParticles', 'none', null, '', () => updateParticleSystem());
   wireInput('slider-particle-count', 'particleCount', 50, 'particle-count-val', '', () =>
     updateParticleSystem()
   );
