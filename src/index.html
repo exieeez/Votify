@@ -946,6 +946,46 @@
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-cache-tracks" checked /><span class="toggle-slider"></span></label>
                 </div>
+              <div class="settings-section" id="soundpad-settings-section">
+                <div class="settings-section-header"><i class="material-icons">mic</i><h3>Soundpad (Микшер Микрофона и Музыки)</h3></div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Режим Soundpad</span>
+                    <span class="setting-toggle-desc">Транслировать треки из Votify прямо в ваш микрофон (для Discord, Telegram, Игр)</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="toggle-soundpad-enabled" /><span class="toggle-slider"></span></label>
+                </div>
+                
+                <div id="soundpad-controls-group" style="margin-top: 16px; display: none;">
+                  <div class="setting-item" style="margin-bottom: 16px;">
+                    <label for="setting-soundpad-mic-device">Ваш Микрофон (Входное устройство)</label>
+                    <select id="setting-soundpad-mic-device" class="m3-select">
+                      <option value="default">Устройство по умолчанию</option>
+                    </select>
+                  </div>
+                  <div class="setting-item" style="margin-bottom: 16px;">
+                    <div class="setting-row">
+                      <label for="setting-soundpad-mic-vol">Громкость Микрофона</label>
+                      <span class="setting-value" id="soundpad-mic-vol-val">100%</span>
+                    </div>
+                    <input type="range" id="setting-soundpad-mic-vol" min="0" max="200" value="100" />
+                  </div>
+                  <div class="setting-item" style="margin-bottom: 16px;">
+                    <div class="setting-row">
+                      <label for="setting-soundpad-music-vol">Громкость Музыки Votify в микрофоне</label>
+                      <span class="setting-value" id="soundpad-music-vol-val">80%</span>
+                    </div>
+                    <input type="range" id="setting-soundpad-music-vol" min="0" max="200" value="80" />
+                  </div>
+
+                  <div style="background: rgba(29, 185, 84, 0.1); border: 1px solid rgba(29, 185, 84, 0.3); border-radius: 12px; padding: 14px; margin-top: 12px; display: flex; align-items: center; gap: 12px;">
+                    <i class="material-icons" style="color: var(--accent); font-size: 28px;">graphic_eq</i>
+                    <div style="flex: 1;">
+                      <div style="font-weight: 700; font-size: 13px; color: var(--accent);" id="soundpad-status-title">Soundpad активен</div>
+                      <div style="font-size: 12px; color: var(--text-secondary);" id="soundpad-status-desc">Смешанный сигнал (Микрофон + Музыка Votify) создан. В Discord/Telegram выберите входящий поток Votify.</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
