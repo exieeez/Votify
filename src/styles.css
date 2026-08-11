@@ -6918,7 +6918,7 @@ body[data-player-slider-type="wave"] input[type="range"]::-webkit-slider-thumb {
   border-radius: 50% !important;
   background: #ffffff !important;
   box-shadow: 0 0 10px #ffffff, 0 0 16px var(--accent) !important;
-  margin-top: 4px !important;
+  margin-top: -4px !important;
 }
 
 /* Cover Animations Keyframes */
