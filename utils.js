@@ -598,6 +598,20 @@ async function fetchStreamUrl(videoId) {
   } catch (e) {
     console.log('yt-dlp error for', videoId, ':', e.message);
   }
+
+  // Fallback to Piped
+  for (const instance of PIPED_INSTANCES) {
+    try {
+      const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 8000);
+      const streams = (data?.audioStreams || []).filter(s => s?.url);
+      const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
+      if (stream?.url) {
+        streamCache.set(videoId, { url: stream.url, expires: Date.now() + STREAM_CACHE_TTL });
+        return stream.url;
+      }
+    } catch (e) {}
+  }
+
   return null;
 }
 
