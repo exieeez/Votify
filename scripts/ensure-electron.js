@@ -108,12 +108,22 @@ async function main() {
   console.log(`[electron] Binary installed successfully: ${executablePath}`);
 }
 
-main().catch(error => {
-  console.error(`[electron] Repair failed: ${error?.stack || error}`);
-  if (process.platform === 'linux') {
-    console.error(
-      '[electron] Arch Linux fallback: install the official package with `sudo pacman -S electron35`, then run `npm start` again.'
-    );
-  }
-  process.exit(1);
-});
+// A pending Promise alone does not keep newer Node.js versions alive. Keep the
+// prestart process open until the archive has been fully downloaded and
+// extracted; otherwise npm would continue to `electron .` too early.
+const keepAlive = setInterval(() => {}, 1000);
+
+main()
+  .then(() => {
+    clearInterval(keepAlive);
+  })
+  .catch(error => {
+    clearInterval(keepAlive);
+    console.error(`[electron] Repair failed: ${error?.stack || error}`);
+    if (process.platform === 'linux') {
+      console.error(
+        '[electron] If direct download is unavailable, install a compatible system Electron and set VOTIFY_SYSTEM_ELECTRON to its executable path.'
+      );
+    }
+    process.exit(1);
+  });
