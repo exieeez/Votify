@@ -36,7 +36,19 @@ function getInstalledExecutable(electronDir) {
 
 function linkSystemElectron(electronDir) {
   if (process.platform !== 'linux') return null;
-  const candidates = [process.env.VOTIFY_SYSTEM_ELECTRON, '/usr/bin/electron35'];
+  const candidates = [
+    process.env.VOTIFY_SYSTEM_ELECTRON,
+    '/usr/bin/electron',
+    '/usr/bin/electron43',
+    '/usr/bin/electron42',
+    '/usr/bin/electron41',
+    '/usr/bin/electron40',
+    '/usr/bin/electron39',
+    '/usr/bin/electron38',
+    '/usr/bin/electron37',
+    '/usr/bin/electron36',
+    '/usr/bin/electron35',
+  ];
   const systemElectron = candidates.find(candidate => candidate && fs.existsSync(candidate));
   if (!systemElectron) return null;
 
