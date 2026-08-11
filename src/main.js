@@ -3279,8 +3279,11 @@ function initEQ() {
     sharedAnalyser.smoothingTimeConstant = 0.75;
     prev.connect(sharedAnalyser);
     sharedAnalyser.connect(audioCtx.destination);
+    if (typeof soundpadMusicGainNode !== 'undefined' && soundpadMusicGainNode) {
+      try { sharedAnalyser.connect(soundpadMusicGainNode); } catch (err) {}
+    }
     console.log(
-      '[EQ] Chain connected: source → EQ → normalizer → analyser → destination, filters:',
+      '[EQ] Chain connected: source → EQ → normalizer → analyser → destination/soundpad',
       eqFilters.length
     );
   } catch (e) {
@@ -7121,10 +7124,10 @@ async function updateSoundpadMixer() {
     // Connect Music output to Soundpad Destination via GainNode
     if (!soundpadMusicGainNode) {
       soundpadMusicGainNode = audioCtx.createGain();
-      if (sharedAnalyser) {
-        sharedAnalyser.connect(soundpadMusicGainNode);
-      }
       soundpadMusicGainNode.connect(soundpadDestinationNode);
+    }
+    if (sharedAnalyser) {
+      try { sharedAnalyser.connect(soundpadMusicGainNode); } catch (err) {}
     }
     const musicVol = (appSettings.soundpadMusicVol ?? 80) / 100;
     soundpadMusicGainNode.gain.setValueAtTime(musicVol, audioCtx.currentTime);
@@ -7159,7 +7162,7 @@ async function updateSoundpadMixer() {
       soundpadVirtualAudioElem = document.createElement('audio');
       soundpadVirtualAudioElem.id = 'soundpad-mixed-output';
       soundpadVirtualAudioElem.autoplay = true;
-      soundpadVirtualAudioElem.muted = false;
+      soundpadVirtualAudioElem.muted = true; // Default muted to prevent local echo/self-hearing
       document.body.appendChild(soundpadVirtualAudioElem);
     }
     soundpadVirtualAudioElem.srcObject = soundpadDestinationNode.stream;
@@ -7169,10 +7172,15 @@ async function updateSoundpadMixer() {
     if (typeof soundpadVirtualAudioElem.setSinkId === 'function' && outDeviceId !== 'default') {
       try {
         await soundpadVirtualAudioElem.setSinkId(outDeviceId);
-        console.log('[Soundpad] Output routed via setSinkId to:', outDeviceId);
+        soundpadVirtualAudioElem.muted = false; // Unmute ONLY for Virtual Cable output!
+        console.log('[Soundpad] Output routed via setSinkId to virtual cable:', outDeviceId);
       } catch (err) {
         console.warn('[Soundpad] setSinkId error:', err);
+        soundpadVirtualAudioElem.muted = true;
       }
+    } else {
+      // Default speaker output -> MUST BE MUTED so user does not hear self-microphone echo!
+      soundpadVirtualAudioElem.muted = true;
     }
 
     console.log('[Soundpad] Mixed Mic + Music stream active');
