@@ -1477,16 +1477,21 @@ function formatTrackCount(count) {
   return `${count} ${word}`;
 }
 
-// Helper to generate monthly listeners count
-function getArtistMonthlyListeners(name) {
+// Helper to generate monthly listeners count realistically
+function getArtistMonthlyListeners(name, totalViews = 0) {
+  if (totalViews > 0) {
+    const computed = Math.round(totalViews * 0.42);
+    return computed.toLocaleString('ru-RU');
+  }
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = (hash << 5) - hash + name.charCodeAt(i);
     hash |= 0;
   }
   const abs = Math.abs(hash);
-  const listeners = 150000 + (abs % 8450000);
-  return listeners.toLocaleString('ru-RU');
+  // Realistic listener count algorithm
+  const base = 480000 + (abs % 4200000);
+  return base.toLocaleString('ru-RU');
 }
 
 // Recent Artists Management
@@ -6590,6 +6595,7 @@ function initApp() {
     }
 
     console.log('Votify initialized successfully.');
+    initVotifyPet();
   } catch (e) {
     console.error('Critical init error:', e);
   } finally {
@@ -6597,6 +6603,194 @@ function initApp() {
     // Always hide splash after a delay, even if init failed
     setTimeout(hideSplash, 1500);
   }
+}
+
+/* ==========================================
+   VOTIFY ANIME PET COMPANION LOGIC (КОХАРУ)
+   ========================================== */
+let petConfig = {
+  enabled: true,
+  character: 'tsundere',
+  canThrowCursor: true,
+  canBringGifts: true,
+  canChat: true,
+};
+let petClicks = 0;
+let petAngerTimer = null;
+let petGiftTimer = null;
+let petMemeTimer = null;
+
+const PET_MEMES = [
+  'Нян~! Я с тобой слушаю музыку! ♫',
+  'Опять этот трек? Он нормас~ (◕‿◕)',
+  'Попей водички, ты сидишь уже 2 часа!',
+  'Гигачад в здании! 🗿',
+  'Nyan~ =^.^=',
+  'Я слежу за твоим плейлистом!',
+  'Не тыкай в меня, я злая! >_<',
+  'Принесла тебе вайб из альтернативной реальности ✨',
+  'Басы качают! 🎧',
+  'Включи фонк или я уйду за экран! ⚡',
+];
+
+const PET_GIFTS = [
+  'Золотая коллекционная кассета 📼',
+  'Легендарный ретро-винил 💿',
+  'Кошачьи ушки Кохару 🐱',
+  'Чек на +1000 к стилю Votify ✨',
+  'Редкий стикер Кохару (◕‿◕)',
+];
+
+function initVotifyPet() {
+  const widget = document.getElementById('votify-pet-widget');
+  const speechText = document.getElementById('pet-speech-text');
+  const avatar = document.getElementById('pet-avatar');
+  const giftBadge = document.getElementById('pet-gift-badge');
+  const mouth = document.getElementById('pet-mouth');
+  const eyes = document.getElementById('pet-eyes');
+
+  if (!widget) return;
+
+  const toggleEnabled = document.getElementById('toggle-pet-enabled');
+  const selectChar = document.getElementById('setting-pet-character');
+  const toggleThrow = document.getElementById('toggle-pet-throw');
+  const toggleGifts = document.getElementById('toggle-pet-gifts');
+  const toggleChat = document.getElementById('toggle-pet-chat');
+
+  const saved = localStorage.getItem('votify-pet-config');
+  if (saved) {
+    try {
+      petConfig = { ...petConfig, ...JSON.parse(saved) };
+    } catch (e) {}
+  }
+
+  if (toggleEnabled) {
+    toggleEnabled.checked = petConfig.enabled;
+    toggleEnabled.onchange = e => {
+      petConfig.enabled = e.target.checked;
+      savePetConfig();
+    };
+  }
+  if (selectChar) {
+    selectChar.value = petConfig.character;
+    selectChar.onchange = e => {
+      petConfig.character = e.target.value;
+      savePetConfig();
+    };
+  }
+  if (toggleThrow) {
+    toggleThrow.checked = petConfig.canThrowCursor;
+    toggleThrow.onchange = e => {
+      petConfig.canThrowCursor = e.target.checked;
+      savePetConfig();
+    };
+  }
+  if (toggleGifts) {
+    toggleGifts.checked = petConfig.canBringGifts;
+    toggleGifts.onchange = e => {
+      petConfig.canBringGifts = e.target.checked;
+      savePetConfig();
+    };
+  }
+  if (toggleChat) {
+    toggleChat.checked = petConfig.canChat;
+    toggleChat.onchange = e => {
+      petConfig.canChat = e.target.checked;
+      savePetConfig();
+    };
+  }
+
+  function savePetConfig() {
+    localStorage.setItem('votify-pet-config', JSON.stringify(petConfig));
+    updatePetVisibility();
+  }
+
+  function updatePetVisibility() {
+    if (widget) widget.style.display = petConfig.enabled ? 'flex' : 'none';
+  }
+  updatePetVisibility();
+
+  // Eye tracking cursor
+  document.addEventListener('mousemove', e => {
+    if (!petConfig.enabled || !eyes) return;
+    const rect = avatar.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = Math.min(6, Math.max(-6, (e.clientX - cx) / (window.innerWidth / 12)));
+    const dy = Math.min(6, Math.max(-6, (e.clientY - cy) / (window.innerHeight / 12)));
+    eyes.style.transform = `translate(${dx}px, ${dy}px)`;
+  });
+
+  // Clicking pet interaction (Angry + Knockback / Throw cursor!)
+  avatar.onclick = () => {
+    if (!petConfig.enabled) return;
+    petClicks++;
+
+    clearTimeout(petAngerTimer);
+    petAngerTimer = setTimeout(() => {
+      petClicks = 0;
+      if (avatar) avatar.classList.remove('angry');
+      if (mouth) mouth.textContent = '‿';
+    }, 4000);
+
+    if (petClicks === 1) {
+      if (speechText) speechText.textContent = 'Хэй! Не тыкай в меня! (•_•)';
+      if (mouth) mouth.textContent = 'o';
+    } else if (petClicks === 2) {
+      if (speechText) speechText.textContent = 'Прекрати тыкать, я слушаю музыку! (>_<)';
+      if (mouth) mouth.textContent = '﹏';
+      avatar.classList.add('angry');
+    } else if (petClicks >= 3) {
+      if (speechText) speechText.textContent = 'ВСЁ! Ты меня разозлил! (>_<#)';
+      if (mouth) mouth.textContent = '皿';
+      avatar.classList.add('angry');
+
+      if (petConfig.canThrowCursor) {
+        widget.style.transform = 'scale(1.45) rotate(-18deg)';
+        setTimeout(() => {
+          widget.style.transform = 'none';
+        }, 350);
+
+        if (typeof showToast === 'function') {
+          showToast('💥 Кохару разозлилась и физически отбросила ваш курсор! >_<#');
+        }
+      }
+    }
+  };
+
+  // Gift collection
+  if (giftBadge) {
+    giftBadge.onclick = e => {
+      e.stopPropagation();
+      const randomGift = PET_GIFTS[Math.floor(Math.random() * PET_GIFTS.length)];
+      if (typeof showToast === 'function') {
+        showToast(`🎁 Вы получили подарок от Кохару: ${randomGift}!`);
+      }
+      giftBadge.classList.add('hidden');
+    };
+  }
+
+  // Periodic Off-Screen Gift Bringing
+  clearInterval(petGiftTimer);
+  petGiftTimer = setInterval(() => {
+    if (!petConfig.enabled || !petConfig.canBringGifts) return;
+    if (speechText) speechText.textContent = 'Ушла за редким подарком из-за экрана~ 🏃‍♀️';
+
+    widget.classList.add('offscreen-right');
+    setTimeout(() => {
+      widget.classList.remove('offscreen-right');
+      if (giftBadge) giftBadge.classList.remove('hidden');
+      if (speechText) speechText.textContent = 'Смотри, что я тебе принесла! 🎁';
+    }, 3500);
+  }, 110000);
+
+  // Periodic Chat Memes
+  clearInterval(petMemeTimer);
+  petMemeTimer = setInterval(() => {
+    if (!petConfig.enabled || !petConfig.canChat || petClicks > 0) return;
+    const meme = PET_MEMES[Math.floor(Math.random() * PET_MEMES.length)];
+    if (speechText) speechText.textContent = meme;
+  }, 22000);
 }
 
 // Failsafe: hide splash even if a later initialization task fails or stalls.
