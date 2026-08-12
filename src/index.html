@@ -1022,7 +1022,7 @@
                 </div>
                 <div class="setting-item" style="margin-top: 12px;">
                   <div class="setting-row"><label>Кроссфейд (плавный переход)</label><span class="setting-value" id="crossfade-value">0 сек</span></div>
-                  <input type="range" id="crossfade-duration" min="0" max="15" value="0" />
+                  <input type="range" class="settings-range" id="crossfade-duration" min="0" max="15" value="0" />
                 </div>
                 <div class="setting-toggle-item" style="margin-top: 12px;">
                   <div class="setting-toggle-info">
@@ -1058,7 +1058,7 @@
                 <div class="settings-section-header"><i class="material-icons">blur_on</i><h3>Эффекты и Размытие</h3></div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Качество и сила размытия (Blur)</label><span class="setting-value" id="background-blur-value">15px</span></div>
-                  <input type="range" id="background-blur-slider" min="0" max="30" value="15" />
+                  <input type="range" class="settings-range" id="background-blur-slider" min="0" max="30" value="15" />
                 </div>
               </div>
               <div class="settings-section">
@@ -1287,18 +1287,18 @@
                 </div>
                 <div class="setting-item" style="margin-top: 8px;">
                   <div class="setting-row"><label>Размер шрифта</label><span class="setting-value" id="font-size-slider-value">16px</span></div>
-                  <input type="range" id="font-size-slider" min="12" max="24" value="16" />
+                  <input type="range" class="settings-range" id="font-size-slider" min="12" max="24" value="16" />
                 </div>
               </div>
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">zoom_out_map</i><h3>Скругление и Масштабирование</h3></div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Скругление углов (border-radius)</label><span class="setting-value" id="corner-radius-slider-value">8px</span></div>
-                  <input type="range" id="corner-radius-slider" min="0" max="24" value="8" />
+                  <input type="range" class="settings-range" id="corner-radius-slider" min="0" max="24" value="8" />
                 </div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Масштаб интерфейса (UI Scale)</label><span class="setting-value" id="ui-scale-slider-value">100%</span></div>
-                  <input type="range" id="slider-ui-scale" min="75" max="125" value="100" />
+                  <input type="range" class="settings-range" id="slider-ui-scale" min="75" max="125" value="100" />
                 </div>
               </div>
             </div>
@@ -1367,15 +1367,15 @@
                 <div class="settings-section-header"><i class="material-icons">tune</i><h3>Яркость и Прозрачность</h3></div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Яркость фона</label><span class="setting-value" id="bg-brightness-slider-value">100%</span></div>
-                  <input type="range" id="bg-brightness-slider" min="20" max="200" value="100" />
+                  <input type="range" class="settings-range" id="bg-brightness-slider" min="20" max="200" value="100" />
                 </div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Размытие изображения фона (Blur)</label><span class="setting-value" id="bg-blur-slider-value">0px</span></div>
-                  <input type="range" id="bg-blur-slider" min="0" max="60" value="0" />
+                  <input type="range" class="settings-range" id="bg-blur-slider" min="0" max="60" value="0" />
                 </div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Прозрачность карточек и модулей</label><span class="setting-value" id="ui-transparency-slider-value">45%</span></div>
-                  <input type="range" id="ui-transparency-slider" min="10" max="100" value="45" />
+                  <input type="range" class="settings-range" id="ui-transparency-slider" min="10" max="100" value="45" />
                 </div>
               </div>
               <div class="settings-section">
@@ -1396,15 +1396,15 @@
                 </div>
                 <div class="setting-item" style="margin-top: 8px;">
                   <div class="setting-row"><label>Количество частиц</label><span class="setting-value" id="particle-count-val">50</span></div>
-                  <input type="range" id="slider-particle-count" min="10" max="250" value="50" />
+                  <input type="range" class="settings-range" id="slider-particle-count" min="10" max="250" value="50" />
                 </div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Скорость движения</label><span class="setting-value" id="particle-speed-val">1.5×</span></div>
-                  <input type="range" id="slider-particle-speed" min="1" max="100" value="15" />
+                  <input type="range" class="settings-range" id="slider-particle-speed" min="1" max="100" value="15" />
                 </div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Размер частиц</label><span class="setting-value" id="particle-size-val">3px</span></div>
-                  <input type="range" id="slider-particle-size" min="1" max="12" value="3" />
+                  <input type="range" class="settings-range" id="slider-particle-size" min="1" max="12" value="3" />
                 </div>
                 <div class="setting-toggle-item">
                   <div class="setting-toggle-info">
@@ -1445,9 +1445,27 @@
                   <span class="setting-toggle-label">Элемент в фокусе (Focus Glow)</span>
                   <input type="color" id="picker-color-focus" value="#1DB954" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
                 </div>
-                <div style="margin-top: 18px; display: flex; gap: 8px;">
-                  <button class="btn-accent" id="btn-custom-theme-apply" style="flex: 1; justify-content: center;"><i class="material-icons">save</i> Сохранить кастомную тему</button>
+                <div class="setting-item" style="margin-top: 14px;">
+                  <label for="color-scheme-name-input">Название схемы</label>
+                  <input
+                    type="text"
+                    id="color-scheme-name-input"
+                    class="m3-input-text"
+                    maxlength="40"
+                    placeholder="Схема 1"
+                    autocomplete="off"
+                  />
                 </div>
+                <div style="margin-top: 18px; display: flex; gap: 8px;">
+                  <button class="btn-accent" id="btn-custom-theme-apply" type="button" style="flex: 1; justify-content: center;">
+                    <i class="material-icons">save</i> Сохранить цветовую схему
+                  </button>
+                </div>
+                <div class="saved-color-schemes-header">
+                  <span>Сохранённые схемы</span>
+                  <span id="saved-color-schemes-count">0 / 12</span>
+                </div>
+                <div id="saved-color-schemes" class="saved-color-schemes"></div>
               </div>
             </div>
 
@@ -1514,6 +1532,7 @@
     <script src="/vendor/firebase-auth-compat.js"></script>
     <script src="/vendor/firebase-firestore-compat.js"></script>
     <script src="firebase-client.js"></script>
+    <script src="color-schemes.js"></script>
     <script src="main.js"></script>
     <script src="workshop.js"></script>
   </body>

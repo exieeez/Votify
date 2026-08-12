@@ -371,10 +371,38 @@ let appSettings = readStoredJson('votify-settings', {
   backgroundBlur: 0,
   perfParticles: false,
   bgParticles: 'none',
+  savedColorSchemes: [],
+  activeColorSchemeId: '',
 });
 
 if (appSettings.perfParticles === undefined) appSettings.perfParticles = false;
 if (appSettings.bgParticles === undefined) appSettings.bgParticles = 'none';
+if (!Array.isArray(appSettings.savedColorSchemes)) appSettings.savedColorSchemes = [];
+if (typeof appSettings.activeColorSchemeId !== 'string') appSettings.activeColorSchemeId = '';
+
+function getColorSchemesApi() {
+  return window.VotifyColorSchemes || null;
+}
+
+function sanitizeAppColorSchemes() {
+  const api = getColorSchemesApi();
+  if (api) {
+    appSettings.savedColorSchemes = api.sanitizeSavedColorSchemes(appSettings.savedColorSchemes);
+  } else if (!Array.isArray(appSettings.savedColorSchemes)) {
+    appSettings.savedColorSchemes = [];
+  }
+  if (
+    appSettings.activeColorSchemeId &&
+    !(appSettings.savedColorSchemes || []).some(
+      scheme => scheme.id === appSettings.activeColorSchemeId
+    )
+  ) {
+    appSettings.activeColorSchemeId = '';
+  }
+  return appSettings.savedColorSchemes;
+}
+
+sanitizeAppColorSchemes();
 
 // One-time cleanup for installations that inherited the old intrusive visual
 // defaults. Users can still enable particles again from the appearance panel.
@@ -495,6 +523,12 @@ function getCloudSafeSettings() {
   Object.keys(settings).forEach(key => {
     if (key.startsWith('_cache')) delete settings[key];
   });
+  const api = getColorSchemesApi();
+  settings.savedColorSchemes = api
+    ? api.sanitizeSavedColorSchemes(settings.savedColorSchemes)
+    : Array.isArray(settings.savedColorSchemes)
+      ? settings.savedColorSchemes.slice(0, 12)
+      : [];
   return settings;
 }
 
@@ -515,6 +549,7 @@ function restoreCachedCloudState(uid) {
   if (!cached) return false;
   if (cached.settings && typeof cached.settings === 'object') {
     appSettings = { ...appSettings, ...cached.settings };
+    sanitizeAppColorSchemes();
     localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   }
   if (cached.playlists && typeof cached.playlists === 'object') {
@@ -550,6 +585,7 @@ async function syncWithCloud(direction = 'pull') {
       if (data.exists) {
         if (data.settings && typeof data.settings === 'object') {
           appSettings = { ...appSettings, ...data.settings };
+          sanitizeAppColorSchemes();
           localStorage.setItem('votify-settings', JSON.stringify(appSettings));
           applyLanguage(appSettings.lang || 'ru');
         }
@@ -2100,6 +2136,7 @@ safeClick('nav-settings-btn', () => {
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('nav-settings-btn').classList.add('active');
       if (typeof initRangeSliderTracks === 'function') initRangeSliderTracks();
+      if (typeof renderSavedColorSchemes === 'function') renderSavedColorSchemes();
       if (typeof renderSettingsLocalTracks === 'function') renderSettingsLocalTracks();
     } else {
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -3470,7 +3507,9 @@ function initEQ() {
     prev.connect(sharedAnalyser);
     sharedAnalyser.connect(audioCtx.destination);
     if (typeof soundpadMusicGainNode !== 'undefined' && soundpadMusicGainNode) {
-      try { sharedAnalyser.connect(soundpadMusicGainNode); } catch (err) {}
+      try {
+        sharedAnalyser.connect(soundpadMusicGainNode);
+      } catch (err) {}
     }
     console.log(
       '[EQ] Chain connected: source → EQ → normalizer → analyser → destination/soundpad',
@@ -3819,7 +3858,16 @@ function updateSliderTrackFill(slider) {
   slider.style.setProperty('--r', `${pct}%`);
 }
 
+function markSettingsRangeSliders() {
+  document
+    .querySelectorAll(
+      '.settings-overlay input[type="range"], #settings-overlay input[type="range"]'
+    )
+    .forEach(slider => slider.classList.add('settings-range'));
+}
+
 function initRangeSliderTracks() {
+  markSettingsRangeSliders();
   document.querySelectorAll('input[type="range"]').forEach(slider => {
     updateSliderTrackFill(slider);
     if (!slider._hasTrackFillListener) {
@@ -7090,6 +7138,187 @@ function applyTabsSettings() {
   if (settingsBtn) settingsBtn.style.display = appSettings.tabSettings === false ? 'none' : '';
 }
 
+function syncColorPickersFromSettings() {
+  const api = getColorSchemesApi();
+  const colors = api
+    ? api.readColorSchemeFromSettings(appSettings)
+    : {
+        accent: appSettings.customColorPrimary || appSettings.accent || '#1DB954',
+        background: appSettings.customColorBg || '#121212',
+        text: appSettings.customColorText || '#ffffff',
+        cards: appSettings.customColorCards || '#181818',
+        borders: appSettings.customColorBorders || '#2a2a2a',
+        focus: appSettings.customColorFocus || appSettings.customColorPrimary || '#1DB954',
+      };
+  const map = {
+    'picker-color-primary': colors.accent,
+    'picker-color-bg': colors.background,
+    'picker-color-text': colors.text,
+    'picker-color-cards': colors.cards,
+    'picker-color-borders': colors.borders,
+    'picker-color-focus': colors.focus,
+  };
+  Object.entries(map).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el && value) el.value = value;
+  });
+}
+
+function renderSavedColorSchemes() {
+  const api = getColorSchemesApi();
+  const list = document.getElementById('saved-color-schemes');
+  const countEl = document.getElementById('saved-color-schemes-count');
+  const schemes = sanitizeAppColorSchemes();
+  const limit = api?.COLOR_SCHEME_LIMIT || 12;
+  if (countEl) countEl.textContent = `${schemes.length} / ${limit}`;
+  if (!list) return;
+  if (!schemes.length) {
+    list.innerHTML =
+      '<p class="saved-color-schemes-empty">Нет сохранённых схем. Настройте цвета и нажмите «Сохранить цветовую схему».</p>';
+    return;
+  }
+  const fields = api?.COLOR_SCHEME_FIELDS || [
+    'accent',
+    'background',
+    'text',
+    'cards',
+    'borders',
+    'focus',
+  ];
+  const activeId = appSettings.activeColorSchemeId || '';
+  list.innerHTML = schemes
+    .map(scheme => {
+      const swatches = fields
+        .map(
+          field =>
+            `<span class="saved-color-scheme-swatch" style="background:${escapeHtml(
+              scheme.colors?.[field] || ''
+            )}" title="${escapeHtml(field)}"></span>`
+        )
+        .join('');
+      const id = escapeHtml(scheme.id);
+      return `<article class="saved-color-scheme-card${
+        scheme.id === activeId ? ' is-active' : ''
+      }" data-scheme-id="${id}">
+        <div class="saved-color-scheme-swatches">${swatches}</div>
+        <div class="saved-color-scheme-meta">
+          <strong>${escapeHtml(scheme.name)}</strong>
+          <div class="saved-color-scheme-actions">
+            <button type="button" class="btn-secondary btn-sm saved-color-scheme-apply" data-scheme-id="${id}">Применить</button>
+            <button type="button" class="btn-danger btn-sm saved-color-scheme-delete" data-scheme-id="${id}">Удалить</button>
+          </div>
+        </div>
+      </article>`;
+    })
+    .join('');
+}
+
+function applySavedColorSchemeById(id) {
+  const api = getColorSchemesApi();
+  if (!api) return;
+  const scheme = api.applyColorScheme(appSettings.savedColorSchemes, id);
+  if (!scheme) {
+    showToast('Схема не найдена');
+    return;
+  }
+  Object.assign(appSettings, api.colorSchemeToSettings(scheme));
+  syncColorPickersFromSettings();
+  applyAccentColor(scheme.colors.accent);
+  applyCustomColors();
+  renderSavedColorSchemes();
+  saveSettings();
+  showToast(`Схема «${scheme.name}» применена`);
+}
+
+async function deleteSavedColorSchemeById(id) {
+  const api = getColorSchemesApi();
+  if (!api) return;
+  const scheme = api.applyColorScheme(appSettings.savedColorSchemes, id);
+  const name = scheme?.name || 'схему';
+  const confirmed = await confirmModal('Удалить схему', `Удалить цветовую схему «${name}»?`);
+  if (!confirmed) return;
+  appSettings.savedColorSchemes = api.deleteColorScheme(appSettings.savedColorSchemes, id);
+  if (appSettings.activeColorSchemeId === id) appSettings.activeColorSchemeId = '';
+  renderSavedColorSchemes();
+  saveSettings();
+  showToast('Схема удалена');
+}
+
+function readCurrentColorSchemeColors() {
+  const api = getColorSchemesApi();
+  const pickerValues = {
+    customColorPrimary: document.getElementById('picker-color-primary')?.value,
+    customColorBg: document.getElementById('picker-color-bg')?.value,
+    customColorText: document.getElementById('picker-color-text')?.value,
+    customColorCards: document.getElementById('picker-color-cards')?.value,
+    customColorBorders: document.getElementById('picker-color-borders')?.value,
+    customColorFocus: document.getElementById('picker-color-focus')?.value,
+  };
+  const source = { ...appSettings, ...pickerValues };
+  if (api) return api.readColorSchemeFromSettings(source);
+  return {
+    accent: pickerValues.customColorPrimary || appSettings.customColorPrimary || '#1DB954',
+    background: pickerValues.customColorBg || appSettings.customColorBg || '#121212',
+    text: pickerValues.customColorText || appSettings.customColorText || '#ffffff',
+    cards: pickerValues.customColorCards || appSettings.customColorCards || '#181818',
+    borders: pickerValues.customColorBorders || appSettings.customColorBorders || '#2a2a2a',
+    focus: pickerValues.customColorFocus || appSettings.customColorFocus || '#1DB954',
+  };
+}
+
+function saveCurrentColorScheme() {
+  const api = getColorSchemesApi();
+  if (!api) {
+    showToast('Модуль цветовых схем недоступен');
+    return;
+  }
+  const nameInput = document.getElementById('color-scheme-name-input');
+  const lang = appSettings.lang === 'en' ? 'en' : 'ru';
+  const fallbackName = api.nextColorSchemeName(appSettings.savedColorSchemes, lang);
+  const name = api.sanitizeSchemeName(nameInput?.value, fallbackName);
+  const colors = readCurrentColorSchemeColors();
+  const result = api.saveColorScheme(appSettings.savedColorSchemes, { name, colors });
+  if (!result.ok) {
+    if (result.reason === 'limit') {
+      showToast('Можно сохранить не больше 12 цветовых схем');
+    } else if (result.reason === 'duplicate') {
+      showToast('Такая цветовая схема уже сохранена');
+    }
+    return;
+  }
+  appSettings.savedColorSchemes = result.schemes;
+  Object.assign(appSettings, api.colorSchemeToSettings(result.scheme));
+  if (nameInput) nameInput.value = '';
+  renderSavedColorSchemes();
+  saveSettings();
+  showToast(`Схема «${result.scheme.name}» сохранена`);
+}
+
+function initSavedColorSchemes() {
+  markSettingsRangeSliders();
+  sanitizeAppColorSchemes();
+  syncColorPickersFromSettings();
+  renderSavedColorSchemes();
+  const saveBtn = document.getElementById('btn-custom-theme-apply');
+  if (saveBtn && !saveBtn._colorSchemeBound) {
+    saveBtn._colorSchemeBound = true;
+    saveBtn.addEventListener('click', event => {
+      event.preventDefault();
+      saveCurrentColorScheme();
+    });
+  }
+  const list = document.getElementById('saved-color-schemes');
+  if (list && !list._colorSchemeBound) {
+    list._colorSchemeBound = true;
+    list.addEventListener('click', event => {
+      const applyBtn = event.target.closest('.saved-color-scheme-apply');
+      const deleteBtn = event.target.closest('.saved-color-scheme-delete');
+      if (applyBtn) applySavedColorSchemeById(applyBtn.getAttribute('data-scheme-id'));
+      if (deleteBtn) deleteSavedColorSchemeById(deleteBtn.getAttribute('data-scheme-id'));
+    });
+  }
+}
+
 function applyCustomColors() {
   const targets = [document.documentElement, document.body].filter(Boolean);
   const setColor = (property, value) => {
@@ -7097,6 +7326,13 @@ function applyCustomColors() {
     targets.forEach(target => target.style.setProperty(property, value));
   };
   setColor('--accent', appSettings.customColorPrimary);
+  const hex = String(appSettings.customColorPrimary || '').replace('#', '');
+  if (/^[0-9a-f]{6}$/i.test(hex)) {
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    targets.forEach(target => target.style.setProperty('--accent-rgb', `${r},${g},${b}`));
+  }
   setColor('--bg-base', appSettings.customColorBg);
   setColor('--bg-surface', appSettings.customColorCards);
   setColor('--bg-elevated', appSettings.customColorCards);
@@ -7104,9 +7340,23 @@ function applyCustomColors() {
   setColor('--bg-highlight', appSettings.customColorBorders);
   setColor('--md-outline', appSettings.customColorBorders);
   setColor('--focus-ring', appSettings.customColorFocus);
+
+  const api = getColorSchemesApi();
+  if (api && appSettings.activeColorSchemeId) {
+    const current = { colors: api.readColorSchemeFromSettings(appSettings) };
+    const active = api.applyColorScheme(
+      appSettings.savedColorSchemes,
+      appSettings.activeColorSchemeId
+    );
+    if (!active || !api.colorSchemesEqual(current, active)) {
+      appSettings.activeColorSchemeId = '';
+      renderSavedColorSchemes();
+    }
+  }
 }
 
 function applyAllSettings() {
+  sanitizeAppColorSchemes();
   applyLanguage(appSettings.lang || 'ru');
   applyPlayerSettings();
   applyCoverSettings();
@@ -7114,6 +7364,9 @@ function applyAllSettings() {
   applyBackground();
   applyTabsSettings();
   applyCustomColors();
+  syncColorPickersFromSettings();
+  renderSavedColorSchemes();
+  markSettingsRangeSliders();
   updateParticleSystem();
 }
 
@@ -7131,7 +7384,11 @@ function workshopColor(value, fallback) {
   if (rgb) {
     return `#${rgb
       .slice(1, 4)
-      .map(channel => Math.max(0, Math.min(255, Number(channel))).toString(16).padStart(2, '0'))
+      .map(channel =>
+        Math.max(0, Math.min(255, Number(channel)))
+          .toString(16)
+          .padStart(2, '0')
+      )
       .join('')}`.toUpperCase();
   }
   return fallback;
@@ -7168,18 +7425,9 @@ function getCurrentWorkshopTheme() {
       '--accent',
       workshopColor(appSettings.customColorPrimary || appSettings.accent, '#1DB954')
     ),
-    background: workshopCssColor(
-      '--bg-base',
-      workshopColor(appSettings.customColorBg, '#121212')
-    ),
-    text: workshopCssColor(
-      '--text-primary',
-      workshopColor(appSettings.customColorText, '#FFFFFF')
-    ),
-    cards: workshopCssColor(
-      '--bg-surface',
-      workshopColor(appSettings.customColorCards, '#181818')
-    ),
+    background: workshopCssColor('--bg-base', workshopColor(appSettings.customColorBg, '#121212')),
+    text: workshopCssColor('--text-primary', workshopColor(appSettings.customColorText, '#FFFFFF')),
+    cards: workshopCssColor('--bg-surface', workshopColor(appSettings.customColorCards, '#181818')),
     borders: workshopCssColor(
       '--bg-highlight',
       workshopColor(appSettings.customColorBorders, '#2A2A2A')
@@ -7481,7 +7729,9 @@ function initRedesignedSettings() {
     });
   }
   wireInput('toggle-perf-bg', 'perfBg', true);
-  wireInput('toggle-perf-particles', 'perfParticles', false, null, '', () => updateParticleSystem());
+  wireInput('toggle-perf-particles', 'perfParticles', false, null, '', () =>
+    updateParticleSystem()
+  );
   wireInput('toggle-perf-covers', 'perfCovers', true);
   wireInput('toggle-perf-visualizers', 'perfVisualizers', true);
   wireInput('toggle-perf-blur', 'perfBlur', true);
@@ -7548,8 +7798,6 @@ function initRedesignedSettings() {
       showToast('Все локальные кэши успешно сброшены!');
     }
   });
-
-
 
   // --- 7. Плеер (app-player) ---
   wireInput('setting-player-title-align', 'playerTitleAlign', 'center', null, '', () =>
@@ -7714,6 +7962,7 @@ function initRedesignedSettings() {
       if (key === 'customColorPrimary') applyAccentColor(el.value);
       else saveSettings();
       applyCustomColors();
+      renderSavedColorSchemes();
     });
   }
   wirePicker('picker-color-primary', 'customColorPrimary', '#1DB954');
@@ -7723,9 +7972,12 @@ function initRedesignedSettings() {
   wirePicker('picker-color-borders', 'customColorBorders', '#2a2a2a');
   wirePicker('picker-color-focus', 'customColorFocus', '#1DB954');
 
+  initSavedColorSchemes();
+
   // Initial application of all active settings
   applyAllSettings();
 }
 
 // Ensure the custom settings loader starts shortly after main initialization
 setTimeout(initRedesignedSettings, 1000);
+initSavedColorSchemes();
