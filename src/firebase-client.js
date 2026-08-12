@@ -420,6 +420,11 @@
         'Аккаунт с этим email уже использует другой способ входа',
       'auth/popup-closed-by-user': 'Вход через Google отменён',
       'auth/requires-recent-login': 'Войдите в аккаунт повторно',
+      'permission-denied':
+        'Нет доступа Firestore. Опубликуйте актуальные правила из firestore.rules',
+      'firestore/permission-denied':
+        'Нет доступа Firestore. Опубликуйте актуальные правила из firestore.rules',
+      unavailable: 'Firestore временно недоступен. Проверьте подключение к интернету',
     };
     return messages[code] || error?.message || 'Неизвестная ошибка';
   }
