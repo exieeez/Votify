@@ -1636,6 +1636,7 @@ const screenPageTitles = {
   'player-screen': 'Плеер',
   'search-screen': 'Поиск',
   'folders-screen': 'Моя медиатека',
+  'workshop-screen': 'Мастерская тем',
   'artist-screen': 'Артист',
 };
 
@@ -1983,6 +1984,7 @@ function switchScreen(screenId, activeBtnId) {
     'player-screen',
     'search-screen',
     'folders-screen',
+    'workshop-screen',
     'artist-screen',
     'album-screen',
   ];
@@ -2024,6 +2026,7 @@ function switchScreen(screenId, activeBtnId) {
     'nav-player-btn',
     'nav-search-btn',
     'nav-folders-btn',
+    'nav-workshop-btn',
     'nav-settings-btn',
   ];
   if (activeBtnId && validBtnIds.includes(activeBtnId)) {
@@ -2055,6 +2058,9 @@ function switchScreen(screenId, activeBtnId) {
   if (pageTitle) pageTitle.innerText = screenPageTitles[screenId] || '';
 
   if (screenId === 'folders-screen') renderPlaylists();
+  if (screenId === 'workshop-screen') {
+    window.dispatchEvent(new CustomEvent('votify:workshop-open'));
+  }
   // Recommendations are supplementary. Never block the first usable screen
   // behind a network request during launch.
   if (screenId === 'home-screen') loadRecommendations(false, { showLoading: !isBooting });
@@ -2074,6 +2080,7 @@ safeClick('nav-home-btn', () => switchScreen('home-screen', 'nav-home-btn'));
 safeClick('nav-player-btn', () => switchScreen('player-screen', 'nav-player-btn'));
 safeClick('nav-search-btn', () => switchScreen('search-screen', 'nav-search-btn'));
 safeClick('nav-folders-btn', () => switchScreen('folders-screen', 'nav-folders-btn'));
+safeClick('nav-workshop-btn', () => switchScreen('workshop-screen', 'nav-workshop-btn'));
 safeClick('back-from-artist-btn', () => {
   artistRequestId++;
   switchScreen(previousScreenId || 'home-screen', previousActiveBtnId || 'nav-home-btn');
@@ -7096,7 +7103,204 @@ function applyAllSettings() {
   updateParticleSystem();
 }
 
+function workshopColor(value, fallback) {
+  const normalized = String(value || '').trim();
+  return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized.toUpperCase() : fallback;
+}
 
+function workshopNumber(value, minimum, maximum, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? Math.max(minimum, Math.min(maximum, Math.round(number)))
+    : fallback;
+}
+
+function workshopCssColor(property, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(property).trim();
+  return workshopColor(value, fallback);
+}
+
+function getCurrentWorkshopTheme() {
+  return {
+    primary: workshopCssColor(
+      '--accent',
+      workshopColor(appSettings.customColorPrimary || appSettings.accent, '#1DB954')
+    ),
+    background: workshopCssColor(
+      '--bg-base',
+      workshopColor(appSettings.customColorBg, '#121212')
+    ),
+    text: workshopCssColor(
+      '--text-primary',
+      workshopColor(appSettings.customColorText, '#FFFFFF')
+    ),
+    cards: workshopCssColor(
+      '--bg-surface',
+      workshopColor(appSettings.customColorCards, '#181818')
+    ),
+    borders: workshopCssColor(
+      '--bg-highlight',
+      workshopColor(appSettings.customColorBorders, '#2A2A2A')
+    ),
+    focus: workshopCssColor(
+      '--focus-ring',
+      workshopColor(appSettings.customColorFocus || appSettings.accent, '#1DB954')
+    ),
+    mode: ['dark', 'light', 'system'].includes(appSettings.themeMode)
+      ? appSettings.themeMode
+      : 'dark',
+    backgroundPreset: /^grad-[1-9]$/.test(appSettings.bgPreset || appSettings.background)
+      ? appSettings.bgPreset || appSettings.background
+      : 'default',
+    cornerRadius: workshopNumber(appSettings.cornerRadius, 0, 24, 8),
+    uiTransparency: workshopNumber(appSettings.uiTransparency, 10, 100, 45),
+    backgroundBlur: workshopNumber(appSettings.backgroundBlur, 0, 60, 0),
+    particles: [
+      'none',
+      'snow',
+      'rain',
+      'stars',
+      'dots',
+      'hearts',
+      'fireflies',
+      'sakura',
+      'network',
+    ].includes(appSettings.bgParticles)
+      ? appSettings.bgParticles
+      : 'none',
+    fontFamily: [
+      'system',
+      'modern',
+      'serif',
+      'mono',
+      'hand',
+      'deco',
+      'game',
+      'inter',
+      'roboto',
+      'helvetica',
+      'sf',
+    ].includes(appSettings.fontFamily)
+      ? appSettings.fontFamily
+      : 'inter',
+  };
+}
+
+function applyWorkshopTheme(theme, metadata = {}) {
+  const current = getCurrentWorkshopTheme();
+  const safe = {
+    primary: workshopColor(theme?.primary, current.primary),
+    background: workshopColor(theme?.background, current.background),
+    text: workshopColor(theme?.text, current.text),
+    cards: workshopColor(theme?.cards, current.cards),
+    borders: workshopColor(theme?.borders, current.borders),
+    focus: workshopColor(theme?.focus, current.focus),
+    mode: ['dark', 'light', 'system'].includes(theme?.mode) ? theme.mode : current.mode,
+    backgroundPreset: /^grad-[1-9]$/.test(theme?.backgroundPreset)
+      ? theme.backgroundPreset
+      : 'default',
+    cornerRadius: workshopNumber(theme?.cornerRadius, 0, 24, current.cornerRadius),
+    uiTransparency: workshopNumber(theme?.uiTransparency, 10, 100, current.uiTransparency),
+    backgroundBlur: workshopNumber(theme?.backgroundBlur, 0, 60, current.backgroundBlur),
+    particles: [
+      'none',
+      'snow',
+      'rain',
+      'stars',
+      'dots',
+      'hearts',
+      'fireflies',
+      'sakura',
+      'network',
+    ].includes(theme?.particles)
+      ? theme.particles
+      : 'none',
+    fontFamily: [
+      'system',
+      'modern',
+      'serif',
+      'mono',
+      'hand',
+      'deco',
+      'game',
+      'inter',
+      'roboto',
+      'helvetica',
+      'sf',
+    ].includes(theme?.fontFamily)
+      ? theme.fontFamily
+      : current.fontFamily,
+  };
+
+  Object.assign(appSettings, {
+    accent: safe.primary,
+    customColorPrimary: safe.primary,
+    customColorBg: safe.background,
+    customColorText: safe.text,
+    customColorCards: safe.cards,
+    customColorBorders: safe.borders,
+    customColorFocus: safe.focus,
+    theme: safe.mode,
+    themeMode: safe.mode,
+    background: safe.backgroundPreset,
+    bgPreset: safe.backgroundPreset,
+    cornerRadius: safe.cornerRadius,
+    uiTransparency: safe.uiTransparency,
+    backgroundBlur: safe.backgroundBlur,
+    bgParticles: safe.particles,
+    fontFamily: safe.fontFamily,
+    workshopThemeId: String(metadata.id || '').slice(0, 40),
+    workshopThemeTitle: String(metadata.title || '').slice(0, 60),
+  });
+
+  const controlValues = {
+    'picker-color-primary': safe.primary,
+    'picker-color-bg': safe.background,
+    'picker-color-text': safe.text,
+    'picker-color-cards': safe.cards,
+    'picker-color-borders': safe.borders,
+    'picker-color-focus': safe.focus,
+    'corner-radius-slider': safe.cornerRadius,
+    'ui-transparency-slider': safe.uiTransparency,
+    'background-blur-slider': safe.backgroundBlur,
+    'bg-blur-slider': safe.backgroundBlur,
+    'setting-bg-particles': safe.particles,
+    'font-family-select': safe.fontFamily,
+  };
+  Object.entries(controlValues).forEach(([id, value]) => {
+    const control = document.getElementById(id);
+    if (control) control.value = value;
+  });
+  document.querySelectorAll('.theme-mode-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.themeMode === safe.mode);
+  });
+  document.querySelectorAll('.bg-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.bg === safe.backgroundPreset);
+    card.classList.toggle('bg-card-active', card.dataset.bg === safe.backgroundPreset);
+  });
+  const settingLabels = {
+    'corner-radius-slider-value': `${safe.cornerRadius}px`,
+    'ui-transparency-slider-value': `${safe.uiTransparency}%`,
+    'background-blur-value': `${safe.backgroundBlur}px`,
+    'bg-blur-slider-value': `${safe.backgroundBlur}px`,
+  };
+  Object.entries(settingLabels).forEach(([id, value]) => {
+    const label = document.getElementById(id);
+    if (label) label.textContent = value;
+  });
+
+  applyAccentColor(safe.primary);
+  applyBackground();
+  applyAllSettings();
+  saveSettings();
+  window.dispatchEvent(new CustomEvent('votify:theme-installed', { detail: metadata }));
+  return safe;
+}
+
+window.VotifyThemeWorkshop = {
+  getCurrentTheme: getCurrentWorkshopTheme,
+  applyTheme: applyWorkshopTheme,
+};
 
 // ============================================================================
 // REDESIGNED TREE SETTINGS LOGIC (17 PANELS / 3 CATEGORIES)
