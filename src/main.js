@@ -491,6 +491,7 @@ function cloudCacheKey(uid) {
 function getCloudSafeSettings() {
   const settings = { ...appSettings };
   if (String(settings.bgUrl || '').startsWith('data:')) delete settings.bgUrl;
+  if (String(settings.background || '').startsWith('data:')) delete settings.background;
   Object.keys(settings).forEach(key => {
     if (key.startsWith('_cache')) delete settings[key];
   });
@@ -4861,7 +4862,8 @@ if (splashScreenToggle) {
 
 // Background
 function applyBackground() {
-  const bg = appSettings.background;
+  const storedUrl = String(appSettings.bgUrl || '').trim();
+  const bg = /^(https?:|data:image\/)/i.test(storedUrl) ? storedUrl : appSettings.background;
   if (!bg || bg === 'default') {
     document.body.style.background = '';
     document.body.style.backgroundImage = '';
@@ -4881,6 +4883,10 @@ if (bgPresetsEl) {
     bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.remove('bg-card-active'));
     btn.classList.add('bg-card-active');
     appSettings.background = btn.dataset.bg;
+    appSettings.bgPreset = btn.dataset.bg;
+    appSettings.bgUrl = '';
+    const urlInput = document.getElementById('bg-url-input');
+    if (urlInput) urlInput.value = '';
     saveSettings();
     applyBackground();
   });
@@ -4897,6 +4903,7 @@ if (bgUrlApply && bgUrlInput) {
     const url = bgUrlInput.value.trim();
     if (!url) return;
     appSettings.background = url;
+    appSettings.bgUrl = url;
     saveSettings();
     applyBackground();
     if (bgPresetsEl)
@@ -7104,6 +7111,7 @@ function applyAllSettings() {
   applyPlayerSettings();
   applyCoverSettings();
   applyUISettings();
+  applyBackground();
   applyTabsSettings();
   applyCustomColors();
   updateParticleSystem();
@@ -7127,6 +7135,18 @@ function workshopColor(value, fallback) {
       .join('')}`.toUpperCase();
   }
   return fallback;
+}
+
+function workshopBackgroundUrl(value) {
+  const input = String(value || '').trim();
+  if (!input || input.length > 2048) return '';
+  try {
+    const url = new URL(input);
+    if (url.protocol !== 'https:' || url.username || url.password) return '';
+    return url.toString().slice(0, 2048);
+  } catch {
+    return '';
+  }
 }
 
 function workshopNumber(value, minimum, maximum, fallback) {
@@ -7174,6 +7194,8 @@ function getCurrentWorkshopTheme() {
     backgroundPreset: /^grad-[1-9]$/.test(appSettings.bgPreset || appSettings.background)
       ? appSettings.bgPreset || appSettings.background
       : 'default',
+    backgroundUrl:
+      workshopBackgroundUrl(appSettings.bgUrl) || workshopBackgroundUrl(appSettings.background),
     cornerRadius: workshopNumber(appSettings.cornerRadius, 0, 24, 8),
     uiTransparency: workshopNumber(appSettings.uiTransparency, 10, 100, 45),
     backgroundBlur: workshopNumber(appSettings.backgroundBlur, 0, 60, 0),
@@ -7221,6 +7243,7 @@ function applyWorkshopTheme(theme, metadata = {}) {
     backgroundPreset: /^grad-[1-9]$/.test(theme?.backgroundPreset)
       ? theme.backgroundPreset
       : 'default',
+    backgroundUrl: workshopBackgroundUrl(theme?.backgroundUrl),
     cornerRadius: workshopNumber(theme?.cornerRadius, 0, 24, current.cornerRadius),
     uiTransparency: workshopNumber(theme?.uiTransparency, 10, 100, current.uiTransparency),
     backgroundBlur: workshopNumber(theme?.backgroundBlur, 0, 60, current.backgroundBlur),
@@ -7264,8 +7287,9 @@ function applyWorkshopTheme(theme, metadata = {}) {
     customColorFocus: safe.focus,
     theme: safe.mode,
     themeMode: safe.mode,
-    background: safe.backgroundPreset,
+    background: safe.backgroundUrl || safe.backgroundPreset,
     bgPreset: safe.backgroundPreset,
+    bgUrl: safe.backgroundUrl,
     cornerRadius: safe.cornerRadius,
     uiTransparency: safe.uiTransparency,
     backgroundBlur: safe.backgroundBlur,
@@ -7286,6 +7310,7 @@ function applyWorkshopTheme(theme, metadata = {}) {
     'ui-transparency-slider': safe.uiTransparency,
     'background-blur-slider': safe.backgroundBlur,
     'bg-blur-slider': safe.backgroundBlur,
+    'bg-url-input': safe.backgroundUrl,
     'setting-bg-particles': safe.particles,
     'font-family-select': safe.fontFamily,
   };
@@ -7637,15 +7662,13 @@ function initRedesignedSettings() {
       document.querySelectorAll('.bg-card').forEach(c => c.classList.remove('active'));
       card.classList.add('active');
       appSettings.bgPreset = bgPreset;
+      appSettings.background = bgPreset;
+      appSettings.bgUrl = '';
+      const urlInput = document.getElementById('bg-url-input');
+      if (urlInput) urlInput.value = '';
       saveSettings();
       document.body.dataset.bgPreset = bgPreset;
-      if (bgPreset === 'default') {
-        document.body.style.backgroundImage = '';
-      } else if (bgPreset === 'grad-1') {
-        document.body.style.backgroundImage = 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)';
-      } else if (bgPreset === 'grad-2') {
-        document.body.style.backgroundImage = 'linear-gradient(135deg, #311b92 0%, #000000 100%)';
-      }
+      applyBackground();
       showToast('Пресет фона изменен');
     });
   });
@@ -7654,10 +7677,9 @@ function initRedesignedSettings() {
     const url = document.getElementById('bg-url-input')?.value.trim();
     if (url) {
       appSettings.bgUrl = url;
+      appSettings.background = url;
       saveSettings();
-      document.body.style.backgroundImage = `url("${url}")`;
-      document.body.style.backgroundSize = 'cover';
-      document.body.style.backgroundPosition = 'center';
+      applyBackground();
       showToast('Фоновое изображение применено!');
     }
   });
@@ -7672,10 +7694,9 @@ function initRedesignedSettings() {
         reader.onload = ev => {
           const dataUrl = ev.target.result;
           appSettings.bgUrl = dataUrl;
+          appSettings.background = dataUrl;
           saveSettings();
-          document.body.style.backgroundImage = `url("${dataUrl}")`;
-          document.body.style.backgroundSize = 'cover';
-          document.body.style.backgroundPosition = 'center';
+          applyBackground();
           showToast('Локальное изображение установлено как фон!');
         };
         reader.readAsDataURL(file);
