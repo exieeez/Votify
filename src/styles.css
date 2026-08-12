@@ -7276,6 +7276,28 @@ body[data-cover-effects="inversion"] #lib-detail-cover-img {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .auth-btn-secondary:hover { background: rgba(255, 255, 255, 0.13); }
+.auth-btn-google {
+  color: #202124;
+  background: #fff;
+  border: 1px solid #dadce0;
+}
+.auth-btn-google:hover { background: #f8fafd; }
+.google-icon { width: 18px; height: 18px; flex: 0 0 auto; }
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 13px;
+  color: var(--text-subdued);
+  font-size: 11px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
 
 .profile-overlay {
   position: fixed;

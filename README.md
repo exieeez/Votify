@@ -108,6 +108,25 @@ Votify поддерживает регистрацию по email, гостев�
 
 `firebase-config.json` не попадает в Git. Для CI и сборки релиза ту же конфигурацию можно передать в `VOTIFY_FIREBASE_CONFIG` одной JSON-строкой. Service Account и Admin SDK приложению не нужны.
 
+#### Вход через Google в Electron
+
+Google не разрешает авторизацию во встроенном окне Electron, поэтому Votify открывает системный браузер и принимает результат через временный локальный адрес `127.0.0.1`. В Google Cloud Console этого же Firebase-проекта создайте **OAuth client ID → Desktop app** и добавьте выданные значения в `firebase-config.json`:
+
+```json
+{
+  "apiKey": "...",
+  "authDomain": "project.firebaseapp.com",
+  "projectId": "project",
+  "appId": "...",
+  "googleDesktopClientId": "123456789-example.apps.googleusercontent.com",
+  "googleDesktopClientSecret": "GOCSPX-..."
+}
+```
+
+Эти поля добавляются к существующей Web Config, а не заменяют её. OAuth secret приложения типа Desktop не считается конфиденциальным серверным ключом, однако Service Account JSON по-прежнему нельзя помещать в приложение. Если Firebase покажет настройку разрешённых OAuth Client IDs у провайдера Google, добавьте туда созданный Desktop Client ID.
+
+При первом запуске без сохранённой сессии Votify автоматически открывает экран создания аккаунта. Пользователь может зарегистрироваться по email, войти через системный браузер Google или продолжить как гость.
+
 ### Сборка релизных дистрибутивов (Linux AppImage & deb)
 
 ```bash

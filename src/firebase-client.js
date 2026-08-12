@@ -9,6 +9,7 @@
     profile: null,
   };
   const authListeners = new Set();
+  let initialAuthStateHandled = false;
 
   const ready = initialize();
 
@@ -60,6 +61,10 @@
         state.user = user || null;
         state.profile = user ? await ensureProfile(user).catch(() => null) : null;
         dispatchAuthState();
+        if (!initialAuthStateHandled) {
+          initialAuthStateHandled = true;
+          if (!user) window.setTimeout(() => openAuth('auth-register'), 0);
+        }
       });
     } catch (error) {
       state.error = error;
@@ -143,6 +148,42 @@
     await requireCloud();
     const credential = await state.auth.signInWithEmailAndPassword(email, password);
     return publicUser(credential.user);
+  }
+
+  async function signInWithGoogle() {
+    await requireCloud();
+    if (!window.electronAPI?.signInWithGoogle) {
+      throw new Error('Вход через Google доступен только в приложении Votify');
+    }
+    const oauthResult = await window.electronAPI.signInWithGoogle();
+    if (oauthResult?.error) throw new Error(oauthResult.error);
+    if (!oauthResult?.tokens?.idToken) throw new Error('Google не вернул данные аккаунта');
+
+    const googleCredential = window.firebase.auth.GoogleAuthProvider.credential(
+      oauthResult.tokens.idToken,
+      oauthResult.tokens.accessToken || null
+    );
+    const current = state.auth.currentUser;
+    const credential = current?.isAnonymous
+      ? await current.linkWithCredential(googleCredential)
+      : await state.auth.signInWithCredential(googleCredential);
+    const user = credential.user;
+    const displayName = String(user.displayName || user.email?.split('@')[0] || 'Пользователь')
+      .trim()
+      .slice(0, 40);
+    await profileRef(user.uid).set(
+      {
+        displayName,
+        email: user.email || '',
+        isAnonymous: false,
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    state.user = user;
+    state.profile = await ensureProfile(user);
+    dispatchAuthState();
+    return publicUser(user);
   }
 
   async function signInAsGuest() {
@@ -238,6 +279,10 @@
       'auth/too-many-requests': 'Слишком много попыток. Попробуйте позже',
       'auth/network-request-failed': 'Нет соединения с Firebase',
       'auth/operation-not-allowed': 'Этот способ входа не включён в Firebase',
+      'auth/credential-already-in-use': 'Этот Google-аккаунт уже связан с другим профилем',
+      'auth/account-exists-with-different-credential':
+        'Аккаунт с этим email уже использует другой способ входа',
+      'auth/popup-closed-by-user': 'Вход через Google отменён',
       'auth/requires-recent-login': 'Войдите в аккаунт повторно',
     };
     return messages[code] || error?.message || 'Неизвестная ошибка';
@@ -261,8 +306,8 @@
     button.classList.toggle('busy', busy);
   }
 
-  function openAuth() {
-    showAuthForm('auth-login');
+  function openAuth(formId = 'auth-login') {
+    showAuthForm(formId);
     const overlay = document.getElementById('auth-overlay');
     if (overlay) overlay.style.display = 'flex';
   }
@@ -298,6 +343,7 @@
     const email = document.getElementById('profile-email');
     const kind = document.getElementById('profile-account-kind');
     const cloudStatus = document.getElementById('profile-cloud-status');
+    const profileLoginButton = document.getElementById('profile-login-btn');
 
     if (button) {
       button.classList.toggle('signed-in', !!user);
@@ -321,6 +367,11 @@
           ? 'Синхронизация включена'
           : 'Войдите для синхронизации'
         : state.error?.message || 'Firebase не настроен';
+    }
+    if (profileLoginButton) {
+      profileLoginButton.textContent = user?.isAnonymous
+        ? 'Привязать постоянный аккаунт'
+        : 'Войти в другой аккаунт';
     }
     if (avatarImage && avatarFallback) {
       if (profile.avatar) {
@@ -384,6 +435,24 @@
       showAuthForm('auth-login');
     });
 
+    document.querySelectorAll('.google-login-btn').forEach(button => {
+      button.addEventListener('click', async event => {
+        const target = event.currentTarget;
+        const errorTarget = target.dataset.errorTarget || 'login-error';
+        setMessage('login-error');
+        setMessage('register-error');
+        setBusy(target, true);
+        try {
+          await signInWithGoogle();
+          closeAuth();
+        } catch (error) {
+          setMessage(errorTarget, friendlyError(error));
+        } finally {
+          setBusy(target, false);
+        }
+      });
+    });
+
     document.getElementById('login-btn')?.addEventListener('click', async event => {
       const button = event.currentTarget;
       setMessage('login-error');
@@ -441,18 +510,21 @@
       }
     });
 
-    document.getElementById('guest-login-btn')?.addEventListener('click', async event => {
-      const button = event.currentTarget;
-      setMessage('login-error');
-      setBusy(button, true);
-      try {
-        await signInAsGuest();
-        closeAuth();
-      } catch (error) {
-        setMessage('login-error', friendlyError(error));
-      } finally {
-        setBusy(button, false);
-      }
+    document.querySelectorAll('.guest-login-btn').forEach(button => {
+      button.addEventListener('click', async event => {
+        const target = event.currentTarget;
+        const errorTarget = target.closest('#auth-register') ? 'register-error' : 'login-error';
+        setMessage(errorTarget);
+        setBusy(target, true);
+        try {
+          await signInAsGuest();
+          closeAuth();
+        } catch (error) {
+          setMessage(errorTarget, friendlyError(error));
+        } finally {
+          setBusy(target, false);
+        }
+      });
     });
 
     document.getElementById('profile-save-btn')?.addEventListener('click', async event => {
@@ -493,9 +565,10 @@
     });
 
     document.getElementById('profile-login-btn')?.addEventListener('click', async () => {
-      await signOut().catch(() => {});
+      const user = getCurrentUser();
+      if (!user?.isAnonymous) await signOut().catch(() => {});
       closeProfile();
-      openAuth();
+      openAuth(user?.isAnonymous ? 'auth-register' : 'auth-login');
     });
 
     updateAccountUi();
@@ -509,6 +582,7 @@
     onAuthChanged,
     register,
     signIn,
+    signInWithGoogle,
     signInAsGuest,
     sendPasswordReset,
     signOut,
