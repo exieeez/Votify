@@ -34,6 +34,7 @@ npm-debug.log*
 # Local data
 *.json
 !package.json
+!firebase.json
 !tsconfig.json
 !*.config.js
 !*.rc.js

@@ -8,6 +8,7 @@
     "prestart": "node scripts/ensure-electron.js",
     "start": "electron .",
     "configure:google": "node scripts/configure-google-oauth.js",
+    "deploy:firestore-rules": "npx firebase-tools@15.26.0 deploy --only firestore:rules --project votify-f461a",
     "test": "node --test",
     "prebuild": "node scripts/prepare-firebase-config.js",
     "build": "electron-builder --linux AppImage deb rpm",
