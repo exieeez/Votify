@@ -74,17 +74,13 @@ const USERS_FILE = path.join(PERSISTENT_DIR, 'users.json');
 const NETWORK_FILE = path.join(PERSISTENT_DIR, 'network.json');
 const DATA_DIR = path.join(PERSISTENT_DIR, 'data');
 
-let networkConfig = {
-  streamSource: 'yt-dlp',
-  httpProxy: '',
-  invidiousInstance: 'https://inv.tux.rs',
-};
+let networkConfig = { streamSource: 'yt-dlp' };
 
 function loadNetworkConfig() {
   try {
     if (fs.existsSync(NETWORK_FILE)) {
-      const data = JSON.parse(fs.readFileSync(NETWORK_FILE, 'utf-8'));
-      networkConfig = { ...networkConfig, ...data };
+      JSON.parse(fs.readFileSync(NETWORK_FILE, 'utf-8'));
+      networkConfig.streamSource = 'yt-dlp';
     }
   } catch (e) {
     /* ignore */
@@ -92,8 +88,8 @@ function loadNetworkConfig() {
 }
 loadNetworkConfig();
 
-function saveNetworkConfig(config) {
-  networkConfig = { ...networkConfig, ...config };
+function saveNetworkConfig() {
+  networkConfig.streamSource = 'yt-dlp';
   fs.writeFileSync(NETWORK_FILE, JSON.stringify(networkConfig, null, 2), 'utf-8');
 }
 
@@ -536,65 +532,50 @@ async function fetchStreamUrl(videoId) {
   const cached = streamCache.get(videoId);
   if (cached && cached.expires > Date.now()) return cached.url;
 
-  // Fast Parallel Stream Retrieval (yt-dlp 4.5s vs Piped 4s)
-  const fetchYtDlp = async () => {
-    const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
-    const args = ['--no-check-certificates', '--no-warnings', '--quiet', '-g', '-f', 'ba/b', '--socket-timeout', '4', 'https://www.youtube.com/watch?v=' + videoId];
-    if (networkConfig.httpProxy) args.push('--proxy', networkConfig.httpProxy);
-
-    const proc = spawn(ytdlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-    return new Promise((resolve, reject) => {
+  const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
+  const args = [
+    '--no-check-certificates',
+    '--no-warnings',
+    '--quiet',
+    '--no-playlist',
+    '-g',
+    '-f',
+    'ba/b',
+    '--socket-timeout',
+    '12',
+    'https://www.youtube.com/watch?v=' + videoId,
+  ];
+  const proc = spawn(ytdlpPath, args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+  try {
+    const url = await new Promise((resolve, reject) => {
       let out = '';
-      proc.stdout.on('data', d => {
-        out += d;
+      proc.stdout.on('data', chunk => {
+        out += chunk;
         const line = out.trim();
-        if (line && line.startsWith('http')) {
+        if (line.startsWith('http')) {
           proc.kill();
           resolve(line.split('\n')[0]);
         }
       });
       proc.on('error', reject);
-      proc.on('close', () => {
+      proc.on('close', code => {
         if (out.trim()) resolve(out.trim().split('\n')[0]);
-        else reject(new Error('no output'));
+        else reject(new Error(`yt-dlp exited with code ${code}`));
       });
-      setTimeout(() => { proc.kill(); reject(new Error('timeout')); }, 4500);
+      setTimeout(() => {
+        proc.kill();
+        reject(new Error('yt-dlp timeout'));
+      }, 20000);
     });
-  };
-
-  const fetchPipedFast = async () => {
-    for (const instance of PIPED_INSTANCES.slice(0, 3)) {
-      try {
-        const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 4000);
-        const streams = (data?.audioStreams || []).filter(s => s?.url);
-        const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
-        if (stream?.url) return stream.url;
-      } catch (e) {}
-    }
-    throw new Error('Piped failed');
-  };
-
-  try {
-    const url = await Promise.any([fetchYtDlp(), fetchPipedFast()]);
-    if (url) {
-      streamCache.set(videoId, { url, expires: Date.now() + STREAM_CACHE_TTL });
-      return url;
-    }
-  } catch (e) {}
-
-  for (const instance of PIPED_INSTANCES) {
-    try {
-      const data = await pipedGet(`${instance}/streams/${encodeURIComponent(videoId)}`, 5000);
-      const streams = (data?.audioStreams || []).filter(s => s?.url);
-      const stream = streams.find(s => /audio\/mpeg|mp3/i.test(`${s.mimeType} ${s.format}`)) || streams[0];
-      if (stream?.url) {
-        streamCache.set(videoId, { url: stream.url, expires: Date.now() + STREAM_CACHE_TTL });
-        return stream.url;
-      }
-    } catch (e) {}
+    streamCache.set(videoId, { url, expires: Date.now() + STREAM_CACHE_TTL });
+    return url;
+  } catch (error) {
+    console.error('[yt-dlp] Stream resolution failed:', error.message);
+    return null;
   }
-
-  return null;
 }
 
 function proxyAudio(remoteUrl, req, res, depth = 0) {
