@@ -30,6 +30,7 @@
     "files": [
       "main.js",
       "discord-presence.js",
+      "google-oauth.js",
       "firebase-config.json",
       "preload.js",
       "server.js",

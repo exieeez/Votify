@@ -5,6 +5,7 @@ const { fork } = require('child_process');
 const fs = require('fs');
 const net = require('net');
 const { DiscordPresence } = require('./discord-presence.js');
+const { startGoogleOAuth, isGoogleClientId } = require('./google-oauth.js');
 
 let PORT = 17217;
 let mainWindow = null;
@@ -12,6 +13,7 @@ let serverProcess = null;
 let tray = null;
 let closeToTrayEnabled = false;
 let isQuitting = false;
+let googleAuthPromise = null;
 
 const VOTIFY_DISCORD_CLIENT_ID = '1536826368615256146';
 const discordPresence = new DiscordPresence({
@@ -36,6 +38,34 @@ app.commandLine.appendSwitch('disk-cache-dir', path.join(userDataPath, 'cache'))
 // UI files are served by the bundled local server. Caching them causes source
 // runs to show an older interface after an update.
 app.commandLine.appendSwitch('disable-http-cache');
+
+function getGoogleDesktopCredentials() {
+  let clientId = process.env.VOTIFY_GOOGLE_DESKTOP_CLIENT_ID || '';
+  let clientSecret = process.env.VOTIFY_GOOGLE_DESKTOP_CLIENT_SECRET || '';
+  let config = null;
+  if (process.env.VOTIFY_FIREBASE_CONFIG) {
+    try {
+      config = JSON.parse(process.env.VOTIFY_FIREBASE_CONFIG);
+    } catch (error) {
+      console.warn('[google-auth] Invalid VOTIFY_FIREBASE_CONFIG:', error.message);
+    }
+  }
+  if (!config) {
+    try {
+      const configPath = path.join(__dirname, 'firebase-config.json');
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (error) {
+      if (error.code !== 'ENOENT') console.warn('[google-auth] Config error:', error.message);
+    }
+  }
+  clientId ||= config?.googleDesktopClientId || '';
+  clientSecret ||= config?.googleDesktopClientSecret || '';
+  const normalizedClientId = String(clientId).trim();
+  return {
+    clientId: isGoogleClientId(normalizedClientId) ? normalizedClientId : '',
+    clientSecret: String(clientSecret).trim(),
+  };
+}
 
 function findYtDlp() {
   const isWindows = process.platform === 'win32';
@@ -241,6 +271,32 @@ ipcMain.handle('maximize', () => {
 ipcMain.handle('close', () => mainWindow?.close());
 ipcMain.handle('isMaximized', () => mainWindow?.isMaximized());
 
+ipcMain.handle('google-auth:start', async event => {
+  if (!mainWindow || event.sender !== mainWindow.webContents) {
+    return { error: 'Запрос входа отклонён' };
+  }
+  const { clientId, clientSecret } = getGoogleDesktopCredentials();
+  if (!clientId) {
+    return {
+      error: 'Добавьте googleDesktopClientId из Google Cloud в firebase-config.json',
+    };
+  }
+  if (!googleAuthPromise) {
+    googleAuthPromise = startGoogleOAuth({
+      clientId,
+      clientSecret,
+      openExternal: url => shell.openExternal(url),
+    }).finally(() => {
+      googleAuthPromise = null;
+    });
+  }
+  try {
+    return { tokens: await googleAuthPromise };
+  } catch (error) {
+    return { error: error.message || 'Не удалось выполнить вход через Google' };
+  }
+});
+
 ipcMain.on('discord-presence:update', (event, playback) => {
   if (!mainWindow || event.sender !== mainWindow.webContents) return;
   discordPresence.update(playback);
@@ -275,13 +331,15 @@ ipcMain.handle('throw-cursor', (event, { dx = -250, dy = -250 }) => {
   try {
     const { exec } = require('child_process');
     if (process.platform === 'linux') {
-      exec(`xdotool mousemove_relative -- ${dx} ${dy}`, (err) => {
+      exec(`xdotool mousemove_relative -- ${dx} ${dy}`, err => {
         if (err) {
           exec(`python3 -c "import pyautogui; pyautogui.moveRel(${dx}, ${dy})"`);
         }
       });
     } else if (process.platform === 'win32') {
-      exec(`powershell -command "[reflection.assembly]::loadwithpartialname('System.Windows.Forms'); $p = [System.Windows.Forms.Cursor]::Position; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(($p.X + ${dx}), ($p.Y + ${dy}))"`);
+      exec(
+        `powershell -command "[reflection.assembly]::loadwithpartialname('System.Windows.Forms'); $p = [System.Windows.Forms.Cursor]::Position; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(($p.X + ${dx}), ($p.Y + ${dy}))"`
+      );
     }
     return true;
   } catch (e) {

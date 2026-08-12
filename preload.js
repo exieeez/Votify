@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setCloseToTray: enabled => ipcRenderer.send('set-close-to-tray', enabled),
   updateDiscordPresence: playback => ipcRenderer.send('discord-presence:update', playback),
   clearDiscordPresence: () => ipcRenderer.send('discord-presence:clear'),
+  signInWithGoogle: () => ipcRenderer.invoke('google-auth:start'),
   throwCursor: (dx, dy) => ipcRenderer.invoke('throw-cursor', { dx, dy }),
 });
