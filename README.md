@@ -110,7 +110,13 @@ Votify поддерживает регистрацию по email, гостев�
 
 #### Вход через Google в Electron
 
-Google не разрешает авторизацию во встроенном окне Electron, поэтому Votify открывает системный браузер и принимает результат через временный локальный адрес `127.0.0.1`. В Google Cloud Console этого же Firebase-проекта создайте **OAuth client ID → Desktop app** и добавьте выданные значения в `firebase-config.json`:
+Google не разрешает авторизацию во встроенном окне Electron, поэтому Votify открывает системный браузер и принимает результат через временный локальный адрес `127.0.0.1`. В Google Cloud Console этого же Firebase-проекта создайте **OAuth client ID → Desktop app** и скачайте JSON. Импортируйте его без вывода значений в терминал:
+
+```bash
+npm run configure:google -- ~/Downloads/client_secret_....json
+```
+
+Команда проверяет тип клиента и Firebase Project ID, добавляет значения в игнорируемый `firebase-config.json` и выставляет права `0600`. То же самое можно сделать вручную:
 
 ```json
 {
