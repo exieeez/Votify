@@ -123,6 +123,38 @@
       </div>
     </div>
 
+    <!-- WORKSHOP PUBLISH -->
+    <div class="workshop-modal-overlay" id="workshop-publish-overlay" style="display:none">
+      <div class="workshop-modal-card">
+        <div class="workshop-modal-header">
+          <div>
+            <span class="workshop-kicker">ПУБЛИКАЦИЯ</span>
+            <h2>Поделиться темой</h2>
+          </div>
+          <button class="btn-icon-sm" id="workshop-publish-close" aria-label="Закрыть">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+        <div class="workshop-publish-preview" id="workshop-publish-preview"></div>
+        <label class="workshop-form-field">
+          <span>Название</span>
+          <input id="workshop-theme-title" maxlength="60" placeholder="Например: Северное сияние" />
+        </label>
+        <label class="workshop-form-field">
+          <span>Описание</span>
+          <textarea id="workshop-theme-description" maxlength="240" rows="3" placeholder="Коротко расскажите об оформлении"></textarea>
+        </label>
+        <div class="workshop-modal-note">
+          Публикуются только цвета и безопасные параметры оформления. Локальные изображения не загружаются.
+        </div>
+        <div class="auth-error" id="workshop-publish-error"></div>
+        <div class="workshop-modal-actions">
+          <button class="auth-btn auth-btn-secondary" id="workshop-publish-cancel">Отмена</button>
+          <button class="auth-btn" id="workshop-publish-confirm">Опубликовать</button>
+        </div>
+      </div>
+    </div>
+
     <!-- APP -->
     <div class="app-container">
       <!-- TITLEBAR -->
@@ -174,6 +206,9 @@
               <path d="M4 8h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
               <path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
+          </button>
+          <button class="nav-btn" id="nav-workshop-btn" title="Мастерская тем">
+            <i class="material-icons">storefront</i>
           </button>
         </nav>
         <div class="sidebar-bottom">
@@ -544,6 +579,34 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <!-- THEME WORKSHOP -->
+        <section id="workshop-screen" class="screen hidden" style="display:none">
+          <div class="workshop-shell">
+            <header class="workshop-hero">
+              <div>
+                <span class="workshop-kicker">VOTIFY COMMUNITY</span>
+                <h1>Мастерская тем</h1>
+                <p>Находите оформление от сообщества или публикуйте свою текущую тему.</p>
+              </div>
+              <button class="workshop-primary-btn" id="workshop-publish-btn">
+                <i class="material-icons">add</i>
+                Опубликовать тему
+              </button>
+            </header>
+            <div class="workshop-toolbar">
+              <label class="workshop-search">
+                <i class="material-icons">search</i>
+                <input id="workshop-search-input" type="search" placeholder="Поиск по названию или автору" autocomplete="off" />
+              </label>
+              <button class="workshop-refresh-btn" id="workshop-refresh-btn" title="Обновить">
+                <i class="material-icons">refresh</i>
+              </button>
+            </div>
+            <div class="workshop-status" id="workshop-status">Откройте мастерскую для загрузки тем</div>
+            <div class="workshop-grid" id="workshop-grid"></div>
           </div>
         </section>
 
@@ -1452,5 +1515,6 @@
     <script src="/vendor/firebase-firestore-compat.js"></script>
     <script src="firebase-client.js"></script>
     <script src="main.js"></script>
+    <script src="workshop.js"></script>
   </body>
 </html>

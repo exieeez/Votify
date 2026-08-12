@@ -42,6 +42,75 @@
     };
   }
 
+  function oneOf(value, allowed, fallback) {
+    return allowed.includes(value) ? value : fallback;
+  }
+
+  function color(value, fallback) {
+    const normalized = String(value || '').trim();
+    return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized.toUpperCase() : fallback;
+  }
+
+  function integer(value, minimum, maximum, fallback) {
+    const number = Number(value);
+    return Number.isFinite(number)
+      ? Math.max(minimum, Math.min(maximum, Math.round(number)))
+      : fallback;
+  }
+
+  function cleanWorkshopTheme(theme = {}) {
+    return {
+      primary: color(theme.primary, '#1DB954'),
+      background: color(theme.background, '#121212'),
+      text: color(theme.text, '#FFFFFF'),
+      cards: color(theme.cards, '#181818'),
+      borders: color(theme.borders, '#2A2A2A'),
+      focus: color(theme.focus, '#1DB954'),
+      mode: oneOf(theme.mode, ['dark', 'light', 'system'], 'dark'),
+      backgroundPreset: oneOf(
+        theme.backgroundPreset,
+        [
+          'default',
+          'grad-1',
+          'grad-2',
+          'grad-3',
+          'grad-4',
+          'grad-5',
+          'grad-6',
+          'grad-7',
+          'grad-8',
+          'grad-9',
+        ],
+        'default'
+      ),
+      cornerRadius: integer(theme.cornerRadius, 0, 24, 8),
+      uiTransparency: integer(theme.uiTransparency, 10, 100, 45),
+      backgroundBlur: integer(theme.backgroundBlur, 0, 60, 0),
+      particles: oneOf(
+        theme.particles,
+        ['none', 'snow', 'rain', 'stars', 'dots', 'hearts', 'fireflies', 'sakura', 'network'],
+        'none'
+      ),
+      fontFamily: oneOf(
+        theme.fontFamily,
+        [
+          'system',
+          'modern',
+          'serif',
+          'mono',
+          'hand',
+          'deco',
+          'game',
+          'inter',
+          'roboto',
+          'helvetica',
+          'sf',
+        ],
+        'inter'
+      ),
+    };
+  }
+
   async function initialize() {
     try {
       if (!window.firebase) throw new Error('Firebase SDK не загружен');
@@ -87,6 +156,12 @@
     await requireCloud();
     const user = state.auth.currentUser;
     if (!user) throw new Error('Сначала войдите в аккаунт');
+    return user;
+  }
+
+  async function requirePermanentUser() {
+    const user = await requireUser();
+    if (user.isAnonymous) throw new Error('Для публикации зарегистрируйте постоянный аккаунт');
     return user;
   }
 
@@ -251,6 +326,67 @@
     );
     batch.set(syncRef(user.uid, 'history'), { history: history || [], updatedAt }, { merge: true });
     await batch.commit();
+  }
+
+  async function listWorkshopThemes() {
+    await requireCloud();
+    const snapshot = await state.db
+      .collection('workshopThemes')
+      .orderBy('createdAt', 'desc')
+      .limit(100)
+      .get();
+    return snapshot.docs.map(document => {
+      const data = document.data() || {};
+      return {
+        id: document.id,
+        title: String(data.title || '').slice(0, 60),
+        description: String(data.description || '').slice(0, 240),
+        ownerId: String(data.ownerId || ''),
+        authorName: String(data.authorName || 'Пользователь').slice(0, 40),
+        theme: cleanWorkshopTheme(data.theme),
+        createdAt: data.createdAt?.toMillis?.() || 0,
+      };
+    });
+  }
+
+  async function publishWorkshopTheme({ title, description, theme }) {
+    const user = await requirePermanentUser();
+    const safeTitle = String(title || '')
+      .trim()
+      .slice(0, 60);
+    const safeDescription = String(description || '')
+      .trim()
+      .slice(0, 240);
+    if (safeTitle.length < 3) throw new Error('Название должно содержать минимум 3 символа');
+    const now = window.firebase.firestore.FieldValue.serverTimestamp();
+    const reference = state.db.collection('workshopThemes').doc();
+    const authorName =
+      String(state.profile?.displayName || user.displayName || user.email || '')
+        .trim()
+        .slice(0, 40) || 'Пользователь';
+    await reference.set({
+      title: safeTitle,
+      description: safeDescription,
+      ownerId: user.uid,
+      authorName,
+      theme: cleanWorkshopTheme(theme),
+      schemaVersion: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return reference.id;
+  }
+
+  async function deleteWorkshopTheme(themeId) {
+    const user = await requirePermanentUser();
+    const id = String(themeId || '').trim();
+    if (!/^[a-z0-9]{10,40}$/i.test(id)) throw new Error('Некорректный ID темы');
+    const reference = state.db.collection('workshopThemes').doc(id);
+    const snapshot = await reference.get();
+    if (!snapshot.exists || snapshot.data()?.ownerId !== user.uid) {
+      throw new Error('Удалять можно только собственные темы');
+    }
+    await reference.delete();
   }
 
   function onAuthChanged(listener) {
@@ -589,6 +725,9 @@
     saveProfile,
     pullState,
     pushState,
+    listWorkshopThemes,
+    publishWorkshopTheme,
+    deleteWorkshopTheme,
     openAuth,
     openProfile,
     friendlyError,
