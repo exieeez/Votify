@@ -7,6 +7,7 @@
   "scripts": {
     "prestart": "node scripts/ensure-electron.js",
     "start": "electron .",
+    "configure:google": "node scripts/configure-google-oauth.js",
     "test": "node --test",
     "prebuild": "node scripts/prepare-firebase-config.js",
     "build": "electron-builder --linux AppImage deb rpm",
