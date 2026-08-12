@@ -230,10 +230,15 @@
   function previewMarkup(theme, compact = false) {
     const safe = cleanTheme(theme);
     return `
-      <div class="workshop-theme-preview ${compact ? 'compact' : ''}" style="--preview-bg:${safe.background};--preview-card:${safe.cards};--preview-accent:${safe.primary};--preview-text:${safe.text};--preview-border:${safe.borders};--preview-radius:${safe.cornerRadius}px">
+      <div class="workshop-theme-preview workshop-preview-bg-${safe.backgroundPreset} ${compact ? 'compact' : ''}" style="--preview-bg:${safe.background};--preview-card:${safe.cards};--preview-accent:${safe.primary};--preview-text:${safe.text};--preview-border:${safe.borders};--preview-focus:${safe.focus};--preview-radius:${safe.cornerRadius}px">
         <div class="workshop-preview-sidebar"><span></span><span></span><span></span></div>
         <div class="workshop-preview-content">
-          <div class="workshop-preview-heading"></div>
+          <div class="workshop-preview-topline">
+            <div class="workshop-preview-heading"></div>
+            <div class="workshop-preview-palette" title="Палитра темы">
+              <i style="background:${safe.primary}"></i><i style="background:${safe.background}"></i><i style="background:${safe.cards}"></i><i style="background:${safe.text}"></i><i style="background:${safe.borders}"></i><i style="background:${safe.focus}"></i>
+            </div>
+          </div>
           <div class="workshop-preview-cards"><span></span><span></span><span></span></div>
           <div class="workshop-preview-player"><i></i><b></b><em></em></div>
         </div>
