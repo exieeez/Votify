@@ -11,7 +11,6 @@ const {
   appRoot,
   SEARCH_LIMIT,
   SEARCH_MAX_LIMIT,
-  networkConfig,
   findYtDlp,
   scImportPlaylist,
 } = require('./utils.js');

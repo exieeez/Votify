@@ -2,6 +2,11 @@
 // Votify — Dotify Edition — Main Script
 // ==========================================
 
+// Register the splash watchdog before any other initialization. If corrupted
+// local data or another top-level feature throws, the loading screen must not
+// cover the application forever.
+let startupSplashFailsafe = setTimeout(() => hideSplash(), 4000);
+
 // --- Titlebar Buttons ---
 function setupTitlebarButtons() {
   var api = window.electronAPI;
@@ -115,7 +120,6 @@ function emit(event, data) {
 function getAuthToken() {
   return localStorage.getItem('votify-token');
 }
-function updateDiscordPresence() {}
 let currentLyricsLines = [];
 let currentLyricIndex = -1;
 
@@ -298,6 +302,18 @@ function updateFullscreenLyrics(time) {
   });
 }
 
+function readStoredJson(key, fallback) {
+  const raw = localStorage.getItem(key);
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) ?? fallback;
+  } catch (error) {
+    console.warn(`Ignoring corrupted local setting: ${key}`, error);
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
 let audio = new Audio();
 audio.preload = 'auto';
 let currentPlaylist = [];
@@ -307,8 +323,8 @@ let shuffleHistory = [];
 let recommendationsLoaded = false;
 let loadingOperations = 0;
 let loadingAudioContext = null;
-let playlists = JSON.parse(localStorage.getItem('votify-playlists')) || { Избранное: [] };
-let appSettings = JSON.parse(localStorage.getItem('votify-settings')) || {
+let playlists = readStoredJson('votify-playlists', { Избранное: [] });
+let appSettings = readStoredJson('votify-settings', {
   lang: 'ru',
   font: 'default',
   bgUrl: '',
@@ -323,15 +339,8 @@ let appSettings = JSON.parse(localStorage.getItem('votify-settings')) || {
   autoLyrics: true,
   syncedLyrics: true,
   translateLyrics: false,
-  discordProgress: true,
-  discordCover: false,
-  discordAppId: '',
-  discordEnabled: false,
   recDiversity: true,
   recCount: 16,
-  streamSource: 'yt-dlp',
-  httpProxy: '',
-  invidiousInstance: 'https://inv.tux.rs',
   uiSounds: true,
   loadingSound: true,
   closeToTray: false,
@@ -360,7 +369,60 @@ let appSettings = JSON.parse(localStorage.getItem('votify-settings')) || {
   accentGlow: true,
   trackCardStyle: 'default',
   backgroundBlur: 0,
-};
+  perfParticles: false,
+  bgParticles: 'none',
+});
+
+if (appSettings.perfParticles === undefined) appSettings.perfParticles = false;
+if (appSettings.bgParticles === undefined) appSettings.bgParticles = 'none';
+
+// One-time cleanup for installations that inherited the old intrusive visual
+// defaults. Users can still enable particles again from the appearance panel.
+const cleanPlayerUiMigration = 'votify-clean-player-ui-v1';
+if (localStorage.getItem(cleanPlayerUiMigration) !== 'done') {
+  appSettings.perfParticles = false;
+  appSettings.bgParticles = 'none';
+  localStorage.setItem('votify-settings', JSON.stringify(appSettings));
+  localStorage.setItem(cleanPlayerUiMigration, 'done');
+}
+
+let isChangingTrack = false;
+let discordPresenceSyncTimer = null;
+
+function syncDiscordPresence(delay = 0) {
+  const api = window.electronAPI;
+  if (!api?.updateDiscordPresence) return;
+  if (discordPresenceSyncTimer) clearTimeout(discordPresenceSyncTimer);
+
+  const sendPresence = () => {
+    discordPresenceSyncTimer = null;
+    const track = state.currentTrack;
+    if (!track) {
+      api.clearDiscordPresence?.();
+      return;
+    }
+    api.updateDiscordPresence({
+      title: track.title,
+      artist: track.artist,
+      cover: track.cover,
+      position: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
+      duration: Number.isFinite(audio.duration) ? audio.duration : 0,
+      playbackRate: Number.isFinite(audio.playbackRate) ? audio.playbackRate : 1,
+      isPlaying: !audio.paused && !audio.ended,
+    });
+  };
+
+  if (delay > 0) discordPresenceSyncTimer = setTimeout(sendPresence, delay);
+  else sendPresence();
+}
+
+function clearDiscordPresence() {
+  if (discordPresenceSyncTimer) {
+    clearTimeout(discordPresenceSyncTimer);
+    discordPresenceSyncTimer = null;
+  }
+  window.electronAPI?.clearDiscordPresence?.();
+}
 
 // If the user disabled the launch splash screen, skip it immediately instead
 // of waiting for the usual post-init delay.
@@ -374,10 +436,12 @@ audio.addEventListener('play', () => {
   state.isPlaying = true;
   emit('state:isPlaying', true);
   initEQ();
+  if (!isChangingTrack) syncDiscordPresence();
 });
 audio.addEventListener('pause', () => {
   state.isPlaying = false;
   emit('state:isPlaying', false);
+  if (!isChangingTrack) syncDiscordPresence();
 });
 audio.addEventListener('timeupdate', () => {
   state.currentTime = audio.currentTime;
@@ -386,57 +450,176 @@ audio.addEventListener('timeupdate', () => {
 audio.addEventListener('durationchange', () => {
   state.duration = audio.duration;
   emit('state:duration', audio.duration);
+  if (!isChangingTrack) syncDiscordPresence(100);
 });
 audio.addEventListener('volumechange', () => {
   state.volume = audio.volume;
   emit('state:volume', audio.volume);
 });
 
+let cloudPushTimer = null;
+let cloudSyncApplying = false;
+let lastCloudUserId = null;
+
+function scheduleCloudPush() {
+  if (cloudSyncApplying || !isUserAuthenticated()) return;
+  if (cloudPushTimer) clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(() => syncWithCloud('push'), 1200);
+}
+
 function savePlaylists() {
   localStorage.setItem('votify-playlists', JSON.stringify(playlists));
-  if (isUserAuthenticated()) syncWithCloud('push');
+  scheduleCloudPush();
 }
 function saveSettings() {
   localStorage.setItem('votify-settings', JSON.stringify(appSettings));
-  if (isUserAuthenticated()) syncWithCloud('push');
+  scheduleCloudPush();
 }
 function isUserAuthenticated() {
+  return !!window.VotifyCloud?.getCurrentUser?.();
+}
+
+function setCloudSyncLabel(text) {
+  const label = document.getElementById('profile-cloud-status');
+  if (label) label.textContent = text;
+}
+
+function cloudCacheKey(uid) {
+  return `votify-cloud-cache-${uid}`;
+}
+
+function getCloudSafeSettings() {
+  const settings = { ...appSettings };
+  if (String(settings.bgUrl || '').startsWith('data:')) delete settings.bgUrl;
+  if (String(settings.background || '').startsWith('data:')) delete settings.background;
+  Object.keys(settings).forEach(key => {
+    if (key.startsWith('_cache')) delete settings[key];
+  });
+  return settings;
+}
+
+function cacheCurrentCloudState(uid) {
+  if (!uid) return;
+  localStorage.setItem(
+    cloudCacheKey(uid),
+    JSON.stringify({
+      settings: appSettings,
+      playlists,
+      history: readStoredJson('listeningHistory', []),
+    })
+  );
+}
+
+function restoreCachedCloudState(uid) {
+  const cached = readStoredJson(cloudCacheKey(uid), null);
+  if (!cached) return false;
+  if (cached.settings && typeof cached.settings === 'object') {
+    appSettings = { ...appSettings, ...cached.settings };
+    localStorage.setItem('votify-settings', JSON.stringify(appSettings));
+  }
+  if (cached.playlists && typeof cached.playlists === 'object') {
+    playlists = cached.playlists;
+    if (!playlists['Избранное']) playlists['Избранное'] = [];
+    localStorage.setItem('votify-playlists', JSON.stringify(playlists));
+  }
+  if (Array.isArray(cached.history)) {
+    localStorage.setItem('listeningHistory', JSON.stringify(cached.history));
+  }
   return true;
 }
 
+function clearPersonalCloudState() {
+  playlists = { Избранное: [] };
+  localStorage.setItem('votify-playlists', JSON.stringify(playlists));
+  localStorage.setItem('listeningHistory', '[]');
+  renderSidebarPlaylists();
+}
+
 async function syncWithCloud(direction = 'pull') {
-  if (!isUserAuthenticated()) return;
+  const cloud = window.VotifyCloud;
+  if (!cloud) return;
+  await cloud.whenReady().catch(() => false);
+  const user = cloud.getCurrentUser();
+  if (!user) return;
+
   if (direction === 'pull') {
+    setCloudSyncLabel('Загрузка данных из облака…');
     try {
-      const data = await apiFetch('/api/sync/get');
-      if (data && !data.error) {
-        if (data.settings && Object.keys(data.settings).length > 0) {
+      const data = await cloud.pullState();
+      cloudSyncApplying = true;
+      if (data.exists) {
+        if (data.settings && typeof data.settings === 'object') {
           appSettings = { ...appSettings, ...data.settings };
           localStorage.setItem('votify-settings', JSON.stringify(appSettings));
-          applyLanguage(appSettings.lang);
+          applyLanguage(appSettings.lang || 'ru');
         }
-        if (data.playlists && Object.keys(data.playlists).length > 0) {
+        if (data.playlists && typeof data.playlists === 'object') {
           playlists = data.playlists;
+          if (!playlists['Избранное']) playlists['Избранное'] = [];
           localStorage.setItem('votify-playlists', JSON.stringify(playlists));
           renderSidebarPlaylists();
           const foldersScreen = document.getElementById('folders-screen');
           if (foldersScreen && foldersScreen.style.display !== 'none') renderPlaylists();
         }
+        if (Array.isArray(data.history)) {
+          localStorage.setItem('listeningHistory', JSON.stringify(data.history));
+        }
+        if (typeof applyAllSettings === 'function') applyAllSettings();
+        cacheCurrentCloudState(user.uid);
+      } else {
+        cloudSyncApplying = false;
+        await syncWithCloud('push');
+        return;
       }
-    } catch (e) {
-      console.error('[Sync] Pull error:', e);
+      setCloudSyncLabel('Синхронизация завершена');
+    } catch (error) {
+      console.error('[Firebase Sync] Pull error:', error);
+      setCloudSyncLabel('Ошибка загрузки облачных данных');
+    } finally {
+      cloudSyncApplying = false;
     }
-  } else if (direction === 'push') {
-    try {
-      await apiFetch('/api/sync/push', {
-        method: 'POST',
-        body: JSON.stringify({ settings: appSettings, playlists }),
-      });
-    } catch (e) {
-      console.error('[Sync] Push error:', e);
-    }
+    return;
+  }
+
+  setCloudSyncLabel('Сохранение в облако…');
+  try {
+    const history = readStoredJson('listeningHistory', []);
+    await cloud.pushState({ settings: getCloudSafeSettings(), playlists, history });
+    cacheCurrentCloudState(user.uid);
+    setCloudSyncLabel('Все данные сохранены');
+  } catch (error) {
+    console.error('[Firebase Sync] Push error:', error);
+    setCloudSyncLabel('Ошибка сохранения в облако');
   }
 }
+
+window.addEventListener('votify:auth-changed', event => {
+  const uid = event.detail?.user?.uid || null;
+  if (!uid) {
+    if (lastCloudUserId) {
+      cacheCurrentCloudState(lastCloudUserId);
+      clearPersonalCloudState();
+    }
+    lastCloudUserId = null;
+    return;
+  }
+  if (uid !== lastCloudUserId) {
+    const previousUid = lastCloudUserId;
+    if (previousUid) cacheCurrentCloudState(previousUid);
+    const restored = restoreCachedCloudState(uid);
+    if (previousUid && !restored) clearPersonalCloudState();
+    lastCloudUserId = uid;
+    syncWithCloud('pull');
+  }
+});
+
+window.VotifyCloud?.whenReady().then(() => {
+  const uid = window.VotifyCloud?.getCurrentUser?.()?.uid;
+  if (uid && uid !== lastCloudUserId) {
+    lastCloudUserId = uid;
+    syncWithCloud('pull');
+  }
+});
 
 // ==========================================
 // i18n
@@ -554,8 +737,8 @@ function applyLanguage(lang) {
   );
 
   const categoryLabels = {
-    ru: ['ОСНОВНЫЕ', 'ОФОРМЛЕНИЕ', 'ИНТЕГРАЦИИ'],
-    en: ['GENERAL', 'APPEARANCE', 'INTEGRATIONS'],
+    ru: ['ОСНОВНЫЕ', 'ОФОРМЛЕНИЕ'],
+    en: ['GENERAL', 'APPEARANCE'],
   };
   document.querySelectorAll('.settings-menu-category').forEach((el, i) => {
     if (categoryLabels[lang]?.[i]) el.textContent = categoryLabels[lang][i];
@@ -574,11 +757,6 @@ function applyLanguage(lang) {
     'app-tabs': { ru: 'Вкладки', en: 'Tabs' },
     'app-bg': { ru: 'Фон', en: 'Background' },
     'app-custom': { ru: 'Кастомизация', en: 'Customization' },
-    'int-discord': { ru: 'Discord', en: 'Discord' },
-    'int-obs': { ru: 'OBS', en: 'OBS' },
-    'int-zapret': { ru: 'Zapret', en: 'Zapret' },
-    'int-server': { ru: 'Локальный сервер', en: 'Local Server' },
-    'int-proxy': { ru: 'Прокси', en: 'Proxy' },
   };
 
   document.querySelectorAll('.settings-menu-item').forEach(el => {
@@ -1459,6 +1637,7 @@ const screenPageTitles = {
   'player-screen': 'Плеер',
   'search-screen': 'Поиск',
   'folders-screen': 'Моя медиатека',
+  'workshop-screen': 'Мастерская тем',
   'artist-screen': 'Артист',
 };
 
@@ -1806,6 +1985,7 @@ function switchScreen(screenId, activeBtnId) {
     'player-screen',
     'search-screen',
     'folders-screen',
+    'workshop-screen',
     'artist-screen',
     'album-screen',
   ];
@@ -1847,6 +2027,7 @@ function switchScreen(screenId, activeBtnId) {
     'nav-player-btn',
     'nav-search-btn',
     'nav-folders-btn',
+    'nav-workshop-btn',
     'nav-settings-btn',
   ];
   if (activeBtnId && validBtnIds.includes(activeBtnId)) {
@@ -1878,6 +2059,9 @@ function switchScreen(screenId, activeBtnId) {
   if (pageTitle) pageTitle.innerText = screenPageTitles[screenId] || '';
 
   if (screenId === 'folders-screen') renderPlaylists();
+  if (screenId === 'workshop-screen') {
+    window.dispatchEvent(new CustomEvent('votify:workshop-open'));
+  }
   // Recommendations are supplementary. Never block the first usable screen
   // behind a network request during launch.
   if (screenId === 'home-screen') loadRecommendations(false, { showLoading: !isBooting });
@@ -1897,6 +2081,7 @@ safeClick('nav-home-btn', () => switchScreen('home-screen', 'nav-home-btn'));
 safeClick('nav-player-btn', () => switchScreen('player-screen', 'nav-player-btn'));
 safeClick('nav-search-btn', () => switchScreen('search-screen', 'nav-search-btn'));
 safeClick('nav-folders-btn', () => switchScreen('folders-screen', 'nav-folders-btn'));
+safeClick('nav-workshop-btn', () => switchScreen('workshop-screen', 'nav-workshop-btn'));
 safeClick('back-from-artist-btn', () => {
   artistRequestId++;
   switchScreen(previousScreenId || 'home-screen', previousActiveBtnId || 'nav-home-btn');
@@ -4045,124 +4230,23 @@ if (sleepTimerSelect) {
 }
 
 // ==========================================
-// Network Settings (stream source / Invidious / proxy)
+// Backend audio quality
 // ==========================================
-const streamSourceSelect = document.getElementById('setting-stream-source');
-const invidiousSettingsBlock = document.getElementById('invidious-settings');
-const pipedSettingsBlock = document.getElementById('piped-settings');
-const proxySettingsItem = document.getElementById('proxy-settings-item');
-const invidiousInstanceInput = document.getElementById('setting-invidious-instance');
-const pipedInstanceInput = document.getElementById('setting-piped-instance');
-const httpProxyInput = document.getElementById('setting-http-proxy');
-
-function updateNetworkSettingsVisibility(source) {
-  if (invidiousSettingsBlock)
-    invidiousSettingsBlock.style.display = source === 'invidious' ? 'block' : 'none';
-  if (pipedSettingsBlock) pipedSettingsBlock.style.display = source === 'piped' ? 'block' : 'none';
-  if (proxySettingsItem) proxySettingsItem.style.display = source === 'soundcloud' ? 'none' : '';
-}
-
 async function loadNetworkSettingsFromServer() {
   try {
     const data = await apiFetch('/api/network/settings');
     if (data && !data.error) {
-      appSettings.streamSource = data.streamSource || appSettings.streamSource;
-      appSettings.httpProxy = data.httpProxy || appSettings.httpProxy;
-      appSettings.invidiousInstance = data.invidiousInstance || appSettings.invidiousInstance;
-      appSettings.pipedInstance =
-        data.pipedInstance && !/pipedapi\.kavin\.rocks/i.test(data.pipedInstance)
-          ? data.pipedInstance
-          : appSettings.pipedInstance && !/pipedapi\.kavin\.rocks/i.test(appSettings.pipedInstance)
-            ? appSettings.pipedInstance
-            : 'https://pipedapi.adminforge.de';
       appSettings.audioQuality = data.audioQuality || appSettings.audioQuality;
-      if (streamSourceSelect) streamSourceSelect.value = appSettings.streamSource;
-      if (invidiousInstanceInput)
-        invidiousInstanceInput.value = appSettings.invidiousInstance || '';
-      if (pipedInstanceInput) pipedInstanceInput.value = appSettings.pipedInstance || '';
-      if (httpProxyInput) httpProxyInput.value = appSettings.httpProxy || '';
+      delete appSettings.streamSource;
+      delete appSettings.invidiousInstance;
+      delete appSettings.pipedInstance;
       if (audioQualitySelect) audioQualitySelect.value = appSettings.audioQuality || 'medium';
-      updateNetworkSettingsVisibility(appSettings.streamSource);
+      localStorage.setItem('votify-settings', JSON.stringify(appSettings));
     }
   } catch (e) {
     /* server may not be ready yet */
   }
 }
-
-if (streamSourceSelect) {
-  streamSourceSelect.value = appSettings.streamSource || 'yt-dlp';
-  updateNetworkSettingsVisibility(streamSourceSelect.value);
-  streamSourceSelect.addEventListener('change', async () => {
-    // Stop any current stream so the next click cannot keep using the old URL.
-    try {
-      audio.pause();
-      audio.removeAttribute('src');
-      audio.load();
-    } catch (e) {
-      /* ignore audio reset errors */
-    }
-    searchAllTracks = [];
-    if (resultsContainer) resultsContainer.innerHTML = '';
-    if (statusMessage) statusMessage.innerText = '';
-    appSettings.streamSource = streamSourceSelect.value;
-    updateNetworkSettingsVisibility(streamSourceSelect.value);
-    saveSettings();
-    try {
-      await apiFetch('/api/network/settings', {
-        method: 'POST',
-        body: JSON.stringify({ streamSource: appSettings.streamSource }),
-      });
-      showToast('Движок поиска изменён');
-    } catch (e) {
-      showToast('Ошибка сохранения настроек сети');
-    }
-  });
-}
-
-safeClick('apply-invidious-btn', async () => {
-  if (!invidiousInstanceInput) return;
-  appSettings.invidiousInstance = invidiousInstanceInput.value.trim();
-  saveSettings();
-  try {
-    await apiFetch('/api/network/settings', {
-      method: 'POST',
-      body: JSON.stringify({ invidiousInstance: appSettings.invidiousInstance }),
-    });
-    showToast('Инстанс Invidious применён');
-  } catch (e) {
-    showToast('Ошибка применения инстанса');
-  }
-});
-
-safeClick('apply-piped-btn', async () => {
-  if (!pipedInstanceInput) return;
-  appSettings.pipedInstance = pipedInstanceInput.value.trim();
-  saveSettings();
-  try {
-    await apiFetch('/api/network/settings', {
-      method: 'POST',
-      body: JSON.stringify({ pipedInstance: appSettings.pipedInstance }),
-    });
-    showToast('Инстанс Piped применён');
-  } catch (e) {
-    showToast('Ошибка применения инстанса Piped');
-  }
-});
-
-safeClick('apply-proxy-btn', async () => {
-  if (!httpProxyInput) return;
-  appSettings.httpProxy = httpProxyInput.value.trim();
-  saveSettings();
-  try {
-    await apiFetch('/api/network/settings', {
-      method: 'POST',
-      body: JSON.stringify({ httpProxy: appSettings.httpProxy }),
-    });
-    showToast('Прокси применён');
-  } catch (e) {
-    showToast('Ошибка применения прокси');
-  }
-});
 
 loadNetworkSettingsFromServer();
 
@@ -4193,37 +4277,6 @@ if (translateLyricsToggle) {
     saveSettings();
   });
 }
-
-// ==========================================
-// Discord Rich Presence settings (persisted; connection itself needs the desktop app)
-// ==========================================
-const discordProgressToggle = document.getElementById('toggle-discord-progress');
-if (discordProgressToggle) {
-  discordProgressToggle.checked = appSettings.discordProgress !== false;
-  discordProgressToggle.addEventListener('change', () => {
-    appSettings.discordProgress = discordProgressToggle.checked;
-    saveSettings();
-  });
-}
-const discordCoverToggle = document.getElementById('toggle-discord-cover');
-if (discordCoverToggle) {
-  discordCoverToggle.checked = !!appSettings.discordCover;
-  discordCoverToggle.addEventListener('change', () => {
-    appSettings.discordCover = discordCoverToggle.checked;
-    saveSettings();
-  });
-}
-const discordAppIdInput = document.getElementById('discord-app-id');
-if (discordAppIdInput) {
-  discordAppIdInput.value = appSettings.discordAppId || '';
-  discordAppIdInput.addEventListener('change', () => {
-    appSettings.discordAppId = discordAppIdInput.value.trim();
-    saveSettings();
-  });
-}
-safeClick('discord-connect-btn', () => {
-  showToast('Discord Rich Presence пока не реализован в этой сборке');
-});
 
 // ==========================================
 // Track notifications
@@ -4453,7 +4506,7 @@ if (settingsOverlayEl) {
 // ==========================================
 // Hotkey Editing
 // ==========================================
-let hotkeyOverrides = JSON.parse(localStorage.getItem('votify-hotkeys') || '{}');
+let hotkeyOverrides = readStoredJson('votify-hotkeys', {});
 const defaultHotkeys = {
   play: ' ',
   next: 'n',
@@ -4556,18 +4609,22 @@ safeClick('reset-hotkeys-btn', () => {
 // Theme Color Switching
 // ==========================================
 function applyAccentColor(color) {
-  document.documentElement.style.setProperty('--accent', color);
+  const normalized = /^#[0-9a-f]{6}$/i.test(String(color || ''))
+    ? String(color).toUpperCase()
+    : '#1DB954';
+  document.documentElement.style.setProperty('--accent', normalized);
   // Also compute and set --accent-rgb for rgba() usage
-  const hex = color.replace('#', '');
+  const hex = normalized.replace('#', '');
   const r = parseInt(hex.substr(0, 2), 16);
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
   document.documentElement.style.setProperty('--accent-rgb', `${r},${g},${b}`);
-  appSettings.accent = color;
+  appSettings.accent = normalized;
+  appSettings.customColorPrimary = normalized;
   saveSettings();
   // Update active state on theme cards
   document.querySelectorAll('.theme-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.accent === color);
+    c.classList.toggle('active', String(c.dataset.accent || '').toUpperCase() === normalized);
   });
 }
 
@@ -4592,9 +4649,10 @@ if (accentColorInput) {
   });
 }
 
-// Apply saved accent on load
-if (appSettings.accent) {
-  applyAccentColor(appSettings.accent);
+// Apply the canonical saved accent on load. Custom picker values take
+// precedence so the visible color and workshop preview cannot diverge.
+if (appSettings.customColorPrimary || appSettings.accent) {
+  applyAccentColor(appSettings.customColorPrimary || appSettings.accent);
 }
 
 // Background presets
@@ -4804,7 +4862,8 @@ if (splashScreenToggle) {
 
 // Background
 function applyBackground() {
-  const bg = appSettings.background;
+  const storedUrl = String(appSettings.bgUrl || '').trim();
+  const bg = /^(https?:|data:image\/)/i.test(storedUrl) ? storedUrl : appSettings.background;
   if (!bg || bg === 'default') {
     document.body.style.background = '';
     document.body.style.backgroundImage = '';
@@ -4824,6 +4883,10 @@ if (bgPresetsEl) {
     bgPresetsEl.querySelectorAll('.bg-card').forEach(b => b.classList.remove('bg-card-active'));
     btn.classList.add('bg-card-active');
     appSettings.background = btn.dataset.bg;
+    appSettings.bgPreset = btn.dataset.bg;
+    appSettings.bgUrl = '';
+    const urlInput = document.getElementById('bg-url-input');
+    if (urlInput) urlInput.value = '';
     saveSettings();
     applyBackground();
   });
@@ -4840,6 +4903,7 @@ if (bgUrlApply && bgUrlInput) {
     const url = bgUrlInput.value.trim();
     if (!url) return;
     appSettings.background = url;
+    appSettings.bgUrl = url;
     saveSettings();
     applyBackground();
     if (bgPresetsEl)
@@ -5826,10 +5890,13 @@ function addToListeningHistory(track) {
   const limit = Math.max(10, Math.min(200, Number(appSettings.historyLimit) || 50));
   if (history.length > limit) history = history.slice(0, limit);
   localStorage.setItem('listeningHistory', JSON.stringify(history));
+  scheduleCloudPush();
 }
 
 async function playTrack(track) {
   if (!track) return;
+  isChangingTrack = true;
+  let didStartPlayback = false;
   playRetryCount = 0;
   preFadeVolume = null;
   gaplessPreloadedFor = null;
@@ -5865,10 +5932,15 @@ async function playTrack(track) {
     audio.src = streamUrl;
     audio.load(); // ensure the new source is picked up immediately
     await audio.play();
+    didStartPlayback = true;
     if (playBtn) playBtn.innerHTML = '<i class="material-icons">pause</i>';
   } catch (e) {
     console.warn('[playTrack] failed:', e.message);
     if (playBtn) playBtn.innerHTML = '<i class="material-icons">play_arrow</i>';
+  } finally {
+    isChangingTrack = false;
+    if (didStartPlayback) syncDiscordPresence();
+    else clearDiscordPresence();
   }
 
   localStorage.setItem('votify-last-track', JSON.stringify(track));
@@ -5882,7 +5954,6 @@ async function playTrack(track) {
     .querySelectorAll(`.track-item[data-track-id="${track.id}"]`)
     .forEach(el => el.classList.add('playing'));
 
-  updateDiscordPresence(track.title, track.artist);
   notifyTrackChange(track);
 
   // Auto-load lyrics
@@ -5893,6 +5964,7 @@ async function playTrack(track) {
 
 audio.addEventListener('error', () => {
   if (playBtn) playBtn.innerHTML = '<i class="material-icons">play_arrow</i>';
+  if (!isChangingTrack) clearDiscordPresence();
 });
 audio.addEventListener('playing', () => {
   if (playBtn) playBtn.innerHTML = '<i class="material-icons">pause</i>';
@@ -5993,7 +6065,15 @@ audio.onloadedmetadata = () => {
     if (Number.isFinite(savedPosition) && savedPosition > 2 && savedPosition < audio.duration - 3)
       audio.currentTime = savedPosition;
   }
+  if (!isChangingTrack) syncDiscordPresence(100);
 };
+
+audio.addEventListener('seeked', () => {
+  if (!isChangingTrack) syncDiscordPresence(200);
+});
+audio.addEventListener('ratechange', () => {
+  if (!isChangingTrack) syncDiscordPresence();
+});
 
 // ==========================================
 // BAR TIMELINE — Bottom Player
@@ -6547,6 +6627,10 @@ function syncVolumeBars() {
 }
 
 function hideSplash() {
+  if (startupSplashFailsafe) {
+    clearTimeout(startupSplashFailsafe);
+    startupSplashFailsafe = null;
+  }
   const splash = document.getElementById('splash-screen');
   if (splash) {
     if (splash.dataset.hidden) return;
@@ -6595,7 +6679,6 @@ function initApp() {
     }
 
     console.log('Votify initialized successfully.');
-    initDesktopGooseEngine();
   } catch (e) {
     console.error('Critical init error:', e);
   } finally {
@@ -6604,223 +6687,6 @@ function initApp() {
     setTimeout(hideSplash, 1500);
   }
 }
-
-/* ==========================================
-   VOTIFY ANIME PET COMPANION LOGIC (КОХАРУ)
-   ========================================== */
-/* ==========================================
-   AUTHENTIC DESKTOP GOOSE ENGINE (TogoFire/DesktopGoose)
-   ========================================== */
-let gooseConfig = {
-  enabled: true,
-  tracks: true,
-  memes: true,
-};
-
-let gooseX = 250;
-let gooseY = 200;
-let gooseTargetX = 400;
-let gooseTargetY = 300;
-let gooseSpeed = 3.5;
-let gooseState = 'IDLE'; // IDLE, WANDERING, DRAGGING_MEME, HONKING, RUNNING
-let gooseActionTimer = null;
-
-const GOOSE_QUOTES = [
-  'HONK! 🪿',
-  'Га-га-га! 🪿',
-  'Где мои семечки?! 🌾',
-  'Я утащу этот трек!',
-  'HONK HONK! 💥',
-  'Desktop Goose в Votify! 🪿',
-  'Официально украл твое окно ✨',
-];
-
-const GOOSE_STICKY_MEMES = [
-  { title: 'Записка от Гуся 🪿', body: 'HONK! Ты слушаешь слишком хороший музыкос!' },
-  { title: 'Внимание! ⚠️', body: 'Гусь объявляет этот трек официальным гимном семечек!' },
-  { title: 'desktop_goose.exe 🪿', body: 'Я зашел в Votify, чтобы похлопать крыльями!' },
-  { title: 'Мем от Гуся ✨', body: 'Когда включил фонк и гусь начал флексить: HONK!' },
-];
-
-function initDesktopGooseEngine() {
-  const wrapper = document.getElementById('desktop-goose-wrapper');
-  const speechBubble = document.getElementById('goose-speech-bubble');
-  const speechText = document.getElementById('goose-speech-text');
-  const tracksLayer = document.getElementById('goose-tracks-layer');
-  const memesContainer = document.getElementById('goose-memes-container');
-
-  if (!wrapper) return;
-
-  const toggleEnabled = document.getElementById('toggle-goose-enabled');
-  const toggleTracks = document.getElementById('toggle-goose-tracks');
-  const toggleMemes = document.getElementById('toggle-goose-memes');
-
-  const saved = localStorage.getItem('votify-goose-config');
-  if (saved) {
-    try {
-      gooseConfig = { ...gooseConfig, ...JSON.parse(saved) };
-    } catch (e) {}
-  }
-
-  if (toggleEnabled) {
-    toggleEnabled.checked = gooseConfig.enabled;
-    toggleEnabled.onchange = e => {
-      gooseConfig.enabled = e.target.checked;
-      saveGooseConfig();
-    };
-  }
-  if (toggleTracks) {
-    toggleTracks.checked = gooseConfig.tracks;
-    toggleTracks.onchange = e => {
-      gooseConfig.tracks = e.target.checked;
-      saveGooseConfig();
-    };
-  }
-  if (toggleMemes) {
-    toggleMemes.checked = gooseConfig.memes;
-    toggleMemes.onchange = e => {
-      gooseConfig.memes = e.target.checked;
-      saveGooseConfig();
-    };
-  }
-
-  function saveGooseConfig() {
-    localStorage.setItem('votify-goose-config', JSON.stringify(gooseConfig));
-    updateGooseVisibility();
-  }
-
-  function updateGooseVisibility() {
-    if (wrapper) wrapper.style.display = gooseConfig.enabled ? 'block' : 'none';
-  }
-  updateGooseVisibility();
-
-  // Position goose randomly at start
-  gooseX = Math.floor(Math.random() * (window.innerWidth - 200)) + 100;
-  gooseY = Math.floor(Math.random() * (window.innerHeight - 250)) + 100;
-  wrapper.style.left = gooseX + 'px';
-  wrapper.style.top = gooseY + 'px';
-
-  // Goose click reaction (Angry Run + HONK!)
-  wrapper.onclick = () => {
-    if (!gooseConfig.enabled) return;
-    gooseState = 'RUNNING';
-    gooseSpeed = 8;
-    honkGoose('HONK HONK HONK!! 🪿⚡');
-
-    // Pick random far target to run away
-    gooseTargetX = Math.floor(Math.random() * (window.innerWidth - 150));
-    gooseTargetY = Math.floor(Math.random() * (window.innerHeight - 200));
-  };
-
-  function honkGoose(text) {
-    if (!speechBubble || !speechText) return;
-    speechText.textContent = text || GOOSE_QUOTES[Math.floor(Math.random() * GOOSE_QUOTES.length)];
-    speechBubble.classList.remove('hidden');
-    wrapper.classList.add('honking');
-
-    setTimeout(() => {
-      speechBubble.classList.add('hidden');
-      wrapper.classList.remove('honking');
-    }, 2500);
-  }
-
-  function dropFootprint(x, y) {
-    if (!gooseConfig.tracks || !tracksLayer) return;
-    const print = document.createElement('div');
-    print.className = 'goose-footprint';
-    print.style.left = x + 30 + 'px';
-    print.style.top = y + 55 + 'px';
-    tracksLayer.appendChild(print);
-
-    setTimeout(() => {
-      if (print.parentNode) print.parentNode.removeChild(print);
-    }, 8000);
-  }
-
-  function spawnMemeWindow() {
-    if (!gooseConfig.memes || !memesContainer) return;
-    const data = GOOSE_STICKY_MEMES[Math.floor(Math.random() * GOOSE_STICKY_MEMES.length)];
-
-    const card = document.createElement('div');
-    card.className = 'goose-meme-card';
-    card.style.left = gooseX - 50 + 'px';
-    card.style.top = gooseY - 80 + 'px';
-    card.innerHTML = `
-      <div class="goose-meme-card-header">
-        <span>${escapeHtml(data.title)}</span>
-        <span style="cursor:pointer;" onclick="this.parentNode.parentNode.remove()">✕</span>
-      </div>
-      <div>${escapeHtml(data.body)}</div>
-    `;
-    memesContainer.appendChild(card);
-  }
-
-  // Main DesktopGoose Walking Physics Loop (60 FPS tick)
-  function gooseStep() {
-    if (!gooseConfig.enabled) {
-      requestAnimationFrame(gooseStep);
-      return;
-    }
-
-    if (gooseState === 'WANDERING' || gooseState === 'RUNNING' || gooseState === 'DRAGGING_MEME') {
-      const dx = gooseTargetX - gooseX;
-      const dy = gooseTargetY - gooseY;
-      const dist = Math.hypot(dx, dy);
-
-      if (dist > 6) {
-        const step = Math.min(dist, gooseSpeed);
-        gooseX += (dx / dist) * step;
-        gooseY += (dy / dist) * step;
-
-        wrapper.style.left = gooseX + 'px';
-        wrapper.style.top = gooseY + 'px';
-        wrapper.classList.add('waddling');
-
-        const flip = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
-        wrapper.style.transform = flip;
-
-        if (Math.random() < 0.12) dropFootprint(gooseX, gooseY);
-      } else {
-        wrapper.classList.remove('waddling');
-        gooseState = 'IDLE';
-        gooseSpeed = 3.5;
-
-        if (Math.random() < 0.35) {
-          honkGoose();
-        }
-      }
-    }
-
-    requestAnimationFrame(gooseStep);
-  }
-
-  requestAnimationFrame(gooseStep);
-
-  // Periodic Goose AI Behavior Loop (Every 6-12 seconds pick new goal)
-  clearInterval(gooseActionTimer);
-  gooseActionTimer = setInterval(() => {
-    if (!gooseConfig.enabled || gooseState === 'RUNNING') return;
-
-    const roll = Math.random();
-    if (roll < 0.55) {
-      gooseState = 'WANDERING';
-      gooseTargetX = Math.floor(Math.random() * (window.innerWidth - 160)) + 40;
-      gooseTargetY = Math.floor(Math.random() * (window.innerHeight - 200)) + 60;
-    } else if (roll < 0.85) {
-      gooseState = 'HONKING';
-      honkGoose();
-    } else {
-      gooseState = 'DRAGGING_MEME';
-      honkGoose('Смотри, что я нашел! 🪿');
-      spawnMemeWindow();
-      gooseTargetX = Math.floor(Math.random() * (window.innerWidth - 160)) + 40;
-      gooseTargetY = Math.floor(Math.random() * (window.innerHeight - 200)) + 60;
-    }
-  }, 9000);
-}
-
-// Failsafe: hide splash even if a later initialization task fails or stalls.
-setTimeout(hideSplash, 3000);
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
@@ -7225,18 +7091,19 @@ function applyTabsSettings() {
 }
 
 function applyCustomColors() {
-  const root = document.documentElement;
-  if (appSettings.customColorPrimary)
-    root.style.setProperty('--accent', appSettings.customColorPrimary);
-  if (appSettings.customColorBg) root.style.setProperty('--bg-base', appSettings.customColorBg);
-  if (appSettings.customColorText)
-    root.style.setProperty('--text-primary', appSettings.customColorText);
-  if (appSettings.customColorCards)
-    root.style.setProperty('--bg-surface', appSettings.customColorCards);
-  if (appSettings.customColorBorders)
-    root.style.setProperty('--bg-highlight', appSettings.customColorBorders);
-  if (appSettings.customColorFocus)
-    root.style.setProperty('--focus-ring', appSettings.customColorFocus);
+  const targets = [document.documentElement, document.body].filter(Boolean);
+  const setColor = (property, value) => {
+    if (!value) return;
+    targets.forEach(target => target.style.setProperty(property, value));
+  };
+  setColor('--accent', appSettings.customColorPrimary);
+  setColor('--bg-base', appSettings.customColorBg);
+  setColor('--bg-surface', appSettings.customColorCards);
+  setColor('--bg-elevated', appSettings.customColorCards);
+  setColor('--text-primary', appSettings.customColorText);
+  setColor('--bg-highlight', appSettings.customColorBorders);
+  setColor('--md-outline', appSettings.customColorBorders);
+  setColor('--focus-ring', appSettings.customColorFocus);
 }
 
 function applyAllSettings() {
@@ -7244,12 +7111,243 @@ function applyAllSettings() {
   applyPlayerSettings();
   applyCoverSettings();
   applyUISettings();
+  applyBackground();
   applyTabsSettings();
   applyCustomColors();
   updateParticleSystem();
 }
 
+function workshopColor(value, fallback) {
+  const normalized = String(value || '').trim();
+  if (/^#[0-9a-f]{6}$/i.test(normalized)) return normalized.toUpperCase();
+  if (/^#[0-9a-f]{3}$/i.test(normalized)) {
+    return `#${normalized
+      .slice(1)
+      .split('')
+      .map(character => character.repeat(2))
+      .join('')}`.toUpperCase();
+  }
+  const rgb = normalized.match(/^rgba?\(\s*(\d+)\D+(\d+)\D+(\d+)/i);
+  if (rgb) {
+    return `#${rgb
+      .slice(1, 4)
+      .map(channel => Math.max(0, Math.min(255, Number(channel))).toString(16).padStart(2, '0'))
+      .join('')}`.toUpperCase();
+  }
+  return fallback;
+}
 
+function workshopBackgroundUrl(value) {
+  const input = String(value || '').trim();
+  if (!input || input.length > 2048) return '';
+  try {
+    const url = new URL(input);
+    if (url.protocol !== 'https:' || url.username || url.password) return '';
+    return url.toString().slice(0, 2048);
+  } catch {
+    return '';
+  }
+}
+
+function workshopNumber(value, minimum, maximum, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? Math.max(minimum, Math.min(maximum, Math.round(number)))
+    : fallback;
+}
+
+function workshopCssColor(property, fallback) {
+  const source = document.body || document.documentElement;
+  const value = getComputedStyle(source).getPropertyValue(property).trim();
+  return workshopColor(value, fallback);
+}
+
+function getCurrentWorkshopTheme() {
+  return {
+    primary: workshopCssColor(
+      '--accent',
+      workshopColor(appSettings.customColorPrimary || appSettings.accent, '#1DB954')
+    ),
+    background: workshopCssColor(
+      '--bg-base',
+      workshopColor(appSettings.customColorBg, '#121212')
+    ),
+    text: workshopCssColor(
+      '--text-primary',
+      workshopColor(appSettings.customColorText, '#FFFFFF')
+    ),
+    cards: workshopCssColor(
+      '--bg-surface',
+      workshopColor(appSettings.customColorCards, '#181818')
+    ),
+    borders: workshopCssColor(
+      '--bg-highlight',
+      workshopColor(appSettings.customColorBorders, '#2A2A2A')
+    ),
+    focus: workshopCssColor(
+      '--focus-ring',
+      workshopColor(appSettings.customColorFocus || appSettings.accent, '#1DB954')
+    ),
+    mode: ['dark', 'light', 'system'].includes(appSettings.themeMode)
+      ? appSettings.themeMode
+      : 'dark',
+    backgroundPreset: /^grad-[1-9]$/.test(appSettings.bgPreset || appSettings.background)
+      ? appSettings.bgPreset || appSettings.background
+      : 'default',
+    backgroundUrl:
+      workshopBackgroundUrl(appSettings.bgUrl) || workshopBackgroundUrl(appSettings.background),
+    cornerRadius: workshopNumber(appSettings.cornerRadius, 0, 24, 8),
+    uiTransparency: workshopNumber(appSettings.uiTransparency, 10, 100, 45),
+    backgroundBlur: workshopNumber(appSettings.backgroundBlur, 0, 60, 0),
+    particles: [
+      'none',
+      'snow',
+      'rain',
+      'stars',
+      'dots',
+      'hearts',
+      'fireflies',
+      'sakura',
+      'network',
+    ].includes(appSettings.bgParticles)
+      ? appSettings.bgParticles
+      : 'none',
+    fontFamily: [
+      'system',
+      'modern',
+      'serif',
+      'mono',
+      'hand',
+      'deco',
+      'game',
+      'inter',
+      'roboto',
+      'helvetica',
+      'sf',
+    ].includes(appSettings.fontFamily)
+      ? appSettings.fontFamily
+      : 'inter',
+  };
+}
+
+function applyWorkshopTheme(theme, metadata = {}) {
+  const current = getCurrentWorkshopTheme();
+  const safe = {
+    primary: workshopColor(theme?.primary, current.primary),
+    background: workshopColor(theme?.background, current.background),
+    text: workshopColor(theme?.text, current.text),
+    cards: workshopColor(theme?.cards, current.cards),
+    borders: workshopColor(theme?.borders, current.borders),
+    focus: workshopColor(theme?.focus, current.focus),
+    mode: ['dark', 'light', 'system'].includes(theme?.mode) ? theme.mode : current.mode,
+    backgroundPreset: /^grad-[1-9]$/.test(theme?.backgroundPreset)
+      ? theme.backgroundPreset
+      : 'default',
+    backgroundUrl: workshopBackgroundUrl(theme?.backgroundUrl),
+    cornerRadius: workshopNumber(theme?.cornerRadius, 0, 24, current.cornerRadius),
+    uiTransparency: workshopNumber(theme?.uiTransparency, 10, 100, current.uiTransparency),
+    backgroundBlur: workshopNumber(theme?.backgroundBlur, 0, 60, current.backgroundBlur),
+    particles: [
+      'none',
+      'snow',
+      'rain',
+      'stars',
+      'dots',
+      'hearts',
+      'fireflies',
+      'sakura',
+      'network',
+    ].includes(theme?.particles)
+      ? theme.particles
+      : 'none',
+    fontFamily: [
+      'system',
+      'modern',
+      'serif',
+      'mono',
+      'hand',
+      'deco',
+      'game',
+      'inter',
+      'roboto',
+      'helvetica',
+      'sf',
+    ].includes(theme?.fontFamily)
+      ? theme.fontFamily
+      : current.fontFamily,
+  };
+
+  Object.assign(appSettings, {
+    accent: safe.primary,
+    customColorPrimary: safe.primary,
+    customColorBg: safe.background,
+    customColorText: safe.text,
+    customColorCards: safe.cards,
+    customColorBorders: safe.borders,
+    customColorFocus: safe.focus,
+    theme: safe.mode,
+    themeMode: safe.mode,
+    background: safe.backgroundUrl || safe.backgroundPreset,
+    bgPreset: safe.backgroundPreset,
+    bgUrl: safe.backgroundUrl,
+    cornerRadius: safe.cornerRadius,
+    uiTransparency: safe.uiTransparency,
+    backgroundBlur: safe.backgroundBlur,
+    bgParticles: safe.particles,
+    fontFamily: safe.fontFamily,
+    workshopThemeId: String(metadata.id || '').slice(0, 40),
+    workshopThemeTitle: String(metadata.title || '').slice(0, 60),
+  });
+
+  const controlValues = {
+    'picker-color-primary': safe.primary,
+    'picker-color-bg': safe.background,
+    'picker-color-text': safe.text,
+    'picker-color-cards': safe.cards,
+    'picker-color-borders': safe.borders,
+    'picker-color-focus': safe.focus,
+    'corner-radius-slider': safe.cornerRadius,
+    'ui-transparency-slider': safe.uiTransparency,
+    'background-blur-slider': safe.backgroundBlur,
+    'bg-blur-slider': safe.backgroundBlur,
+    'bg-url-input': safe.backgroundUrl,
+    'setting-bg-particles': safe.particles,
+    'font-family-select': safe.fontFamily,
+  };
+  Object.entries(controlValues).forEach(([id, value]) => {
+    const control = document.getElementById(id);
+    if (control) control.value = value;
+  });
+  document.querySelectorAll('.theme-mode-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.themeMode === safe.mode);
+  });
+  document.querySelectorAll('.bg-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.bg === safe.backgroundPreset);
+    card.classList.toggle('bg-card-active', card.dataset.bg === safe.backgroundPreset);
+  });
+  const settingLabels = {
+    'corner-radius-slider-value': `${safe.cornerRadius}px`,
+    'ui-transparency-slider-value': `${safe.uiTransparency}%`,
+    'background-blur-value': `${safe.backgroundBlur}px`,
+    'bg-blur-slider-value': `${safe.backgroundBlur}px`,
+  };
+  Object.entries(settingLabels).forEach(([id, value]) => {
+    const label = document.getElementById(id);
+    if (label) label.textContent = value;
+  });
+
+  applyAccentColor(safe.primary);
+  applyBackground();
+  applyAllSettings();
+  saveSettings();
+  window.dispatchEvent(new CustomEvent('votify:theme-installed', { detail: metadata }));
+  return safe;
+}
+
+window.VotifyThemeWorkshop = {
+  getCurrentTheme: getCurrentWorkshopTheme,
+  applyTheme: applyWorkshopTheme,
+};
 
 // ============================================================================
 // REDESIGNED TREE SETTINGS LOGIC (17 PANELS / 3 CATEGORIES)
@@ -7383,7 +7481,7 @@ function initRedesignedSettings() {
     });
   }
   wireInput('toggle-perf-bg', 'perfBg', true);
-  wireInput('toggle-perf-particles', 'perfParticles', true, null, '', () => updateParticleSystem());
+  wireInput('toggle-perf-particles', 'perfParticles', false, null, '', () => updateParticleSystem());
   wireInput('toggle-perf-covers', 'perfCovers', true);
   wireInput('toggle-perf-visualizers', 'perfVisualizers', true);
   wireInput('toggle-perf-blur', 'perfBlur', true);
@@ -7543,7 +7641,7 @@ function initRedesignedSettings() {
   wireInput('toggle-tab-settings', 'tabSettings', true, null, '', () => applyTabsSettings());
 
   // --- 11. Фон (app-bg) ---
-  wireInput('setting-bg-particles', 'bgParticles', 'dots', null, '', () => updateParticleSystem());
+  wireInput('setting-bg-particles', 'bgParticles', 'none', null, '', () => updateParticleSystem());
   wireInput('slider-particle-count', 'particleCount', 50, 'particle-count-val', '', () =>
     updateParticleSystem()
   );
@@ -7564,15 +7662,13 @@ function initRedesignedSettings() {
       document.querySelectorAll('.bg-card').forEach(c => c.classList.remove('active'));
       card.classList.add('active');
       appSettings.bgPreset = bgPreset;
+      appSettings.background = bgPreset;
+      appSettings.bgUrl = '';
+      const urlInput = document.getElementById('bg-url-input');
+      if (urlInput) urlInput.value = '';
       saveSettings();
       document.body.dataset.bgPreset = bgPreset;
-      if (bgPreset === 'default') {
-        document.body.style.backgroundImage = '';
-      } else if (bgPreset === 'grad-1') {
-        document.body.style.backgroundImage = 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)';
-      } else if (bgPreset === 'grad-2') {
-        document.body.style.backgroundImage = 'linear-gradient(135deg, #311b92 0%, #000000 100%)';
-      }
+      applyBackground();
       showToast('Пресет фона изменен');
     });
   });
@@ -7581,10 +7677,9 @@ function initRedesignedSettings() {
     const url = document.getElementById('bg-url-input')?.value.trim();
     if (url) {
       appSettings.bgUrl = url;
+      appSettings.background = url;
       saveSettings();
-      document.body.style.backgroundImage = `url("${url}")`;
-      document.body.style.backgroundSize = 'cover';
-      document.body.style.backgroundPosition = 'center';
+      applyBackground();
       showToast('Фоновое изображение применено!');
     }
   });
@@ -7599,10 +7694,9 @@ function initRedesignedSettings() {
         reader.onload = ev => {
           const dataUrl = ev.target.result;
           appSettings.bgUrl = dataUrl;
+          appSettings.background = dataUrl;
           saveSettings();
-          document.body.style.backgroundImage = `url("${dataUrl}")`;
-          document.body.style.backgroundSize = 'cover';
-          document.body.style.backgroundPosition = 'center';
+          applyBackground();
           showToast('Локальное изображение установлено как фон!');
         };
         reader.readAsDataURL(file);
@@ -7617,7 +7711,8 @@ function initRedesignedSettings() {
     el.value = appSettings[key] || defaultValue;
     el.addEventListener('input', () => {
       appSettings[key] = el.value;
-      saveSettings();
+      if (key === 'customColorPrimary') applyAccentColor(el.value);
+      else saveSettings();
       applyCustomColors();
     });
   }
@@ -7627,130 +7722,6 @@ function initRedesignedSettings() {
   wirePicker('picker-color-cards', 'customColorCards', '#181818');
   wirePicker('picker-color-borders', 'customColorBorders', '#2a2a2a');
   wirePicker('picker-color-focus', 'customColorFocus', '#1DB954');
-
-  // --- 13. Discord (int-discord) ---
-  wireInput('toggle-discord-progress', 'discordProgress', true);
-  wireInput('toggle-discord-cover', 'discordCover', false);
-
-  // --- 14. OBS (int-obs) ---
-  wireInput('input-obs-widget-url', 'obsWidgetUrl', 'http://localhost:17217/obs-widget.html');
-  wireInput('slider-obs-opacity', 'obsWidgetOpacity', 0, 'obs-widget-opacity-val', '%');
-  wirePicker('picker-obs-text-color', 'obsWidgetTextColor', '#ffffff');
-
-  safeClick('btn-obs-copy-url', () => {
-    const urlInput = document.getElementById('input-obs-widget-url');
-    if (urlInput) {
-      urlInput.select();
-      navigator.clipboard.writeText(urlInput.value).then(() => {
-        showToast('Ссылка на OBS виджет скопирована!');
-      });
-    }
-  });
-
-  // --- 15. Zapret (int-zapret) ---
-  wireInput('input-zapret-path', 'zapretPath', 'C:\\\\Zapret');
-  wireInput('toggle-zapret-ipset', 'zapretIpset', false);
-  wireInput('toggle-zapret-game-filters', 'zapretGameFilters', true);
-
-  safeClick('btn-zapret-save-path', () => {
-    const path = document.getElementById('input-zapret-path')?.value || 'C:\\\\Zapret';
-    showToast('Путь к Zapret применен: ' + path);
-  });
-
-  // Domain manager
-  const domainsContainer = document.getElementById('zapret-domains-list');
-  const addDomainBtn = document.getElementById('btn-zapret-add-domain');
-  const newDomainInput = document.getElementById('input-zapret-custom-domain');
-
-  let customDomains = appSettings.zapretCustomDomains || [];
-
-  function renderCustomDomains() {
-    if (!domainsContainer) return;
-
-    // Clear dynamic items, keeping only defaults
-    document.querySelectorAll('.zapret-custom-domain-item').forEach(el => el.remove());
-
-    customDomains.forEach((domain, index) => {
-      const div = document.createElement('div');
-      div.className = 'zapret-custom-domain-item';
-      div.style.cssText =
-        'display: flex; align-items: center; justify-content: space-between; margin-top: 4px;';
-      div.innerHTML = `
-        <label style="font-size: 13px; display: inline-flex; align-items: center; gap: 8px;">
-          <input type="checkbox" checked /> ${escapeHtml(domain)}
-        </label>
-        <button class="btn-icon-sm zapret-delete-domain" data-idx="${index}" style="width: 24px; height: 24px;"><i class="material-icons" style="font-size: 16px;">close</i></button>
-      `;
-      domainsContainer.appendChild(div);
-    });
-
-    domainsContainer.querySelectorAll('.zapret-delete-domain').forEach(btn => {
-      btn.onclick = () => {
-        const idx = Number(btn.getAttribute('data-idx'));
-        customDomains.splice(idx, 1);
-        appSettings.zapretCustomDomains = customDomains;
-        saveSettings();
-        renderCustomDomains();
-        showToast('Домен удален из списка Zapret');
-      };
-    });
-  }
-
-  renderCustomDomains();
-
-  if (addDomainBtn && newDomainInput) {
-    addDomainBtn.addEventListener('click', () => {
-      const dom = newDomainInput.value.trim().toLowerCase();
-      if (!dom) return;
-      if (customDomains.includes(dom)) {
-        showToast('Этот домен уже добавлен');
-        return;
-      }
-      customDomains.push(dom);
-      appSettings.zapretCustomDomains = customDomains;
-      saveSettings();
-      renderCustomDomains();
-      newDomainInput.value = '';
-      showToast('Домен ' + dom + ' добавлен в обход блокировок');
-    });
-  }
-
-  // --- 16. Локальный сервер (int-server) ---
-  wireInput('input-server-port', 'serverPort', 17217);
-  wireInput('toggle-server-enabled', 'serverEnabled', true);
-
-  safeClick('btn-server-save-port', () => {
-    const portVal = document.getElementById('input-server-port')?.value || '17217';
-    showToast('Порт локального сервера переопределен на: ' + portVal);
-  });
-
-  safeClick('btn-server-open-browser', () => {
-    const portVal = document.getElementById('input-server-port')?.value || '17217';
-    window.open(`http://localhost:${portVal}`);
-  });
-
-  // --- 17. Прокси (int-proxy) ---
-  const proxyTestBtn = document.getElementById('btn-proxy-test-connection');
-  const proxyStatusLabel = document.getElementById('proxy-test-status-label');
-
-  if (proxyTestBtn && proxyStatusLabel) {
-    proxyTestBtn.addEventListener('click', () => {
-      proxyStatusLabel.innerHTML =
-        '<span class="discord-status-dot connected" style="background: #e91e63;"></span> Проверка...';
-      setTimeout(() => {
-        const proxyUri = document.getElementById('setting-http-proxy')?.value || '';
-        if (proxyUri) {
-          proxyStatusLabel.innerHTML =
-            '<span class="discord-status-dot connected"></span> Соединение успешно';
-          showToast('Соединение через прокси-сервер успешно установлено!');
-        } else {
-          proxyStatusLabel.innerHTML =
-            '<span class="discord-status-dot" style="background: #e74c3c;"></span> Ошибка (пустой адрес)';
-          showToast('Пожалуйста, укажите адрес прокси-сервера перед проверкой');
-        }
-      }, 1000);
-    });
-  }
 
   // Initial application of all active settings
   applyAllSettings();
