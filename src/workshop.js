@@ -116,6 +116,22 @@
     return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized.toUpperCase() : fallback;
   }
 
+  function httpsUrl(value) {
+    const input = String(value || '').trim();
+    if (!input || input.length > 2048) return '';
+    try {
+      const url = new URL(input);
+      if (url.protocol !== 'https:' || url.username || url.password) return '';
+      return url.toString().slice(0, 2048);
+    } catch {
+      return '';
+    }
+  }
+
+  function cssUrl(value) {
+    return httpsUrl(value).replace(/[()'"\\\s;]/g, character => encodeURIComponent(character));
+  }
+
   function cleanTheme(theme = {}) {
     const oneOf = (value, allowed, fallback) => (allowed.includes(value) ? value : fallback);
     const integer = (value, minimum, maximum, fallback) => {
@@ -148,6 +164,7 @@
         ],
         'default'
       ),
+      backgroundUrl: httpsUrl(theme.backgroundUrl),
       cornerRadius: integer(theme.cornerRadius, 0, 24, 8),
       uiTransparency: integer(theme.uiTransparency, 10, 100, 45),
       backgroundBlur: integer(theme.backgroundBlur, 0, 60, 0),
@@ -229,8 +246,10 @@
 
   function previewMarkup(theme, compact = false) {
     const safe = cleanTheme(theme);
+    const remoteBackground = cssUrl(safe.backgroundUrl);
+    const backgroundStyle = remoteBackground ? `--preview-image:url(${remoteBackground});` : '';
     return `
-      <div class="workshop-theme-preview workshop-preview-bg-${safe.backgroundPreset} ${compact ? 'compact' : ''}" style="--preview-bg:${safe.background};--preview-card:${safe.cards};--preview-accent:${safe.primary};--preview-text:${safe.text};--preview-border:${safe.borders};--preview-focus:${safe.focus};--preview-radius:${safe.cornerRadius}px">
+      <div class="workshop-theme-preview workshop-preview-bg-${safe.backgroundPreset} ${remoteBackground ? 'workshop-preview-has-url' : ''} ${compact ? 'compact' : ''}" style="${backgroundStyle}--preview-bg:${safe.background};--preview-card:${safe.cards};--preview-accent:${safe.primary};--preview-text:${safe.text};--preview-border:${safe.borders};--preview-focus:${safe.focus};--preview-radius:${safe.cornerRadius}px">
         <div class="workshop-preview-sidebar"><span></span><span></span><span></span></div>
         <div class="workshop-preview-content">
           <div class="workshop-preview-topline">
@@ -301,6 +320,7 @@
                 <span><i style="background:${theme.theme.primary}"></i>${escapeHtml(theme.theme.mode)}</span>
                 <span>${theme.theme.cornerRadius}px</span>
                 <span>${escapeHtml(theme.theme.fontFamily)}</span>
+                ${theme.theme.backgroundUrl ? '<span><i class="material-icons">link</i>URL-фон</span>' : ''}
               </div>
               <div class="workshop-card-actions">
                 <button class="workshop-install-btn ${installed ? 'installed' : ''}" data-action="install">

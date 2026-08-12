@@ -58,6 +58,18 @@
       : fallback;
   }
 
+  function httpsUrl(value) {
+    const input = String(value || '').trim();
+    if (!input || input.length > 2048) return '';
+    try {
+      const url = new URL(input);
+      if (url.protocol !== 'https:' || url.username || url.password) return '';
+      return url.toString().slice(0, 2048);
+    } catch {
+      return '';
+    }
+  }
+
   function cleanWorkshopTheme(theme = {}) {
     return {
       primary: color(theme.primary, '#1DB954'),
@@ -83,6 +95,7 @@
         ],
         'default'
       ),
+      backgroundUrl: httpsUrl(theme.backgroundUrl),
       cornerRadius: integer(theme.cornerRadius, 0, 24, 8),
       uiTransparency: integer(theme.uiTransparency, 10, 100, 45),
       backgroundBlur: integer(theme.backgroundBlur, 0, 60, 0),

@@ -7528,6 +7528,12 @@ body[data-cover-effects="inversion"] #lib-detail-cover-img {
 .workshop-preview-bg-grad-7 { background: linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #0f172a 100%); }
 .workshop-preview-bg-grad-8 { background: linear-gradient(135deg, #f43f5e 0%, #fb7185 50%, #1e050c 100%); }
 .workshop-preview-bg-grad-9 { background: linear-gradient(135deg, #18181b 0%, #09090b 100%); }
+.workshop-theme-preview.workshop-preview-has-url {
+  background-color: var(--preview-bg);
+  background-image: linear-gradient(rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.38)), var(--preview-image);
+  background-position: center;
+  background-size: cover;
+}
 .workshop-theme-preview.compact { height: 142px; border-radius: 18px; }
 .workshop-preview-sidebar {
   display: flex;
@@ -7572,7 +7578,8 @@ body[data-cover-effects="inversion"] #lib-detail-cover-img {
 .workshop-card-body > p { height: 38px; margin: 12px 0; overflow: hidden; color: var(--text-secondary); font-size: 12px; line-height: 1.55; }
 .workshop-theme-details { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .workshop-theme-details span { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; color: var(--text-secondary); background: rgba(255, 255, 255, 0.05); font-size: 10px; }
-.workshop-theme-details i { width: 8px; height: 8px; border-radius: 50%; }
+.workshop-theme-details i:not(.material-icons) { width: 8px; height: 8px; border-radius: 50%; }
+.workshop-theme-details .material-icons { font-size: 12px; }
 .workshop-card-actions { display: flex; gap: 8px; }
 .workshop-install-btn { min-height: 39px; flex: 1; }
 .workshop-install-btn.installed { color: var(--accent); background: rgba(var(--accent-rgb), 0.12); border: 1px solid rgba(var(--accent-rgb), 0.25); }

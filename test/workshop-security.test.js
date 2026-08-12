@@ -16,6 +16,9 @@ test('workshop rules allow public reads but restrict writes to permanent owners'
 
 test('workshop rules reject arbitrary theme fields and unsafe values', () => {
   assert.match(rules, /theme\.keys\(\)\.hasOnly/);
+  assert.match(rules, /theme\.backgroundUrl\.size\(\) <= 2048/);
+  assert.match(rules, /theme\.backgroundUrl\.matches\('\^https:\/\/.\+\$'\)/);
+  assert.ok(rules.includes("!theme.backgroundUrl.matches('^https://[^/]*@.*$')"));
   assert.match(rules, /value\.matches\('\^#\[0-9a-fA-F\]\{6\}\$'\)/);
   assert.match(rules, /request\.resource\.data\.description\.size\(\) <= 240/);
   assert.match(rules, /request\.resource\.data\.createdAt == request\.time/);
