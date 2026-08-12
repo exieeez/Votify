@@ -4608,18 +4608,22 @@ safeClick('reset-hotkeys-btn', () => {
 // Theme Color Switching
 // ==========================================
 function applyAccentColor(color) {
-  document.documentElement.style.setProperty('--accent', color);
+  const normalized = /^#[0-9a-f]{6}$/i.test(String(color || ''))
+    ? String(color).toUpperCase()
+    : '#1DB954';
+  document.documentElement.style.setProperty('--accent', normalized);
   // Also compute and set --accent-rgb for rgba() usage
-  const hex = color.replace('#', '');
+  const hex = normalized.replace('#', '');
   const r = parseInt(hex.substr(0, 2), 16);
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
   document.documentElement.style.setProperty('--accent-rgb', `${r},${g},${b}`);
-  appSettings.accent = color;
+  appSettings.accent = normalized;
+  appSettings.customColorPrimary = normalized;
   saveSettings();
   // Update active state on theme cards
   document.querySelectorAll('.theme-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.accent === color);
+    c.classList.toggle('active', String(c.dataset.accent || '').toUpperCase() === normalized);
   });
 }
 
@@ -4644,9 +4648,10 @@ if (accentColorInput) {
   });
 }
 
-// Apply saved accent on load
-if (appSettings.accent) {
-  applyAccentColor(appSettings.accent);
+// Apply the canonical saved accent on load. Custom picker values take
+// precedence so the visible color and workshop preview cannot diverge.
+if (appSettings.customColorPrimary || appSettings.accent) {
+  applyAccentColor(appSettings.customColorPrimary || appSettings.accent);
 }
 
 // Background presets
@@ -7079,18 +7084,19 @@ function applyTabsSettings() {
 }
 
 function applyCustomColors() {
-  const root = document.documentElement;
-  if (appSettings.customColorPrimary)
-    root.style.setProperty('--accent', appSettings.customColorPrimary);
-  if (appSettings.customColorBg) root.style.setProperty('--bg-base', appSettings.customColorBg);
-  if (appSettings.customColorText)
-    root.style.setProperty('--text-primary', appSettings.customColorText);
-  if (appSettings.customColorCards)
-    root.style.setProperty('--bg-surface', appSettings.customColorCards);
-  if (appSettings.customColorBorders)
-    root.style.setProperty('--bg-highlight', appSettings.customColorBorders);
-  if (appSettings.customColorFocus)
-    root.style.setProperty('--focus-ring', appSettings.customColorFocus);
+  const targets = [document.documentElement, document.body].filter(Boolean);
+  const setColor = (property, value) => {
+    if (!value) return;
+    targets.forEach(target => target.style.setProperty(property, value));
+  };
+  setColor('--accent', appSettings.customColorPrimary);
+  setColor('--bg-base', appSettings.customColorBg);
+  setColor('--bg-surface', appSettings.customColorCards);
+  setColor('--bg-elevated', appSettings.customColorCards);
+  setColor('--text-primary', appSettings.customColorText);
+  setColor('--bg-highlight', appSettings.customColorBorders);
+  setColor('--md-outline', appSettings.customColorBorders);
+  setColor('--focus-ring', appSettings.customColorFocus);
 }
 
 function applyAllSettings() {
@@ -7105,7 +7111,22 @@ function applyAllSettings() {
 
 function workshopColor(value, fallback) {
   const normalized = String(value || '').trim();
-  return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized.toUpperCase() : fallback;
+  if (/^#[0-9a-f]{6}$/i.test(normalized)) return normalized.toUpperCase();
+  if (/^#[0-9a-f]{3}$/i.test(normalized)) {
+    return `#${normalized
+      .slice(1)
+      .split('')
+      .map(character => character.repeat(2))
+      .join('')}`.toUpperCase();
+  }
+  const rgb = normalized.match(/^rgba?\(\s*(\d+)\D+(\d+)\D+(\d+)/i);
+  if (rgb) {
+    return `#${rgb
+      .slice(1, 4)
+      .map(channel => Math.max(0, Math.min(255, Number(channel))).toString(16).padStart(2, '0'))
+      .join('')}`.toUpperCase();
+  }
+  return fallback;
 }
 
 function workshopNumber(value, minimum, maximum, fallback) {
@@ -7116,7 +7137,8 @@ function workshopNumber(value, minimum, maximum, fallback) {
 }
 
 function workshopCssColor(property, fallback) {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(property).trim();
+  const source = document.body || document.documentElement;
+  const value = getComputedStyle(source).getPropertyValue(property).trim();
   return workshopColor(value, fallback);
 }
 
@@ -7668,7 +7690,8 @@ function initRedesignedSettings() {
     el.value = appSettings[key] || defaultValue;
     el.addEventListener('input', () => {
       appSettings[key] = el.value;
-      saveSettings();
+      if (key === 'customColorPrimary') applyAccentColor(el.value);
+      else saveSettings();
       applyCustomColors();
     });
   }
