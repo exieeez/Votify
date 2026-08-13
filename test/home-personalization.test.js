@@ -26,19 +26,27 @@ test('home keeps recent artists in one horizontally navigable row', () => {
 
 test('For You section on Home uses playlist and listening-history wave seeds', () => {
   const html = read('src/index.html');
+  const css = read('src/home-personalization.css');
   const main = read('src/main.js');
 
   assert.match(html, /id="home-screen"[\s\S]*id="home-for-you-section"/);
   assert.match(html, /id="home-for-you-section"[\s\S]*id="for-you-results"/);
+  assert.match(html, /class="rec-grid for-you-carousel"/);
+  assert.match(html, /id="for-you-prev"/);
+  assert.match(html, /id="for-you-next"/);
   assert.match(html, /id="for-you-refresh"/);
   assert.doesNotMatch(html, /id="nav-for-you-btn"/);
   assert.doesNotMatch(html, /id="for-you-screen"/);
   assert.doesNotMatch(main, /safeClick\('nav-for-you-btn'/);
+  assert.match(css, /\.rec-grid\.for-you-carousel[\s\S]*display:\s*flex/);
+  assert.match(css, /\.rec-grid\.for-you-carousel[\s\S]*overflow-x:\s*auto/);
   assert.match(
     main,
     /function gatherWaveSeeds\(\)[\s\S]*Object\.entries\(playlists\)[\s\S]*listeningHistory/
   );
   assert.match(main, /async function loadForYouContent\(forceReload = false\)/);
   assert.match(main, /loadForYouContent[\s\S]*fetchWaveTracks\(seeds, 30\)/);
+  assert.match(main, /renderRecTiles\(results, forYouTracks\)/);
+  assert.match(main, /function scrollForYou\(direction\)/);
   assert.match(main, /function loadHomeContent\(\)[\s\S]*loadForYouContent\(\)/);
 });

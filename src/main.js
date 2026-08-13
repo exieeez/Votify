@@ -5676,7 +5676,8 @@ function renderRecTiles(container, tracks) {
     if (container) container.innerHTML = '<p class="empty-msg">No recommendations</p>';
     return;
   }
-  container.className = 'rec-grid';
+  container.className =
+    container.id === 'for-you-results' ? 'rec-grid for-you-carousel' : 'rec-grid';
   container.innerHTML = tracks
     .map(
       (track, idx) => `
@@ -5780,51 +5781,34 @@ async function fetchWaveTracks(waveSeeds, limit = 20) {
 let forYouTracks = [];
 let forYouLoading = false;
 
-function renderForYouSeeds(seeds) {
-  const container = document.getElementById('for-you-seeds');
-  if (!container) return;
-  const artists = (seeds?.artists || []).slice(0, 8);
-  container.innerHTML = artists.length
-    ? `<span>На основе:</span> ${artists
-        .map(artist => `<span class="for-you-seed">${escapeHtml(artist)}</span>`)
-        .join('')}`
-    : '';
-}
-
 async function loadForYouContent(forceReload = false) {
   const results = document.getElementById('for-you-results');
   const status = document.getElementById('for-you-status');
-  const playAll = document.getElementById('for-you-play-all');
   if (!results || forYouLoading) return;
   if (forYouTracks.length && !forceReload) {
-    renderTrackRows(results, forYouTracks, { showAddButton: true });
+    renderRecTiles(results, forYouTracks);
     if (status) status.textContent = `${forYouTracks.length} рекомендаций для вас`;
-    if (playAll) playAll.disabled = false;
     return;
   }
 
   const seeds = gatherWaveSeeds();
-  renderForYouSeeds(seeds);
   if (!seeds.artists.length && !seeds.trackSeeds.length) {
     results.innerHTML =
       '<div class="empty-state">Добавьте треки в плейлист или послушайте несколько композиций — здесь появится персональная подборка.</div>';
     if (status) status.textContent = 'Пока недостаточно данных для рекомендаций';
-    if (playAll) playAll.disabled = true;
     return;
   }
 
   forYouLoading = true;
   if (status) status.textContent = 'Подбираем треки по вашим плейлистам и истории…';
   results.innerHTML = '<div class="empty-state">Загрузка рекомендаций…</div>';
-  if (playAll) playAll.disabled = true;
   try {
     let tracks = await fetchWaveTracks(seeds, 30);
     if (!tracks.length) tracks = await invoke('get_recommendations');
     forYouTracks = (tracks || []).slice(0, 30);
     if (forYouTracks.length) {
-      renderTrackRows(results, forYouTracks, { showAddButton: true });
+      renderRecTiles(results, forYouTracks);
       if (status) status.textContent = `${forYouTracks.length} рекомендаций для вас`;
-      if (playAll) playAll.disabled = false;
     } else {
       results.innerHTML =
         '<div class="empty-state">Не удалось найти похожие треки. Попробуйте обновить подборку позже.</div>';
@@ -5844,12 +5828,15 @@ safeClick('for-you-refresh', () => {
   loadForYouContent(true);
 });
 
-safeClick('for-you-play-all', () => {
-  if (!forYouTracks.length) return;
-  currentPlaylist = [...forYouTracks];
-  currentTrackIndex = 0;
-  playTrack(currentPlaylist[0]);
-});
+function scrollForYou(direction) {
+  const container = document.getElementById('for-you-results');
+  if (!container) return;
+  const distance = Math.max(320, Math.round(container.clientWidth * 0.82));
+  container.scrollBy({ left: distance * direction, behavior: 'smooth' });
+}
+
+safeClick('for-you-prev', () => scrollForYou(-1));
+safeClick('for-you-next', () => scrollForYou(1));
 
 async function loadRecommendations(forceReload = false, { showLoading = true } = {}) {
   if (!recommendationsContainer) return;
