@@ -277,6 +277,13 @@ test('main.js stores schemes in existing settings sync and wires apply/delete', 
   assert.match(main, /applySavedColorSchemeById/);
   assert.match(main, /deleteSavedColorSchemeById/);
   assert.match(main, /saveCurrentColorScheme/);
+  assert.match(main, /function bindCustomColorPickers\(\)/);
+  assert.match(main, /picker\.addEventListener\('input', updateColor\)/);
+  assert.match(main, /picker\.addEventListener\('change', updateColor\)/);
+  assert.match(
+    main,
+    /function saveCurrentColorScheme\([\s\S]*applyAccentColor\(result\.scheme\.colors\.accent\);[\s\S]*applyCustomColors\(\)/
+  );
   assert.match(main, /initSavedColorSchemes\(\);/);
 });
 
