@@ -195,7 +195,10 @@ test('nextColorSchemeName increments past existing names', () => {
 
 test('settings UI wires the save button, name field and scheme list', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.html'), 'utf8');
-  assert.match(html, /Сохранить цветовую схему/);
+  assert.match(html, /Применить свою тему/);
+  assert.match(html, /id="btn-custom-theme-apply"/);
+  assert.match(html, /id="btn-custom-theme-save"/);
+  assert.match(html, /Сохранить схему/);
   assert.match(html, /id="color-scheme-name-input"/);
   assert.match(html, /maxlength="40"/);
   assert.match(html, /id="saved-color-schemes"/);
@@ -278,6 +281,10 @@ test('main.js stores schemes in existing settings sync and wires apply/delete', 
   assert.match(main, /deleteSavedColorSchemeById/);
   assert.match(main, /saveCurrentColorScheme/);
   assert.match(main, /function bindCustomColorPickers\(\)/);
+  assert.match(main, /function bindThemeColorPresets\(\)/);
+  assert.match(main, /const THEME_COLOR_PRESETS =/);
+  assert.match(main, /customColorBg: background/);
+  assert.match(main, /function applyCurrentCustomColors/);
   assert.match(main, /picker\.addEventListener\('input', updateColor\)/);
   assert.match(main, /picker\.addEventListener\('change', updateColor\)/);
   assert.match(

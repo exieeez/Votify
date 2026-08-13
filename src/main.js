@@ -7266,6 +7266,31 @@ function readCurrentColorSchemeColors() {
   };
 }
 
+function applyCurrentCustomColors({ notify = true } = {}) {
+  const colors = readCurrentColorSchemeColors();
+  Object.assign(appSettings, {
+    accent: colors.accent,
+    customColorPrimary: colors.accent,
+    customColorBg: colors.background,
+    customColorText: colors.text,
+    customColorCards: colors.cards,
+    customColorBorders: colors.borders,
+    customColorFocus: colors.focus,
+    activeColorSchemeId: '',
+    uiThemePreset: 'custom',
+  });
+  syncColorPickersFromSettings();
+  applyAccentColor(colors.accent);
+  applyCustomColors();
+  renderSavedColorSchemes();
+  saveSettings();
+  document
+    .querySelectorAll('#ui-theme-presets button')
+    .forEach(button => button.classList.remove('active'));
+  if (notify) showToast('Своя тема применена');
+  return colors;
+}
+
 function saveCurrentColorScheme() {
   const api = getColorSchemesApi();
   if (!api) {
@@ -7331,6 +7356,10 @@ function bindCustomColorPickers() {
       appSettings[key] = picker.value;
       // A manual edit is no longer exactly the previously active scheme.
       appSettings.activeColorSchemeId = '';
+      appSettings.uiThemePreset = 'custom';
+      document
+        .querySelectorAll('#ui-theme-presets button')
+        .forEach(button => button.classList.remove('active'));
       if (key === 'customColorPrimary') applyAccentColor(picker.value);
       applyCustomColors();
       renderSavedColorSchemes();
@@ -7341,13 +7370,73 @@ function bindCustomColorPickers() {
   });
 }
 
+const THEME_COLOR_PRESETS = {
+  neutral: ['#1DB954', '#121212', '#181818', '#FFFFFF', '#333333', '#1DB954'],
+  amoled: ['#1DB954', '#000000', '#080808', '#FFFFFF', '#242424', '#1ED760'],
+  crimson: ['#DC263F', '#16080B', '#241014', '#FFF5F6', '#4A1B23', '#FF526A'],
+  dracula: ['#BD93F9', '#191A24', '#282A36', '#F8F8F2', '#44475A', '#FF79C6'],
+  nord: ['#88C0D0', '#242933', '#2E3440', '#ECEFF4', '#4C566A', '#8FBCBB'],
+  sky: ['#38BDF8', '#071521', '#0C2030', '#F0F9FF', '#1E3A4D', '#7DD3FC'],
+  mint: ['#34D399', '#071A15', '#0D2820', '#ECFDF5', '#245243', '#6EE7B7'],
+  violet: ['#A855F7', '#160B25', '#24113C', '#FAF5FF', '#4B246E', '#C084FC'],
+  blossom: ['#F43F5E', '#210A10', '#351019', '#FFF1F2', '#682132', '#FB7185'],
+  sakura: ['#FF4FA3', '#220D19', '#351426', '#FFF0F7', '#6A294B', '#FF85BE'],
+  terminal: ['#4AF626', '#020A02', '#071507', '#DFFFF8', '#174517', '#7CFF61'],
+  sand: ['#EAB308', '#1C1706', '#2B230A', '#FFFBEB', '#5A4914', '#FACC15'],
+  aqua: ['#06B6D4', '#04191D', '#09272C', '#ECFEFF', '#15505A', '#22D3EE'],
+  sunset: ['#F97316', '#211006', '#34180A', '#FFF7ED', '#693216', '#FB923C'],
+  slate: ['#94A3B8', '#0F141C', '#19212C', '#F8FAFC', '#39475A', '#CBD5E1'],
+};
+
+function bindThemeColorPresets() {
+  document.querySelectorAll('#ui-theme-presets button').forEach(button => {
+    const presetName = button.getAttribute('data-preset');
+    button.classList.toggle('active', appSettings.uiThemePreset === presetName);
+    if (button._themePresetBound) return;
+    button._themePresetBound = true;
+    button.addEventListener('click', () => {
+      const palette = THEME_COLOR_PRESETS[presetName] || THEME_COLOR_PRESETS.neutral;
+      const [accent, background, cards, text, borders, focus] = palette;
+      Object.assign(appSettings, {
+        accent,
+        customColorPrimary: accent,
+        customColorBg: background,
+        customColorText: text,
+        customColorCards: cards,
+        customColorBorders: borders,
+        customColorFocus: focus,
+        activeColorSchemeId: '',
+        uiThemePreset: presetName,
+      });
+      document
+        .querySelectorAll('#ui-theme-presets button')
+        .forEach(item => item.classList.toggle('active', item === button));
+      syncColorPickersFromSettings();
+      applyAccentColor(accent);
+      applyCustomColors();
+      renderSavedColorSchemes();
+      saveSettings();
+      showToast(`Пресет «${button.textContent.trim()}» применён`);
+    });
+  });
+}
+
 function initSavedColorSchemes() {
   markSettingsRangeSliders();
   sanitizeAppColorSchemes();
   syncColorPickersFromSettings();
   bindCustomColorPickers();
+  bindThemeColorPresets();
   renderSavedColorSchemes();
-  const saveBtn = document.getElementById('btn-custom-theme-apply');
+  const applyBtn = document.getElementById('btn-custom-theme-apply');
+  if (applyBtn && !applyBtn._customThemeBound) {
+    applyBtn._customThemeBound = true;
+    applyBtn.addEventListener('click', event => {
+      event.preventDefault();
+      applyCurrentCustomColors();
+    });
+  }
+  const saveBtn = document.getElementById('btn-custom-theme-save');
   if (saveBtn && !saveBtn._colorSchemeBound) {
     saveBtn._colorSchemeBound = true;
     saveBtn.addEventListener('click', event => {
@@ -7895,40 +7984,9 @@ function initRedesignedSettings() {
     });
   });
 
-  // Theme presets click handlers
-  const themeColors = {
-    neutral: '#1DB954',
-    amoled: '#000000',
-    crimson: '#9c0a1a',
-    dracula: '#bd93f9',
-    nord: '#8fbcbb',
-    sky: '#38bdf8',
-    mint: '#34d399',
-    violet: '#a855f7',
-    blossom: '#f43f5e',
-    sakura: '#ff007f',
-    terminal: '#4af626',
-    sand: '#eab308',
-    aqua: '#06b6d4',
-    sunset: '#f97316',
-    slate: '#64748b',
-  };
-
-  document.querySelectorAll('#ui-theme-presets button').forEach(btn => {
-    const preset = btn.getAttribute('data-preset');
-    if (appSettings.uiThemePreset === preset) btn.classList.add('active');
-    btn.addEventListener('click', () => {
-      document
-        .querySelectorAll('#ui-theme-presets button')
-        .forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const accentColor = themeColors[preset] || '#1DB954';
-      applyAccentColor(accentColor);
-      appSettings.uiThemePreset = preset;
-      saveSettings();
-      showToast('Выбран пресет темы: ' + preset);
-    });
-  });
+  // Presets are bound during initial page setup as well, so they work
+  // immediately instead of waiting for this delayed initializer.
+  bindThemeColorPresets();
 
   // --- 10. Вкладки (app-tabs) ---
   wireInput('toggle-tab-home', 'tabHome', true, null, '', () => applyTabsSettings());
