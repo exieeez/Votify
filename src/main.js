@@ -1670,6 +1670,7 @@ let isBooting = true;
 
 const screenPageTitles = {
   'home-screen': 'Главная',
+  'for-you-screen': 'Для вас',
   'player-screen': 'Плеер',
   'search-screen': 'Поиск',
   'folders-screen': 'Моя медиатека',
@@ -1736,7 +1737,9 @@ function renderRecentArtists() {
 
   // If no explicit recent artists, generate from history
   if (!recent.length) {
-    const history = JSON.parse(localStorage.getItem('votify-history') || '[]');
+    const history = JSON.parse(
+      localStorage.getItem('listeningHistory') || localStorage.getItem('votify-history') || '[]'
+    );
     const seen = new Set();
     for (const t of history) {
       if (t.artist && t.artist !== '—' && !seen.has(t.artist.toLowerCase())) {
@@ -1776,6 +1779,16 @@ function renderRecentArtists() {
     };
   });
 }
+
+function scrollRecentArtists(direction) {
+  const container = document.getElementById('home-recent-artists');
+  if (!container) return;
+  const distance = Math.max(280, Math.round(container.clientWidth * 0.82));
+  container.scrollBy({ left: distance * direction, behavior: 'smooth' });
+}
+
+safeClick('recent-artists-prev', () => scrollRecentArtists(-1));
+safeClick('recent-artists-next', () => scrollRecentArtists(1));
 
 async function openArtistPage(artistName) {
   const name = String(artistName || '').trim();
@@ -2018,6 +2031,7 @@ function openAlbumPage(album) {
 function switchScreen(screenId, activeBtnId) {
   const screens = [
     'home-screen',
+    'for-you-screen',
     'player-screen',
     'search-screen',
     'folders-screen',
@@ -2060,6 +2074,7 @@ function switchScreen(screenId, activeBtnId) {
 
   const validBtnIds = [
     'nav-home-btn',
+    'nav-for-you-btn',
     'nav-player-btn',
     'nav-search-btn',
     'nav-folders-btn',
@@ -2102,6 +2117,7 @@ function switchScreen(screenId, activeBtnId) {
   // behind a network request during launch.
   if (screenId === 'home-screen') loadRecommendations(false, { showLoading: !isBooting });
   if (screenId === 'home-screen') loadHomeContent();
+  if (screenId === 'for-you-screen') loadForYouContent();
   if (screenId === 'search-screen') {
     if (searchInput) searchInput.focus();
     renderSearchHistory();
@@ -2114,6 +2130,7 @@ function switchScreen(screenId, activeBtnId) {
 
 // Nav button handlers
 safeClick('nav-home-btn', () => switchScreen('home-screen', 'nav-home-btn'));
+safeClick('nav-for-you-btn', () => switchScreen('for-you-screen', 'nav-for-you-btn'));
 safeClick('nav-player-btn', () => switchScreen('player-screen', 'nav-player-btn'));
 safeClick('nav-search-btn', () => switchScreen('search-screen', 'nav-search-btn'));
 safeClick('nav-folders-btn', () => switchScreen('folders-screen', 'nav-folders-btn'));
@@ -5765,6 +5782,80 @@ async function fetchWaveTracks(waveSeeds, limit = 20) {
   }
 }
 
+let forYouTracks = [];
+let forYouLoading = false;
+
+function renderForYouSeeds(seeds) {
+  const container = document.getElementById('for-you-seeds');
+  if (!container) return;
+  const artists = (seeds?.artists || []).slice(0, 8);
+  container.innerHTML = artists.length
+    ? `<span>На основе:</span> ${artists
+        .map(artist => `<span class="for-you-seed">${escapeHtml(artist)}</span>`)
+        .join('')}`
+    : '';
+}
+
+async function loadForYouContent(forceReload = false) {
+  const results = document.getElementById('for-you-results');
+  const status = document.getElementById('for-you-status');
+  const playAll = document.getElementById('for-you-play-all');
+  if (!results || forYouLoading) return;
+  if (forYouTracks.length && !forceReload) {
+    renderTrackRows(results, forYouTracks, { showAddButton: true });
+    if (status) status.textContent = `${forYouTracks.length} рекомендаций для вас`;
+    if (playAll) playAll.disabled = false;
+    return;
+  }
+
+  const seeds = gatherWaveSeeds();
+  renderForYouSeeds(seeds);
+  if (!seeds.artists.length && !seeds.trackSeeds.length) {
+    results.innerHTML =
+      '<div class="empty-state">Добавьте треки в плейлист или послушайте несколько композиций — здесь появится персональная подборка.</div>';
+    if (status) status.textContent = 'Пока недостаточно данных для рекомендаций';
+    if (playAll) playAll.disabled = true;
+    return;
+  }
+
+  forYouLoading = true;
+  if (status) status.textContent = 'Подбираем треки по вашим плейлистам и истории…';
+  results.innerHTML = '<div class="empty-state">Загрузка рекомендаций…</div>';
+  if (playAll) playAll.disabled = true;
+  try {
+    let tracks = await fetchWaveTracks(seeds, 30);
+    if (!tracks.length) tracks = await invoke('get_recommendations');
+    forYouTracks = (tracks || []).slice(0, 30);
+    if (forYouTracks.length) {
+      renderTrackRows(results, forYouTracks, { showAddButton: true });
+      if (status) status.textContent = `${forYouTracks.length} рекомендаций для вас`;
+      if (playAll) playAll.disabled = false;
+    } else {
+      results.innerHTML =
+        '<div class="empty-state">Не удалось найти похожие треки. Попробуйте обновить подборку позже.</div>';
+      if (status) status.textContent = 'Рекомендации пока недоступны';
+    }
+  } catch (error) {
+    console.error('For You error:', error);
+    results.innerHTML = '<div class="empty-state">Не удалось загрузить рекомендации</div>';
+    if (status) status.textContent = 'Ошибка загрузки подборки';
+  } finally {
+    forYouLoading = false;
+  }
+}
+
+safeClick('for-you-refresh', () => {
+  forYouTracks = [];
+  loadForYouContent(true);
+});
+
+safeClick('for-you-play-all', () => {
+  if (!forYouTracks.length) return;
+  currentPlaylist = [...forYouTracks];
+  currentTrackIndex = 0;
+  playTrack(currentPlaylist[0]);
+});
+
 async function loadRecommendations(forceReload = false, { showLoading = true } = {}) {
   if (!recommendationsContainer) return;
   if (recommendationsLoaded && !forceReload && recommendationsContainer.innerHTML.trim()) return;
@@ -7160,7 +7251,10 @@ function syncColorPickersFromSettings() {
   };
   Object.entries(map).forEach(([id, value]) => {
     const el = document.getElementById(id);
-    if (el && value) el.value = value;
+    if (el && value) {
+      el.value = value;
+      el._committedColorValue = el.value;
+    }
   });
 }
 
@@ -7352,9 +7446,13 @@ function bindCustomColorPickers() {
     if (picker._customColorBound) return;
     picker._customColorBound = true;
 
-    const updateColor = () => {
+    picker._committedColorValue = picker.value;
+    const commitColor = () => {
+      // Native colour dialogs may emit a closing event even when the user
+      // clicks outside and cancels. Ignore it unless the value really changed.
+      if (picker.value === picker._committedColorValue) return;
+      picker._committedColorValue = picker.value;
       appSettings[key] = picker.value;
-      // A manual edit is no longer exactly the previously active scheme.
       appSettings.activeColorSchemeId = '';
       appSettings.uiThemePreset = 'custom';
       document
@@ -7365,8 +7463,9 @@ function bindCustomColorPickers() {
       renderSavedColorSchemes();
       saveSettings();
     };
-    picker.addEventListener('input', updateColor);
-    picker.addEventListener('change', updateColor);
+    // Do not repaint and sync to the cloud for every movement inside the
+    // native picker. One commit removes the lag and prevents cancel => Neutral.
+    picker.addEventListener('change', commitColor);
   });
 }
 

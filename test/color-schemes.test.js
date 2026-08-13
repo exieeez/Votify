@@ -296,8 +296,9 @@ test('main.js stores schemes in existing settings sync and wires apply/delete', 
   assert.match(main, /const THEME_COLOR_PRESETS =/);
   assert.match(main, /customColorBg: background/);
   assert.match(main, /function applyCurrentCustomColors/);
-  assert.match(main, /picker\.addEventListener\('input', updateColor\)/);
-  assert.match(main, /picker\.addEventListener\('change', updateColor\)/);
+  assert.doesNotMatch(main, /picker\.addEventListener\('input', commitColor\)/);
+  assert.match(main, /picker\.addEventListener\('change', commitColor\)/);
+  assert.match(main, /_committedColorValue/);
   assert.match(
     main,
     /function saveCurrentColorScheme\([\s\S]*applyAccentColor\(result\.scheme\.colors\.accent\);[\s\S]*applyCustomColors\(\)/
