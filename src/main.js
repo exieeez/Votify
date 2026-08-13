@@ -7395,6 +7395,11 @@ function bindThemeColorPresets() {
     if (button._themePresetBound) return;
     button._themePresetBound = true;
     button.addEventListener('click', () => {
+      if (presetName === 'custom') {
+        switchSettingsSection('app-custom');
+        document.getElementById('picker-color-primary')?.focus();
+        return;
+      }
       const palette = THEME_COLOR_PRESETS[presetName] || THEME_COLOR_PRESETS.neutral;
       const [accent, background, cards, text, borders, focus] = palette;
       Object.assign(appSettings, {
