@@ -7282,22 +7282,70 @@ function saveCurrentColorScheme() {
     if (result.reason === 'limit') {
       showToast('Можно сохранить не больше 12 цветовых схем');
     } else if (result.reason === 'duplicate') {
-      showToast('Такая цветовая схема уже сохранена');
+      // A duplicate is still a valid scheme to apply. Previously the button
+      // did nothing here, which made it look as though custom colors were
+      // broken whenever the same palette had already been saved.
+      Object.assign(appSettings, api.colorSchemeToSettings(result.scheme));
+      syncColorPickersFromSettings();
+      applyAccentColor(result.scheme.colors.accent);
+      applyCustomColors();
+      renderSavedColorSchemes();
+      saveSettings();
+      showToast(`Схема «${result.scheme.name}» применена`);
     }
     return;
   }
   appSettings.savedColorSchemes = result.schemes;
   Object.assign(appSettings, api.colorSchemeToSettings(result.scheme));
   if (nameInput) nameInput.value = '';
+
+  // “Save color scheme” must also apply the values currently visible in the
+  // pickers. This is especially important when the native color input emits
+  // only a change event (or the redesigned settings initializer is delayed).
+  syncColorPickersFromSettings();
+  applyAccentColor(result.scheme.colors.accent);
+  applyCustomColors();
   renderSavedColorSchemes();
   saveSettings();
-  showToast(`Схема «${result.scheme.name}» сохранена`);
+  showToast(`Схема «${result.scheme.name}» сохранена и применена`);
+}
+
+function bindCustomColorPickers() {
+  const pickerSettings = {
+    'picker-color-primary': ['customColorPrimary', '#1DB954'],
+    'picker-color-bg': ['customColorBg', '#121212'],
+    'picker-color-text': ['customColorText', '#FFFFFF'],
+    'picker-color-cards': ['customColorCards', '#181818'],
+    'picker-color-borders': ['customColorBorders', '#2A2A2A'],
+    'picker-color-focus': ['customColorFocus', '#1DB954'],
+  };
+
+  Object.entries(pickerSettings).forEach(([id, [key, fallback]]) => {
+    const picker = document.getElementById(id);
+    if (!picker) return;
+    picker.value = appSettings[key] || fallback;
+    if (picker._customColorBound) return;
+    picker._customColorBound = true;
+
+    const updateColor = () => {
+      appSettings[key] = picker.value;
+      // A manual edit is no longer exactly the previously active scheme.
+      appSettings.activeColorSchemeId = '';
+      if (key === 'customColorPrimary') applyAccentColor(picker.value);
+      applyCustomColors();
+      renderSavedColorSchemes();
+      saveSettings();
+    };
+    picker.addEventListener('input', updateColor);
+    picker.addEventListener('change', updateColor);
+  });
 }
 
 function initSavedColorSchemes() {
   markSettingsRangeSliders();
   sanitizeAppColorSchemes();
   syncColorPickersFromSettings();
+  bindCustomColorPickers();
   renderSavedColorSchemes();
   const saveBtn = document.getElementById('btn-custom-theme-apply');
   if (saveBtn && !saveBtn._colorSchemeBound) {
@@ -7953,24 +8001,9 @@ function initRedesignedSettings() {
   }
 
   // --- 12. Кастомизация (app-custom) ---
-  function wirePicker(id, key, defaultValue) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.value = appSettings[key] || defaultValue;
-    el.addEventListener('input', () => {
-      appSettings[key] = el.value;
-      if (key === 'customColorPrimary') applyAccentColor(el.value);
-      else saveSettings();
-      applyCustomColors();
-      renderSavedColorSchemes();
-    });
-  }
-  wirePicker('picker-color-primary', 'customColorPrimary', '#1DB954');
-  wirePicker('picker-color-bg', 'customColorBg', '#121212');
-  wirePicker('picker-color-text', 'customColorText', '#ffffff');
-  wirePicker('picker-color-cards', 'customColorCards', '#181818');
-  wirePicker('picker-color-borders', 'customColorBorders', '#2a2a2a');
-  wirePicker('picker-color-focus', 'customColorFocus', '#1DB954');
+  // This is also called during initial page setup, before this delayed
+  // redesigned-settings initializer. The binding is idempotent.
+  bindCustomColorPickers();
 
   initSavedColorSchemes();
 
