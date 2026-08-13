@@ -245,16 +245,18 @@ test('Wave/iOS/thin player slider styles do not apply to settings-range', () => 
   );
   assert.match(
     css,
-    /body\[data-player-slider-type="wave"\] input\[type="range"\]:not\(\.settings-range\)::-webkit-slider-runnable-track/
+    /body\[data-player-slider-type="wave"\] #page-player-progress::-webkit-slider-runnable-track/
   );
   assert.match(
     css,
-    /body\[data-player-slider-type="wave"\] input\[type="range"\]:not\(\.settings-range\)::-webkit-slider-thumb/
+    /body\[data-player-slider-type="wave"\] #page-player-progress::-webkit-slider-thumb/
   );
-  assert.doesNotMatch(
+  assert.match(css, /M0 12 C10 2 20 2 30 12 S50 22 60 12 S70 2 80 12/);
+  assert.match(
     css,
-    /body\[data-player-slider-type="wave"\] input\[type="range"\]::-webkit-slider-runnable-track/
+    /#page-player-progress::-webkit-slider-runnable-track[\s\S]{0,700}var\(--accent\)/
   );
+  assert.doesNotMatch(css, /fill='%231DB954'/);
   assert.doesNotMatch(
     css,
     /body\[data-player-slider-type="ios"\] input\[type="range"\]::-webkit-slider-thumb \{/
@@ -296,6 +298,9 @@ test('main.js stores schemes in existing settings sync and wires apply/delete', 
   assert.match(main, /const THEME_COLOR_PRESETS =/);
   assert.match(main, /customColorBg: background/);
   assert.match(main, /function applyCurrentCustomColors/);
+  assert.match(main, /function buildPlayerWavePath\(width, height, endX = width\)/);
+  assert.match(main, /drawWaveTimelinePaths\(rightTlBg, rightTlActive/);
+  assert.match(main, /drawWaveTimelinePaths\(barTlBg, barTlActive/);
   assert.doesNotMatch(main, /picker\.addEventListener\('input', commitColor\)/);
   assert.match(main, /picker\.addEventListener\('change', commitColor\)/);
   assert.match(main, /_committedColorValue/);
