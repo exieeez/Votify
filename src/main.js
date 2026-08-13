@@ -2457,6 +2457,9 @@ if (miniCoverShapeBtn) {
     const next = shapes[(idx + 1) % shapes.length];
     miniCoverShapeValue.textContent = next;
     appSettings.miniCoverShape = next;
+    appSettings.playerCoverShape =
+      next === 'Круг' ? 'Круг' : next === 'Квадрат' ? 'Квадрат' : 'Закруглённый квадрат';
+    applyPlayerCoverShape();
     saveSettings();
   });
 }
@@ -2510,22 +2513,40 @@ if (miniBtnStyleBtn) {
   });
 }
 
-// Player Page Cover Shape
+// Apply one cover shape consistently in the page, bottom, side and fullscreen players.
 function applyPlayerCoverShape() {
-  const wrap = document.querySelector('.pp-cover-wrap');
   const shape = appSettings.playerCoverShape || 'Закруглённый квадрат';
+  const shapeKey =
+    shape === 'Виниловая пластинка'
+      ? 'vinyl'
+      : shape === 'Круг'
+        ? 'circle'
+        : shape === 'Квадрат'
+          ? 'square'
+          : 'rounded';
+  document.body.dataset.playerCoverShape = shapeKey;
 
-  if (wrap) {
-    wrap.classList.remove('shape-rounded-square', 'shape-vinyl', 'shape-circle');
-    if (shape === 'Виниловая пластинка') {
-      wrap.classList.add('shape-vinyl');
-    } else if (shape === 'Круг') {
-      wrap.classList.add('shape-circle');
-    } else {
-      wrap.classList.add('shape-rounded-square');
-    }
+  const wrappers = document.querySelectorAll(
+    '.pp-cover-wrap, .player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .fi-cover-wrap'
+  );
+  wrappers.forEach(wrap => {
+    wrap.classList.remove(
+      'shape-rounded-square',
+      'shape-vinyl',
+      'shape-circle',
+      'shape-square'
+    );
+    wrap.classList.add(
+      shapeKey === 'vinyl'
+        ? 'shape-vinyl'
+        : shapeKey === 'circle'
+          ? 'shape-circle'
+          : shapeKey === 'square'
+            ? 'shape-square'
+            : 'shape-rounded-square'
+    );
     wrap.classList.toggle('is-playing', Boolean(state.isPlaying));
-  }
+  });
 
   const valueEl = document.getElementById('player-cover-shape-value');
   if (valueEl) valueEl.textContent = shape;
@@ -8102,6 +8123,14 @@ function initRedesignedSettings() {
   );
 
   // --- 8. Обложка (app-cover) ---
+  wireInput(
+    'setting-cover-shape',
+    'playerCoverShape',
+    'Закруглённый квадрат',
+    null,
+    '',
+    () => applyPlayerCoverShape()
+  );
   wireInput('setting-cover-animation', 'coverAnimation', 'none', null, '', () =>
     applyCoverSettings()
   );

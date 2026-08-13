@@ -4688,6 +4688,22 @@ body.no-animations * {
   transition: border-radius 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* One cover shape across every player, not only the bottom/page cover. */
+body[data-player-cover-shape="rounded"] :is(img.fi-cover, img.player-bar-cover, img.right-player-cover, img.fs-cover, img.pp-cover),
+body[data-player-cover-shape="rounded"] :is(.player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .pp-cover-wrap) {
+  border-radius: 16px !important;
+}
+body[data-player-cover-shape="circle"] :is(img.fi-cover, img.player-bar-cover, img.right-player-cover, img.fs-cover, img.pp-cover),
+body[data-player-cover-shape="circle"] :is(.player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .pp-cover-wrap),
+body[data-player-cover-shape="vinyl"] :is(img.fi-cover, img.player-bar-cover, img.right-player-cover, img.fs-cover, img.pp-cover),
+body[data-player-cover-shape="vinyl"] :is(.player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .pp-cover-wrap) {
+  border-radius: 50% !important;
+}
+body[data-player-cover-shape="square"] :is(img.fi-cover, img.player-bar-cover, img.right-player-cover, img.fs-cover, img.pp-cover),
+body[data-player-cover-shape="square"] :is(.player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .pp-cover-wrap) {
+  border-radius: 0 !important;
+}
+
 /* Vinyl & Rotation Cover Fix for Page Player */
 body[data-player-style="vinyl"] .pp-cover-wrap,
 body[data-cover-animation="rotation"] .pp-cover-wrap,
