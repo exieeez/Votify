@@ -7121,6 +7121,29 @@ body[data-cover-animation="flip"] #lib-detail-cover-img {
   animation: flip3d 4s ease-in-out infinite !important;
 }
 
+/* "Нет" is authoritative: player styles (especially Vinyl) and the old
+   fullscreen floating effect must not silently animate the cover. */
+body[data-cover-animation="none"] img.fi-cover,
+body[data-cover-animation="none"] img.player-bar-cover,
+body[data-cover-animation="none"] img.right-player-cover,
+body[data-cover-animation="none"] img.fs-cover,
+body[data-cover-animation="none"] img.pp-cover,
+body[data-cover-animation="none"] #album-screen-cover,
+body[data-cover-animation="none"] #page-player-cover,
+body[data-cover-animation="none"] #lib-detail-cover-img,
+body[data-cover-animation="none"] .player-bar-cover-wrap,
+body[data-cover-animation="none"] .right-player-cover-shell,
+body[data-cover-animation="none"] .right-player-cover-glow,
+body[data-cover-animation="none"] .right-player-cover-shine,
+body[data-cover-animation="none"] .fs-cover-container,
+body[data-cover-animation="none"] .fs-player-cover-wrap,
+body[data-cover-animation="none"] .lib-detail-cover,
+body[data-cover-animation="none"] .page-player-cover-wrap,
+body[data-cover-animation="none"] .fi-cover-wrap,
+body[data-cover-animation="none"] .pp-cover-wrap {
+  animation: none !important;
+}
+
 /* Cover Filter Effects */
 body[data-cover-effects="blur"] img.fi-cover,
 body[data-cover-effects="blur"] img.player-bar-cover,
