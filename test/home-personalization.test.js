@@ -24,21 +24,21 @@ test('home keeps recent artists in one horizontally navigable row', () => {
   assert.match(main, /scrollBy\(\{ left: distance \* direction, behavior: 'smooth' \}\)/);
 });
 
-test('For You screen uses playlist and listening-history wave seeds', () => {
+test('For You section on Home uses playlist and listening-history wave seeds', () => {
   const html = read('src/index.html');
   const main = read('src/main.js');
 
-  assert.match(html, /id="nav-for-you-btn"/);
-  assert.match(html, /id="for-you-screen"/);
-  assert.match(html, /id="for-you-results"/);
+  assert.match(html, /id="home-screen"[\s\S]*id="home-for-you-section"/);
+  assert.match(html, /id="home-for-you-section"[\s\S]*id="for-you-results"/);
   assert.match(html, /id="for-you-refresh"/);
-  assert.match(main, /'for-you-screen': 'Для вас'/);
-  assert.match(main, /safeClick\('nav-for-you-btn'/);
+  assert.doesNotMatch(html, /id="nav-for-you-btn"/);
+  assert.doesNotMatch(html, /id="for-you-screen"/);
+  assert.doesNotMatch(main, /safeClick\('nav-for-you-btn'/);
   assert.match(
     main,
     /function gatherWaveSeeds\(\)[\s\S]*Object\.entries\(playlists\)[\s\S]*listeningHistory/
   );
   assert.match(main, /async function loadForYouContent\(forceReload = false\)/);
   assert.match(main, /loadForYouContent[\s\S]*fetchWaveTracks\(seeds, 30\)/);
-  assert.match(main, /if \(screenId === 'for-you-screen'\) loadForYouContent\(\)/);
+  assert.match(main, /function loadHomeContent\(\)[\s\S]*loadForYouContent\(\)/);
 });
