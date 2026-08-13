@@ -2738,13 +2738,58 @@ const rightTimelineThumb = document.getElementById('right-timeline-thumb');
 const rightTlBg = document.getElementById('right-tl-bg');
 const rightTlActive = document.getElementById('right-tl-active');
 
+function buildPlayerWavePath(width, height, endX = width) {
+  const mid = height / 2;
+  const amplitude = Math.max(3, height * 0.34);
+  const wavelength = 72;
+  const step = 4;
+  let path = `M 0 ${mid.toFixed(1)}`;
+  for (let x = step; x <= endX; x += step) {
+    const y = mid + Math.sin((x / wavelength) * Math.PI * 2) * amplitude;
+    path += ` L ${Math.min(x, endX).toFixed(1)} ${y.toFixed(1)}`;
+  }
+  if (endX % step) {
+    const y = mid + Math.sin((endX / wavelength) * Math.PI * 2) * amplitude;
+    path += ` L ${endX.toFixed(1)} ${y.toFixed(1)}`;
+  }
+  return path;
+}
+
+function drawWaveTimelinePaths(backgroundPath, activePath, width, height, pct) {
+  const activeWidth = Math.max(0, Math.min(width, (pct / 100) * width));
+  backgroundPath.setAttribute('d', buildPlayerWavePath(width, height));
+  activePath.setAttribute('d', buildPlayerWavePath(width, height, activeWidth));
+  backgroundPath.style.fill = 'none';
+  backgroundPath.style.stroke = 'rgba(255,255,255,0.22)';
+  backgroundPath.style.strokeWidth = '2.5';
+  backgroundPath.style.strokeLinecap = 'round';
+  activePath.style.fill = 'none';
+  activePath.style.stroke = 'var(--accent)';
+  activePath.style.strokeWidth = '3';
+  activePath.style.strokeLinecap = 'round';
+}
+
+function restoreRegularTimelinePaths(backgroundPath, activePath) {
+  [backgroundPath, activePath].forEach(path => {
+    path.style.fill = '';
+    path.style.stroke = '';
+    path.style.strokeWidth = '';
+    path.style.strokeLinecap = '';
+  });
+}
+
 function drawRightTimeline(pct) {
   if (!rightTimelineTrack || !rightTlBg || !rightTlActive) return;
   const w = rightTimelineTrack.clientWidth || 300;
-  const h = 4;
-  rightTlBg.setAttribute('d', `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`);
-  const aw = (pct / 100) * w;
-  rightTlActive.setAttribute('d', `M 0 0 L ${aw} 0 L ${aw} ${h} L 0 ${h} Z`);
+  if (appSettings.playerSliderType === 'wave') {
+    drawWaveTimelinePaths(rightTlBg, rightTlActive, w, 20, pct);
+  } else {
+    restoreRegularTimelinePaths(rightTlBg, rightTlActive);
+    const h = 4;
+    rightTlBg.setAttribute('d', `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`);
+    const aw = (pct / 100) * w;
+    rightTlActive.setAttribute('d', `M 0 0 L ${aw} 0 L ${aw} ${h} L 0 ${h} Z`);
+  }
   if (rightTimelineThumb) rightTimelineThumb.style.left = pct + '%';
 }
 
@@ -6210,12 +6255,15 @@ const barTlActive = document.getElementById('bar-tl-active');
 function drawBarTimeline(pct) {
   if (!barTimelineTrack || !barTlBg || !barTlActive) return;
   const w = barTimelineTrack.clientWidth || 300;
-  const h = 4;
-  // Background path (full width)
-  barTlBg.setAttribute('d', `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`);
-  // Active path (up to pct%)
-  const aw = (pct / 100) * w;
-  barTlActive.setAttribute('d', `M 0 0 L ${aw} 0 L ${aw} ${h} L 0 ${h} Z`);
+  if (appSettings.playerSliderType === 'wave') {
+    drawWaveTimelinePaths(barTlBg, barTlActive, w, 20, pct);
+  } else {
+    restoreRegularTimelinePaths(barTlBg, barTlActive);
+    const h = 4;
+    barTlBg.setAttribute('d', `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`);
+    const aw = (pct / 100) * w;
+    barTlActive.setAttribute('d', `M 0 0 L ${aw} 0 L ${aw} ${h} L 0 ${h} Z`);
+  }
 }
 
 function barTlSeek(e) {
@@ -6531,6 +6579,11 @@ function drawTimelineCurve(pct) {
   if (!fsTimelineTrack || !tlBgCurve || !tlActiveCurve) return;
   const w = fsTimelineTrack.clientWidth || 400;
   const h = fsTimelineTrack.clientHeight || 36;
+  if (appSettings.playerSliderType === 'wave') {
+    drawWaveTimelinePaths(tlBgCurve, tlActiveCurve, w, Math.min(h, 24), pct);
+    return;
+  }
+  restoreRegularTimelinePaths(tlBgCurve, tlActiveCurve);
   const mid = h * 0.5;
   const amp = 6;
   // Generate a smooth wave path
@@ -7103,6 +7156,13 @@ function applyPlayerSettings() {
     b.classList.toggle('slider-ios', sliderType === 'ios');
     b.classList.toggle('slider-wave', sliderType === 'wave');
   });
+
+  // Repaint SVG timelines immediately when the style changes; otherwise they
+  // keep the previous flat path until the next audio timeupdate event.
+  const progress = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0;
+  if (typeof drawRightTimeline === 'function') drawRightTimeline(progress);
+  if (typeof drawBarTimeline === 'function') drawBarTimeline(progress);
+  if (typeof drawTimelineCurve === 'function') drawTimelineCurve(progress);
 }
 
 function applyCoverSettings() {
