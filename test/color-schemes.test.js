@@ -263,6 +263,23 @@ test('Wave/iOS/thin player slider styles do not apply to settings-range', () => 
   );
 });
 
+test('cover animation None overrides vinyl and fullscreen cover animation', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles.css'), 'utf8');
+  const main = fs.readFileSync(path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
+  assert.match(
+    css,
+    /body\[data-cover-animation="none"\] img\.fs-cover,[\s\S]{0,1500}animation:\s*none\s*!important/
+  );
+  assert.match(
+    css,
+    /body\[data-cover-animation="none"\] \.fs-player-cover-wrap,[\s\S]{0,800}animation:\s*none\s*!important/
+  );
+  assert.match(
+    main,
+    /if \(anim === 'none'\) \{[\s\S]{0,120}setProperty\('animation', 'none', 'important'\)/
+  );
+});
+
 test('custom theme paint layer overrides hard-coded glass and settings colors', () => {
   const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'custom-theme.css'), 'utf8');
   assert.match(css, /\.settings-modal,[\s\S]*background:\s*var\(--bg-surface\)\s*!important/);

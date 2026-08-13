@@ -7181,7 +7181,9 @@ function applyCoverSettings() {
     cover.style.transform = '';
     cover.style.borderRadius = '';
 
-    if (anim === 'rotation') {
+    if (anim === 'none') {
+      cover.style.setProperty('animation', 'none', 'important');
+    } else if (anim === 'rotation') {
       cover.style.animation = 'spin 10s linear infinite';
       cover.style.borderRadius = '50%';
     } else if (anim === 'pulsation') {
