@@ -263,6 +263,22 @@ test('Wave/iOS/thin player slider styles do not apply to settings-range', () => 
   );
 });
 
+test('cover shape setting applies to every player cover', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles.css'), 'utf8');
+  const main = fs.readFileSync(path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
+  assert.match(html, /id="setting-cover-shape"/);
+  assert.match(html, /Для всех плееров/);
+  assert.match(main, /document\.body\.dataset\.playerCoverShape = shapeKey/);
+  assert.match(
+    main,
+    /\.pp-cover-wrap, \.player-bar-cover-wrap, \.right-player-cover-shell, \.fs-cover-container/
+  );
+  assert.match(css, /data-player-cover-shape="circle"[\s\S]{0,700}img\.right-player-cover/);
+  assert.match(css, /data-player-cover-shape="circle"[\s\S]{0,900}img\.fs-cover/);
+  assert.match(css, /data-player-cover-shape="square"[\s\S]{0,700}border-radius:\s*0\s*!important/);
+});
+
 test('cover animation None overrides vinyl and fullscreen cover animation', () => {
   const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles.css'), 'utf8');
   const main = fs.readFileSync(path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
