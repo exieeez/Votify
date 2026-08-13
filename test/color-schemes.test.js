@@ -204,6 +204,8 @@ test('settings UI wires the save button, name field and scheme list', () => {
   assert.match(html, /id="saved-color-schemes"/);
   assert.match(html, /id="saved-color-schemes-count"/);
   assert.match(html, /<script src="color-schemes.js"><\/script>/);
+  assert.match(html, /<link rel="stylesheet" href="custom-theme.css"\s*\/?>/);
+  assert.ok(html.indexOf('styles.css') < html.indexOf('custom-theme.css'));
   assert.ok(html.indexOf('color-schemes.js') < html.indexOf('src="main.js"'));
   assert.match(html, /id="picker-color-primary"/);
   assert.match(html, /id="picker-color-bg"/);
@@ -257,6 +259,15 @@ test('Wave/iOS/thin player slider styles do not apply to settings-range', () => 
     css,
     /body\[data-player-slider-type="ios"\] input\[type="range"\]::-webkit-slider-thumb \{/
   );
+});
+
+test('custom theme paint layer overrides hard-coded glass and settings colors', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'custom-theme.css'), 'utf8');
+  assert.match(css, /\.settings-modal,[\s\S]*background:\s*var\(--bg-surface\)\s*!important/);
+  assert.match(css, /\.bg-overlay[\s\S]*var\(--bg-base\)/);
+  assert.match(css, /#ui-theme-presets button\.active[\s\S]*var\(--accent\)/);
+  assert.match(css, /\.home-quick-card,[\s\S]*var\(--bg-surface\)/);
+  assert.doesNotMatch(css, /background:\s*#12141d\s*!important/);
 });
 
 test('settings sliders are a regular line of the current var(--accent)', () => {

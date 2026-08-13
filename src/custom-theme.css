@@ -1,0 +1,130 @@
+/* Custom theme paint layer
+   Loaded after styles.css so the live palette is not hidden by legacy
+   hard-coded glass/settings colors. */
+
+html,
+body {
+  background-color: var(--bg-base) !important;
+  color: var(--text-primary) !important;
+}
+
+.bg-overlay {
+  background: color-mix(in srgb, var(--bg-base) 52%, transparent) !important;
+}
+
+.titlebar-strip,
+.sidebar,
+.top-bar {
+  background: color-mix(in srgb, var(--bg-base) 82%, transparent) !important;
+  border-color: var(--bg-highlight) !important;
+}
+
+.floating-island,
+.player-bar,
+.right-player,
+.page-player,
+.player-page-top {
+  background: color-mix(in srgb, var(--bg-surface) 78%, transparent) !important;
+  border-color: var(--bg-highlight) !important;
+}
+
+.home-quick-card,
+#tile-history,
+#tile-liked,
+.history-card,
+.history-item,
+.fav-card,
+.favorite-item,
+.my-wave-card,
+.wave-card,
+#wave-hero-card,
+.lib-master-detail,
+.lib-sidebar,
+.lib-detail-pane,
+.lib-detail-header-card,
+.lib-item,
+.card,
+.home-rec-card,
+.playlist-card,
+.track-card,
+.track-item,
+.about-card {
+  background: color-mix(in srgb, var(--bg-surface) 72%, transparent) !important;
+  border-color: var(--bg-highlight) !important;
+  color: var(--text-primary) !important;
+}
+
+.settings-modal,
+.settings-dialog,
+.settings-right-content,
+.settings-section,
+#redesigned-settings-modal,
+body.light-theme .settings-modal,
+body.light-theme .settings-dialog,
+body.light-theme .settings-right-content,
+body.light-theme .settings-section,
+body.light-theme #redesigned-settings-modal,
+body[data-theme-mode="light"] .settings-modal,
+body[data-theme-mode="light"] .settings-dialog,
+body[data-theme-mode="light"] .settings-right-content,
+body[data-theme-mode="light"] .settings-section,
+body[data-theme-mode="light"] #redesigned-settings-modal {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--bg-highlight) !important;
+}
+
+.settings-left-menu,
+body.light-theme .settings-left-menu,
+body[data-theme-mode="light"] .settings-left-menu {
+  background: var(--bg-base) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--bg-highlight) !important;
+}
+
+.settings-menu-item,
+body.light-theme .settings-menu-item,
+body[data-theme-mode="light"] .settings-menu-item {
+  color: var(--text-secondary) !important;
+}
+
+.settings-menu-item:hover {
+  background: color-mix(in srgb, var(--bg-highlight) 62%, transparent) !important;
+}
+
+.settings-menu-item.active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-surface)) !important;
+  color: var(--text-primary) !important;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+#ui-theme-presets button.active {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--accent) 24%, var(--bg-surface)) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.m3-select,
+.m3-input-text,
+.settings-overlay input[type="text"],
+.settings-overlay input[type="search"],
+body.light-theme .m3-select,
+body.light-theme input[type="text"],
+body.light-theme input[type="search"],
+body[data-theme-mode="light"] .m3-select,
+body[data-theme-mode="light"] input[type="text"],
+body[data-theme-mode="light"] input[type="search"] {
+  background: var(--bg-base) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--bg-highlight) !important;
+}
+
+.saved-color-scheme-card {
+  background: var(--bg-elevated) !important;
+  border-color: var(--bg-highlight) !important;
+}
+
+.saved-color-scheme-card.is-active {
+  border-color: var(--accent) !important;
+}
