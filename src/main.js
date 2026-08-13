@@ -1670,7 +1670,6 @@ let isBooting = true;
 
 const screenPageTitles = {
   'home-screen': 'Главная',
-  'for-you-screen': 'Для вас',
   'player-screen': 'Плеер',
   'search-screen': 'Поиск',
   'folders-screen': 'Моя медиатека',
@@ -2031,7 +2030,6 @@ function openAlbumPage(album) {
 function switchScreen(screenId, activeBtnId) {
   const screens = [
     'home-screen',
-    'for-you-screen',
     'player-screen',
     'search-screen',
     'folders-screen',
@@ -2074,7 +2072,6 @@ function switchScreen(screenId, activeBtnId) {
 
   const validBtnIds = [
     'nav-home-btn',
-    'nav-for-you-btn',
     'nav-player-btn',
     'nav-search-btn',
     'nav-folders-btn',
@@ -2117,7 +2114,6 @@ function switchScreen(screenId, activeBtnId) {
   // behind a network request during launch.
   if (screenId === 'home-screen') loadRecommendations(false, { showLoading: !isBooting });
   if (screenId === 'home-screen') loadHomeContent();
-  if (screenId === 'for-you-screen') loadForYouContent();
   if (screenId === 'search-screen') {
     if (searchInput) searchInput.focus();
     renderSearchHistory();
@@ -2130,7 +2126,6 @@ function switchScreen(screenId, activeBtnId) {
 
 // Nav button handlers
 safeClick('nav-home-btn', () => switchScreen('home-screen', 'nav-home-btn'));
-safeClick('nav-for-you-btn', () => switchScreen('for-you-screen', 'nav-for-you-btn'));
 safeClick('nav-player-btn', () => switchScreen('player-screen', 'nav-player-btn'));
 safeClick('nav-search-btn', () => switchScreen('search-screen', 'nav-search-btn'));
 safeClick('nav-folders-btn', () => switchScreen('folders-screen', 'nav-folders-btn'));
@@ -5917,6 +5912,9 @@ function loadHomeContent() {
   if (typeof renderRecentArtists === 'function') {
     renderRecentArtists();
   }
+
+  // Personal recommendations live directly on Home, beneath recent artists.
+  loadForYouContent();
 }
 
 // Home tiles

@@ -203,9 +203,6 @@
               <line x1="16.5" y1="16.5" x2="21" y2="21"/>
             </svg>
           </button>
-          <button class="nav-btn" id="nav-for-you-btn" title="Для вас" aria-label="Для вас">
-            <i class="material-icons">auto_awesome</i>
-          </button>
           <button class="nav-btn" id="nav-folders-btn" title="Медиатека">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 8h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
@@ -405,29 +402,29 @@
             <div class="artists-grid artists-carousel" id="home-recent-artists"></div>
           </div>
 
+          <!-- SECTION: ДЛЯ ВАС -->
+          <div class="home-section" id="home-for-you-section">
+            <div class="for-you-hero">
+              <div>
+                <span class="for-you-kicker">ПЕРСОНАЛЬНАЯ ПОДБОРКА</span>
+                <h1>Для вас</h1>
+                <p>Треки, похожие на музыку из ваших плейлистов и истории прослушивания.</p>
+              </div>
+              <div class="for-you-actions">
+                <button class="btn-accent" id="for-you-play-all" type="button" disabled><i class="material-icons">play_arrow</i> Слушать</button>
+                <button class="btn-secondary" id="for-you-refresh" type="button"><i class="material-icons">refresh</i> Обновить</button>
+              </div>
+            </div>
+            <div class="for-you-seeds" id="for-you-seeds"></div>
+            <div class="for-you-status" id="for-you-status">Подборка появится на основе вашей музыки</div>
+            <div class="results-list" id="for-you-results"></div>
+          </div>
+
           <!-- SECTION: ПРОДОЛЖИТЬ СЛУШАТЬ -->
           <div class="home-section">
             <h2 class="home-heading">Продолжить слушать</h2>
             <div class="scroll-fade-wrap"><div class="scroll-fade-content" id="home-continue" class="results-list"></div></div>
           </div>
-        </section>
-
-        <!-- FOR YOU -->
-        <section id="for-you-screen" class="screen hidden" style="display:none">
-          <div class="for-you-hero">
-            <div>
-              <span class="for-you-kicker">ПЕРСОНАЛЬНАЯ ПОДБОРКА</span>
-              <h1>Для вас</h1>
-              <p>Треки, похожие на музыку из ваших плейлистов и истории прослушивания.</p>
-            </div>
-            <div class="for-you-actions">
-              <button class="btn-accent" id="for-you-play-all" type="button" disabled><i class="material-icons">play_arrow</i> Слушать</button>
-              <button class="btn-secondary" id="for-you-refresh" type="button"><i class="material-icons">refresh</i> Обновить</button>
-            </div>
-          </div>
-          <div class="for-you-seeds" id="for-you-seeds"></div>
-          <div class="for-you-status" id="for-you-status">Откройте вкладку, чтобы собрать рекомендации</div>
-          <div class="results-list" id="for-you-results"></div>
         </section>
 
         <!-- PLAYER SCREEN -->
