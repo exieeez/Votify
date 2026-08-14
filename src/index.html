@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="custom-theme.css" />
+    <link rel="stylesheet" href="home-personalization.css" />
     <link rel="icon" type="image/png" href="icon.png" />
     <meta name="theme-color" content="#121212" />
   </head>
@@ -390,8 +392,28 @@
 
           <!-- SECTION: НЕДАВНО ПРОСЛУШАННЫЕ АВТОРЫ -->
           <div class="home-section" id="home-recent-artists-section">
-            <h2 class="home-heading">Недавно прослушанные авторы</h2>
-            <div class="artists-grid" id="home-recent-artists"></div>
+            <div class="home-section-header">
+              <h2 class="home-heading">Недавно прослушанные авторы</h2>
+              <div class="home-carousel-actions" aria-label="Прокрутка авторов">
+                <button class="home-carousel-btn" id="recent-artists-prev" type="button" aria-label="Предыдущие авторы"><i class="material-icons">chevron_left</i></button>
+                <button class="home-carousel-btn" id="recent-artists-next" type="button" aria-label="Следующие авторы"><i class="material-icons">chevron_right</i></button>
+              </div>
+            </div>
+            <div class="artists-grid artists-carousel" id="home-recent-artists"></div>
+          </div>
+
+          <!-- SECTION: ДЛЯ ВАС -->
+          <div class="home-section" id="home-for-you-section">
+            <div class="home-section-header">
+              <h2 class="home-heading">Для вас</h2>
+              <div class="home-carousel-actions" aria-label="Прокрутка рекомендаций">
+                <button class="home-carousel-btn" id="for-you-prev" type="button" aria-label="Предыдущие рекомендации"><i class="material-icons">chevron_left</i></button>
+                <button class="home-carousel-btn" id="for-you-next" type="button" aria-label="Следующие рекомендации"><i class="material-icons">chevron_right</i></button>
+                <button class="home-carousel-btn" id="for-you-refresh" type="button" aria-label="Обновить рекомендации"><i class="material-icons">refresh</i></button>
+              </div>
+            </div>
+            <div class="for-you-status" id="for-you-status">Подборка появится на основе вашей музыки</div>
+            <div class="rec-grid for-you-carousel" id="for-you-results"></div>
           </div>
 
           <!-- SECTION: ПРОДОЛЖИТЬ СЛУШАТЬ -->
@@ -1200,6 +1222,18 @@
             <!-- SECTION 8: Обложка (app-cover) -->
             <div class="settings-panel" id="settings-panel-app-cover">
               <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">crop_square</i><h3>Форма обложки</h3></div>
+                <div class="setting-item">
+                  <label for="setting-cover-shape">Для всех плееров</label>
+                  <select id="setting-cover-shape" class="m3-select">
+                    <option value="Закруглённый квадрат" selected>Закруглённый квадрат</option>
+                    <option value="Квадрат">Квадрат</option>
+                    <option value="Круг">Круг</option>
+                    <option value="Виниловая пластинка">Виниловая пластинка</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">slow_motion_video</i><h3>Анимация обложки</h3></div>
                 <div class="setting-item">
                   <label for="setting-cover-animation">Эффект при воспроизведении</label>
@@ -1265,6 +1299,7 @@
                   <button class="btn-secondary btn-sm" data-preset="aqua">Aqua</button>
                   <button class="btn-secondary btn-sm" data-preset="sunset">Sunset</button>
                   <button class="btn-secondary btn-sm" data-preset="slate">Slate</button>
+                  <button class="btn-accent btn-sm" data-preset="custom"><i class="material-icons" style="font-size:16px">palette</i> Своя тема</button>
                 </div>
               </div>
               <div class="settings-section">
@@ -1456,9 +1491,12 @@
                     autocomplete="off"
                   />
                 </div>
-                <div style="margin-top: 18px; display: flex; gap: 8px;">
-                  <button class="btn-accent" id="btn-custom-theme-apply" type="button" style="flex: 1; justify-content: center;">
-                    <i class="material-icons">save</i> Сохранить цветовую схему
+                <div style="margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button class="btn-accent" id="btn-custom-theme-apply" type="button" style="flex: 1; min-width: 180px; justify-content: center;">
+                    <i class="material-icons">palette</i> Применить свою тему
+                  </button>
+                  <button class="btn-secondary" id="btn-custom-theme-save" type="button" style="flex: 1; min-width: 180px; justify-content: center;">
+                    <i class="material-icons">save</i> Сохранить схему
                   </button>
                 </div>
                 <div class="saved-color-schemes-header">

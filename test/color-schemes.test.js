@@ -195,12 +195,17 @@ test('nextColorSchemeName increments past existing names', () => {
 
 test('settings UI wires the save button, name field and scheme list', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.html'), 'utf8');
-  assert.match(html, /Сохранить цветовую схему/);
+  assert.match(html, /Применить свою тему/);
+  assert.match(html, /id="btn-custom-theme-apply"/);
+  assert.match(html, /id="btn-custom-theme-save"/);
+  assert.match(html, /Сохранить схему/);
   assert.match(html, /id="color-scheme-name-input"/);
   assert.match(html, /maxlength="40"/);
   assert.match(html, /id="saved-color-schemes"/);
   assert.match(html, /id="saved-color-schemes-count"/);
   assert.match(html, /<script src="color-schemes.js"><\/script>/);
+  assert.match(html, /<link rel="stylesheet" href="custom-theme.css"\s*\/?>/);
+  assert.ok(html.indexOf('styles.css') < html.indexOf('custom-theme.css'));
   assert.ok(html.indexOf('color-schemes.js') < html.indexOf('src="main.js"'));
   assert.match(html, /id="picker-color-primary"/);
   assert.match(html, /id="picker-color-bg"/);
@@ -240,20 +245,64 @@ test('Wave/iOS/thin player slider styles do not apply to settings-range', () => 
   );
   assert.match(
     css,
-    /body\[data-player-slider-type="wave"\] input\[type="range"\]:not\(\.settings-range\)::-webkit-slider-runnable-track/
+    /body\[data-player-slider-type="wave"\] #page-player-progress::-webkit-slider-runnable-track/
   );
   assert.match(
     css,
-    /body\[data-player-slider-type="wave"\] input\[type="range"\]:not\(\.settings-range\)::-webkit-slider-thumb/
+    /body\[data-player-slider-type="wave"\] #page-player-progress::-webkit-slider-thumb/
   );
-  assert.doesNotMatch(
+  assert.match(css, /M0 12 C10 2 20 2 30 12 S50 22 60 12 S70 2 80 12/);
+  assert.match(
     css,
-    /body\[data-player-slider-type="wave"\] input\[type="range"\]::-webkit-slider-runnable-track/
+    /#page-player-progress::-webkit-slider-runnable-track[\s\S]{0,700}var\(--accent\)/
   );
+  assert.doesNotMatch(css, /fill='%231DB954'/);
   assert.doesNotMatch(
     css,
     /body\[data-player-slider-type="ios"\] input\[type="range"\]::-webkit-slider-thumb \{/
   );
+});
+
+test('cover shape setting applies to every player cover', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles.css'), 'utf8');
+  const main = fs.readFileSync(path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
+  assert.match(html, /id="setting-cover-shape"/);
+  assert.match(html, /Для всех плееров/);
+  assert.match(main, /document\.body\.dataset\.playerCoverShape = shapeKey/);
+  assert.match(
+    main,
+    /\.pp-cover-wrap, \.player-bar-cover-wrap, \.right-player-cover-shell, \.fs-cover-container/
+  );
+  assert.match(css, /data-player-cover-shape="circle"[\s\S]{0,700}img\.right-player-cover/);
+  assert.match(css, /data-player-cover-shape="circle"[\s\S]{0,900}img\.fs-cover/);
+  assert.match(css, /data-player-cover-shape="square"[\s\S]{0,700}border-radius:\s*0\s*!important/);
+});
+
+test('cover animation None overrides vinyl and fullscreen cover animation', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles.css'), 'utf8');
+  const main = fs.readFileSync(path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
+  assert.match(
+    css,
+    /body\[data-cover-animation="none"\] img\.fs-cover,[\s\S]{0,1500}animation:\s*none\s*!important/
+  );
+  assert.match(
+    css,
+    /body\[data-cover-animation="none"\] \.fs-player-cover-wrap,[\s\S]{0,800}animation:\s*none\s*!important/
+  );
+  assert.match(
+    main,
+    /if \(anim === 'none'\) \{[\s\S]{0,120}setProperty\('animation', 'none', 'important'\)/
+  );
+});
+
+test('custom theme paint layer overrides hard-coded glass and settings colors', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'custom-theme.css'), 'utf8');
+  assert.match(css, /\.settings-modal,[\s\S]*background:\s*var\(--bg-surface\)\s*!important/);
+  assert.match(css, /\.bg-overlay[\s\S]*var\(--bg-base\)/);
+  assert.match(css, /#ui-theme-presets button\.active[\s\S]*var\(--accent\)/);
+  assert.match(css, /\.home-quick-card,[\s\S]*var\(--bg-surface\)/);
+  assert.doesNotMatch(css, /background:\s*#12141d\s*!important/);
 });
 
 test('settings sliders are a regular line of the current var(--accent)', () => {
@@ -277,6 +326,21 @@ test('main.js stores schemes in existing settings sync and wires apply/delete', 
   assert.match(main, /applySavedColorSchemeById/);
   assert.match(main, /deleteSavedColorSchemeById/);
   assert.match(main, /saveCurrentColorScheme/);
+  assert.match(main, /function bindCustomColorPickers\(\)/);
+  assert.match(main, /function bindThemeColorPresets\(\)/);
+  assert.match(main, /const THEME_COLOR_PRESETS =/);
+  assert.match(main, /customColorBg: background/);
+  assert.match(main, /function applyCurrentCustomColors/);
+  assert.match(main, /function buildPlayerWavePath\(width, height, endX = width\)/);
+  assert.match(main, /drawWaveTimelinePaths\(rightTlBg, rightTlActive/);
+  assert.match(main, /drawWaveTimelinePaths\(barTlBg, barTlActive/);
+  assert.doesNotMatch(main, /picker\.addEventListener\('input', commitColor\)/);
+  assert.match(main, /picker\.addEventListener\('change', commitColor\)/);
+  assert.match(main, /_committedColorValue/);
+  assert.match(
+    main,
+    /function saveCurrentColorScheme\([\s\S]*applyAccentColor\(result\.scheme\.colors\.accent\);[\s\S]*applyCustomColors\(\)/
+  );
   assert.match(main, /initSavedColorSchemes\(\);/);
 });
 

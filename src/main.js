@@ -1736,7 +1736,9 @@ function renderRecentArtists() {
 
   // If no explicit recent artists, generate from history
   if (!recent.length) {
-    const history = JSON.parse(localStorage.getItem('votify-history') || '[]');
+    const history = JSON.parse(
+      localStorage.getItem('listeningHistory') || localStorage.getItem('votify-history') || '[]'
+    );
     const seen = new Set();
     for (const t of history) {
       if (t.artist && t.artist !== '—' && !seen.has(t.artist.toLowerCase())) {
@@ -1776,6 +1778,16 @@ function renderRecentArtists() {
     };
   });
 }
+
+function scrollRecentArtists(direction) {
+  const container = document.getElementById('home-recent-artists');
+  if (!container) return;
+  const distance = Math.max(280, Math.round(container.clientWidth * 0.82));
+  container.scrollBy({ left: distance * direction, behavior: 'smooth' });
+}
+
+safeClick('recent-artists-prev', () => scrollRecentArtists(-1));
+safeClick('recent-artists-next', () => scrollRecentArtists(1));
 
 async function openArtistPage(artistName) {
   const name = String(artistName || '').trim();
@@ -2445,6 +2457,9 @@ if (miniCoverShapeBtn) {
     const next = shapes[(idx + 1) % shapes.length];
     miniCoverShapeValue.textContent = next;
     appSettings.miniCoverShape = next;
+    appSettings.playerCoverShape =
+      next === 'Круг' ? 'Круг' : next === 'Квадрат' ? 'Квадрат' : 'Закруглённый квадрат';
+    applyPlayerCoverShape();
     saveSettings();
   });
 }
@@ -2498,22 +2513,40 @@ if (miniBtnStyleBtn) {
   });
 }
 
-// Player Page Cover Shape
+// Apply one cover shape consistently in the page, bottom, side and fullscreen players.
 function applyPlayerCoverShape() {
-  const wrap = document.querySelector('.pp-cover-wrap');
   const shape = appSettings.playerCoverShape || 'Закруглённый квадрат';
+  const shapeKey =
+    shape === 'Виниловая пластинка'
+      ? 'vinyl'
+      : shape === 'Круг'
+        ? 'circle'
+        : shape === 'Квадрат'
+          ? 'square'
+          : 'rounded';
+  document.body.dataset.playerCoverShape = shapeKey;
 
-  if (wrap) {
-    wrap.classList.remove('shape-rounded-square', 'shape-vinyl', 'shape-circle');
-    if (shape === 'Виниловая пластинка') {
-      wrap.classList.add('shape-vinyl');
-    } else if (shape === 'Круг') {
-      wrap.classList.add('shape-circle');
-    } else {
-      wrap.classList.add('shape-rounded-square');
-    }
+  const wrappers = document.querySelectorAll(
+    '.pp-cover-wrap, .player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .fi-cover-wrap'
+  );
+  wrappers.forEach(wrap => {
+    wrap.classList.remove(
+      'shape-rounded-square',
+      'shape-vinyl',
+      'shape-circle',
+      'shape-square'
+    );
+    wrap.classList.add(
+      shapeKey === 'vinyl'
+        ? 'shape-vinyl'
+        : shapeKey === 'circle'
+          ? 'shape-circle'
+          : shapeKey === 'square'
+            ? 'shape-square'
+            : 'shape-rounded-square'
+    );
     wrap.classList.toggle('is-playing', Boolean(state.isPlaying));
-  }
+  });
 
   const valueEl = document.getElementById('player-cover-shape-value');
   if (valueEl) valueEl.textContent = shape;
@@ -2726,13 +2759,58 @@ const rightTimelineThumb = document.getElementById('right-timeline-thumb');
 const rightTlBg = document.getElementById('right-tl-bg');
 const rightTlActive = document.getElementById('right-tl-active');
 
+function buildPlayerWavePath(width, height, endX = width) {
+  const mid = height / 2;
+  const amplitude = Math.max(3, height * 0.34);
+  const wavelength = 72;
+  const step = 4;
+  let path = `M 0 ${mid.toFixed(1)}`;
+  for (let x = step; x <= endX; x += step) {
+    const y = mid + Math.sin((x / wavelength) * Math.PI * 2) * amplitude;
+    path += ` L ${Math.min(x, endX).toFixed(1)} ${y.toFixed(1)}`;
+  }
+  if (endX % step) {
+    const y = mid + Math.sin((endX / wavelength) * Math.PI * 2) * amplitude;
+    path += ` L ${endX.toFixed(1)} ${y.toFixed(1)}`;
+  }
+  return path;
+}
+
+function drawWaveTimelinePaths(backgroundPath, activePath, width, height, pct) {
+  const activeWidth = Math.max(0, Math.min(width, (pct / 100) * width));
+  backgroundPath.setAttribute('d', buildPlayerWavePath(width, height));
+  activePath.setAttribute('d', buildPlayerWavePath(width, height, activeWidth));
+  backgroundPath.style.fill = 'none';
+  backgroundPath.style.stroke = 'rgba(255,255,255,0.22)';
+  backgroundPath.style.strokeWidth = '2.5';
+  backgroundPath.style.strokeLinecap = 'round';
+  activePath.style.fill = 'none';
+  activePath.style.stroke = 'var(--accent)';
+  activePath.style.strokeWidth = '3';
+  activePath.style.strokeLinecap = 'round';
+}
+
+function restoreRegularTimelinePaths(backgroundPath, activePath) {
+  [backgroundPath, activePath].forEach(path => {
+    path.style.fill = '';
+    path.style.stroke = '';
+    path.style.strokeWidth = '';
+    path.style.strokeLinecap = '';
+  });
+}
+
 function drawRightTimeline(pct) {
   if (!rightTimelineTrack || !rightTlBg || !rightTlActive) return;
   const w = rightTimelineTrack.clientWidth || 300;
-  const h = 4;
-  rightTlBg.setAttribute('d', `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`);
-  const aw = (pct / 100) * w;
-  rightTlActive.setAttribute('d', `M 0 0 L ${aw} 0 L ${aw} ${h} L 0 ${h} Z`);
+  if (appSettings.playerSliderType === 'wave') {
+    drawWaveTimelinePaths(rightTlBg, rightTlActive, w, 20, pct);
+  } else {
+    restoreRegularTimelinePaths(rightTlBg, rightTlActive);
+    const h = 4;
+    rightTlBg.setAttribute('d', `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`);
+    const aw = (pct / 100) * w;
+    rightTlActive.setAttribute('d', `M 0 0 L ${aw} 0 L ${aw} ${h} L 0 ${h} Z`);
+  }
   if (rightTimelineThumb) rightTimelineThumb.style.left = pct + '%';
 }
 
@@ -5664,7 +5742,8 @@ function renderRecTiles(container, tracks) {
     if (container) container.innerHTML = '<p class="empty-msg">No recommendations</p>';
     return;
   }
-  container.className = 'rec-grid';
+  container.className =
+    container.id === 'for-you-results' ? 'rec-grid for-you-carousel' : 'rec-grid';
   container.innerHTML = tracks
     .map(
       (track, idx) => `
@@ -5765,6 +5844,66 @@ async function fetchWaveTracks(waveSeeds, limit = 20) {
   }
 }
 
+let forYouTracks = [];
+let forYouLoading = false;
+
+async function loadForYouContent(forceReload = false) {
+  const results = document.getElementById('for-you-results');
+  const status = document.getElementById('for-you-status');
+  if (!results || forYouLoading) return;
+  if (forYouTracks.length && !forceReload) {
+    renderRecTiles(results, forYouTracks);
+    if (status) status.textContent = `${forYouTracks.length} рекомендаций для вас`;
+    return;
+  }
+
+  const seeds = gatherWaveSeeds();
+  if (!seeds.artists.length && !seeds.trackSeeds.length) {
+    results.innerHTML =
+      '<div class="empty-state">Добавьте треки в плейлист или послушайте несколько композиций — здесь появится персональная подборка.</div>';
+    if (status) status.textContent = 'Пока недостаточно данных для рекомендаций';
+    return;
+  }
+
+  forYouLoading = true;
+  if (status) status.textContent = 'Подбираем треки по вашим плейлистам и истории…';
+  results.innerHTML = '<div class="empty-state">Загрузка рекомендаций…</div>';
+  try {
+    let tracks = await fetchWaveTracks(seeds, 30);
+    if (!tracks.length) tracks = await invoke('get_recommendations');
+    forYouTracks = (tracks || []).slice(0, 30);
+    if (forYouTracks.length) {
+      renderRecTiles(results, forYouTracks);
+      if (status) status.textContent = `${forYouTracks.length} рекомендаций для вас`;
+    } else {
+      results.innerHTML =
+        '<div class="empty-state">Не удалось найти похожие треки. Попробуйте обновить подборку позже.</div>';
+      if (status) status.textContent = 'Рекомендации пока недоступны';
+    }
+  } catch (error) {
+    console.error('For You error:', error);
+    results.innerHTML = '<div class="empty-state">Не удалось загрузить рекомендации</div>';
+    if (status) status.textContent = 'Ошибка загрузки подборки';
+  } finally {
+    forYouLoading = false;
+  }
+}
+
+safeClick('for-you-refresh', () => {
+  forYouTracks = [];
+  loadForYouContent(true);
+});
+
+function scrollForYou(direction) {
+  const container = document.getElementById('for-you-results');
+  if (!container) return;
+  const distance = Math.max(320, Math.round(container.clientWidth * 0.82));
+  container.scrollBy({ left: distance * direction, behavior: 'smooth' });
+}
+
+safeClick('for-you-prev', () => scrollForYou(-1));
+safeClick('for-you-next', () => scrollForYou(1));
+
 async function loadRecommendations(forceReload = false, { showLoading = true } = {}) {
   if (!recommendationsContainer) return;
   if (recommendationsLoaded && !forceReload && recommendationsContainer.innerHTML.trim()) return;
@@ -5826,6 +5965,9 @@ function loadHomeContent() {
   if (typeof renderRecentArtists === 'function') {
     renderRecentArtists();
   }
+
+  // Personal recommendations live directly on Home, beneath recent artists.
+  loadForYouContent();
 }
 
 // Home tiles
@@ -6134,12 +6276,15 @@ const barTlActive = document.getElementById('bar-tl-active');
 function drawBarTimeline(pct) {
   if (!barTimelineTrack || !barTlBg || !barTlActive) return;
   const w = barTimelineTrack.clientWidth || 300;
-  const h = 4;
-  // Background path (full width)
-  barTlBg.setAttribute('d', `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`);
-  // Active path (up to pct%)
-  const aw = (pct / 100) * w;
-  barTlActive.setAttribute('d', `M 0 0 L ${aw} 0 L ${aw} ${h} L 0 ${h} Z`);
+  if (appSettings.playerSliderType === 'wave') {
+    drawWaveTimelinePaths(barTlBg, barTlActive, w, 20, pct);
+  } else {
+    restoreRegularTimelinePaths(barTlBg, barTlActive);
+    const h = 4;
+    barTlBg.setAttribute('d', `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`);
+    const aw = (pct / 100) * w;
+    barTlActive.setAttribute('d', `M 0 0 L ${aw} 0 L ${aw} ${h} L 0 ${h} Z`);
+  }
 }
 
 function barTlSeek(e) {
@@ -6455,6 +6600,11 @@ function drawTimelineCurve(pct) {
   if (!fsTimelineTrack || !tlBgCurve || !tlActiveCurve) return;
   const w = fsTimelineTrack.clientWidth || 400;
   const h = fsTimelineTrack.clientHeight || 36;
+  if (appSettings.playerSliderType === 'wave') {
+    drawWaveTimelinePaths(tlBgCurve, tlActiveCurve, w, Math.min(h, 24), pct);
+    return;
+  }
+  restoreRegularTimelinePaths(tlBgCurve, tlActiveCurve);
   const mid = h * 0.5;
   const amp = 6;
   // Generate a smooth wave path
@@ -7027,6 +7177,13 @@ function applyPlayerSettings() {
     b.classList.toggle('slider-ios', sliderType === 'ios');
     b.classList.toggle('slider-wave', sliderType === 'wave');
   });
+
+  // Repaint SVG timelines immediately when the style changes; otherwise they
+  // keep the previous flat path until the next audio timeupdate event.
+  const progress = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0;
+  if (typeof drawRightTimeline === 'function') drawRightTimeline(progress);
+  if (typeof drawBarTimeline === 'function') drawBarTimeline(progress);
+  if (typeof drawTimelineCurve === 'function') drawTimelineCurve(progress);
 }
 
 function applyCoverSettings() {
@@ -7045,7 +7202,9 @@ function applyCoverSettings() {
     cover.style.transform = '';
     cover.style.borderRadius = '';
 
-    if (anim === 'rotation') {
+    if (anim === 'none') {
+      cover.style.setProperty('animation', 'none', 'important');
+    } else if (anim === 'rotation') {
       cover.style.animation = 'spin 10s linear infinite';
       cover.style.borderRadius = '50%';
     } else if (anim === 'pulsation') {
@@ -7160,7 +7319,10 @@ function syncColorPickersFromSettings() {
   };
   Object.entries(map).forEach(([id, value]) => {
     const el = document.getElementById(id);
-    if (el && value) el.value = value;
+    if (el && value) {
+      el.value = value;
+      el._committedColorValue = el.value;
+    }
   });
 }
 
@@ -7266,6 +7428,31 @@ function readCurrentColorSchemeColors() {
   };
 }
 
+function applyCurrentCustomColors({ notify = true } = {}) {
+  const colors = readCurrentColorSchemeColors();
+  Object.assign(appSettings, {
+    accent: colors.accent,
+    customColorPrimary: colors.accent,
+    customColorBg: colors.background,
+    customColorText: colors.text,
+    customColorCards: colors.cards,
+    customColorBorders: colors.borders,
+    customColorFocus: colors.focus,
+    activeColorSchemeId: '',
+    uiThemePreset: 'custom',
+  });
+  syncColorPickersFromSettings();
+  applyAccentColor(colors.accent);
+  applyCustomColors();
+  renderSavedColorSchemes();
+  saveSettings();
+  document
+    .querySelectorAll('#ui-theme-presets button')
+    .forEach(button => button.classList.remove('active'));
+  if (notify) showToast('Своя тема применена');
+  return colors;
+}
+
 function saveCurrentColorScheme() {
   const api = getColorSchemesApi();
   if (!api) {
@@ -7282,24 +7469,146 @@ function saveCurrentColorScheme() {
     if (result.reason === 'limit') {
       showToast('Можно сохранить не больше 12 цветовых схем');
     } else if (result.reason === 'duplicate') {
-      showToast('Такая цветовая схема уже сохранена');
+      // A duplicate is still a valid scheme to apply. Previously the button
+      // did nothing here, which made it look as though custom colors were
+      // broken whenever the same palette had already been saved.
+      Object.assign(appSettings, api.colorSchemeToSettings(result.scheme));
+      syncColorPickersFromSettings();
+      applyAccentColor(result.scheme.colors.accent);
+      applyCustomColors();
+      renderSavedColorSchemes();
+      saveSettings();
+      showToast(`Схема «${result.scheme.name}» применена`);
     }
     return;
   }
   appSettings.savedColorSchemes = result.schemes;
   Object.assign(appSettings, api.colorSchemeToSettings(result.scheme));
   if (nameInput) nameInput.value = '';
+
+  // “Save color scheme” must also apply the values currently visible in the
+  // pickers. This is especially important when the native color input emits
+  // only a change event (or the redesigned settings initializer is delayed).
+  syncColorPickersFromSettings();
+  applyAccentColor(result.scheme.colors.accent);
+  applyCustomColors();
   renderSavedColorSchemes();
   saveSettings();
-  showToast(`Схема «${result.scheme.name}» сохранена`);
+  showToast(`Схема «${result.scheme.name}» сохранена и применена`);
+}
+
+function bindCustomColorPickers() {
+  const pickerSettings = {
+    'picker-color-primary': ['customColorPrimary', '#1DB954'],
+    'picker-color-bg': ['customColorBg', '#121212'],
+    'picker-color-text': ['customColorText', '#FFFFFF'],
+    'picker-color-cards': ['customColorCards', '#181818'],
+    'picker-color-borders': ['customColorBorders', '#2A2A2A'],
+    'picker-color-focus': ['customColorFocus', '#1DB954'],
+  };
+
+  Object.entries(pickerSettings).forEach(([id, [key, fallback]]) => {
+    const picker = document.getElementById(id);
+    if (!picker) return;
+    picker.value = appSettings[key] || fallback;
+    if (picker._customColorBound) return;
+    picker._customColorBound = true;
+
+    picker._committedColorValue = picker.value;
+    const commitColor = () => {
+      // Native colour dialogs may emit a closing event even when the user
+      // clicks outside and cancels. Ignore it unless the value really changed.
+      if (picker.value === picker._committedColorValue) return;
+      picker._committedColorValue = picker.value;
+      appSettings[key] = picker.value;
+      appSettings.activeColorSchemeId = '';
+      appSettings.uiThemePreset = 'custom';
+      document
+        .querySelectorAll('#ui-theme-presets button')
+        .forEach(button => button.classList.remove('active'));
+      if (key === 'customColorPrimary') applyAccentColor(picker.value);
+      applyCustomColors();
+      renderSavedColorSchemes();
+      saveSettings();
+    };
+    // Do not repaint and sync to the cloud for every movement inside the
+    // native picker. One commit removes the lag and prevents cancel => Neutral.
+    picker.addEventListener('change', commitColor);
+  });
+}
+
+const THEME_COLOR_PRESETS = {
+  neutral: ['#1DB954', '#121212', '#181818', '#FFFFFF', '#333333', '#1DB954'],
+  amoled: ['#1DB954', '#000000', '#080808', '#FFFFFF', '#242424', '#1ED760'],
+  crimson: ['#DC263F', '#16080B', '#241014', '#FFF5F6', '#4A1B23', '#FF526A'],
+  dracula: ['#BD93F9', '#191A24', '#282A36', '#F8F8F2', '#44475A', '#FF79C6'],
+  nord: ['#88C0D0', '#242933', '#2E3440', '#ECEFF4', '#4C566A', '#8FBCBB'],
+  sky: ['#38BDF8', '#071521', '#0C2030', '#F0F9FF', '#1E3A4D', '#7DD3FC'],
+  mint: ['#34D399', '#071A15', '#0D2820', '#ECFDF5', '#245243', '#6EE7B7'],
+  violet: ['#A855F7', '#160B25', '#24113C', '#FAF5FF', '#4B246E', '#C084FC'],
+  blossom: ['#F43F5E', '#210A10', '#351019', '#FFF1F2', '#682132', '#FB7185'],
+  sakura: ['#FF4FA3', '#220D19', '#351426', '#FFF0F7', '#6A294B', '#FF85BE'],
+  terminal: ['#4AF626', '#020A02', '#071507', '#DFFFF8', '#174517', '#7CFF61'],
+  sand: ['#EAB308', '#1C1706', '#2B230A', '#FFFBEB', '#5A4914', '#FACC15'],
+  aqua: ['#06B6D4', '#04191D', '#09272C', '#ECFEFF', '#15505A', '#22D3EE'],
+  sunset: ['#F97316', '#211006', '#34180A', '#FFF7ED', '#693216', '#FB923C'],
+  slate: ['#94A3B8', '#0F141C', '#19212C', '#F8FAFC', '#39475A', '#CBD5E1'],
+};
+
+function bindThemeColorPresets() {
+  document.querySelectorAll('#ui-theme-presets button').forEach(button => {
+    const presetName = button.getAttribute('data-preset');
+    button.classList.toggle('active', appSettings.uiThemePreset === presetName);
+    if (button._themePresetBound) return;
+    button._themePresetBound = true;
+    button.addEventListener('click', () => {
+      if (presetName === 'custom') {
+        switchSettingsSection('app-custom');
+        document.getElementById('picker-color-primary')?.focus();
+        return;
+      }
+      const palette = THEME_COLOR_PRESETS[presetName] || THEME_COLOR_PRESETS.neutral;
+      const [accent, background, cards, text, borders, focus] = palette;
+      Object.assign(appSettings, {
+        accent,
+        customColorPrimary: accent,
+        customColorBg: background,
+        customColorText: text,
+        customColorCards: cards,
+        customColorBorders: borders,
+        customColorFocus: focus,
+        activeColorSchemeId: '',
+        uiThemePreset: presetName,
+      });
+      document
+        .querySelectorAll('#ui-theme-presets button')
+        .forEach(item => item.classList.toggle('active', item === button));
+      syncColorPickersFromSettings();
+      applyAccentColor(accent);
+      applyCustomColors();
+      renderSavedColorSchemes();
+      saveSettings();
+      showToast(`Пресет «${button.textContent.trim()}» применён`);
+    });
+  });
 }
 
 function initSavedColorSchemes() {
   markSettingsRangeSliders();
   sanitizeAppColorSchemes();
   syncColorPickersFromSettings();
+  bindCustomColorPickers();
+  bindThemeColorPresets();
   renderSavedColorSchemes();
-  const saveBtn = document.getElementById('btn-custom-theme-apply');
+  const applyBtn = document.getElementById('btn-custom-theme-apply');
+  if (applyBtn && !applyBtn._customThemeBound) {
+    applyBtn._customThemeBound = true;
+    applyBtn.addEventListener('click', event => {
+      event.preventDefault();
+      applyCurrentCustomColors();
+    });
+  }
+  const saveBtn = document.getElementById('btn-custom-theme-save');
   if (saveBtn && !saveBtn._colorSchemeBound) {
     saveBtn._colorSchemeBound = true;
     saveBtn.addEventListener('click', event => {
@@ -7814,6 +8123,14 @@ function initRedesignedSettings() {
   );
 
   // --- 8. Обложка (app-cover) ---
+  wireInput(
+    'setting-cover-shape',
+    'playerCoverShape',
+    'Закруглённый квадрат',
+    null,
+    '',
+    () => applyPlayerCoverShape()
+  );
   wireInput('setting-cover-animation', 'coverAnimation', 'none', null, '', () =>
     applyCoverSettings()
   );
@@ -7847,40 +8164,9 @@ function initRedesignedSettings() {
     });
   });
 
-  // Theme presets click handlers
-  const themeColors = {
-    neutral: '#1DB954',
-    amoled: '#000000',
-    crimson: '#9c0a1a',
-    dracula: '#bd93f9',
-    nord: '#8fbcbb',
-    sky: '#38bdf8',
-    mint: '#34d399',
-    violet: '#a855f7',
-    blossom: '#f43f5e',
-    sakura: '#ff007f',
-    terminal: '#4af626',
-    sand: '#eab308',
-    aqua: '#06b6d4',
-    sunset: '#f97316',
-    slate: '#64748b',
-  };
-
-  document.querySelectorAll('#ui-theme-presets button').forEach(btn => {
-    const preset = btn.getAttribute('data-preset');
-    if (appSettings.uiThemePreset === preset) btn.classList.add('active');
-    btn.addEventListener('click', () => {
-      document
-        .querySelectorAll('#ui-theme-presets button')
-        .forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const accentColor = themeColors[preset] || '#1DB954';
-      applyAccentColor(accentColor);
-      appSettings.uiThemePreset = preset;
-      saveSettings();
-      showToast('Выбран пресет темы: ' + preset);
-    });
-  });
+  // Presets are bound during initial page setup as well, so they work
+  // immediately instead of waiting for this delayed initializer.
+  bindThemeColorPresets();
 
   // --- 10. Вкладки (app-tabs) ---
   wireInput('toggle-tab-home', 'tabHome', true, null, '', () => applyTabsSettings());
@@ -7953,24 +8239,9 @@ function initRedesignedSettings() {
   }
 
   // --- 12. Кастомизация (app-custom) ---
-  function wirePicker(id, key, defaultValue) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.value = appSettings[key] || defaultValue;
-    el.addEventListener('input', () => {
-      appSettings[key] = el.value;
-      if (key === 'customColorPrimary') applyAccentColor(el.value);
-      else saveSettings();
-      applyCustomColors();
-      renderSavedColorSchemes();
-    });
-  }
-  wirePicker('picker-color-primary', 'customColorPrimary', '#1DB954');
-  wirePicker('picker-color-bg', 'customColorBg', '#121212');
-  wirePicker('picker-color-text', 'customColorText', '#ffffff');
-  wirePicker('picker-color-cards', 'customColorCards', '#181818');
-  wirePicker('picker-color-borders', 'customColorBorders', '#2a2a2a');
-  wirePicker('picker-color-focus', 'customColorFocus', '#1DB954');
+  // This is also called during initial page setup, before this delayed
+  // redesigned-settings initializer. The binding is idempotent.
+  bindCustomColorPickers();
 
   initSavedColorSchemes();
 
