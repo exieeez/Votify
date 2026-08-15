@@ -3,30 +3,43 @@
 ## 📸 Скриншоты интерфейса
 
 ### 🏠 1. Главная страница
-![Главная страница](assets/screenshots/01-home.png)
+![Главная страница](<img width="922" height="1000" alt="image" src="https://github.com/user-attachments/assets/d4daa1e3-29ab-41b0-ae6e-378d5c537552" />
+)
 
 ### 🎵 2. Страница исполнителя
-![Страница исполнителя](assets/screenshots/02-artist.png)
+![Страница исполнителя](<img width="926" height="996" alt="image" src="https://github.com/user-attachments/assets/1632212a-7cad-47db-83d1-5b588b628995" />
+)
 
 ### 📻 3. Плеер и рекомендации
-![Страница плеера](assets/screenshots/03-player.png)
+![Страница плеера](<img width="898" height="984" alt="image" src="https://github.com/user-attachments/assets/9d937a9d-ee36-4573-a4d5-761c436ff05b" />
+)
 
 ### 🌌 4. Полноэкранный плеер с текстом песен
-![Полноэкранный плеер](assets/screenshots/04-fullscreen-player.png)
+![Полноэкранный плеер](<img width="903" height="953" alt="image" src="https://github.com/user-attachments/assets/98644705-fb59-4275-96a4-8662883e92b2" />
+)
 
 ### 🔍 5. Поиск с пагинацией
-![Поиск](assets/screenshots/05-search.png)
+![Поиск](<img width="929" height="995" alt="image" src="https://github.com/user-attachments/assets/a252edd8-bc61-492c-9a81-56431f1fc3d7" />
+)
 
 ### 📚 6. Медиатека (Master-Detail)
-![Медиатека](assets/screenshots/06-library.png)
+![Медиатека](<img width="921" height="996" alt="image" src="https://github.com/user-attachments/assets/a0f51830-a1bf-4acb-aefb-174829f693d2" />
+)
 
-### ⚙️ 7. Настройки — Основные (MP3 треки)
-![Настройки Основные](assets/screenshots/07-settings-general.png)
+### ⚙️ 7. Настройки 
+![Настройки Основные](<img width="915" height="970" alt="image" src="https://github.com/user-attachments/assets/b029498d-452b-42a9-ab38-5074c0a313af" />
+)
 
-### 🎨 8. Настройки — Оформление
-![Настройки Оформление](assets/screenshots/08-settings-appearance.png)
+### ⚙️ 8. Мастерская
+![Мастерская тем оформления](<img width="920" height="984" alt="image" src="https://github.com/user-attachments/assets/87c2d8e7-6178-4439-bcd3-d9356121373b" />
 
+)
 ---
+### ⚙️ 9. Акаунт
+![Акаунт](<img width="910" height="965" alt="image" src="https://github.com/user-attachments/assets/cb8d19f2-fa10-44eb-99d0-63dc46498721" />
+
+
+
 
 ## 📦 Сборка и запуск
 
