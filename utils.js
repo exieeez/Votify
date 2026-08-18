@@ -540,9 +540,13 @@ async function fetchStreamUrl(videoId) {
     '--no-playlist',
     '-g',
     '-f',
-    'ba/b',
+    AUDIO_QUALITY_FORMATS ? (AUDIO_QUALITY_FORMATS[quality] || 'ba/b') : 'ba/b',
     '--socket-timeout',
     '12',
+    '--extractor-args',
+    'youtube:player_client=android,web',
+    '--user-agent',
+    YT_UA,
     'https://www.youtube.com/watch?v=' + videoId,
   ];
   const proc = spawn(ytdlpPath, args, {
@@ -585,7 +589,7 @@ function proxyAudio(remoteUrl, req, res, depth = 0) {
   }
   const remote = new URL(remoteUrl);
   const transport = remote.protocol === 'https:' ? https : http;
-  const headers = { 'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0' };
+  const headers = { 'User-Agent': req.headers['user-agent'] || YT_UA };
   if (req.headers.range) headers.Range = req.headers.range;
   const upstream = transport.request(remote, { method: 'GET', headers }, upRes => {
     const sc = upRes.statusCode || 500;
