@@ -13,6 +13,7 @@ const {
   SEARCH_MAX_LIMIT,
   findYtDlp,
   scImportPlaylist,
+  YT_UA,
 } = require('./utils.js');
 
 const { spawn } = require('child_process');
@@ -142,8 +143,7 @@ async function handleMusicRoutes(req, res, u) {
       const agent = remote.protocol === 'https:' ? proxyHttpsAgent : proxyHttpAgent;
 
       const headers = {
-        'User-Agent':
-          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'User-Agent': YT_UA,
         Accept: '*/*',
         'Accept-Encoding': 'identity',
         'Accept-Language': 'en-US,en;q=0.9',
@@ -235,6 +235,10 @@ async function handleMusicRoutes(req, res, u) {
           '15',
           '--max-filesize',
           '50M',
+          '--extractor-args',
+          'youtube:player_client=android,web',
+          '--user-agent',
+          YT_UA,
           'https://www.youtube.com/watch?v=' + id,
         ],
         { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }
