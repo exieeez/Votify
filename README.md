@@ -46,52 +46,6 @@ VOTIFY_DISCORD_CLIENT_ID=другой_application_id npm start
 VOTIFY_DISCORD_LARGE_IMAGE_KEY=votify npm start
 ```
 
-### Firebase: аккаунты и синхронизация
-
-Votify поддерживает регистрацию по email, гостевой вход, профили, аватары и облачную синхронизацию настроек, плейлистов и истории через Firebase Authentication и Firestore.
-
-1. Включите Email/Password и Anonymous в Firebase Authentication.
-2. Создайте Firestore и опубликуйте правила из `firestore.rules`.
-3. Создайте Web App в Firebase.
-4. Сохраните публичную Web-конфигурацию в `firebase-config.json` в корне проекта.
-
-```json
-{
-  "apiKey": "...",
-  "authDomain": "project.firebaseapp.com",
-  "projectId": "project",
-  "storageBucket": "project.firebasestorage.app",
-  "messagingSenderId": "...",
-  "appId": "..."
-}
-```
-
-`firebase-config.json` не попадает в Git. Для CI и сборки релиза ту же конфигурацию можно передать в `VOTIFY_FIREBASE_CONFIG` одной JSON-строкой. Service Account и Admin SDK приложению не нужны.
-
-#### Вход через Google в Electron
-
-Google не разрешает авторизацию во встроенном окне Electron, поэтому Votify открывает системный браузер и принимает результат через временный локальный адрес `127.0.0.1`. В Google Cloud Console этого же Firebase-проекта создайте **OAuth client ID → Desktop app** и скачайте JSON. Импортируйте его без вывода значений в терминал:
-
-```bash
-npm run configure:google -- ~/Downloads/client_secret_....json
-```
-
-Команда проверяет тип клиента и Firebase Project ID, добавляет значения в игнорируемый `firebase-config.json` и выставляет права `0600`. То же самое можно сделать вручную:
-
-```json
-{
-  "apiKey": "...",
-  "authDomain": "project.firebaseapp.com",
-  "projectId": "project",
-  "appId": "...",
-  "googleDesktopClientId": "123456789-example.apps.googleusercontent.com",
-  "googleDesktopClientSecret": "GOCSPX-..."
-}
-```
-
-Эти поля добавляются к существующей Web Config, а не заменяют её. OAuth secret приложения типа Desktop не считается конфиденциальным серверным ключом, однако Service Account JSON по-прежнему нельзя помещать в приложение. Если Firebase покажет настройку разрешённых OAuth Client IDs у провайдера Google, добавьте туда созданный Desktop Client ID.
-
-При первом запуске без сохранённой сессии Votify автоматически открывает экран создания аккаунта. Пользователь может зарегистрироваться по email, войти через системный браузер Google или продолжить как гость.
 
 #### Мастерская тем
 
