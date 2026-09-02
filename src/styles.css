@@ -2998,14 +2998,19 @@ body[data-track-card-style="flat"] .track-item {
   text-overflow: ellipsis;
 }
 .player-track-lyrics {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-subdued);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
-  opacity: 0.7;
-  min-height: 14px;
+  opacity: 0.85;
+  min-height: 18px;
+}
+.player-track-lyrics .lyrics-word.w-active {
+  color: #fff;
+  opacity: 1;
+  font-weight: 700;
 }
 
 .player-bar-center {
@@ -3657,8 +3662,8 @@ input[type="range"]::-moz-range-thumb {
   padding: 20px 24px;
 }
 .lyrics-line {
-  font-size: 16px;
-  line-height: 1.8;
+  font-size: 20px;
+  line-height: 1.7;
   color: var(--text-subdued);
   cursor: pointer;
   padding: 2px 4px;
@@ -3669,9 +3674,34 @@ input[type="range"]::-moz-range-thumb {
 .lyrics-line.active {
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 18px;
+  font-size: 24px;
 }
 .lyrics-line.past { color: rgba(255,255,255,0.2); }
+
+/* === Караоке по словам (2026-09-02): подсветка бежит по словам, а не по строкам === */
+.lyrics-word {
+  display: inline-block;
+  margin-right: 0.3em;
+  opacity: 0.5;
+  transition: color 0.18s ease, opacity 0.18s ease, transform 0.18s ease, text-shadow 0.18s ease;
+}
+.lyrics-line.active .lyrics-word { opacity: 0.55; }
+.lyrics-line.active .lyrics-word.w-past { opacity: 0.85; }
+.lyrics-line.active .lyrics-word.w-active {
+  opacity: 1;
+  color: #fff;
+  transform: scale(1.14);
+  font-weight: 800;
+  text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.5);
+}
+.lyrics-translation {
+  color: var(--text-subdued);
+  font-size: 0.8em;
+  font-weight: 400;
+}
+/* В полноэкранном плеере текст ещё крупнее */
+#fs-lyrics-body .lyrics-line { font-size: 26px; line-height: 1.55; }
+#fs-lyrics-body .lyrics-line.active { font-size: 31px; }
 .lyrics-placeholder {
   text-align: center;
   color: var(--text-subdued);

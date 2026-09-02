@@ -253,6 +253,7 @@ async function loadLyricsForTrack(title, artist) {
         return null;
       })
       .filter(Boolean);
+    attachWordTimings(currentLyricsLines);
     if (el && currentLyricsLines.length > 0) updateLyricsLine();
   } catch (e) {
     /* ignore */
@@ -273,15 +274,67 @@ function updateLyricsLine() {
   if (idx !== currentLyricIndex) {
     currentLyricIndex = idx;
     const text = idx >= 0 ? currentLyricsLines[idx].text : '';
-    el.textContent = text;
+    el.innerHTML = idx >= 0 ? lyricsWordsHtml(currentLyricsLines[idx]) : '';
+    highlightLyricsWords(el, currentLyricsLines[idx], audio.currentTime);
     if (text && appSettings.translateLyrics) {
       translateLyricLine(text).then(translated => {
         if (translated && currentLyricIndex === idx) {
-          el.textContent = `${text} / ${translated}`;
+          el.insertAdjacentHTML(
+            'beforeend',
+            ` <span class="lyrics-translation">/ ${escapeHtml(translated)}</span>`
+          );
         }
       });
     }
+  } else if (idx >= 0) {
+    highlightLyricsWords(el, currentLyricsLines[idx], audio.currentTime);
   }
+}
+
+// === Караоке: потактовая разбивка строк на слова ===
+// Тайминги слов = пропорциональное распределение длительности строки
+// (до начала следующей) по длине слов: близких к реальным LRC-слов нет,
+// поэтому караоке приближённое, но живое и всегда синхронное со строкой.
+function attachWordTimings(lines) {
+  (lines || []).forEach((line, i) => {
+    const words = String(line.text || '').split(/\s+/).filter(Boolean);
+    const nextTime = lines[i + 1] ? lines[i + 1].time : line.time + Math.max(3, words.length * 0.45);
+    const dur = Math.max(0.6, nextTime - line.time - 0.15);
+    const total = words.reduce((s, w) => s + Math.max(1, w.length), 0) || 1;
+    let acc = line.time;
+    line.words = words.map(w => {
+      const share = (Math.max(1, w.length) / total) * dur;
+      const item = { text: w, start: acc };
+      acc += share;
+      return item;
+    });
+  });
+  return lines;
+}
+
+function lyricsWordsHtml(line) {
+  const words = line.words || [];
+  if (!words.length) return escapeHtml(line.text || '') || '&nbsp;';
+  return words
+    .map((w, wi) => `<span class="lyrics-word" data-w="${wi}">${escapeHtml(w.text)}</span>`)
+    .join(' ');
+}
+
+function highlightLyricsWords(lineEl, line, time) {
+  if (!lineEl || !line || !line.words || !line.words.length) return -1;
+  let wi = -1;
+  for (let k = line.words.length - 1; k >= 0; k--) {
+    if (time >= line.words[k].start) {
+      wi = k;
+      break;
+    }
+  }
+  const spans = lineEl.querySelectorAll('.lyrics-word');
+  spans.forEach((sp, k) => {
+    sp.classList.toggle('w-active', k === wi);
+    sp.classList.toggle('w-past', k < wi);
+  });
+  return wi;
 }
 
 function updateFullscreenLyrics(time) {
@@ -298,9 +351,19 @@ function updateFullscreenLyrics(time) {
     const active = i === idx;
     el.classList.toggle('active', active);
     el.classList.toggle('past', idx >= 0 && i < idx);
-    if (active) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   });
+  // караоке по словам + скролл только при смене строки (без дёрганья на каждое слово)
+  if (idx !== fsLyricsLastLine) {
+    fsLyricsLastLine = idx;
+    // гасим подсветку слов на покинутой строке
+    document
+      .querySelectorAll('#fs-lyrics-body .lyrics-word.w-active, #fs-lyrics-body .lyrics-word.w-past')
+      .forEach(sp => sp.classList.remove('w-active', 'w-past'));
+    if (idx >= 0 && lines[idx]) lines[idx].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  if (idx >= 0 && lines[idx]) highlightLyricsWords(lines[idx], fsLyricsData[idx], time);
 }
+let fsLyricsLastLine = -2;
 
 function readStoredJson(key, fallback) {
   const raw = localStorage.getItem(key);
@@ -6931,9 +6994,10 @@ async function loadFsLyrics(title, artist) {
         return null;
       })
       .filter(Boolean);
+    attachWordTimings(fsLyricsData);
     if (body)
       body.innerHTML = fsLyricsData
-        .map((l, i) => `<div class="lyrics-line" data-idx="${i}">${l.text || '&nbsp;'}</div>`)
+        .map((l, i) => `<div class="lyrics-line" data-idx="${i}">${lyricsWordsHtml(l)}</div>`)
         .join('');
   } catch {
     if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>';
