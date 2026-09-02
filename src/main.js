@@ -526,6 +526,22 @@ function cloudCacheKey(uid) {
   return `votify-cloud-cache-${uid}`;
 }
 
+// Старые облачные копии настроек (мобильной эпохи) могут нести
+// bgParticles:'none' / perfParticles:false — из-за них частицы гаснут
+// через секунду после старта, когда приходит cloud pull. Облако не должно
+// иметь права гасить частицы: подменяем на живые значения.
+function sanitizeIncomingCloudSettings(source) {
+  const settings = { ...(source || {}) };
+  if (settings.bgParticles === 'none') {
+    settings.bgParticles =
+      appSettings && appSettings.bgParticles && appSettings.bgParticles !== 'none'
+        ? appSettings.bgParticles
+        : 'dots';
+  }
+  if (settings.perfParticles === false) settings.perfParticles = true;
+  return settings;
+}
+
 function getCloudSafeSettings() {
   const settings = { ...appSettings };
   if (String(settings.bgUrl || '').startsWith('data:')) delete settings.bgUrl;
@@ -558,7 +574,7 @@ function restoreCachedCloudState(uid) {
   const cached = readStoredJson(cloudCacheKey(uid), null);
   if (!cached) return false;
   if (cached.settings && typeof cached.settings === 'object') {
-    appSettings = { ...appSettings, ...cached.settings };
+    appSettings = { ...appSettings, ...sanitizeIncomingCloudSettings(cached.settings) };
     sanitizeAppColorSchemes();
     localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   }
@@ -594,10 +610,18 @@ async function syncWithCloud(direction = 'pull') {
       cloudSyncApplying = true;
       if (data.exists) {
         if (data.settings && typeof data.settings === 'object') {
-          appSettings = { ...appSettings, ...data.settings };
+          const safeCloud = sanitizeIncomingCloudSettings(data.settings);
+          const cloudKilledParticles =
+            safeCloud.bgParticles !== data.settings.bgParticles ||
+            safeCloud.perfParticles !== data.settings.perfParticles;
+          appSettings = { ...appSettings, ...safeCloud };
           sanitizeAppColorSchemes();
           localStorage.setItem('votify-settings', JSON.stringify(appSettings));
           applyLanguage(appSettings.lang || 'ru');
+          if (cloudKilledParticles) {
+            // облако хранило мёртвые частицы — лечим его копию обратной записью
+            syncWithCloud('push');
+          }
         }
         if (data.playlists && typeof data.playlists === 'object') {
           playlists = data.playlists;
