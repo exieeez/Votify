@@ -7219,16 +7219,20 @@ function applyFsLavaLampColors(brightColor){
     return;
   }
   let {r,g,b} = brightColor;
-  const lum = 0.2126*r + 0.7152*g + 0.0722*b;
-  const base = Math.min(255, Math.max(200, Math.round(lum*0.6 + 120)));
-  const c1 = {r: base, g: base, b: base};
-  const c2 = {r: Math.max(160, base-35), g: Math.max(160, base-35), b: Math.max(160, base-35)};
-  const c3 = {r: Math.max(90, base-110), g: Math.max(90, base-110), b: Math.max(90, base-110)};
+  // Ensure vividness — colorful under cover
+  const hsl = rgbToHsl(r,g,b);
+  const baseH = hsl.h;
+  const baseS = Math.max(65, hsl.s);
+  const baseL = Math.min(62, Math.max(48, hsl.l));
+  const c1 = hslToRgb(baseH, baseS, baseL);
+  const c2 = hslToRgb((baseH+32)%360, Math.min(90, baseS+8), Math.min(68, baseL+10));
+  const c3 = hslToRgb((baseH+335)%360, Math.max(55, baseS-6), Math.max(32, baseL-18));
   fs.style.setProperty('--lava1-r', c1.r); fs.style.setProperty('--lava1-g', c1.g); fs.style.setProperty('--lava1-b', c1.b);
   fs.style.setProperty('--lava2-r', c2.r); fs.style.setProperty('--lava2-g', c2.g); fs.style.setProperty('--lava2-b', c2.b);
   fs.style.setProperty('--lava3-r', c3.r); fs.style.setProperty('--lava3-g', c3.g); fs.style.setProperty('--lava3-b', c3.b);
   if(grad){
-    grad.style.background = `radial-gradient(120% 90% at 18% 18%, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.85) 55%, #000 85%)`;
+    const dark = {r: Math.round(c1.r*0.18), g: Math.round(c1.g*0.18), b: Math.round(c1.b*0.18)};
+    grad.style.background = `radial-gradient(120% 90% at 18% 18%, rgba(${c1.r},${c1.g},${c1.b},0.32) 0%, rgba(${dark.r},${dark.g},${dark.b},0.55) 42%, #080a12 78%), radial-gradient(110% 85% at 82% 72%, rgba(${c2.r},${c2.g},${c2.b},0.24) 0%, rgba(${c3.r},${c3.g},${c3.b},0.16) 38%, transparent 76%)`;
   }
 }
 

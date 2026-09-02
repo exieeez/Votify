@@ -8737,22 +8737,6 @@ body[data-dynamic-player-bg="false"] .fs-lava-lamp {
   display: none !important;
 }
 
-.fs-lava-lamp { opacity: 0.95 !important; }
-.fs-lava-blob {
-  filter: blur(64px) saturate(0) brightness(1.35) !important;
-  mix-blend-mode: screen !important;
-  opacity: 0.42 !important;
-}
-.fs-lava-blob:nth-child(1) {
-  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 32%, rgba(255,255,255,0.05) 62%, transparent 78%) !important;
-}
-.fs-lava-blob:nth-child(2) {
-  background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.10) 38%, transparent 80%) !important;
-}
-.fs-lava-blob:nth-child(3) {
-  background: radial-gradient(circle at 45% 35%, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.07) 36%, transparent 82%) !important;
-}
-
 .btn-accent, .play-main-btn, .fs-play-main-btn, .pl-play-btn, .auth-btn, .votify-modal-ok, .bg-url-btn {
   background: #fff !important;
   color: #000 !important;
@@ -8939,6 +8923,90 @@ body[data-theme-mode="light"] input[type="range"]::-webkit-slider-thumb { backgr
 #workshop-default-btn:hover { background: #e6e6e6 !important; }
 #workshop-default-btn .material-icons { font-size: 18px; }
 
+
+
+/* === LAVA LAMP — colorful under cover color (restored) === */
+.fs-lava-lamp {
+  position: absolute !important;
+  inset: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  opacity: 0.92 !important;
+  display: block !important;
+}
+body[data-dynamic-player-bg="false"] .fs-lava-lamp { opacity: 0 !important; display: none !important; }
+
+.fs-lava-blob {
+  position: absolute;
+  width: 70vw;
+  height: 70vw;
+  max-width: 900px;
+  max-height: 900px;
+  min-width: 400px;
+  min-height: 400px;
+  border-radius: 50%;
+  filter: blur(72px) saturate(1.8) brightness(1.1);
+  opacity: 0.62;
+  mix-blend-mode: screen;
+  will-change: transform;
+  transition: background 0.9s ease;
+}
+
+.fs-lava-blob:nth-child(1) {
+  top: -12%;
+  left: -14%;
+  background: radial-gradient(circle at 35% 35%, rgba(var(--lava1-r, 29), var(--lava1-g, 185), var(--lava1-b, 84), 0.92) 0%, rgba(var(--lava1-r, 29), var(--lava1-g, 185), var(--lava1-b, 84), 0.55) 32%, rgba(var(--lava1-r, 29), var(--lava1-g, 185), var(--lava1-b, 84), 0.12) 62%, transparent 78%);
+  animation: lavaFloat1 19s ease-in-out infinite;
+}
+.fs-lava-blob:nth-child(2) {
+  top: 38%;
+  left: 54%;
+  width: 62vw;
+  height: 62vw;
+  background: radial-gradient(circle at 40% 40%, rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.85) 0%, rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.42) 38%, rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.10) 66%, transparent 80%);
+  animation: lavaFloat2 23s ease-in-out infinite;
+  animation-delay: -4s;
+  opacity: 0.55;
+}
+.fs-lava-blob:nth-child(3) {
+  top: 62%;
+  left: 8%;
+  width: 58vw;
+  height: 58vw;
+  background: radial-gradient(circle at 45% 35%, rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.78) 0%, rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.38) 36%, rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.08) 68%, transparent 82%);
+  animation: lavaFloat3 26s ease-in-out infinite;
+  animation-delay: -9s;
+  opacity: 0.52;
+}
+
+@keyframes lavaFloat1 {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 50% 50% 50% 50%; }
+  18%  { transform: translate3d(12vw, 8vh, 0) scale(1.08) rotate(6deg); border-radius: 58% 42% 48% 52%; }
+  38%  { transform: translate3d(-6vw, 16vh, 0) scale(0.96) rotate(-4deg); border-radius: 42% 58% 52% 48%; }
+  62%  { transform: translate3d(8vw, -6vh, 0) scale(1.04) rotate(3deg); border-radius: 50% 50% 42% 58%; }
+  84%  { transform: translate3d(-10vw, -4vh, 0) scale(1.02) rotate(-5deg); border-radius: 48% 52% 58% 42%; }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 50% 50% 50% 50%; }
+}
+@keyframes lavaFloat2 {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  24%  { transform: translate3d(-10vw, 12vh, 0) scale(1.12) rotate(-8deg); }
+  52%  { transform: translate3d(14vw, -8vh, 0) scale(0.94) rotate(7deg); }
+  78%  { transform: translate3d(-4vw, -14vh, 0) scale(1.06) rotate(-3deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+@keyframes lavaFloat3 {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  30%  { transform: translate3d(10vw, -10vh, 0) scale(1.10) rotate(5deg); }
+  60%  { transform: translate3d(-12vw, 6vh, 0) scale(0.92) rotate(-6deg); }
+  85%  { transform: translate3d(6vw, 14vh, 0) scale(1.04) rotate(4deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+.fs-gradient-bg { z-index: 1 !important; opacity: 0.88 !important; }
+.fs-top-bar, .fs-split-container, .fs-player-content { z-index: 2 !important; }
+body[data-dynamic-player-bg="true"] .fs-gradient-bg {
+  background: radial-gradient(120% 90% at 18% 18%, rgba(var(--lava1-r, 29), var(--lava1-g, 185), var(--lava1-b, 84), 0.18) 0%, rgba(0,0,0,0.65) 42%, rgba(0,0,0,0.92) 75%, #121212 90%) !important;
+}
 
 /* === Auto-updater banner like Discord === */
 .update-banner {
