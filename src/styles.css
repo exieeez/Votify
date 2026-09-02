@@ -8715,28 +8715,42 @@ html, body { background: var(--bg-base, #121212) !important; }
 .track-item.playing { background: rgba(255,255,255,0.08) !important; }
 .track-item.playing .track-title { color: #fff !important; }
 
+/* Lava lamp should be visible — gradient is subtle overlay, not solid */
+.fs-lava-lamp { z-index: 0 !important; opacity: 0.95 !important; display: block !important; }
+.fs-gradient-bg { z-index: 1 !important; opacity: 0.88 !important; }
+.fs-top-bar, .fs-split-container, .fs-player-content { z-index: 2 !important; }
+
 .fs-gradient-bg, .right-player::before, .player-bar::before, .floating-island::before {
+  opacity: 1 !important;
+}
+.right-player::before, .player-bar::before, .floating-island::before {
+  background: #121212 !important;
+}
+body[data-dynamic-player-bg="true"] .fs-gradient-bg {
+  background: radial-gradient(120% 90% at 18% 18%, rgba(255,255,255,0.08) 0%, rgba(18,18,18,0.65) 42%, rgba(18,18,18,0.92) 75%, #121212 90%) !important;
+}
+body[data-dynamic-player-bg="false"] .fs-gradient-bg {
   background: #121212 !important;
   opacity: 1 !important;
 }
-body[data-dynamic-player-bg="true"] .fs-gradient-bg {
-  background: radial-gradient(120% 90% at 18% 18%, rgba(255,255,255,0.06) 0%, rgba(18,18,18,0.85) 55%, #121212 85%) !important;
+body[data-dynamic-player-bg="false"] .fs-lava-lamp {
+  display: none !important;
 }
 
-.fs-lava-lamp { opacity: 0.85 !important; }
+.fs-lava-lamp { opacity: 0.95 !important; }
 .fs-lava-blob {
-  filter: blur(72px) saturate(0) brightness(1.2) !important;
+  filter: blur(64px) saturate(0) brightness(1.35) !important;
   mix-blend-mode: screen !important;
-  opacity: 0.22 !important;
+  opacity: 0.42 !important;
 }
 .fs-lava-blob:nth-child(1) {
-  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.10) 32%, rgba(255,255,255,0.03) 62%, transparent 78%) !important;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 32%, rgba(255,255,255,0.05) 62%, transparent 78%) !important;
 }
 .fs-lava-blob:nth-child(2) {
-  background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 38%, transparent 80%) !important;
+  background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.10) 38%, transparent 80%) !important;
 }
 .fs-lava-blob:nth-child(3) {
-  background: radial-gradient(circle at 45% 35%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 36%, transparent 82%) !important;
+  background: radial-gradient(circle at 45% 35%, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.07) 36%, transparent 82%) !important;
 }
 
 .btn-accent, .play-main-btn, .fs-play-main-btn, .pl-play-btn, .auth-btn, .votify-modal-ok, .bg-url-btn {
