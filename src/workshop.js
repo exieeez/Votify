@@ -290,17 +290,67 @@
         .includes(query);
     });
 
-    if (!filtered.length) {
+    // Default theme card (always first, unless searching)
+    const defaultThemeCard = !query ? `
+      <article class="workshop-card workshop-card-default" data-theme-id="default">
+        <div class="workshop-theme-preview workshop-preview-bg-default" style="--preview-bg:#121212;--preview-card:#181818;--preview-accent:#FFFFFF;--preview-text:#FFFFFF;--preview-border:#282828;--preview-focus:#FFFFFF;--preview-radius:8px">
+          <div class="workshop-preview-sidebar"><span></span><span></span><span></span></div>
+          <div class="workshop-preview-content">
+            <div class="workshop-preview-topline">
+              <div class="workshop-preview-heading"></div>
+              <div class="workshop-preview-palette" title="Палитра темы">
+                <i style="background:#FFFFFF"></i><i style="background:#121212"></i><i style="background:#181818"></i><i style="background:#FFFFFF"></i><i style="background:#282828"></i><i style="background:#FFFFFF"></i>
+              </div>
+            </div>
+            <div class="workshop-preview-cards"><span></span><span></span><span></span></div>
+            <div class="workshop-preview-player"><i></i><b></b><em></em></div>
+          </div>
+        </div>
+        <div class="workshop-card-body">
+          <div class="workshop-card-heading">
+            <div>
+              <h3>Стандартная тема</h3>
+              <span>от Votify · встроенная</span>
+            </div>
+            <span class="workshop-own-badge">Дефолт</span>
+          </div>
+          <p>Тёмно-серая тема в стиле Dotify — чёрно-белая, минималистичная, без цветов. Фон #121212, карточки #181818.</p>
+          <div class="workshop-theme-details">
+            <span><i style="background:#FFFFFF"></i>contrast</span>
+            <span>8px</span>
+            <span>system</span>
+          </div>
+          <div class="workshop-card-actions">
+            <button class="workshop-install-btn" data-action="install-default">
+              <i class="material-icons">restart_alt</i>
+              Восстановить
+            </button>
+          </div>
+        </div>
+      </article>
+    ` : '';
+
+    if (!filtered.length && query) {
       grid.innerHTML = `
         <div class="workshop-empty">
           <i class="material-icons">palette</i>
-          <h3>${query ? 'Ничего не найдено' : 'В мастерской пока нет тем'}</h3>
-          <p>${query ? 'Попробуйте изменить поисковый запрос.' : 'Станьте первым автором и опубликуйте своё оформление.'}</p>
+          <h3>Ничего не найдено</h3>
+          <p>Попробуйте изменить поисковый запрос.</p>
         </div>`;
       return;
     }
 
-    grid.innerHTML = filtered
+    if (!filtered.length && !query) {
+      grid.innerHTML = defaultThemeCard + `
+        <div class="workshop-empty">
+          <i class="material-icons">palette</i>
+          <h3>В мастерской пока нет тем</h3>
+          <p>Станьте первым автором и опубликуйте своё оформление. Стандартная тема уже установлена.</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = defaultThemeCard + filtered
       .map(theme => {
         const own = !!currentUser && !currentUser.isAnonymous && theme.ownerId === currentUser.uid;
         const installed = installedId === theme.id;
@@ -494,6 +544,12 @@
     const actionButton = event.target.closest('[data-action]');
     const card = event.target.closest('.workshop-card');
     if (!actionButton || !card) return;
+
+    if (actionButton.dataset.action === 'install-default') {
+      resetToDefaultTheme();
+      return;
+    }
+
     const theme = state.themes.find(item => item.id === card.dataset.themeId);
     if (!theme) return;
 
@@ -534,10 +590,10 @@
         // Reset to default black & white mono theme
         const defaultTheme = {
           primary: '#FFFFFF',
-          background: '#000000',
+          background: '#121212',
           text: '#FFFFFF',
-          cards: '#0a0a0a',
-          borders: '#1a1a1a',
+          cards: '#181818',
+          borders: '#282828',
           focus: '#FFFFFF',
           mode: 'contrast',
           backgroundPreset: 'default',

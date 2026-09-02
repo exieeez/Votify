@@ -3,9 +3,9 @@
    ============================================ */
 
 :root {
-  --bg-base: #000000;
-  --bg-surface: #0a0a0a;
-  --bg-elevated: #141414;
+  --bg-base: #121212;
+  --bg-surface: #181818;
+  --bg-elevated: #282828;
   --bg-highlight: #222222;
   --bg-card: #0f0f0f;
   --text-primary: #ffffff;
@@ -44,18 +44,18 @@
 
 /* Theme mode variants (Оформление → Тема) */
 body[data-theme-mode="midnight"] {
-  --bg-base: #000000;
+  --bg-base: #121212;
   --bg-surface: #080808;
-  --bg-elevated: #141414;
+  --bg-elevated: #282828;
   --bg-highlight: #1e1e1e;
   --text-primary: #ffffff;
   --text-secondary: #a0a0a0;
   --text-subdued: #5a5a5a;
 }
 body[data-theme-mode="contrast"] {
-  --bg-base: #000000;
-  --bg-surface: #0a0a0a;
-  --bg-elevated: #141414;
+  --bg-base: #121212;
+  --bg-surface: #181818;
+  --bg-elevated: #282828;
   --bg-highlight: #222222;
   --text-primary: #ffffff;
   --text-secondary: #a0a0a0;
@@ -8702,13 +8702,13 @@ body[data-dynamic-player-bg="false"] .fs-gradient-bg { opacity: 0.35 !important;
 body[data-dynamic-player-bg="false"] .fs-lava-lamp { display: none !important; }
 
 /* === DOTIFY MONO THEME — pure black & white, no colors — FIXED INPUTS & TIMELINES === */
-html, body { background: var(--bg-base, #000) !important; }
+html, body { background: var(--bg-base, #121212) !important; }
 .sidebar, .top-bar, .player-bar, .right-player, .floating-island, .player-page-top, .fullscreen-player, .settings-modal, .lib-sidebar, .lib-detail-pane {
-  background-color: var(--bg-base, #000) !important;
+  background-color: var(--bg-base, #121212) !important;
   border-color: rgba(255,255,255,0.08) !important;
 }
 .card, .home-quick-card, .home-rec-card, .playlist-card, .track-card, .track-item, .history-card, .fav-card, .lib-item, .lib-detail-header-card, .about-card {
-  background: #0a0a0a !important;
+  background: #181818 !important;
   border-color: rgba(255,255,255,0.06) !important;
 }
 .track-item:hover, .lib-item:hover, .card:hover { background: #141414 !important; }
@@ -8716,11 +8716,11 @@ html, body { background: var(--bg-base, #000) !important; }
 .track-item.playing .track-title { color: #fff !important; }
 
 .fs-gradient-bg, .right-player::before, .player-bar::before, .floating-island::before {
-  background: #000 !important;
+  background: #121212 !important;
   opacity: 1 !important;
 }
 body[data-dynamic-player-bg="true"] .fs-gradient-bg {
-  background: radial-gradient(120% 90% at 18% 18%, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.85) 55%, #000 85%) !important;
+  background: radial-gradient(120% 90% at 18% 18%, rgba(255,255,255,0.06) 0%, rgba(18,18,18,0.85) 55%, #121212 85%) !important;
 }
 
 .fs-lava-lamp { opacity: 0.85 !important; }
@@ -8801,7 +8801,7 @@ input[type="range"]::-moz-range-thumb { background: #fff !important; border: 2px
 
 /* FIXED INPUTS — no black line mismatch */
 .auth-field, .search-bar, .bg-url-wrap, .morph-settings-item, .workshop-search {
-  background: #0a0a0a !important;
+  background: #181818 !important;
   border: 1px solid rgba(255,255,255,0.10) !important;
   border-radius: 10px !important;
 }
@@ -8826,7 +8826,7 @@ input:not([type="range"]):focus, select:focus, .morph-select:focus {
 /* Remove any bottom border black line */
 .auth-field::after, .search-bar::after, .bg-url-wrap::after { display: none !important; }
 input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #0a0a0a inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #181818 inset !important;
   -webkit-text-fill-color: #fff !important;
   transition: background-color 9999s ease-in-out 0s;
 }
