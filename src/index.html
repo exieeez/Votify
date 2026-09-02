@@ -14,6 +14,21 @@
   </head>
   <body>
     <!-- SPLASH -->
+    <!-- Auto-updater banner like Discord -->
+    <div class="update-banner" id="update-banner" style="display:none">
+      <div class="update-banner-content">
+        <i class="material-icons">system_update</i>
+        <span id="update-banner-text">Доступно обновление</span>
+        <div class="update-banner-progress" id="update-banner-progress" style="display:none">
+          <div class="update-banner-progress-bar" id="update-banner-progress-bar"></div>
+        </div>
+      </div>
+      <div class="update-banner-actions">
+        <button class="update-banner-btn" id="update-banner-action">Обновить</button>
+        <button class="update-banner-close" id="update-banner-close"><i class="material-icons">close</i></button>
+      </div>
+    </div>
+
     <div class="splash-screen" id="splash-screen">
       <div class="splash-content">
         <img src="icon.png" alt="Votify" class="splash-app-icon" />

@@ -8925,3 +8925,92 @@ body[data-theme-mode="light"] input[type="range"]::-webkit-slider-thumb { backgr
 #workshop-default-btn:hover { background: #e6e6e6 !important; }
 #workshop-default-btn .material-icons { font-size: 18px; }
 
+
+/* === Auto-updater banner like Discord === */
+.update-banner {
+  position: fixed;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 16px;
+  background: #181818;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 320px;
+  max-width: 90vw;
+  animation: updateBannerIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes updateBannerIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.96); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.update-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+.update-banner-content i { font-size: 20px; color: #fff; }
+.update-banner-progress {
+  width: 80px;
+  height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-left: 8px;
+}
+.update-banner-progress-bar {
+  height: 100%;
+  background: #fff;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+.update-banner-actions { display: flex; align-items: center; gap: 8px; }
+.update-banner-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.update-banner-btn:hover { background: #e6e6e6; }
+.update-banner-close {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: rgba(255,255,255,0.7);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.update-banner-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.update-banner-close i { font-size: 18px; }
+
+/* Light theme */
+body[data-theme-mode="light"] .update-banner {
+  background: #fff;
+  border-color: rgba(0,0,0,0.12);
+  color: #000;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+body[data-theme-mode="light"] .update-banner-content i { color: #000; }
+body[data-theme-mode="light"] .update-banner-progress { background: rgba(0,0,0,0.12); }
+body[data-theme-mode="light"] .update-banner-progress-bar { background: #000; }
+body[data-theme-mode="light"] .update-banner-btn { background: #000; color: #fff; }
+body[data-theme-mode="light"] .update-banner-btn:hover { background: #222; }
+body[data-theme-mode="light"] .update-banner-close { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.6); }
+body[data-theme-mode="light"] .update-banner-close:hover { background: rgba(0,0,0,0.12); color: #000; }
+

@@ -6929,6 +6929,98 @@ function hideSplash() {
   }
 }
 
+// Auto-updater like Discord — checks GitHub on each app start
+(function setupUpdaterUI(){
+  const banner = document.getElementById('update-banner');
+  const text = document.getElementById('update-banner-text');
+  const actionBtn = document.getElementById('update-banner-action');
+  const closeBtn = document.getElementById('update-banner-close');
+  const progressWrap = document.getElementById('update-banner-progress');
+  const progressBar = document.getElementById('update-banner-progress-bar');
+  let downloaded = false;
+  let availableInfo = null;
+
+  function showBanner(msg, actionLabel = 'Обновить') {
+    if (!banner) return;
+    if (text) text.textContent = msg;
+    if (actionBtn) actionBtn.textContent = actionLabel;
+    banner.style.display = 'flex';
+  }
+  function hideBanner() {
+    if (banner) banner.style.display = 'none';
+  }
+
+  if (closeBtn) closeBtn.addEventListener('click', hideBanner);
+
+  if (actionBtn) actionBtn.addEventListener('click', () => {
+    if (downloaded) {
+      if (window.electronAPI?.installUpdate) {
+        window.electronAPI.installUpdate();
+      }
+    } else {
+      if (window.electronAPI?.checkForUpdates) {
+        showBanner('Проверка обновлений...', '...');
+        window.electronAPI.checkForUpdates();
+      } else {
+        // Fallback: open GitHub releases
+        window.open('https://github.com/exieeez/Votify/releases', '_blank');
+      }
+    }
+  });
+
+  // Electron updater events
+  if (window.electronAPI) {
+    window.electronAPI.onUpdateChecking?.(() => {
+      showBanner('Проверка обновлений...', '...');
+      if (progressWrap) progressWrap.style.display = 'none';
+    });
+    window.electronAPI.onUpdateAvailable?.(info => {
+      availableInfo = info;
+      downloaded = false;
+      showBanner(`Доступно обновление ${info.version || ''}`.trim(), 'Скачать');
+      if (progressWrap) progressWrap.style.display = 'none';
+    });
+    window.electronAPI.onUpdateNotAvailable?.(() => {
+      // hideBanner();
+    });
+    window.electronAPI.onUpdateProgress?.(p => {
+      if (progressWrap) progressWrap.style.display = 'block';
+      if (progressBar) progressBar.style.width = Math.round(p.percent || 0) + '%';
+      showBanner(`Скачивание ${Math.round(p.percent || 0)}%...`, `${Math.round(p.percent || 0)}%`);
+    });
+    window.electronAPI.onUpdateDownloaded?.(info => {
+      downloaded = true;
+      availableInfo = info;
+      showBanner(`Обновление ${info.version || ''} готово`.trim(), 'Перезапустить');
+      if (progressWrap) progressWrap.style.display = 'none';
+      if (progressBar) progressBar.style.width = '100%';
+      // Auto-show like Discord
+      // Optionally auto-install on quit is already enabled, but we show banner
+    });
+    window.electronAPI.onUpdateError?.(err => {
+      console.warn('Updater error:', err);
+      hideBanner();
+    });
+
+    // Also check via GitHub API on each start for dev mode
+    if (!window.electronAPI.checkForUpdates) {
+      // Fallback GitHub check
+      fetch('https://api.github.com/repos/exieeez/Votify/releases/latest')
+        .then(r => r.json())
+        .then(release => {
+          const latest = (release.tag_name || '').replace(/^v/, '');
+          const current = '0.6.3'; // fallback, will be replaced by app version if available
+          if (latest && latest !== current) {
+            showBanner(`Доступно обновление ${latest}`, 'Скачать');
+            if (actionBtn) {
+              actionBtn.onclick = () => window.open(release.html_url, '_blank');
+            }
+          }
+        }).catch(() => {});
+    }
+  }
+})();
+
 // Material Icons robust loading — add class when font ready, fallback check
 (function ensureMaterialIcons(){
   const check = () => {

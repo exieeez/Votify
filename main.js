@@ -1,4 +1,10 @@
 const { app, BrowserWindow, shell, ipcMain, Tray, Menu } = require('electron');
+let autoUpdater = null;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+} catch (e) {
+  console.warn('[updater] electron-updater not available:', e.message);
+}
 const path = require('path');
 const http = require('http');
 const { fork } = require('child_process');
@@ -231,6 +237,97 @@ function createTray() {
   }
 }
 
+
+function setupAutoUpdater() {
+  if (!autoUpdater) return;
+  if (!app.isPackaged) {
+    console.log('[updater] Skipping in dev mode (not packaged)');
+    // For dev, still check GitHub API for info
+    checkGitHubForUpdates();
+    return;
+  }
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.allowDowngrade = false;
+
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[updater] Checking for update...');
+    mainWindow?.webContents.send('update:checking');
+  });
+
+  autoUpdater.on('update-available', info => {
+    console.log('[updater] Update available:', info.version);
+    mainWindow?.webContents.send('update:available', info);
+  });
+
+  autoUpdater.on('update-not-available', info => {
+    console.log('[updater] Update not available, current:', info.version);
+    mainWindow?.webContents.send('update:not-available', info);
+  });
+
+  autoUpdater.on('error', err => {
+    console.error('[updater] Error:', err.message);
+    mainWindow?.webContents.send('update:error', err.message);
+  });
+
+  autoUpdater.on('download-progress', progress => {
+    mainWindow?.webContents.send('update:progress', progress);
+  });
+
+  autoUpdater.on('update-downloaded', info => {
+    console.log('[updater] Update downloaded:', info.version);
+    mainWindow?.webContents.send('update:downloaded', info);
+    // Like Discord, show notification and auto-install on quit, but also allow immediate install
+  });
+
+  // Check on startup after 3s like Discord
+  setTimeout(() => {
+    console.log('[updater] Checking for updates on startup...');
+    autoUpdater.checkForUpdatesAndNotify().catch(e => console.warn('[updater] check failed:', e.message));
+  }, 3000);
+
+  // Check every 6 hours like Discord
+  setInterval(() => {
+    autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+  }, 6 * 60 * 60 * 1000);
+}
+
+async function checkGitHubForUpdates() {
+  // Fallback for dev or when electron-updater not available — check GitHub releases API
+  try {
+    const https = require('https');
+    const currentVersion = app.getVersion();
+    const options = {
+      hostname: 'api.github.com',
+      path: '/repos/exieeez/Votify/releases/latest',
+      method: 'GET',
+      headers: { 'User-Agent': 'Votify-Updater', 'Accept': 'application/vnd.github.v3+json' }
+    };
+    const req = https.request(options, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const release = JSON.parse(data);
+          const latest = (release.tag_name || release.name || '').replace(/^v/, '');
+          if (latest && latest !== currentVersion) {
+            console.log(`[updater] GitHub latest: ${latest}, current: ${currentVersion}`);
+            // Simple semver compare
+            const cmp = latest.localeCompare(currentVersion, undefined, { numeric: true });
+            if (cmp > 0) {
+              mainWindow?.webContents.send('update:available', { version: latest, releaseNotes: release.body, releaseName: release.name });
+            }
+          }
+        } catch (e) {}
+      });
+    });
+    req.on('error', () => {});
+    req.end();
+  } catch (e) {}
+}
+
 app.whenReady().then(async () => {
   if (!discordPresence.start()) {
     console.warn('[discord] Rich Presence disabled: invalid Discord Application ID');
@@ -238,6 +335,7 @@ app.whenReady().then(async () => {
   await startServer();
   createWindow();
   createTray();
+  setupAutoUpdater();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -258,6 +356,25 @@ app.on('before-quit', () => {
   void discordPresence.stop();
   if (serverProcess) {
     serverProcess.kill();
+  }
+});
+
+ipcMain.handle('check-for-updates', async () => {
+  if (autoUpdater && app.isPackaged) {
+    try {
+      return await autoUpdater.checkForUpdates();
+    } catch (e) {
+      return { error: e.message };
+    }
+  } else {
+    checkGitHubForUpdates();
+    return { message: 'Checking GitHub...' };
+  }
+});
+
+ipcMain.handle('install-update', () => {
+  if (autoUpdater) {
+    autoUpdater.quitAndInstall();
   }
 });
 

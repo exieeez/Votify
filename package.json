@@ -54,7 +54,14 @@
       "target": "nsis",
       "icon": "src/icon.png"
     },
-    "npmRebuild": false
+    "npmRebuild": false,
+    "publish": {
+      "provider": "github",
+      "owner": "exieeez",
+      "repo": "Votify",
+      "private": false
+    },
+    "generateUpdatesFilesForAllChannels": true
   },
   "devDependencies": {
     "electron": "^35.7.5",
@@ -70,7 +77,8 @@
     "bcryptjs": "^3.0.3",
     "firebase": "12.16.0",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^9.0.3"
+    "nodemailer": "^9.0.3",
+    "electron-updater": "^6.6.2"
   },
   "allowScripts": {
     "electron@35.7.5": true,
