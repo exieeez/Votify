@@ -406,12 +406,22 @@ sanitizeAppColorSchemes();
 
 // One-time cleanup for installations that inherited the old intrusive visual
 // defaults. Users can still enable particles again from the appearance panel.
-const cleanPlayerUiMigration = 'votify-clean-player-ui-v1';
+const cleanPlayerUiMigration = 'votify-clean-player-ui-v2';
 if (localStorage.getItem(cleanPlayerUiMigration) !== 'done') {
   appSettings.perfParticles = true;
   appSettings.bgParticles = 'dots';
+  appSettings.particleCount = appSettings.particleCount || 80;
+  appSettings.particleSize = appSettings.particleSize || 3.5;
+  appSettings.particleSpeed = appSettings.particleSpeed || 20;
   localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   localStorage.setItem(cleanPlayerUiMigration, 'done');
+}
+// Force enable for users who had particles disabled before
+if (appSettings.bgParticles === 'none' || appSettings.perfParticles === false) {
+  appSettings.perfParticles = true;
+  appSettings.bgParticles = appSettings.bgParticles === 'none' ? 'dots' : appSettings.bgParticles;
+  appSettings.particleCount = appSettings.particleCount || 80;
+  localStorage.setItem('votify-settings', JSON.stringify(appSettings));
 }
 
 let isChangingTrack = false;
