@@ -8881,3 +8881,47 @@ body[data-theme-mode="light"] input[type="range"]::-moz-range-track { background
 body[data-theme-mode="light"] input[type="range"]::-moz-range-progress { background: #000 !important; }
 body[data-theme-mode="light"] input[type="range"]::-webkit-slider-thumb { background: #000 !important; border-color: #fff !important; }
 
+
+/* === FIX: play button pink -> white, workshop default theme button === */
+.fi-play, #fi-play, .fi-play:hover, #fi-play:hover,
+.library-action-btn.primary, .library-action-btn.primary:hover,
+.fav-hero .lib-hero-icon-bg, .offline-hero .lib-hero-icon-bg,
+.wave-hero-play-btn.skiper25-btn, .my-wave-play-btn, .home-top-play-btn {
+  background: #fff !important;
+  background-color: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
+  box-shadow: none !important;
+}
+.fi-play .material-icons, #fi-play .material-icons,
+.library-action-btn.primary .material-icons,
+.fav-hero .lib-hero-icon-bg .material-icons {
+  color: #000 !important;
+}
+.library-action-btn.primary { background: #fff !important; color: #000 !important; }
+.workshop-primary-btn, .workshop-install-btn {
+  background: #fff !important;
+  color: #000 !important;
+}
+.workshop-install-btn.installed {
+  background: rgba(255,255,255,0.12) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.25) !important;
+}
+#workshop-default-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #fff !important;
+  color: #000 !important;
+  border: 1px solid #fff !important;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+#workshop-default-btn:hover { background: #e6e6e6 !important; }
+#workshop-default-btn .material-icons { font-size: 18px; }
+

@@ -244,9 +244,10 @@
           </div>
         </div>
         <div class="right-player-art">
-          <div class="right-player-cover-shell">
+          <div class="right-player-cover-shell is-empty">
             <div class="right-player-cover-glow"></div>
             <img class="right-player-cover" id="right-player-cover" src="" alt="" style="display:none"/>
+            <div class="right-player-cover-fallback cover-fallback" id="right-player-cover-fallback"><i class="material-icons">music_note</i></div>
             <div class="right-player-cover-shine"></div>
           </div>
           <div class="right-player-info">
@@ -428,8 +429,9 @@
           <div class="player-page-container">
             <div class="player-page-top">
               <!-- LEFT: Cover with Hover Overlay -->
-              <div class="pp-cover-wrap">
+              <div class="pp-cover-wrap is-empty">
                 <img class="pp-cover" id="page-player-cover" src="" alt="Обложка трека" />
+                <div class="pp-cover-fallback cover-fallback" id="page-player-cover-fallback"><i class="material-icons">music_note</i></div>
                 <div class="pp-cover-overlay">
                   <button class="pp-overlay-btn pp-fullscreen-btn" id="page-player-fs" title="На весь экран">
                     <i class="material-icons">fullscreen</i>
@@ -574,8 +576,8 @@
               <div class="library-active-playlist-view" id="lib-detail-pane" style="display:none;">
                 <div class="lib-detail-header-card" id="lib-header-card">
                   <div class="lib-detail-left">
-                    <div class="lib-detail-cover" id="lib-detail-cover">
-                      <i class="material-icons" id="lib-detail-cover-icon">queue_music</i>
+                    <div class="lib-detail-cover is-empty" id="lib-detail-cover">
+                      <div class="cover-fallback lib-detail-cover-fallback" id="lib-detail-cover-fallback"><i class="material-icons" id="lib-detail-cover-icon">queue_music</i></div>
                       <img id="lib-detail-cover-img" src="" alt="Cover" style="display:none;" />
                     </div>
                     <div class="lib-detail-info">
@@ -623,6 +625,10 @@
                 <i class="material-icons">search</i>
                 <input id="workshop-search-input" type="search" placeholder="Поиск по названию или автору" autocomplete="off" />
               </label>
+              <button class="workshop-refresh-btn" id="workshop-default-btn" title="Вернуть стандартную тему" style="margin-right:8px;">
+                <i class="material-icons">restart_alt</i>
+                Дефолт
+              </button>
               <button class="workshop-refresh-btn" id="workshop-refresh-btn" title="Обновить">
                 <i class="material-icons">refresh</i>
               </button>
@@ -673,8 +679,9 @@
             <button class="btn-secondary" id="back-from-album-btn"><i class="material-icons">arrow_back</i> Назад</button>
           </div>
           <div class="album-screen-header">
-            <div class="album-screen-cover-wrap">
+            <div class="album-screen-cover-wrap is-empty">
               <img id="album-screen-cover" src="" alt="Album Cover" />
+              <div class="album-screen-cover-fallback cover-fallback" id="album-screen-cover-fallback"><i class="material-icons">music_note</i></div>
             </div>
             <div class="album-screen-info">
               <span class="album-screen-badge" id="album-screen-badge">Альбом</span>
@@ -699,8 +706,9 @@
       <!-- OLD PLAYER BAR (hidden, keeps IDs alive for existing JS) -->
       <footer class="player-bar" id="player-bar" style="display:none!important">
         <div class="player-bar-left" id="player-expand-btn">
-          <div class="player-bar-cover-wrap">
+          <div class="player-bar-cover-wrap is-empty">
             <img id="player-bar-cover" class="player-bar-cover" src="" alt="" />
+            <div class="player-bar-cover-fallback cover-fallback" id="player-bar-cover-fallback"><i class="material-icons">music_note</i></div>
             <canvas id="mini-visualizer" class="mini-visualizer"></canvas>
           </div>
           <div class="player-bar-info">
@@ -761,7 +769,10 @@
       <footer class="floating-island" id="floating-island">
         <!-- LEFT: cover + info + like -->
         <div class="fi-left">
-          <img class="fi-cover" id="fi-cover" src="" alt="" />
+          <div class="fi-cover-wrap is-empty">
+            <img class="fi-cover" id="fi-cover" src="" alt="" />
+            <div class="fi-cover-fallback cover-fallback" id="fi-cover-fallback"><i class="material-icons">music_note</i></div>
+          </div>
           <div class="fi-info">
             <div class="fi-title" id="fi-title">Votify</div>
             <div class="fi-artist" id="fi-artist">Выберите трек</div>
@@ -859,8 +870,9 @@
         <!-- LEFT COLUMN: Cover, Overlay Buttons, Meta, Timeline, Controls -->
         <div class="fs-left-column">
           <!-- COVER CONTAINER WITH INSET OVERLAY BUTTONS -->
-          <div class="fs-cover-container">
+          <div class="fs-cover-container is-empty">
             <img class="fs-cover" id="fs-cover" src="" alt="Album Cover" />
+            <div class="fs-cover-fallback cover-fallback" id="fs-cover-fallback"><i class="material-icons">music_note</i></div>
             <div class="fs-cover-overlay-bar">
               <button class="fs-cover-btn fs-fav-btn" id="fs-fav-btn" title="В любимое">
                 <i class="material-icons">favorite_border</i>
@@ -1228,8 +1240,11 @@
                   <select id="setting-cover-shape" class="m3-select">
                     <option value="Закруглённый квадрат" selected>Закруглённый квадрат</option>
                     <option value="Квадрат">Квадрат</option>
+                    <option value="Мягкий квадрат">Мягкий квадрат</option>
                     <option value="Круг">Круг</option>
                     <option value="Виниловая пластинка">Виниловая пластинка</option>
+                    <option value="Шестиугольник">Шестиугольник</option>
+                    <option value="Ромб">Ромб</option>
                   </select>
                 </div>
               </div>
@@ -1571,6 +1586,7 @@
     <script src="/vendor/firebase-firestore-compat.js"></script>
     <script src="firebase-client.js"></script>
     <script src="color-schemes.js"></script>
+    <script src="onboarding.js"></script>
     <script src="main.js"></script>
     <script src="workshop.js"></script>
   </body>

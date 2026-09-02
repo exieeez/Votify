@@ -342,30 +342,58 @@
       return;
     }
     const cloud = window.VotifyCloud;
+    // Always render builtins immediately — even without Firebase
+    if (!state.themes.length) {
+      state.themes = mergeWithBuiltins(readCache());
+    }
+    renderThemes();
+
     if (!cloud) {
-      setStatus('Мастерская недоступна: Firebase не загружен', 'error');
+      setStatus('Офлайн режим — показаны встроенные темы (4) + локальные', 'success');
       return;
     }
     state.loading = true;
     document.getElementById('workshop-refresh-btn')?.classList.add('loading');
     setStatus(state.themes.length ? 'Обновляем каталог…' : 'Загружаем темы…');
-    if (state.themes.length) renderThemes();
     try {
       await cloud.whenReady();
+      if (!cloud.isAvailable || !cloud.isAvailable()) {
+        // offline: keep builtins + local cache
+        const cached = readCache();
+        state.themes = mergeWithBuiltins(cached);
+        renderThemes();
+        setStatus(`Офлайн режим — встроенных тем: ${BUILTIN_THEMES.length}, локальных: ${cached.length}. Добавьте firebase-config.json для облачных тем.`, 'success');
+        return;
+      }
       const themes = await cloud.listWorkshopThemes();
-      state.themes = mergeWithBuiltins(themes.map(cleanThemeDocument));
-      state.loadedAt = Date.now();
-      writeCache();
-      renderThemes();
-      setStatus(`Тем в мастерской: ${state.themes.length}`, 'success');
+      // themes may be empty when offline — keep builtins
+      const merged = mergeWithBuiltins((themes || []).map(cleanThemeDocument));
+      // If cloud returned nothing, keep at least builtins + cached
+      if (!themes || !themes.length) {
+        const cached = readCache();
+        state.themes = mergeWithBuiltins(cached);
+        renderThemes();
+        setStatus(`Тем в мастерской: ${state.themes.length} (встроенные + локальные)`, 'success');
+      } else {
+        state.themes = merged;
+        state.loadedAt = Date.now();
+        writeCache();
+        renderThemes();
+        setStatus(`Тем в мастерской: ${state.themes.length}`, 'success');
+      }
     } catch (error) {
       console.error('[Workshop] Load error:', error);
+      const cached = readCache();
+      state.themes = mergeWithBuiltins(cached);
       renderThemes();
+      const isOffline = /облачн|синхронизация|не настроена|offline/i.test(error.message || '');
       setStatus(
-        state.themes.length
-          ? 'Не удалось обновить каталог — показана сохранённая копия'
-          : window.VotifyCloud?.friendlyError?.(error) || 'Не удалось загрузить мастерскую',
-        'error'
+        isOffline
+          ? `Офлайн режим — встроенных: ${BUILTIN_THEMES.length}, локальных: ${cached.length}`
+          : (state.themes.length
+            ? 'Не удалось обновить каталог — показана сохранённая копия'
+            : window.VotifyCloud?.friendlyError?.(error) || 'Не удалось загрузить мастерскую'),
+        isOffline ? 'success' : 'error'
       );
     } finally {
       state.loading = false;
@@ -376,11 +404,19 @@
   function updatePublishAccess() {
     const button = document.getElementById('workshop-publish-btn');
     if (!button) return;
-    const user = window.VotifyCloud?.getCurrentUser?.();
+    const cloud = window.VotifyCloud;
+    const user = cloud?.getCurrentUser?.();
+    const isOffline = cloud && typeof cloud.isAvailable === 'function' && !cloud.isAvailable();
+    if (isOffline) {
+      button.title = user ? 'Опубликовать тему локально (офлайн)' : 'Войдите как гость чтобы публиковать локально';
+      button.disabled = !user;
+      return;
+    }
+    button.disabled = false;
     button.title = !user
       ? 'Сначала войдите в аккаунт'
       : user.isAnonymous
-        ? 'Привяжите постоянный аккаунт'
+        ? 'Привяжите постоянный аккаунт для публикации в облако'
         : 'Опубликовать текущую тему';
   }
 
@@ -395,14 +431,15 @@
   function openPublishModal() {
     const cloud = window.VotifyCloud;
     const user = cloud?.getCurrentUser?.();
+    const isOffline = cloud && typeof cloud.isAvailable === 'function' && !cloud.isAvailable();
     if (!user) {
       cloud?.openAuth?.('auth-register');
-      setStatus('Зарегистрируйтесь, чтобы публиковать темы', 'error');
+      setStatus(isOffline ? 'Войдите как гость чтобы публиковать локально' : 'Зарегистрируйтесь, чтобы публиковать темы', 'error');
       return;
     }
-    if (user.isAnonymous) {
+    if (!isOffline && user.isAnonymous) {
       cloud?.openProfile?.();
-      setStatus('Привяжите гостевой профиль к Email или Google', 'error');
+      setStatus('Привяжите гостевой профиль к Email или Google для публикации в облако', 'error');
       return;
     }
     const theme = window.VotifyThemeWorkshop?.getCurrentTheme?.();
@@ -489,6 +526,47 @@
     }
   }
 
+  function resetToDefaultTheme() {
+    // Clear workshop theme and restore default black & white
+    try {
+      const api = window.VotifyColorSchemes;
+      if (api && window.VotifyThemeWorkshop) {
+        // Reset to default black & white mono theme
+        const defaultTheme = {
+          primary: '#FFFFFF',
+          background: '#000000',
+          text: '#FFFFFF',
+          cards: '#0a0a0a',
+          borders: '#1a1a1a',
+          focus: '#FFFFFF',
+          mode: 'contrast',
+          backgroundPreset: 'default',
+          backgroundUrl: '',
+          cornerRadius: 8,
+          uiTransparency: 100,
+          backgroundBlur: 0,
+          particles: 'none',
+          fontFamily: 'system'
+        };
+        window.VotifyThemeWorkshop.applyTheme(defaultTheme, { id: '', title: 'Стандартная тема' });
+        // Clear active scheme id
+        const settingsStr = localStorage.getItem('votify-settings');
+        if (settingsStr) {
+          const settings = JSON.parse(settingsStr);
+          settings.activeColorSchemeId = '';
+          settings.workshopThemeId = '';
+          settings.workshopThemeTitle = '';
+          localStorage.setItem('votify-settings', JSON.stringify(settings));
+        }
+        setStatus('Возвращена стандартная чёрно-белая тема', 'success');
+        renderThemes();
+      }
+    } catch (e) {
+      console.error('Failed to reset to default theme', e);
+      setStatus('Не удалось сбросить тему', 'error');
+    }
+  }
+
   function wireUi() {
     document.getElementById('workshop-search-input')?.addEventListener('input', event => {
       state.query = event.target.value || '';
@@ -497,6 +575,7 @@
     document
       .getElementById('workshop-refresh-btn')
       ?.addEventListener('click', () => loadThemes(true));
+    document.getElementById('workshop-default-btn')?.addEventListener('click', resetToDefaultTheme);
     document.getElementById('workshop-publish-btn')?.addEventListener('click', openPublishModal);
     document.getElementById('workshop-grid')?.addEventListener('click', handleCardAction);
     document.getElementById('workshop-publish-close')?.addEventListener('click', closePublishModal);
