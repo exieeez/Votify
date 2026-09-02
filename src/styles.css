@@ -3,17 +3,19 @@
    ============================================ */
 
 :root {
-  --bg-base: #121212;
-  --bg-surface: #181818;
-  --bg-elevated: #282828;
-  --bg-highlight: #333333;
+  --bg-base: #000000;
+  --bg-surface: #0a0a0a;
+  --bg-elevated: #141414;
+  --bg-highlight: #222222;
+  --bg-card: #0f0f0f;
   --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --text-subdued: #6a6a6a;
-  --accent: #1DB954;
-  --accent-hover: #1ed760;
-  --accent-rgb: 29,185,84;
-  --danger: #e74c3c;
+  --text-secondary: #a0a0a0;
+  --text-tertiary: #6a6a6a;
+  --text-subdued: #5a5a5a;
+  --accent: #FFFFFF;
+  --accent-hover: #D9D9D9;
+  --accent-rgb: 255,255,255;
+  --danger: #ffffff;
   --titlebar-h: 32px;
   --sidebar-w: 64px;
   --player-h: 72px;
@@ -24,37 +26,40 @@
   --app-font: 'Inter', 'Segoe UI', Roboto, sans-serif;
   --app-font-size-offset: 16px;
   --app-text-transform: none;
-  --app-opacity: 0.98;
-  --md-accent: #1DB954;
-  --md-surface: #14171e;
-  --md-surface-variant: #1e2130;
-  --md-on-surface: #e3e2e6;
-  --md-on-surface-variant: #c4c6d0;
-  --md-outline: rgba(255,255,255,0.08);
-  --md-primary: #1DB954;
-  --md-on-primary: #fff;
-  --md-error: #f2b8b5;
-  --md-on-error: #601410;
-  --md-inverse-surface: #e3e2e6;
-  --md-inverse-on-surface: #1c1b1f;
-  --md-scrim: rgba(0,0,0,0.32);
+  --app-opacity: 1;
+  --md-accent: #FFFFFF;
+  --md-surface: #0a0a0a;
+  --md-surface-variant: #1a1a1a;
+  --md-on-surface: #ffffff;
+  --md-on-surface-variant: #a0a0a0;
+  --md-outline: rgba(255,255,255,0.10);
+  --md-primary: #FFFFFF;
+  --md-on-primary: #000000;
+  --md-error: #ffffff;
+  --md-on-error: #000000;
+  --md-inverse-surface: #ffffff;
+  --md-inverse-on-surface: #000000;
+  --md-scrim: rgba(0,0,0,0.72);
 }
 
 /* Theme mode variants (Оформление → Тема) */
 body[data-theme-mode="midnight"] {
-  --bg-base: #08090d;
-  --bg-surface: #0d0f16;
-  --bg-elevated: #161822;
-  --bg-highlight: #22242f;
+  --bg-base: #000000;
+  --bg-surface: #080808;
+  --bg-elevated: #141414;
+  --bg-highlight: #1e1e1e;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-subdued: #5a5a5a;
 }
 body[data-theme-mode="contrast"] {
   --bg-base: #000000;
   --bg-surface: #0a0a0a;
-  --bg-elevated: #161616;
-  --bg-highlight: #2a2a2a;
+  --bg-elevated: #141414;
+  --bg-highlight: #222222;
   --text-primary: #ffffff;
-  --text-secondary: #e6e6e6;
-  --text-subdued: #a0a0a0;
+  --text-secondary: #a0a0a0;
+  --text-subdued: #5a5a5a;
 }
 
 /* Appearance: animations / cover-in-player toggles */
@@ -7825,3 +7830,1054 @@ input.settings-range::-moz-range-thumb {
   padding: 4px 10px;
   font-size: 12px;
 }
+
+/* ==========================================================
+   PREMIUM COVER PLACEHOLDER — when no track selected
+   Replaces ugly broken-image icon with styled music_note
+   ========================================================== */
+.fi-cover-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: transparent;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.12);
+}
+.fi-cover-wrap .fi-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Generic fallback — premium glass + accent glow */
+.cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background:
+    radial-gradient(110% 110% at 30% 22%, rgba(var(--accent-rgb),0.38) 0%, rgba(var(--accent-rgb),0.12) 32%, transparent 68%),
+    linear-gradient(145deg, rgba(42,44,58,0.96) 0%, rgba(18,19,27,0.99) 100%);
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 18px rgba(0,0,0,0.32);
+  color: rgba(255,255,255,0.82);
+  z-index: 2;
+  overflow: hidden;
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+.cover-fallback::before {
+  content: '';
+  position: absolute;
+  width: 58%;
+  height: 58%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.14), rgba(255,255,255,0.04) 62%);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+.cover-fallback i.material-icons {
+  position: relative;
+  z-index: 1;
+  font-size: 22px;
+  filter: drop-shadow(0 1px 6px rgba(0,0,0,0.35));
+  opacity: 0.92;
+}
+
+/* Specific sizes */
+.fi-cover-fallback i { font-size: 24px; }
+.player-bar-cover-fallback i { font-size: 20px; }
+.right-player-cover-fallback i { font-size: 54px; }
+.pp-cover-fallback i { font-size: 56px; }
+.fs-cover-fallback i { font-size: 72px; }
+.album-screen-cover-fallback i { font-size: 42px; }
+
+/* Wrappers must be relative */
+.player-bar-cover-wrap,
+.right-player-cover-shell,
+.pp-cover-wrap,
+.fs-cover-container,
+.album-screen-cover-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.player-bar-cover-wrap { background: var(--bg-elevated); }
+.right-player-cover-shell { border-radius: 22px; background: #15171f; }
+.pp-cover-wrap { background: #15171f; }
+.fs-cover-container { background: #181a20; }
+.album-screen-cover-wrap { background: var(--bg-elevated); position: relative; }
+
+/* When cover has real src, hide fallback */
+.has-cover .cover-fallback,
+.has-cover .fi-cover-fallback { opacity: 0; pointer-events: none; transform: scale(0.92); }
+.is-empty img.fi-cover,
+.is-empty img.player-bar-cover,
+.is-empty img.right-player-cover,
+.is-empty img.pp-cover,
+.is-empty img.fs-cover,
+.is-empty #album-screen-cover,
+.is-empty #lib-detail-cover-img {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Empty state — fallback visible, subtle pulse */
+.is-empty .cover-fallback {
+  opacity: 1;
+  transform: scale(1);
+  animation: coverFallbackPulse 3.2s ease-in-out infinite;
+}
+@keyframes coverFallbackPulse {
+  0%,100% { filter: brightness(1); }
+  50% { filter: brightness(1.12); }
+}
+
+/* Hide broken img icon when src empty */
+img.fi-cover[src=""], img.player-bar-cover[src=""], img.right-player-cover[src=""],
+img.pp-cover[src=""], img.fs-cover[src=""], #album-screen-cover[src=""],
+#lib-detail-cover-img[src=""], img[src=""] {
+  opacity: 0;
+}
+
+/* Light theme adjustment */
+body[data-theme-mode="light"] .cover-fallback,
+body.light-theme .cover-fallback {
+  background:
+    radial-gradient(110% 110% at 30% 22%, rgba(var(--accent-rgb),0.22) 0%, rgba(var(--accent-rgb),0.08) 32%, transparent 68%),
+    linear-gradient(145deg, #ffffff 0%, #eef0f6 100%);
+  border-color: rgba(0,0,0,0.08);
+  color: rgba(15,23,42,0.72);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 18px rgba(0,0,0,0.08);
+}
+body[data-theme-mode="light"] .cover-fallback::before,
+body.light-theme .cover-fallback::before {
+  background: radial-gradient(circle at 35% 35%, rgba(0,0,0,0.06), rgba(0,0,0,0.02) 62%);
+  border-color: rgba(0,0,0,0.06);
+}
+
+/* Vinyl shape — fallback looks like vinyl */
+body[data-player-cover-shape="vinyl"] .cover-fallback,
+body[data-player-cover-shape="circle"] .cover-fallback,
+body[data-player-style="vinyl"] .cover-fallback {
+  border-radius: 50% !important;
+}
+body[data-player-cover-shape="vinyl"] .cover-fallback,
+body[data-player-style="vinyl"] .cover-fallback,
+body[data-cover-animation="rotation"] .cover-fallback {
+  background:
+    radial-gradient(circle at center, #1e1e26 0 10%, #12121a 11% 13%, #1a1a22 14% 16%, #101015 17% 100%),
+    radial-gradient(120% 120% at 30% 25%, rgba(var(--accent-rgb),0.18), transparent 60%);
+  box-shadow: 0 0 0 3px #0e0e12, 0 0 0 6px rgba(255,255,255,0.12), 0 14px 36px rgba(0,0,0,0.55);
+}
+body[data-player-cover-shape="vinyl"] .cover-fallback::before,
+body[data-player-style="vinyl"] .cover-fallback::before {
+  width: 22%;
+  height: 22%;
+  background: #0a0a0e;
+  border: 2px solid rgba(255,255,255,0.14);
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.8);
+}
+body[data-player-cover-shape="vinyl"] .cover-fallback i,
+body[data-player-style="vinyl"] .cover-fallback i {
+  font-size: 18px !important;
+  opacity: 0.55;
+}
+
+/* Rounded / square inheritance */
+body[data-player-cover-shape="rounded"] .cover-fallback { border-radius: 16px !important; }
+body[data-player-cover-shape="square"] .cover-fallback { border-radius: 0 !important; }
+
+/* Right player specific: keep shine above fallback */
+.right-player-cover-shine { z-index: 3; pointer-events: none; }
+.right-player-cover-fallback { z-index: 1; }
+.right-player-cover { z-index: 2; }
+
+/* Lib detail cover — premium fallback */
+.lib-detail-cover {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(38,40,52,0.96), rgba(18,19,27,0.99));
+  border-radius: 18px;
+}
+.lib-detail-cover img { position: relative; z-index: 2; }
+.lib-detail-cover .cover-fallback,
+#lib-detail-cover-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  border-radius: inherit;
+}
+.lib-detail-cover .cover-fallback,
+.lib-detail-cover #lib-detail-cover-icon {
+  background:
+    radial-gradient(110% 110% at 30% 22%, rgba(var(--accent-rgb),0.34) 0%, rgba(var(--accent-rgb),0.10) 32%, transparent 68%),
+    linear-gradient(145deg, rgba(42,44,58,0.96) 0%, rgba(18,19,27,0.99) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 18px rgba(0,0,0,0.28);
+  color: rgba(255,255,255,0.84);
+}
+.lib-detail-cover.has-cover .cover-fallback,
+.lib-detail-cover.has-cover #lib-detail-cover-icon { opacity: 0; pointer-events: none; transform: scale(0.94); }
+.lib-detail-cover.is-empty .cover-fallback,
+.lib-detail-cover.is-empty #lib-detail-cover-icon { opacity: 1; transform: scale(1); }
+.lib-detail-cover #lib-detail-cover-icon i,
+.lib-detail-cover .cover-fallback i { font-size: 44px; filter: drop-shadow(0 1px 8px rgba(0,0,0,0.35)); }
+
+/* Page player overlay should be above fallback */
+.pp-cover-overlay { z-index: 4; }
+.pp-cover { position: relative; z-index: 2; }
+.pp-cover-fallback { z-index: 1; }
+
+/* Fullscreen fallback overlay bar above */
+.fs-cover { position: relative; z-index: 2; }
+.fs-cover-fallback { z-index: 1; }
+.fs-cover-overlay-bar { z-index: 4; }
+
+/* ==========================================================
+   FINAL OVERRIDE — Cover Shape Setting (must be last)
+   Fixes:
+   1) vinyl player-style forced 50% and broke shape setting
+   2) bottom cover вылазит за края при hover
+   3) затемнение/кнопки оставались кругом вместо формы
+   4) при смене стиля на винил оставался квадрат
+   ========================================================== */
+
+/* Disable hover scale that made bottom cover stick out */
+.fi-cover-wrap .fi-cover:hover,
+.fi-cover:hover,
+.pp-cover-wrap:hover .pp-cover {
+  transform: none !important;
+}
+.fi-cover {
+  transition: box-shadow 0.25s ease !important;
+}
+
+/* SQUARE */
+body[data-player-cover-shape="square"] .fi-cover-wrap,
+body[data-player-cover-shape="square"] .player-bar-cover-wrap,
+body[data-player-cover-shape="square"] .right-player-cover-shell,
+body[data-player-cover-shape="square"] .pp-cover-wrap,
+body[data-player-cover-shape="square"] .fs-cover-container,
+body[data-player-cover-shape="square"] .album-screen-cover-wrap,
+body[data-player-cover-shape="square"] .lib-detail-cover,
+body[data-player-cover-shape="square"] img.fi-cover,
+body[data-player-cover-shape="square"] img.player-bar-cover,
+body[data-player-cover-shape="square"] img.right-player-cover,
+body[data-player-cover-shape="square"] img.pp-cover,
+body[data-player-cover-shape="square"] img.fs-cover,
+body[data-player-cover-shape="square"] #album-screen-cover,
+body[data-player-cover-shape="square"] #page-player-cover,
+body[data-player-cover-shape="square"] #lib-detail-cover-img,
+body[data-player-cover-shape="square"] .cover-fallback,
+body[data-player-cover-shape="square"] .pp-cover-overlay,
+body[data-player-cover-shape="square"] .fs-cover-overlay-bar {
+  border-radius: 0 !important;
+  clip-path: none !important;
+}
+body[data-player-cover-shape="square"] .fi-cover-wrap { border-radius: 4px !important; }
+body[data-player-cover-shape="square"] .pp-cover-wrap,
+body[data-player-cover-shape="square"] .fs-cover-container,
+body[data-player-cover-shape="square"] .right-player-cover-shell,
+body[data-player-cover-shape="square"] .fi-cover-wrap,
+body[data-player-cover-shape="square"] .player-bar-cover-wrap {
+  overflow: hidden !important;
+  background: var(--bg-elevated, #15171f) !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.12) !important;
+}
+body[data-player-cover-shape="square"] img.fi-cover,
+body[data-player-cover-shape="square"] img.player-bar-cover,
+body[data-player-cover-shape="square"] img.right-player-cover,
+body[data-player-cover-shape="square"] img.pp-cover,
+body[data-player-cover-shape="square"] img.fs-cover {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* ROUNDED */
+body[data-player-cover-shape="rounded"] .fi-cover-wrap,
+body[data-player-cover-shape="rounded"] .player-bar-cover-wrap,
+body[data-player-cover-shape="rounded"] .right-player-cover-shell,
+body[data-player-cover-shape="rounded"] .pp-cover-wrap,
+body[data-player-cover-shape="rounded"] .fs-cover-container,
+body[data-player-cover-shape="rounded"] .album-screen-cover-wrap,
+body[data-player-cover-shape="rounded"] .lib-detail-cover,
+body[data-player-cover-shape="rounded"] img.fi-cover,
+body[data-player-cover-shape="rounded"] img.player-bar-cover,
+body[data-player-cover-shape="rounded"] img.right-player-cover,
+body[data-player-cover-shape="rounded"] img.pp-cover,
+body[data-player-cover-shape="rounded"] img.fs-cover,
+body[data-player-cover-shape="rounded"] #album-screen-cover,
+body[data-player-cover-shape="rounded"] #page-player-cover,
+body[data-player-cover-shape="rounded"] #lib-detail-cover-img,
+body[data-player-cover-shape="rounded"] .cover-fallback,
+body[data-player-cover-shape="rounded"] .pp-cover-overlay,
+body[data-player-cover-shape="rounded"] .fs-cover-overlay-bar {
+  border-radius: 16px !important;
+  clip-path: none !important;
+}
+body[data-player-cover-shape="rounded"] .fi-cover-wrap { border-radius: 12px !important; }
+body[data-player-cover-shape="rounded"] .pp-cover-wrap,
+body[data-player-cover-shape="rounded"] .fs-cover-container,
+body[data-player-cover-shape="rounded"] .right-player-cover-shell,
+body[data-player-cover-shape="rounded"] .fi-cover-wrap,
+body[data-player-cover-shape="rounded"] .player-bar-cover-wrap {
+  overflow: hidden !important;
+  background: var(--bg-elevated, #15171f) !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.12) !important;
+}
+body[data-player-cover-shape="rounded"] img.fi-cover,
+body[data-player-cover-shape="rounded"] img.player-bar-cover,
+body[data-player-cover-shape="rounded"] img.right-player-cover,
+body[data-player-cover-shape="rounded"] img.pp-cover,
+body[data-player-cover-shape="rounded"] img.fs-cover {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* CIRCLE */
+body[data-player-cover-shape="circle"] .fi-cover-wrap,
+body[data-player-cover-shape="circle"] .player-bar-cover-wrap,
+body[data-player-cover-shape="circle"] .right-player-cover-shell,
+body[data-player-cover-shape="circle"] .pp-cover-wrap,
+body[data-player-cover-shape="circle"] .fs-cover-container,
+body[data-player-cover-shape="circle"] .album-screen-cover-wrap,
+body[data-player-cover-shape="circle"] .lib-detail-cover,
+body[data-player-cover-shape="circle"] img.fi-cover,
+body[data-player-cover-shape="circle"] img.player-bar-cover,
+body[data-player-cover-shape="circle"] img.right-player-cover,
+body[data-player-cover-shape="circle"] img.pp-cover,
+body[data-player-cover-shape="circle"] img.fs-cover,
+body[data-player-cover-shape="circle"] #album-screen-cover,
+body[data-player-cover-shape="circle"] #page-player-cover,
+body[data-player-cover-shape="circle"] #lib-detail-cover-img,
+body[data-player-cover-shape="circle"] .cover-fallback {
+  border-radius: 50% !important;
+}
+body[data-player-cover-shape="circle"] .pp-cover-overlay,
+body[data-player-cover-shape="circle"] .fs-cover-overlay-bar {
+  border-radius: 50% !important;
+  clip-path: circle(50% at 50% 50%) !important;
+}
+body[data-player-cover-shape="circle"] .pp-cover-wrap,
+body[data-player-cover-shape="circle"] .fs-cover-container,
+body[data-player-cover-shape="circle"] .right-player-cover-shell,
+body[data-player-cover-shape="circle"] .fi-cover-wrap,
+body[data-player-cover-shape="circle"] .player-bar-cover-wrap {
+  overflow: hidden !important;
+  background: var(--bg-elevated, #15171f) !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.12) !important;
+}
+body[data-player-cover-shape="circle"] img.fi-cover,
+body[data-player-cover-shape="circle"] img.player-bar-cover,
+body[data-player-cover-shape="circle"] img.right-player-cover,
+body[data-player-cover-shape="circle"] img.pp-cover,
+body[data-player-cover-shape="circle"] img.fs-cover {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* VINYL */
+body[data-player-cover-shape="vinyl"] .fi-cover-wrap,
+body[data-player-cover-shape="vinyl"] .player-bar-cover-wrap,
+body[data-player-cover-shape="vinyl"] .right-player-cover-shell,
+body[data-player-cover-shape="vinyl"] .pp-cover-wrap,
+body[data-player-cover-shape="vinyl"] .fs-cover-container,
+body[data-player-cover-shape="vinyl"] .album-screen-cover-wrap,
+body[data-player-cover-shape="vinyl"] .lib-detail-cover,
+body[data-player-cover-shape="vinyl"] img.fi-cover,
+body[data-player-cover-shape="vinyl"] img.player-bar-cover,
+body[data-player-cover-shape="vinyl"] img.right-player-cover,
+body[data-player-cover-shape="vinyl"] img.pp-cover,
+body[data-player-cover-shape="vinyl"] img.fs-cover,
+body[data-player-cover-shape="vinyl"] #album-screen-cover,
+body[data-player-cover-shape="vinyl"] #page-player-cover,
+body[data-player-cover-shape="vinyl"] #lib-detail-cover-img,
+body[data-player-cover-shape="vinyl"] .cover-fallback {
+  border-radius: 50% !important;
+}
+body[data-player-cover-shape="vinyl"] .pp-cover-overlay,
+body[data-player-cover-shape="vinyl"] .fs-cover-overlay-bar {
+  border-radius: 50% !important;
+  clip-path: circle(50% at 50% 50%) !important;
+}
+body[data-player-cover-shape="vinyl"] .pp-cover-wrap,
+body[data-player-cover-shape="vinyl"] .fs-cover-container,
+body[data-player-cover-shape="vinyl"] .right-player-cover-shell,
+body[data-player-cover-shape="vinyl"] .fi-cover-wrap {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+body[data-player-cover-shape="vinyl"] img.pp-cover,
+body[data-player-cover-shape="vinyl"] img.fs-cover,
+body[data-player-cover-shape="vinyl"] img.right-player-cover,
+body[data-player-cover-shape="vinyl"] img.fi-cover,
+body[data-player-cover-shape="vinyl"] img.player-bar-cover {
+  box-shadow: 0 0 0 3px #111, 0 0 0 6px rgba(255,255,255,0.22), 0 12px 32px rgba(0,0,0,0.75) !important;
+}
+
+/* Bottom floating island — fix layout */
+.floating-island {
+  overflow: visible !important;
+}
+.fi-cover-wrap {
+  overflow: hidden !important;
+  flex-shrink: 0;
+}
+.fi-cover-wrap.shape-vinyl,
+.fi-cover-wrap.shape-circle {
+  overflow: visible !important;
+}
+.fi-cover-wrap.shape-vinyl .fi-cover,
+.fi-cover-wrap.shape-circle .fi-cover {
+  border-radius: 50% !important;
+}
+.fi-cover-wrap.shape-square .fi-cover {
+  border-radius: 0 !important;
+}
+.fi-cover-wrap.shape-rounded-square .fi-cover {
+  border-radius: 12px !important;
+}
+.fi-cover-wrap.shape-square { border-radius: 4px !important; }
+.fi-cover-wrap.shape-rounded-square { border-radius: 12px !important; }
+.fi-cover-wrap.shape-circle,
+.fi-cover-wrap.shape-vinyl { border-radius: 50% !important; }
+
+/* When player-style is vinyl but cover-shape is square/rounded/circle,
+   vinyl rings should NOT appear unless shape is vinyl */
+body[data-player-style="vinyl"][data-player-cover-shape="square"] img.fi-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="square"] img.player-bar-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="square"] img.right-player-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="square"] img.pp-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="square"] img.fs-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="rounded"] img.fi-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="rounded"] img.player-bar-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="rounded"] img.right-player-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="rounded"] img.pp-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="rounded"] img.fs-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="circle"] img.fi-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="circle"] img.player-bar-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="circle"] img.right-player-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="circle"] img.pp-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="circle"] img.fs-cover {
+  box-shadow: none !important;
+  animation: none !important;
+}
+body[data-player-style="vinyl"][data-player-cover-shape="square"] .pp-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="rounded"] .pp-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="circle"] .pp-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="square"] .fi-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="rounded"] .fi-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="circle"] .fi-cover-wrap {
+  background: var(--bg-elevated, #15171f) !important;
+  overflow: hidden !important;
+}
+
+/* Rotation animation should respect square/rounded shape — only vinyl/circle spin */
+body[data-cover-animation="rotation"][data-player-cover-shape="square"] img.fi-cover,
+body[data-cover-animation="rotation"][data-player-cover-shape="square"] img.player-bar-cover,
+body[data-cover-animation="rotation"][data-player-cover-shape="rounded"] img.fi-cover,
+body[data-cover-animation="rotation"][data-player-cover-shape="rounded"] img.player-bar-cover {
+  animation: none !important;
+  border-radius: 0 !important;
+}
+body[data-cover-animation="rotation"][data-player-cover-shape="rounded"] img.fi-cover,
+body[data-cover-animation="rotation"][data-player-cover-shape="rounded"] img.player-bar-cover {
+  border-radius: 16px !important;
+}
+
+/* ==========================================================
+   VOTIFY FIXES 2026-09-01 — icons + diverse shapes + lava lamp
+   ========================================================== */
+
+/* 1) MATERIAL-ICONS — robust fix for text-transform uppercase & font inheritance */
+.material-icons {
+  font-family: 'Material Icons' !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  font-size: 24px !important;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  direction: ltr !important;
+  -webkit-font-feature-settings: 'liga' !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-feature-settings: 'liga' !important;
+  text-rendering: optimizeLegibility !important;
+}
+button .material-icons,
+.btn .material-icons,
+.fi-btn .material-icons,
+.pp-btn .material-icons,
+.fs-cover-btn .material-icons,
+.control-btn .material-icons,
+.m3-icon-btn .material-icons,
+.right-extra-btn .material-icons,
+.nav-btn .material-icons {
+  font-family: 'Material Icons' !important;
+  text-transform: none !important;
+}
+/* If Google Fonts fails, hide text fallback with zero width trick? Keep visible icon names hidden */
+.material-icons:empty::before { content: 'music_note'; opacity:0.6; }
+
+/* 2) NEW COVER SHAPES — SOFT / HEXAGON / DIAMOND */
+
+/* SOFT — extra soft super-rounded */
+body[data-player-cover-shape="soft"] .fi-cover-wrap,
+body[data-player-cover-shape="soft"] .player-bar-cover-wrap,
+body[data-player-cover-shape="soft"] .right-player-cover-shell,
+body[data-player-cover-shape="soft"] .pp-cover-wrap,
+body[data-player-cover-shape="soft"] .fs-cover-container,
+body[data-player-cover-shape="soft"] .album-screen-cover-wrap,
+body[data-player-cover-shape="soft"] .lib-detail-cover,
+body[data-player-cover-shape="soft"] img.fi-cover,
+body[data-player-cover-shape="soft"] img.player-bar-cover,
+body[data-player-cover-shape="soft"] img.right-player-cover,
+body[data-player-cover-shape="soft"] img.pp-cover,
+body[data-player-cover-shape="soft"] img.fs-cover,
+body[data-player-cover-shape="soft"] #album-screen-cover,
+body[data-player-cover-shape="soft"] #page-player-cover,
+body[data-player-cover-shape="soft"] #lib-detail-cover-img,
+body[data-player-cover-shape="soft"] .cover-fallback,
+body[data-player-cover-shape="soft"] .pp-cover-overlay,
+body[data-player-cover-shape="soft"] .fs-cover-overlay-bar {
+  border-radius: 28px !important;
+  clip-path: none !important;
+}
+body[data-player-cover-shape="soft"] .fi-cover-wrap { border-radius: 20px !important; }
+body[data-player-cover-shape="soft"] .pp-cover-wrap,
+body[data-player-cover-shape="soft"] .fs-cover-container,
+body[data-player-cover-shape="soft"] .right-player-cover-shell,
+body[data-player-cover-shape="soft"] .fi-cover-wrap,
+body[data-player-cover-shape="soft"] .player-bar-cover-wrap {
+  overflow: hidden !important;
+  background: var(--bg-elevated, #15171f) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.14) !important;
+}
+body[data-player-cover-shape="soft"] img.fi-cover,
+body[data-player-cover-shape="soft"] img.player-bar-cover,
+body[data-player-cover-shape="soft"] img.right-player-cover,
+body[data-player-cover-shape="soft"] img.pp-cover,
+body[data-player-cover-shape="soft"] img.fs-cover {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* HEXAGON — distinct polygon */
+body[data-player-cover-shape="hexagon"] .fi-cover-wrap,
+body[data-player-cover-shape="hexagon"] .player-bar-cover-wrap,
+body[data-player-cover-shape="hexagon"] .right-player-cover-shell,
+body[data-player-cover-shape="hexagon"] .pp-cover-wrap,
+body[data-player-cover-shape="hexagon"] .fs-cover-container,
+body[data-player-cover-shape="hexagon"] .album-screen-cover-wrap,
+body[data-player-cover-shape="hexagon"] .lib-detail-cover {
+  border-radius: 0 !important;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%) !important;
+  overflow: hidden !important;
+  background: var(--bg-elevated, #15171f) !important;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12) !important;
+}
+body[data-player-cover-shape="hexagon"] img.fi-cover,
+body[data-player-cover-shape="hexagon"] img.player-bar-cover,
+body[data-player-cover-shape="hexagon"] img.right-player-cover,
+body[data-player-cover-shape="hexagon"] img.pp-cover,
+body[data-player-cover-shape="hexagon"] img.fs-cover,
+body[data-player-cover-shape="hexagon"] #album-screen-cover,
+body[data-player-cover-shape="hexagon"] #page-player-cover,
+body[data-player-cover-shape="hexagon"] #lib-detail-cover-img {
+  border-radius: 0 !important;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%) !important;
+  box-shadow: none !important;
+}
+body[data-player-cover-shape="hexagon"] .cover-fallback,
+body[data-player-cover-shape="hexagon"] .pp-cover-overlay,
+body[data-player-cover-shape="hexagon"] .fs-cover-overlay-bar {
+  border-radius: 0 !important;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%) !important;
+}
+
+/* DIAMOND / RHOMB — rotated square */
+body[data-player-cover-shape="diamond"] .fi-cover-wrap,
+body[data-player-cover-shape="diamond"] .player-bar-cover-wrap,
+body[data-player-cover-shape="diamond"] .right-player-cover-shell,
+body[data-player-cover-shape="diamond"] .pp-cover-wrap,
+body[data-player-cover-shape="diamond"] .fs-cover-container,
+body[data-player-cover-shape="diamond"] .album-screen-cover-wrap,
+body[data-player-cover-shape="diamond"] .lib-detail-cover {
+  border-radius: 12px !important;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%) !important;
+  overflow: hidden !important;
+  background: var(--bg-elevated, #15171f) !important;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12) !important;
+}
+body[data-player-cover-shape="diamond"] img.fi-cover,
+body[data-player-cover-shape="diamond"] img.player-bar-cover,
+body[data-player-cover-shape="diamond"] img.right-player-cover,
+body[data-player-cover-shape="diamond"] img.pp-cover,
+body[data-player-cover-shape="diamond"] img.fs-cover,
+body[data-player-cover-shape="diamond"] #album-screen-cover,
+body[data-player-cover-shape="diamond"] #page-player-cover,
+body[data-player-cover-shape="diamond"] #lib-detail-cover-img {
+  border-radius: 0 !important;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%) !important;
+  box-shadow: none !important;
+}
+body[data-player-cover-shape="diamond"] .cover-fallback,
+body[data-player-cover-shape="diamond"] .pp-cover-overlay,
+body[data-player-cover-shape="diamond"] .fs-cover-overlay-bar {
+  border-radius: 0 !important;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%) !important;
+}
+
+/* Shape-specific distinct shadows for more diversity */
+body[data-player-cover-shape="square"] .pp-cover-wrap { box-shadow: 0 4px 12px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.10) !important; }
+body[data-player-cover-shape="rounded"] .pp-cover-wrap { box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.14) !important; }
+body[data-player-cover-shape="soft"] .pp-cover-wrap { box-shadow: 0 12px 36px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.18), 0 0 24px rgba(var(--accent-rgb),0.12) !important; }
+body[data-player-cover-shape="circle"] .pp-cover-wrap { box-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 10px 28px rgba(0,0,0,0.55) !important; }
+body[data-player-cover-shape="hexagon"] .pp-cover-wrap { box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.16), 0 0 18px rgba(var(--accent-rgb),0.18) !important; }
+body[data-player-cover-shape="diamond"] .pp-cover-wrap { box-shadow: 0 12px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.14) !important; transform: rotate(0deg); }
+
+/* Fix vinyl suppression for new shapes */
+body[data-player-style="vinyl"][data-player-cover-shape="soft"] img.fi-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="soft"] img.player-bar-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="soft"] img.right-player-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="soft"] img.pp-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="soft"] img.fs-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="hexagon"] img.fi-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="hexagon"] img.player-bar-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="hexagon"] img.right-player-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="hexagon"] img.pp-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="hexagon"] img.fs-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="diamond"] img.fi-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="diamond"] img.player-bar-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="diamond"] img.right-player-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="diamond"] img.pp-cover,
+body[data-player-style="vinyl"][data-player-cover-shape="diamond"] img.fs-cover {
+  box-shadow: none !important;
+  animation: none !important;
+}
+body[data-player-style="vinyl"][data-player-cover-shape="soft"] .pp-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="hexagon"] .pp-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="diamond"] .pp-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="soft"] .fi-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="hexagon"] .fi-cover-wrap,
+body[data-player-style="vinyl"][data-player-cover-shape="diamond"] .fi-cover-wrap {
+  background: var(--bg-elevated, #15171f) !important;
+  overflow: hidden !important;
+}
+
+/* fi-cover-wrap shape classes for new shapes */
+.fi-cover-wrap.shape-soft { border-radius: 20px !important; overflow: hidden !important; }
+.fi-cover-wrap.shape-soft .fi-cover { border-radius: 20px !important; }
+.fi-cover-wrap.shape-hexagon { border-radius: 0 !important; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%) !important; overflow: hidden !important; }
+.fi-cover-wrap.shape-hexagon .fi-cover { border-radius: 0 !important; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%) !important; }
+.fi-cover-wrap.shape-diamond { border-radius: 0 !important; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%) !important; overflow: hidden !important; }
+.fi-cover-wrap.shape-diamond .fi-cover { border-radius: 0 !important; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%) !important; }
+
+/* 3) FULLSCREEN LAVA-LAMP BACKGROUND — active dynamic gradient in cover color */
+.fs-lava-lamp {
+  position: absolute !important;
+  inset: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+body[data-dynamic-player-bg="false"] .fs-lava-lamp {
+  opacity: 0 !important;
+  display: none !important;
+}
+.fs-gradient-bg {
+  z-index: 0 !important;
+  opacity: 0.85;
+}
+.fs-top-bar,
+.fs-split-container {
+  z-index: 2 !important;
+}
+
+.fs-lava-blob {
+  position: absolute;
+  width: 70vw;
+  height: 70vw;
+  max-width: 900px;
+  max-height: 900px;
+  min-width: 400px;
+  min-height: 400px;
+  border-radius: 50%;
+  filter: blur(72px) saturate(1.8) brightness(1.1);
+  opacity: 0.62;
+  mix-blend-mode: screen;
+  will-change: transform;
+  transition: background 0.9s ease;
+}
+
+/* blob 1 — main cover color */
+.fs-lava-blob:nth-child(1) {
+  top: -12%;
+  left: -14%;
+  background: radial-gradient(circle at 35% 35%, rgba(var(--lava1-r, 29), var(--lava1-g, 185), var(--lava1-b, 84), 0.92) 0%, rgba(var(--lava1-r, 29), var(--lava1-g, 185), var(--lava1-b, 84), 0.55) 32%, rgba(var(--lava1-r, 29), var(--lava1-g, 185), var(--lava1-b, 84), 0.12) 62%, transparent 78%);
+  animation: lavaFloat1 19s ease-in-out infinite;
+}
+/* blob 2 — lighter variant */
+.fs-lava-blob:nth-child(2) {
+  top: 38%;
+  left: 54%;
+  width: 62vw;
+  height: 62vw;
+  background: radial-gradient(circle at 40% 40%, rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.85) 0%, rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.42) 38%, rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.10) 66%, transparent 80%);
+  animation: lavaFloat2 23s ease-in-out infinite;
+  animation-delay: -4s;
+  opacity: 0.55;
+}
+/* blob 3 — deeper / complementary */
+.fs-lava-blob:nth-child(3) {
+  top: 62%;
+  left: 8%;
+  width: 58vw;
+  height: 58vw;
+  background: radial-gradient(circle at 45% 35%, rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.78) 0%, rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.38) 36%, rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.08) 68%, transparent 82%);
+  animation: lavaFloat3 26s ease-in-out infinite;
+  animation-delay: -9s;
+  opacity: 0.52;
+}
+
+@keyframes lavaFloat1 {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 50% 50% 50% 50%; }
+  18%  { transform: translate3d(12vw, 8vh, 0) scale(1.08) rotate(6deg); border-radius: 58% 42% 48% 52%; }
+  38%  { transform: translate3d(-6vw, 16vh, 0) scale(0.96) rotate(-4deg); border-radius: 42% 58% 52% 48%; }
+  62%  { transform: translate3d(8vw, -6vh, 0) scale(1.04) rotate(3deg); border-radius: 50% 50% 42% 58%; }
+  84%  { transform: translate3d(-10vw, -4vh, 0) scale(1.02) rotate(-5deg); border-radius: 48% 52% 58% 42%; }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 50% 50% 50% 50%; }
+}
+@keyframes lavaFloat2 {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  22%  { transform: translate3d(-14vw, -10vh, 0) scale(1.12) rotate(-7deg); }
+  48%  { transform: translate3d(10vw, 12vh, 0) scale(0.94) rotate(5deg); }
+  72%  { transform: translate3d(-8vw, 6vh, 0) scale(1.06) rotate(-3deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+@keyframes lavaFloat3 {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  26%  { transform: translate3d(10vw, -14vh, 0) scale(1.10) rotate(8deg); }
+  54%  { transform: translate3d(-12vw, -6vh, 0) scale(0.92) rotate(-6deg); }
+  78%  { transform: translate3d(6vw, 10vh, 0) scale(1.08) rotate(4deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+
+/* Subtle grain + vignette on top of lava for depth */
+.fullscreen-player::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,0.38) 100%),
+    radial-gradient(ellipse at 20% 15%, rgba(255,255,255,0.04) 0%, transparent 55%);
+  mix-blend-mode: normal;
+}
+
+/* When dynamic bg disabled, keep old static gradient */
+body[data-dynamic-player-bg="false"] .fs-gradient-bg {
+  background: linear-gradient(180deg, rgba(var(--accent-rgb),0.18) 0%, var(--bg-base) 70%) !important;
+}
+
+/* Extra — ensure lava blobs are behind but visible even with accent */
+.fullscreen-player.open .fs-lava-lamp {
+  animation: lavaIn 0.8s ease-out;
+}
+@keyframes lavaIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* === VOTIFY FIXES 2026-09-01 — PART 2: material icons fallback + player style diversity === */
+html.mi-loaded .material-icons { visibility: visible; }
+html:not(.mi-loaded) .material-icons {
+  /* keep visible but prevent huge text */
+  font-display: swap;
+}
+/* Extra strong reset for any parent text-transform */
+.material-icons,
+.material-icons * {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  word-wrap: normal !important;
+  white-space: nowrap !important;
+  direction: ltr !important;
+}
+/* If font fails, make text less jarring — shrink and show as icon box */
+html.mi-fallback .material-icons {
+  font-family: 'Material Icons' !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+/* --- PLAYER STYLES: make each mode visually distinct --- */
+body[data-player-style="standard"] .floating-island {
+  backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45), 0 2px 10px rgba(0,0,0,0.3);
+}
+body[data-player-style="large"] .floating-island {
+  transform: scale(1.06);
+  transform-origin: bottom center;
+  backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08) inset;
+}
+body[data-player-style="compact"] .floating-island {
+  padding: 6px 10px !important;
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.38);
+}
+body[data-player-style="compact"] .floating-island .fi-progress { height: 2px !important; }
+body[data-player-style="glass"] .floating-island,
+body[data-player-style="glass"] .player-bar,
+body[data-player-style="glass"] .right-player {
+  background: rgba(18,18,22,0.42) !important;
+  backdrop-filter: blur(26px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.8) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.12) !important;
+}
+body[data-player-style="neon"] .floating-island {
+  border: 1px solid rgba(120,90,255,0.55) !important;
+  box-shadow: 0 0 24px rgba(120,90,255,0.35), 0 0 60px rgba(90,200,255,0.18), 0 12px 40px rgba(0,0,0,0.5) !important;
+}
+body[data-player-style="neon"] .fi-progress-fill,
+body[data-player-style="neon"] .pb-progress-fill,
+body[data-player-style="neon"] .fs-progress-fill {
+  background: linear-gradient(90deg, #7c4dff, #448aff, #00e5ff) !important;
+  box-shadow: 0 0 12px rgba(124,77,255,0.7) !important;
+}
+body[data-player-style="vinyl"] .floating-island {
+  background: radial-gradient(120% 120% at 30% 20%, #2a2a2e 0%, #151519 55%, #0a0a0c 100%) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  box-shadow: 0 14px 48px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+}
+
+/* Right player and player page distinct per style */
+body[data-player-style="glass"] .right-player-cover-wrap { box-shadow: 0 12px 40px rgba(0,0,0,0.5) !important; }
+body[data-player-style="neon"] .right-player-cover-wrap { box-shadow: 0 0 28px rgba(120,90,255,0.45), 0 16px 48px rgba(0,0,0,0.6) !important; border: 1px solid rgba(120,90,255,0.35) !important; }
+body[data-player-style="large"] .right-player-cover-wrap { transform: scale(1.04); }
+body[data-player-style="compact"] .right-player { width: 280px !important; }
+
+/* Fullscreen extra per style */
+body[data-player-style="glass"] #fullscreen-player { backdrop-filter: blur(40px) saturate(1.6); }
+body[data-player-style="neon"] #fullscreen-player { border-top: 1px solid rgba(120,90,255,0.25); }
+body[data-player-style="vinyl"] #fullscreen-player .fs-cover { box-shadow: 0 0 0 8px rgba(255,255,255,0.04), 0 0 0 16px rgba(255,255,255,0.02), 0 24px 80px rgba(0,0,0,0.8) !important; }
+
+/* Ensure new shape shadows are not overridden by player-style */
+body[data-player-cover-shape="soft"] .pp-cover-wrap,
+body[data-player-cover-shape="soft"] .fs-cover-container { box-shadow: 0 14px 36px rgba(0,0,0,0.52), 0 3px 12px rgba(0,0,0,0.38) !important; }
+body[data-player-cover-shape="hexagon"] .pp-cover-wrap,
+body[data-player-cover-shape="hexagon"] .fs-cover-container { box-shadow: 0 16px 44px rgba(0,0,0,0.60), 0 4px 14px rgba(0,0,0,0.45) !important; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.35)); }
+body[data-player-cover-shape="diamond"] .pp-cover-wrap,
+body[data-player-cover-shape="diamond"] .fs-cover-container { box-shadow: 0 18px 48px rgba(0,0,0,0.62), 0 5px 16px rgba(0,0,0,0.48) !important; }
+
+
+/* Fix z-order: lava behind gradient tint, both behind content */
+.fs-lava-lamp { z-index: 0 !important; }
+.fs-gradient-bg { z-index: 1 !important; opacity: 0.92 !important; }
+.fs-top-bar, .fs-split-container, .fs-player-content { z-index: 2 !important; }
+
+body[data-dynamic-player-bg="false"] .fs-gradient-bg { opacity: 0.35 !important; background: var(--bg-base) !important; }
+body[data-dynamic-player-bg="false"] .fs-lava-lamp { display: none !important; }
+
+/* === DOTIFY MONO THEME — pure black & white, no colors — FIXED INPUTS & TIMELINES === */
+html, body { background: var(--bg-base, #000) !important; }
+.sidebar, .top-bar, .player-bar, .right-player, .floating-island, .player-page-top, .fullscreen-player, .settings-modal, .lib-sidebar, .lib-detail-pane {
+  background-color: var(--bg-base, #000) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+.card, .home-quick-card, .home-rec-card, .playlist-card, .track-card, .track-item, .history-card, .fav-card, .lib-item, .lib-detail-header-card, .about-card {
+  background: #0a0a0a !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+.track-item:hover, .lib-item:hover, .card:hover { background: #141414 !important; }
+.track-item.playing { background: rgba(255,255,255,0.08) !important; }
+.track-item.playing .track-title { color: #fff !important; }
+
+.fs-gradient-bg, .right-player::before, .player-bar::before, .floating-island::before {
+  background: #000 !important;
+  opacity: 1 !important;
+}
+body[data-dynamic-player-bg="true"] .fs-gradient-bg {
+  background: radial-gradient(120% 90% at 18% 18%, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.85) 55%, #000 85%) !important;
+}
+
+.fs-lava-lamp { opacity: 0.85 !important; }
+.fs-lava-blob {
+  filter: blur(72px) saturate(0) brightness(1.2) !important;
+  mix-blend-mode: screen !important;
+  opacity: 0.22 !important;
+}
+.fs-lava-blob:nth-child(1) {
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.10) 32%, rgba(255,255,255,0.03) 62%, transparent 78%) !important;
+}
+.fs-lava-blob:nth-child(2) {
+  background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 38%, transparent 80%) !important;
+}
+.fs-lava-blob:nth-child(3) {
+  background: radial-gradient(circle at 45% 35%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 36%, transparent 82%) !important;
+}
+
+.btn-accent, .play-main-btn, .fs-play-main-btn, .pl-play-btn, .auth-btn, .votify-modal-ok, .bg-url-btn {
+  background: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
+}
+.btn-accent:hover, .play-main-btn:hover, .fs-play-main-btn:hover, .auth-btn:hover { background: #e6e6e6 !important; color: #000 !important; }
+.center-nav-btn.active { background: #fff !important; color: #000 !important; }
+
+.home-tile-liked .material-icons, .track-item .like-btn.liked, .track-item .like-btn.liked i, .like-btn.active, .like-btn.active i,
+.fav-card .material-icons, .favorite-item .material-icons, .fs-like-btn.active, .fs-like-btn.active i {
+  color: #fff !important;
+}
+.track-item .like-btn, .fs-like-btn { color: rgba(255,255,255,0.5) !important; }
+.track-item .like-btn:hover, .fs-like-btn:hover { color: #fff !important; }
+
+[style*="#ff4757"], [style*="#f43f5e"], [style*="#e74c3c"], [style*="#e53935"] { color: #fff !important; }
+div[style*="linear-gradient(135deg, var(--accent), #ff4757)"] { background: #fff !important; color: #000 !important; }
+
+.progress-fill, .pb-progress-fill, .fs-progress-fill, .right-player-progress-fill, .pp-progress-fill, .fi-progress-fill {
+  background: #fff !important;
+}
+.progress-handle, .pp-progress-handle, .fs-progress-handle { background: #fff !important; box-shadow: 0 0 0 2px #000 !important; }
+
+#bar-tl-bg, #right-tl-bg { fill: rgba(255,255,255,0.12) !important; }
+#bar-tl-active, #right-tl-active { fill: #fff !important; }
+#tl-bg-curve { fill: url(#tlBgGrad) !important; }
+#tl-active-curve { fill: #fff !important; }
+.right-tl-bg, .bar-tl-bg { fill: rgba(255,255,255,0.12) !important; }
+.right-tl-active, .bar-tl-active { fill: #fff !important; }
+.tl-bg-curve { fill: rgba(255,255,255,0.10) !important; }
+.tl-active-curve { fill: #fff !important; }
+.bar-timeline-svg, .right-timeline-svg, .fs-timeline-svg { overflow: visible !important; }
+.bar-timeline-track, .right-timeline-track, .fs-timeline-track, .pp-timeline-bar { background: transparent !important; }
+.bar-timeline-track::before, .right-timeline-track::before, .fs-timeline-track::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 4px; margin-top: -2px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 0;
+}
+.fs-timeline-track::before { height: 4px; margin-top: -2px; background: rgba(255,255,255,0.10); }
+
+input[type="range"] { background: transparent !important; border: none !important; }
+input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #fff 0%, #fff var(--r, 50%), rgba(255,255,255,0.18) var(--r, 50%), rgba(255,255,255,0.18) 100%) !important;
+  height: 4px !important;
+}
+input[type="range"]::-moz-range-track { background: rgba(255,255,255,0.18) !important; height: 4px !important; }
+input[type="range"]::-moz-range-progress { background: #fff !important; height: 4px !important; }
+input[type="range"]::-webkit-slider-thumb { background: #fff !important; border: 2px solid #000 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.6) !important; }
+input[type="range"]::-moz-range-thumb { background: #fff !important; border: 2px solid #000 !important; }
+.player-page-progress input[type="range"]::-webkit-slider-runnable-track { background: rgba(255,255,255,0.15) !important; }
+.player-page-progress input[type="range"]::-moz-range-track { background: rgba(255,255,255,0.15) !important; }
+
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12) !important; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22) !important; }
+
+/* FIXED INPUTS — no black line mismatch */
+.auth-field, .search-bar, .bg-url-wrap, .morph-settings-item, .workshop-search {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 10px !important;
+}
+.auth-field input, .search-bar input, .bg-url-input, .workshop-search input, .morph-select, .profile-fields input {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.auth-field:focus-within, .search-bar:focus-within, .bg-url-wrap:focus-within, .workshop-search:focus-within {
+  border-color: #fff !important;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.12) !important;
+  background: #141414 !important;
+}
+input:not([type="range"]):focus, select:focus, .morph-select:focus {
+  border-color: #fff !important;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.15) !important;
+  outline: none !important;
+}
+/* Remove any bottom border black line */
+.auth-field::after, .search-bar::after, .bg-url-wrap::after { display: none !important; }
+input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #0a0a0a inset !important;
+  -webkit-text-fill-color: #fff !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+* { --shadow-accent: 0 0 0 transparent !important; }
+.play-main-btn, .fs-play-main-btn, .btn-accent { box-shadow: none !important; }
+body[data-player-style="neon"] .floating-island,
+body[data-player-style="neon"] .right-player-cover-wrap,
+body[data-player-style="neon"] .fi-progress-fill { box-shadow: none !important; border-color: rgba(255,255,255,0.12) !important; background: #fff !important; }
+body[data-player-style="glass"] .floating-island,
+body[data-player-style="glass"] .player-bar,
+body[data-player-style="glass"] .right-player { background: rgba(0,0,0,0.85) !important; backdrop-filter: blur(20px) !important; border-color: rgba(255,255,255,0.10) !important; }
+
+.theme-card, .bg-preset, .morph-settings-item, .theme-mode-card { background: #0a0a0a !important; border-color: rgba(255,255,255,0.08) !important; }
+.theme-card.active, .bg-preset.active, .theme-mode-card.active { border-color: #fff !important; background: #141414 !important; }
+
+.sidebar .nav-btn, .top-bar .icon-btn, .center-nav-btn { color: rgba(255,255,255,0.6) !important; }
+.sidebar .nav-btn:hover, .top-bar .icon-btn:hover, .center-nav-btn:hover { color: #fff !important; background: rgba(255,255,255,0.08) !important; }
+.sidebar .nav-btn.active { color: #fff !important; background: rgba(255,255,255,0.12) !important; }
+
+h1, h2, h3, .section-title, .page-title { color: #fff !important; }
+.text-secondary, .subtitle, .artist, .album { color: #a0a0a0 !important; }
+
+.card, .home-quick-card, .track-item, .lib-item { border-radius: 8px !important; }
+
+.theme-swatch-custom { background: #fff !important; }
+.morph-settings .theme-card-custom { background: #fff !important; color: #000 !important; }
+
+body[data-theme-mode="light"] .bar-timeline-track::before,
+body[data-theme-mode="light"] .right-timeline-track::before,
+body[data-theme-mode="light"] .fs-timeline-track::before {
+  background: rgba(0,0,0,0.12) !important;
+}
+body[data-theme-mode="light"] #bar-tl-bg,
+body[data-theme-mode="light"] #right-tl-bg,
+body[data-theme-mode="light"] .bar-tl-bg,
+body[data-theme-mode="light"] .right-tl-bg {
+  fill: rgba(0,0,0,0.12) !important;
+}
+body[data-theme-mode="light"] #bar-tl-active,
+body[data-theme-mode="light"] #right-tl-active,
+body[data-theme-mode="light"] .bar-tl-active,
+body[data-theme-mode="light"] .right-tl-active,
+body[data-theme-mode="light"] #tl-active-curve,
+body[data-theme-mode="light"] .tl-active-curve {
+  fill: #000 !important;
+}
+body[data-theme-mode="light"] input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #000 0%, #000 var(--r, 50%), rgba(0,0,0,0.18) var(--r, 50%), rgba(0,0,0,0.18) 100%) !important;
+}
+body[data-theme-mode="light"] input[type="range"]::-moz-range-track { background: rgba(0,0,0,0.18) !important; }
+body[data-theme-mode="light"] input[type="range"]::-moz-range-progress { background: #000 !important; }
+body[data-theme-mode="light"] input[type="range"]::-webkit-slider-thumb { background: #000 !important; border-color: #fff !important; }
+

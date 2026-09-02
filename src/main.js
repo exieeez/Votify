@@ -354,7 +354,7 @@ let appSettings = readStoredJson('votify-settings', {
   playbackRate: 1,
   preload: 'auto',
   // Interface settings
-  theme: 'dark',
+  theme: 'contrast',
   transparency: false,
   fontFamily: 'default',
   fontSize: '16px',
@@ -826,6 +826,61 @@ function formatTime(secs) {
     .toString()
     .padStart(2, '0');
   return `${m}:${s}`;
+}
+
+// --- Premium cover placeholder helper ---
+function setCoverState(imgId, fallbackId, coverUrl, wrapperClass) {
+  const img = document.getElementById(imgId);
+  const fallback = fallbackId ? document.getElementById(fallbackId) : null;
+  let wrapper = null;
+  if (wrapperClass) wrapper = document.querySelector(wrapperClass);
+  else if (img) wrapper = img.parentElement;
+  const hasCover = !!coverUrl && String(coverUrl).trim() !== '';
+  if (img) {
+    if (hasCover) {
+      img.src = coverUrl;
+      img.style.display = '';
+      img.style.opacity = '';
+      img.style.visibility = '';
+    } else {
+      img.removeAttribute('src');
+      img.src = '';
+      img.style.display = 'none';
+    }
+  }
+  if (fallback) fallback.style.display = hasCover ? 'none' : 'flex';
+  if (wrapper) {
+    wrapper.classList.toggle('has-cover', hasCover);
+    wrapper.classList.toggle('is-empty', !hasCover);
+  }
+}
+function applyAllCoverPlaceholders(trackOrCover) {
+  const cover = typeof trackOrCover === 'string' ? trackOrCover : trackOrCover?.cover || '';
+  setCoverState('fi-cover', 'fi-cover-fallback', cover, '.fi-cover-wrap');
+  setCoverState('player-bar-cover', 'player-bar-cover-fallback', cover, '.player-bar-cover-wrap');
+  setCoverState('right-player-cover', 'right-player-cover-fallback', cover, '.right-player-cover-shell');
+  setCoverState('page-player-cover', 'page-player-cover-fallback', cover, '.pp-cover-wrap');
+  setCoverState('fs-cover', 'fs-cover-fallback', cover, '.fs-cover-container');
+  setCoverState('album-screen-cover', 'album-screen-cover-fallback', cover, '.album-screen-cover-wrap');
+  // lib detail uses separate logic but we ensure fallback class
+  const libWrap = document.querySelector('.lib-detail-cover');
+  const libImg = document.getElementById('lib-detail-cover-img');
+  const libFallback = document.getElementById('lib-detail-cover-fallback');
+  const libFallbackIcon = document.getElementById('lib-detail-cover-icon');
+  if (libWrap) {
+    const has = !!cover;
+    libWrap.classList.toggle('has-cover', has);
+    libWrap.classList.toggle('is-empty', !has);
+    if (libImg) {
+      if (has) { libImg.src = cover; libImg.style.display = 'block'; }
+      else { libImg.style.display = 'none'; libImg.removeAttribute('src'); }
+    }
+    if (libFallback) libFallback.style.display = has ? 'none' : 'flex';
+    if (libFallbackIcon) {
+      libFallbackIcon.style.display = 'flex';
+      // icon visibility handled by wrapper; keep text updated elsewhere
+    }
+  }
 }
 
 function preloadTrackStreams(tracks) {
@@ -1534,18 +1589,22 @@ function openPlaylist(name) {
   if (titleEl) titleEl.textContent = title;
   if (subEl) subEl.textContent = subtitle;
 
+  // Use premium placeholder helper for lib detail
+  const libCoverUrl = tracks.length > 0 ? tracks[0].cover || '' : '';
+  const libWrap2 = document.querySelector('.lib-detail-cover');
   const coverImg = document.getElementById('lib-detail-cover-img');
+  const coverFallback = document.getElementById('lib-detail-cover-fallback');
   const coverIcon = document.getElementById('lib-detail-cover-icon');
-  if (tracks.length > 0 && tracks[0].cover) {
+  if (libWrap2) {
+    const has = !!libCoverUrl;
+    libWrap2.classList.toggle('has-cover', has);
+    libWrap2.classList.toggle('is-empty', !has);
     if (coverImg) {
-      coverImg.src = tracks[0].cover;
-      coverImg.style.display = 'block';
+      if (has) { coverImg.src = libCoverUrl; coverImg.style.display = 'block'; }
+      else { coverImg.style.display = 'none'; coverImg.removeAttribute('src'); }
     }
-    if (coverIcon) coverIcon.style.display = 'none';
-  } else {
-    if (coverImg) coverImg.style.display = 'none';
+    if (coverFallback) coverFallback.style.display = has ? 'none' : 'flex';
     if (coverIcon) {
-      coverIcon.style.display = 'block';
       coverIcon.textContent = name === 'Избранное' ? 'favorite' : 'queue_music';
     }
   }
@@ -1987,7 +2046,6 @@ function openAlbumPage(album) {
 
   switchScreen('album-screen', previousActiveBtnId);
 
-  const coverEl = document.getElementById('album-screen-cover');
   const titleEl = document.getElementById('album-screen-title');
   const artistEl = document.getElementById('album-screen-artist');
   const metaEl = document.getElementById('album-screen-meta');
@@ -1995,7 +2053,7 @@ function openAlbumPage(album) {
   const tracksEl = document.getElementById('album-screen-tracks');
   const playBtn = document.getElementById('album-screen-play-btn');
 
-  if (coverEl) coverEl.src = album.cover || '';
+  setCoverState('album-screen-cover', 'album-screen-cover-fallback', album.cover || '', '.album-screen-cover-wrap');
   if (titleEl) titleEl.textContent = album.title || 'Альбом';
   if (badgeEl) badgeEl.textContent = album.type || 'Альбом';
   if (artistEl) {
@@ -2321,6 +2379,26 @@ document.querySelectorAll('.player-style-card').forEach(card => {
     playerStyleValue.textContent =
       style === 'standard' ? 'Стандартный' : style === 'large' ? 'Большой' : 'Пластинка';
     appSettings.playerStyle = style;
+    // Sync: vinyl style should make cover vinyl-shaped, otherwise user sees square staying
+    if (style === 'vinyl') {
+      appSettings.playerCoverShape = 'Виниловая пластинка';
+      const coverShapeValue = document.getElementById('cover-shape-value');
+      const settingCoverShape = document.getElementById('setting-cover-shape');
+      if (coverShapeValue) coverShapeValue.textContent = 'Виниловая пластинка';
+      if (settingCoverShape) settingCoverShape.value = 'Виниловая пластинка';
+      applyPlayerCoverShape();
+    } else {
+      // if leaving vinyl and cover was vinyl, revert to rounded for nicer look
+      if (appSettings.playerCoverShape === 'Виниловая пластинка') {
+        appSettings.playerCoverShape = 'Закруглённый квадрат';
+        const coverShapeValue = document.getElementById('cover-shape-value');
+        const settingCoverShape = document.getElementById('setting-cover-shape');
+        if (coverShapeValue) coverShapeValue.textContent = 'Закруглённый квадрат';
+        if (settingCoverShape) settingCoverShape.value = 'Закруглённый квадрат';
+        applyPlayerCoverShape();
+      }
+    }
+    applyPlayerSettings();
     saveSettings();
     closePlayerStyleModal();
   });
@@ -2451,14 +2529,20 @@ const miniCoverShapeBtn = document.getElementById('mini-cover-shape-btn');
 const miniCoverShapeValue = document.getElementById('mini-cover-shape-value');
 if (miniCoverShapeBtn) {
   miniCoverShapeBtn.addEventListener('click', () => {
-    const shapes = ['Круг', 'Квадрат', 'Прямоугольник', 'Скругленный квадрат'];
+    const shapes = ['Круг', 'Квадрат', 'Прямоугольник', 'Скругленный квадрат', 'Мягкий квадрат', 'Шестиугольник', 'Ромб'];
     const current = miniCoverShapeValue.textContent;
     const idx = shapes.indexOf(current);
     const next = shapes[(idx + 1) % shapes.length];
     miniCoverShapeValue.textContent = next;
     appSettings.miniCoverShape = next;
-    appSettings.playerCoverShape =
-      next === 'Круг' ? 'Круг' : next === 'Квадрат' ? 'Квадрат' : 'Закруглённый квадрат';
+    const mapMini = {
+      'Круг': 'Круг',
+      'Квадрат': 'Квадрат',
+      'Мягкий квадрат': 'Мягкий квадрат',
+      'Шестиугольник': 'Шестиугольник',
+      'Ромб': 'Ромб'
+    };
+    appSettings.playerCoverShape = mapMini[next] || 'Закруглённый квадрат';
     applyPlayerCoverShape();
     saveSettings();
   });
@@ -2516,50 +2600,58 @@ if (miniBtnStyleBtn) {
 // Apply one cover shape consistently in the page, bottom, side and fullscreen players.
 function applyPlayerCoverShape() {
   const shape = appSettings.playerCoverShape || 'Закруглённый квадрат';
-  const shapeKey =
-    shape === 'Виниловая пластинка'
-      ? 'vinyl'
-      : shape === 'Круг'
-        ? 'circle'
-        : shape === 'Квадрат'
-          ? 'square'
-          : 'rounded';
+  const map = {
+    'Виниловая пластинка': 'vinyl',
+    'Круг': 'circle',
+    'Квадрат': 'square',
+    'Закруглённый квадрат': 'rounded',
+    'Мягкий квадрат': 'soft',
+    'Шестиугольник': 'hexagon',
+    'Ромб': 'diamond'
+  };
+  const shapeKey = map[shape] || 'rounded';
   document.body.dataset.playerCoverShape = shapeKey;
 
   const wrappers = document.querySelectorAll(
-    '.pp-cover-wrap, .player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .fi-cover-wrap'
+    '.pp-cover-wrap, .player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .fi-cover-wrap, .lib-detail-cover, .album-screen-cover-wrap'
   );
   wrappers.forEach(wrap => {
     wrap.classList.remove(
       'shape-rounded-square',
       'shape-vinyl',
       'shape-circle',
-      'shape-square'
+      'shape-square',
+      'shape-soft',
+      'shape-hexagon',
+      'shape-diamond'
     );
-    wrap.classList.add(
-      shapeKey === 'vinyl'
-        ? 'shape-vinyl'
-        : shapeKey === 'circle'
-          ? 'shape-circle'
-          : shapeKey === 'square'
-            ? 'shape-square'
-            : 'shape-rounded-square'
-    );
+    const cls =
+      shapeKey === 'vinyl' ? 'shape-vinyl'
+      : shapeKey === 'circle' ? 'shape-circle'
+      : shapeKey === 'square' ? 'shape-square'
+      : shapeKey === 'soft' ? 'shape-soft'
+      : shapeKey === 'hexagon' ? 'shape-hexagon'
+      : shapeKey === 'diamond' ? 'shape-diamond'
+      : 'shape-rounded-square';
+    wrap.classList.add(cls);
     wrap.classList.toggle('is-playing', Boolean(state.isPlaying));
   });
 
   const valueEl = document.getElementById('player-cover-shape-value');
   if (valueEl) valueEl.textContent = shape;
+  const coverShapeSel = document.getElementById('setting-cover-shape');
+  if (coverShapeSel && coverShapeSel.value !== shape) coverShapeSel.value = shape;
 }
 
 const playerCoverShapeBtn = document.getElementById('player-cover-shape-btn');
 const playerCoverShapeValue = document.getElementById('player-cover-shape-value');
 if (playerCoverShapeBtn) {
   playerCoverShapeBtn.addEventListener('click', () => {
-    const shapes = ['Закруглённый квадрат', 'Виниловая пластинка', 'Круг'];
+    const shapes = ['Закруглённый квадрат', 'Квадрат', 'Мягкий квадрат', 'Круг', 'Виниловая пластинка', 'Шестиугольник', 'Ромб'];
     const current =
       playerCoverShapeValue?.textContent || appSettings.playerCoverShape || 'Закруглённый квадрат';
-    const idx = shapes.indexOf(current);
+    let idx = shapes.indexOf(current);
+    if (idx === -1) idx = 0;
     const next = shapes[(idx + 1) % shapes.length];
     if (playerCoverShapeValue) playerCoverShapeValue.textContent = next;
     appSettings.playerCoverShape = next;
@@ -2629,18 +2721,13 @@ if (rightPlayerCloseBtn) {
 // Update right player panel when track changes
 let rightPanelBgTrackId = null;
 function updateRightPlayerPanel(track) {
-  const cover = document.getElementById('right-player-cover');
   const title = document.getElementById('right-player-title');
   const artist = document.getElementById('right-player-artist');
   const playBtn = document.getElementById('right-player-play');
   const bgEl = document.getElementById('right-player-bg');
 
-  if (cover && track.cover) {
-    cover.src = track.cover;
-    cover.style.display = 'block';
-  } else if (cover) {
-    cover.style.display = 'none';
-  }
+  // Use unified placeholder helper
+  if (track) setCoverState('right-player-cover', 'right-player-cover-fallback', track.cover || '', '.right-player-cover-shell');
   if (title) title.textContent = track.title || '—';
   if (artist) artist.textContent = track.artist || '—';
   if (playBtn) {
@@ -3206,8 +3293,8 @@ document.addEventListener('keydown', e => {
 
   // --- Sync state: track info ---
   on('state:currentTrack', track => {
-    if (!track) return;
-    if (fiCover) fiCover.src = track.cover || '';
+    if (!track) { applyAllCoverPlaceholders(''); return; }
+    setCoverState('fi-cover', 'fi-cover-fallback', track.cover || '', '.fi-cover-wrap');
     if (fiTitle) fiTitle.textContent = track.title || '—';
     if (fiArtist) fiArtist.textContent = track.artist || '—';
     // Update like state
@@ -3482,8 +3569,8 @@ document.addEventListener('keydown', e => {
   applyPlayerCoverShape();
 
   on('state:currentTrack', track => {
-    if (!track) return;
-    if (ppCover) ppCover.src = track.cover || '';
+    if (!track) { applyAllCoverPlaceholders(''); return; }
+    setCoverState('page-player-cover', 'page-player-cover-fallback', track.cover || '', '.pp-cover-wrap');
     if (ppTitle) ppTitle.textContent = track.title || '—';
     if (ppArtist) ppArtist.textContent = track.artist || '—';
     if (ppLike) {
@@ -4546,8 +4633,8 @@ safeClick('morph-reset-all', async () => {
       .querySelectorAll('.bg-card')
       .forEach(b => b.classList.toggle('bg-card-active', b.dataset.bg === 'default'));
   // Reset the newer appearance controls too
-  appSettings.theme = 'dark';
-  applyThemeMode('dark');
+  appSettings.theme = 'contrast';
+  applyThemeMode('contrast');
   appSettings.fontSize = '16px';
   const fontSizeSliderEl = document.getElementById('font-size-slider');
   const fontSizeSliderValueEl = document.getElementById('font-size-slider-value');
@@ -4875,9 +4962,9 @@ if (backgroundBlurSlider) {
 
 // Theme mode (dark / midnight / contrast)
 function applyThemeMode(mode) {
-  document.body.setAttribute('data-theme-mode', mode || 'dark');
+  document.body.setAttribute('data-theme-mode', mode || 'contrast');
   document.querySelectorAll('.theme-mode-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.themeMode === (mode || 'dark'));
+    c.classList.toggle('active', c.dataset.themeMode === (mode || 'contrast'));
   });
 }
 document.querySelectorAll('.theme-mode-card').forEach(card => {
@@ -4888,7 +4975,7 @@ document.querySelectorAll('.theme-mode-card').forEach(card => {
     saveSettings();
   });
 });
-applyThemeMode(appSettings.theme || 'dark');
+applyThemeMode(appSettings.theme || 'contrast');
 
 // Font size slider
 const fontSizeSlider = document.getElementById('font-size-slider');
@@ -6097,9 +6184,8 @@ async function playTrack(track) {
   if (playerArtist) playerArtist.innerText = track.artist || 'Unknown';
   currentTrackCover = track.cover || '';
 
-  // Update player bar cover
-  const barCover = document.getElementById('player-bar-cover');
-  if (barCover) barCover.src = currentTrackCover || '';
+  // Unified premium placeholder for all covers
+  applyAllCoverPlaceholders(track);
   if (typeof applyCoverSettings === 'function') applyCoverSettings();
 
   // Force-stop any previous playback before switching source
@@ -6546,8 +6632,8 @@ if (fsDislikeBtn) {
 
 // Update fullscreen player with track info
 on('state:currentTrack', track => {
-  if (!track) return;
-  if (fsCover) fsCover.src = track.cover || '';
+  if (!track) { applyAllCoverPlaceholders(''); return; }
+  setCoverState('fs-cover', 'fs-cover-fallback', track.cover || '', '.fs-cover-container');
   if (fsTitle) fsTitle.textContent = track.title || '—';
   if (fsArtist) fsArtist.textContent = track.artist || '—';
 
@@ -6558,14 +6644,16 @@ on('state:currentTrack', track => {
     if (icon) icon.textContent = isFav ? 'favorite' : 'favorite_border';
   }
 
-  // Extract color for fullscreen background gradient
+  // Extract color for fullscreen background gradient — now lava-lamp dynamic
   const fsGradientBg = document.getElementById('fs-gradient-bg');
   if (track.cover) {
     extractDominantColor(track.cover).then(color => {
-      if (color && fsGradientBg) {
-        fsGradientBg.style.background = `radial-gradient(circle at 20% 40%, rgba(${color.r},${color.g},${color.b},0.45) 0%, rgba(${color.r},${color.g},${color.b},0.12) 55%, transparent 80%), radial-gradient(circle at 80% 60%, rgba(${color.r},${color.g},${color.b},0.25) 0%, transparent 75%)`;
-      }
+      if (!color) { applyFsLavaLampColors(null); return; }
+      const bright = color._bright || { r: Math.round(color.r/0.35), g: Math.round(color.g/0.35), b: Math.round(color.b/0.35) };
+      applyFsLavaLampColors(bright);
     });
+  } else {
+    applyFsLavaLampColors(null);
   }
   if (fullscreenPlayer && fullscreenPlayer.classList.contains('open')) {
     loadFsLyrics(track.title, track.artist);
@@ -6841,6 +6929,41 @@ function hideSplash() {
   }
 }
 
+// Material Icons robust loading — add class when font ready, fallback check
+(function ensureMaterialIcons(){
+  const check = () => {
+    const test = document.createElement('span');
+    test.className = 'material-icons';
+    test.style.position='absolute'; test.style.visibility='hidden'; test.textContent='play_arrow';
+    document.body.appendChild(test);
+    const w1 = test.offsetWidth;
+    // If font loaded, width will be different from fallback
+    setTimeout(()=>{
+      const w2 = test.offsetWidth;
+      if(w1===0 || w2===0 || document.fonts && document.fonts.check && document.fonts.check('24px "Material Icons"')){
+        document.documentElement.classList.add('mi-loaded');
+      } else {
+        // font not loaded — still add class to show fallback styling, but icons may show text
+        // Try reload link
+        const link = document.querySelector('link[href*="Material+Icons"]');
+        if(link){
+          const clone = link.cloneNode();
+          clone.href = clone.href + (clone.href.includes('?')?'&':'?') + 'reload=' + Date.now();
+          document.head.appendChild(clone);
+        }
+        document.documentElement.classList.add('mi-fallback');
+      }
+      test.remove();
+    }, 800);
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', check);
+  else check();
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{ document.documentElement.classList.add('mi-loaded'); });
+  }
+})();
+
+
 // ==========================================
 // Initialization
 // ==========================================
@@ -6865,15 +6988,25 @@ function initApp() {
           // Update UI without playing
           if (playerTitle) playerTitle.innerText = lastTrack.title;
           if (playerArtist) playerArtist.innerText = lastTrack.artist || 'Unknown';
-          const barCover = document.getElementById('player-bar-cover');
-          if (barCover) barCover.src = lastTrack.cover || '';
+          applyAllCoverPlaceholders(lastTrack);
 
           state.currentTrack = lastTrack;
           updateRightPlayerPanel(lastTrack);
+          if(lastTrack.cover){
+            extractDominantColor(lastTrack.cover).then(c=>{
+              if(c){ const bright = c._bright || {r:Math.round(c.r/0.35),g:Math.round(c.g/0.35),b:Math.round(c.b/0.35)}; applyFsLavaLampColors(bright); }
+            });
+          }
+        } else {
+          applyAllCoverPlaceholders('');
         }
       } catch (e) {
         console.warn('Failed to load last track:', e);
+        applyAllCoverPlaceholders('');
       }
+    } else {
+      // No track ever played — show beautiful placeholder everywhere
+      applyAllCoverPlaceholders('');
     }
 
     console.log('Votify initialized successfully.');
@@ -6924,10 +7057,10 @@ function extractDominantColor(imgUrl) {
         g = Math.round(g / count);
         b = Math.round(b / count);
         // Darken it for player bar background
-        r = Math.round(r * 0.35);
-        g = Math.round(g * 0.35);
-        b = Math.round(b * 0.35);
-        resolve({ r, g, b });
+        const darkR = Math.round(r * 0.35);
+        const darkG = Math.round(g * 0.35);
+        const darkB = Math.round(b * 0.35);
+        resolve({ r: darkR, g: darkG, b: darkB, _bright: { r, g, b } });
       } catch {
         resolve(null);
       }
@@ -6936,6 +7069,77 @@ function extractDominantColor(imgUrl) {
     img.src = imgUrl;
   });
 }
+
+function extractDominantColorBright(imgUrl) {
+  return extractDominantColor(imgUrl).then(c => {
+    if (!c) return null;
+    return c._bright || { r: Math.round(c.r/0.35), g: Math.round(c.g/0.35), b: Math.round(c.b/0.35) };
+  });
+}
+
+function rgbToHsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if(max===min){ h=s=0; } else {
+    const d=max-min;
+    s=l>0.5? d/(2-max-min): d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d + (g<b?6:0); break;
+      case g: h=(b-r)/d + 2; break;
+      case b: h=(r-g)/d + 4; break;
+    }
+    h/=6;
+  }
+  return {h:h*360, s:s*100, l:l*100};
+}
+function hslToRgb(h,s,l){
+  h/=360; s/=100; l/=100;
+  let r,g,b;
+  if(s===0){ r=g=b=l; } else {
+    const hue2rgb=(p,q,t)=>{
+      if(t<0) t+=1;
+      if(t>1) t-=1;
+      if(t<1/6) return p+(q-p)*6*t;
+      if(t<1/2) return q;
+      if(t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    const q=l<0.5? l*(1+s): l+s-l*s;
+    const p=2*l-q;
+    r=hue2rgb(p,q,h+1/3);
+    g=hue2rgb(p,q,h);
+    b=hue2rgb(p,q,h-1/3);
+  }
+  return {r:Math.round(r*255), g:Math.round(g*255), b:Math.round(b*255)};
+}
+
+function applyFsLavaLampColors(brightColor){
+  const fs = document.getElementById('fullscreen-player');
+  const lamp = document.getElementById('fs-lava-lamp');
+  const grad = document.getElementById('fs-gradient-bg');
+  if(!fs || !lamp) return;
+  if(!brightColor){
+    fs.style.removeProperty('--lava1-r'); fs.style.removeProperty('--lava1-g'); fs.style.removeProperty('--lava1-b');
+    fs.style.removeProperty('--lava2-r'); fs.style.removeProperty('--lava2-g'); fs.style.removeProperty('--lava2-b');
+    fs.style.removeProperty('--lava3-r'); fs.style.removeProperty('--lava3-g'); fs.style.removeProperty('--lava3-b');
+    if(grad) grad.style.background='';
+    return;
+  }
+  let {r,g,b} = brightColor;
+  const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+  const base = Math.min(255, Math.max(200, Math.round(lum*0.6 + 120)));
+  const c1 = {r: base, g: base, b: base};
+  const c2 = {r: Math.max(160, base-35), g: Math.max(160, base-35), b: Math.max(160, base-35)};
+  const c3 = {r: Math.max(90, base-110), g: Math.max(90, base-110), b: Math.max(90, base-110)};
+  fs.style.setProperty('--lava1-r', c1.r); fs.style.setProperty('--lava1-g', c1.g); fs.style.setProperty('--lava1-b', c1.b);
+  fs.style.setProperty('--lava2-r', c2.r); fs.style.setProperty('--lava2-g', c2.g); fs.style.setProperty('--lava2-b', c2.b);
+  fs.style.setProperty('--lava3-r', c3.r); fs.style.setProperty('--lava3-g', c3.g); fs.style.setProperty('--lava3-b', c3.b);
+  if(grad){
+    grad.style.background = `radial-gradient(120% 90% at 18% 18%, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.85) 55%, #000 85%)`;
+  }
+}
+
 
 // ============================================================================
 // LIVE SETTINGS APPLICATION & PARTICLE CANVAS SYSTEM
@@ -7270,12 +7474,12 @@ function applyUISettings() {
     appContainer.style.height = '';
   }
 
-  const mode = appSettings.themeMode || 'dark';
-  document.body.dataset.themeMode = mode;
+  const mode = appSettings.themeMode || 'contrast';
+  document.body.dataset.themeMode = mode || 'contrast';
   if (mode === 'light') {
     document.body.classList.add('light-theme');
     document.body.classList.remove('dark-theme');
-  } else if (mode === 'dark') {
+  } else if (mode === 'dark' || mode === 'contrast') {
     document.body.classList.add('dark-theme');
     document.body.classList.remove('light-theme');
   } else {
@@ -7745,9 +7949,9 @@ function getCurrentWorkshopTheme() {
       '--focus-ring',
       workshopColor(appSettings.customColorFocus || appSettings.accent, '#1DB954')
     ),
-    mode: ['dark', 'light', 'system'].includes(appSettings.themeMode)
+    mode: ['dark', 'light', 'system', 'contrast', 'midnight'].includes(appSettings.themeMode)
       ? appSettings.themeMode
-      : 'dark',
+      : 'contrast',
     backgroundPreset: /^grad-[1-9]$/.test(appSettings.bgPreset || appSettings.background)
       ? appSettings.bgPreset || appSettings.background
       : 'default',
@@ -7796,7 +8000,7 @@ function applyWorkshopTheme(theme, metadata = {}) {
     cards: workshopColor(theme?.cards, current.cards),
     borders: workshopColor(theme?.borders, current.borders),
     focus: workshopColor(theme?.focus, current.focus),
-    mode: ['dark', 'light', 'system'].includes(theme?.mode) ? theme.mode : current.mode,
+    mode: ['dark', 'light', 'system', 'contrast', 'midnight'].includes(theme?.mode) ? theme.mode : current.mode,
     backgroundPreset: /^grad-[1-9]$/.test(theme?.backgroundPreset)
       ? theme.backgroundPreset
       : 'default',
@@ -8112,9 +8316,19 @@ function initRedesignedSettings() {
   wireInput('setting-player-title-align', 'playerTitleAlign', 'center', null, '', () =>
     applyPlayerSettings()
   );
-  wireInput('setting-player-style', 'playerStyle', 'standard', null, '', () =>
-    applyPlayerSettings()
-  );
+  wireInput('setting-player-style', 'playerStyle', 'standard', null, '', () => {
+    applyPlayerSettings();
+    // auto vinyl shape when style vinyl selected via select
+    if (appSettings.playerStyle === 'vinyl' && appSettings.playerCoverShape !== 'Виниловая пластинка') {
+      appSettings.playerCoverShape = 'Виниловая пластинка';
+      const coverShapeValue = document.getElementById('cover-shape-value');
+      const settingCoverShape = document.getElementById('setting-cover-shape');
+      if (coverShapeValue) coverShapeValue.textContent = 'Виниловая пластинка';
+      if (settingCoverShape) settingCoverShape.value = 'Виниловая пластинка';
+      applyPlayerCoverShape();
+      saveSettings();
+    }
+  });
   wireInput('setting-player-slider-type', 'playerSliderType', 'normal', null, '', () =>
     applyPlayerSettings()
   );
