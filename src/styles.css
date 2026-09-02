@@ -9149,8 +9149,22 @@ body[data-dynamic-player-bg="true"] .fs-gradient-bg {
 .app-container, .content-wrapper {
   background: transparent !important;
 }
-body, html {
-  background: #121212 !important;
+html {
+  background: #121212;
+}
+/* БЕЗ !important: inline-фон из applyBackground() (пресеты/картинки настроек
+   и мастерской) должен перебивать эту базу. Частицам хватает html-подложки. */
+body {
+  background: #121212;
+}
+/* Выделенный фоновый слой: гарантированно показывает пресет/картинку,
+   даже если каскад съедает background на body. Под частицами (z3) и контентом. */
+#app-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #121212;
 }
 #bg-particle-canvas { mix-blend-mode: normal !important; }
 

@@ -5111,17 +5111,51 @@ if (splashScreenToggle) {
 function applyBackground() {
   const storedUrl = String(appSettings.bgUrl || '').trim();
   const bg = /^(https?:|data:image\/)/i.test(storedUrl) ? storedUrl : appSettings.background;
+  const layer = document.getElementById('app-bg-layer');
+  const targets = [document.body, layer].filter(Boolean);
+  const clearLonghands = el => {
+    el.style.backgroundImage = '';
+    el.style.backgroundPosition = '';
+    el.style.backgroundSize = '';
+    el.style.backgroundRepeat = '';
+    el.style.backgroundAttachment = '';
+  };
+  const reset = () =>
+    targets.forEach(el => {
+      el.style.background = '';
+      clearLonghands(el);
+    });
   if (!bg || bg === 'default') {
-    document.body.style.background = '';
-    document.body.style.backgroundImage = '';
-  } else if (bgGradients[bg]) {
-    document.body.style.background = bgGradients[bg];
-  } else if (bg.startsWith('http') || bg.startsWith('data:')) {
-    document.body.style.background = `url("${bg}") center/cover no-repeat fixed`;
-  } else {
-    document.body.style.background = bg;
+    reset();
+    if (layer) layer.style.background = '#121212';
+    return;
   }
+  if (bg.startsWith('http') || bg.startsWith('data:')) {
+    // шортхэнд с data:/http-URL парсер иногда отклоняет — длинные свойства
+    const image = `url("${bg}")`;
+    targets.forEach(el => {
+      el.style.background = '';
+      clearLonghands(el);
+      el.style.backgroundImage = image;
+      if (!el.style.backgroundImage) {
+        // парсер отверг сырые <,>,# и т.п. — пробуем percent-encoding
+        el.style.backgroundImage = `url("${encodeURI(bg)}")`;
+      }
+      el.style.backgroundPosition = 'center';
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundRepeat = 'no-repeat';
+      el.style.backgroundAttachment = 'fixed';
+    });
+    return;
+  }
+  const value = bgGradients[bg] || bg;
+  targets.forEach(el => {
+    clearLonghands(el);
+    el.style.background = value;
+  });
+  if (layer && !value) layer.style.background = '#121212';
 }
+
 const bgPresetsEl = document.getElementById('bg-presets');
 if (bgPresetsEl) {
   bgPresetsEl.addEventListener('click', e => {
