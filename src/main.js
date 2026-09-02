@@ -7111,6 +7111,13 @@ function initApp() {
       applyAllCoverPlaceholders('');
     }
 
+    // Финальный запуск частиц после всех тем/оверлеев старта
+    try {
+      updateParticleSystem();
+    } catch (e) {
+      console.error('Particles init error:', e);
+    }
+
     console.log('Votify initialized successfully.');
   } catch (e) {
     console.error('Critical init error:', e);
@@ -8213,9 +8220,9 @@ function applyWorkshopTheme(theme, metadata = {}) {
       'fireflies',
       'sakura',
       'network',
-    ].includes(theme?.particles)
+    ].includes(theme?.particles) && theme.particles !== 'none'
       ? theme.particles
-      : current.particles || 'dots', // тема без поля частиц не гасит текущие
+      : current.particles || 'dots', // темы не гасят частицы: старые сохранённые темы с 'none' игнорируются
     fontFamily: [
       'system',
       'modern',
