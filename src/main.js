@@ -7433,6 +7433,7 @@ function updateParticleSystem() {
   }
 
   function drawFrame() {
+    particleFrameCount++;
     bgParticleCtx.clearRect(0, 0, bgParticleCanvas.width, bgParticleCanvas.height);
 
     particlesArray.forEach(p => {
@@ -7528,14 +7529,26 @@ function updateParticleSystem() {
   render(performance.now());
 }
 
-// Watchdog: если цикл частиц умер (ошибка кадра, сбой вкладки) — перезапускаем
+// Watchdog: если цикл частиц умер (ошибка кадра, сбой вкладки) — перезапускаем.
+// Плюс детектор «тихой остановки»: считаем кадры и, если при включённых частицах
+// счётчик не растёт (цикл жив, но не рисует / завис), перезапускаем систему.
+let particleFrameCount = 0;
+let particleWatchLastCount = 0;
 setInterval(() => {
   try {
     if (typeof appSettings === 'undefined' || !appSettings) return;
     if (appSettings.perfParticles === false) return;
     const ptype = appSettings.bgParticles || 'dots';
     if (ptype === 'none') return;
-    if (!bgParticleAnimationId) updateParticleSystem();
+    if (document.hidden) {
+      particleWatchLastCount = particleFrameCount;
+      return;
+    }
+    if (!bgParticleAnimationId || particleFrameCount === particleWatchLastCount) {
+      console.warn('[particles] watchdog: restart (stall or dead loop)');
+      updateParticleSystem();
+    }
+    particleWatchLastCount = particleFrameCount;
   } catch (e) {
     /* ignore */
   }
