@@ -7277,6 +7277,107 @@ function applyFsLavaLampColors(brightColor){
   }
 }
 
+// ============================================================================
+// LAVA LAMP v2 — синхронизация ритма с музыкой (WebAudio-анализатор).
+// Хук создаётся лениво, на первом play (жест пользователя): до этого аудио
+// звучит напрямую, а AudioContext не создаётся (autoplay-политики).
+// Бит = бас выше скользящего среднего; атака быстрая, отпускание вязкое.
+// ============================================================================
+let lavaAnalyser = null;
+let lavaFreqData = null;
+let lavaHooked = false;
+let lavaBeatRaf = 0;
+let lavaPulse = 0;
+let lavaLevel = 0;
+let lavaBassAvg = 0.08;
+
+function ensureLavaAudioHook() {
+  if (lavaHooked) return true;
+  try {
+    // Аудио-граф уже занят EQ (createMediaElementSource один на элемент),
+    // поэтому не строим свой: берём общий анализатор EQ-цепочки.
+    if (typeof sharedAnalyser === 'undefined' || !sharedAnalyser) {
+      if (typeof initEQ === 'function') initEQ();
+    }
+    if (typeof sharedAnalyser !== 'undefined' && sharedAnalyser) {
+      lavaAnalyser = sharedAnalyser;
+    } else {
+      return false;
+    }
+    lavaFreqData = new Uint8Array(lavaAnalyser.frequencyBinCount);
+    lavaHooked = true;
+    return true;
+  } catch (err) {
+    console.warn('[lava] audio hook failed:', err);
+    lavaHooked = false;
+    lavaAnalyser = null;
+    return false;
+  }
+}
+
+function pushLavaBeatVars() {
+  const lamp = document.getElementById('fs-lava-lamp');
+  if (!lamp) return;
+  lamp.style.setProperty('--lava-pulse', lavaPulse.toFixed(3));
+  lamp.style.setProperty('--lava-level', lavaLevel.toFixed(3));
+}
+
+function lavaBeatTick() {
+  lavaBeatRaf = requestAnimationFrame(lavaBeatTick);
+  if (!lavaAnalyser || !lavaFreqData) return;
+  if (typeof audio === 'undefined' || !audio || audio.paused || audio.ended) {
+    lavaPulse += (0 - lavaPulse) * 0.12;
+    lavaLevel += (0 - lavaLevel) * 0.12;
+    pushLavaBeatVars();
+    if (lavaPulse < 0.01 && lavaLevel < 0.01) {
+      cancelAnimationFrame(lavaBeatRaf);
+      lavaBeatRaf = 0;
+      lavaPulse = 0;
+      lavaLevel = 0;
+      pushLavaBeatVars();
+    }
+    return;
+  }
+  lavaAnalyser.getByteFrequencyData(lavaFreqData);
+  const bins = lavaFreqData.length;
+  const binHz = lavaAnalyser.context ? lavaAnalyser.context.sampleRate / 2 / bins : 750;
+  const bassBins = Math.max(2, Math.min(8, Math.round(260 / binHz))); // низ (~0–260 Гц)
+  let bass = 0;
+  for (let i = 1; i <= bassBins; i++) bass += lavaFreqData[i];
+  bass /= bassBins * 255;
+  let all = 0;
+  for (let i = 0; i < bins; i++) all += lavaFreqData[i];
+  all /= bins * 255;
+  lavaBassAvg += (bass - lavaBassAvg) * 0.045;
+  const beat = Math.max(0, bass - lavaBassAvg * 1.18);
+  const target = Math.min(1, beat * 3.2 + all * 0.5);
+  lavaPulse += (target - lavaPulse) * (target > lavaPulse ? 0.55 : 0.1);
+  lavaLevel += (all - lavaLevel) * 0.2;
+  pushLavaBeatVars();
+}
+
+function startLavaBeatLoop() {
+  if (!lavaBeatRaf) lavaBeatRaf = requestAnimationFrame(lavaBeatTick);
+}
+
+if (typeof audio !== 'undefined' && audio) {
+  audio.addEventListener('play', () => {
+    if (ensureLavaAudioHook()) startLavaBeatLoop();
+  });
+  audio.addEventListener('pause', startLavaBeatLoop); // дай пульсу красиво затухнуть
+  audio.addEventListener('ended', startLavaBeatLoop);
+}
+window.VotifyLava = {
+  ensure: ensureLavaAudioHook,
+  start: startLavaBeatLoop,
+  state: () => ({
+    hooked: lavaHooked,
+    pulse: lavaPulse,
+    level: lavaLevel,
+    ctx: typeof audioCtx !== 'undefined' && audioCtx ? audioCtx.state : 'none',
+  }),
+};
+
 
 // ============================================================================
 // LIVE SETTINGS APPLICATION & PARTICLE CANVAS SYSTEM

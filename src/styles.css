@@ -8607,6 +8607,93 @@ body[data-dynamic-player-bg="false"] .fs-gradient-bg {
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* === LAVA LAMP v2 (2026-09-02): красивее + пульс под музыку ===
+   --lava-pulse (0..1) — сила бита, --lava-level (0..1) — общая громкость.
+   Ставит JS-анализатор (WebAudio) в main.js. */
+.fs-lava-lamp {
+  transform: scale(calc(1 + var(--lava-pulse, 0) * 0.05));
+  filter: brightness(calc(1 + var(--lava-pulse, 0) * 0.38))
+    saturate(calc(1.05 + var(--lava-level, 0) * 0.55));
+  transition: filter 0.14s ease-out;
+}
+.fs-lava-blob {
+  scale: calc(1 + var(--lava-pulse, 0) * 0.12);
+  animation-composition: add;
+}
+
+/* blob 4 — яркое ядро в центре, дышит вместе с битом */
+.fs-lava-blob:nth-child(4) {
+  top: 26%;
+  left: 32%;
+  width: 46vw;
+  height: 46vw;
+  min-width: 300px;
+  min-height: 300px;
+  opacity: 0.5;
+  filter: blur(52px) saturate(2) brightness(1.25);
+  background: radial-gradient(circle at 42% 40%,
+    rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.9) 0%,
+    rgba(var(--lava1-r, 29), var(--lava1-g, 185), var(--lava1-b, 84), 0.45) 40%,
+    transparent 74%);
+  animation: lavaFloat4 15s ease-in-out infinite;
+  animation-delay: -3s;
+}
+/* blob 5 — глубокая база снизу, бархатная тьма с оттенком */
+.fs-lava-blob:nth-child(5) {
+  top: 58%;
+  left: 40%;
+  width: 82vw;
+  height: 62vw;
+  min-width: 480px;
+  min-height: 380px;
+  opacity: 0.45;
+  filter: blur(96px) saturate(1.6) brightness(0.9);
+  background: radial-gradient(ellipse at 50% 60%,
+    rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.85) 0%,
+    rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.35) 44%,
+    transparent 78%);
+  animation: lavaFloat5 29s ease-in-out infinite;
+  animation-delay: -12s;
+}
+/* blob 6 — блик-искра сверху справа */
+.fs-lava-blob:nth-child(6) {
+  top: 6%;
+  left: 62%;
+  width: 30vw;
+  height: 30vw;
+  min-width: 220px;
+  min-height: 220px;
+  opacity: 0.4;
+  filter: blur(44px) saturate(1.9) brightness(1.35);
+  background: radial-gradient(circle at 46% 44%,
+    rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.75) 0%,
+    rgba(var(--lava1-r, 29), var(--lava1-g, 185), var(--lava1-b, 84), 0.28) 46%,
+    transparent 72%);
+  animation: lavaFloat6 17s ease-in-out infinite;
+  animation-delay: -7s;
+}
+
+@keyframes lavaFloat4 {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 50% 50% 50% 50%; }
+  20%  { transform: translate3d(-10vw, 10vh, 0) scale(1.14) rotate(-8deg); border-radius: 60% 40% 55% 45%; }
+  45%  { transform: translate3d(8vw, -8vh, 0) scale(0.9) rotate(6deg); border-radius: 45% 55% 40% 60%; }
+  70%  { transform: translate3d(-4vw, -12vh, 0) scale(1.1) rotate(-4deg); border-radius: 55% 45% 60% 40%; }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 50% 50% 50% 50%; }
+}
+@keyframes lavaFloat5 {
+  0%   { transform: translate3d(0, 0, 0) scaleX(1) rotate(0deg); }
+  30%  { transform: translate3d(-8vw, -6vh, 0) scaleX(1.12) rotate(3deg); }
+  60%  { transform: translate3d(10vw, 4vh, 0) scaleX(0.94) rotate(-3deg); }
+  100% { transform: translate3d(0, 0, 0) scaleX(1) rotate(0deg); }
+}
+@keyframes lavaFloat6 {
+  0%   { transform: translate3d(0, 0, 0) scale(1); border-radius: 50%; }
+  25%  { transform: translate3d(-12vw, 8vh, 0) scale(1.2); border-radius: 58% 42% 50% 50%; }
+  55%  { transform: translate3d(-20vw, -6vh, 0) scale(0.85); border-radius: 44% 56% 48% 52%; }
+  80%  { transform: translate3d(-6vw, 10vh, 0) scale(1.1); border-radius: 52% 48% 58% 42%; }
+  100% { transform: translate3d(0, 0, 0) scale(1); border-radius: 50%; }
+}
+
 /* === VOTIFY FIXES 2026-09-01 — PART 2: material icons fallback + player style diversity === */
 html.mi-loaded .material-icons { visibility: visible; }
 html:not(.mi-loaded) .material-icons {
