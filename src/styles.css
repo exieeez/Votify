@@ -9159,3 +9159,12 @@ body[data-theme-mode="light"] .update-banner-btn:hover { background: #222; }
 body[data-theme-mode="light"] .update-banner-close { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.6); }
 body[data-theme-mode="light"] .update-banner-close:hover { background: rgba(0,0,0,0.12); color: #000; }
 
+
+/* === FIX 2026-09-02: остров — всегда fixed-оверлей ===
+   Правило "Ensure content is above glow and particles" ставит
+   .floating-island position:relative/z-index:2 и выталкивает плеер
+   из потока влево-вниз. Возвращаем фиксированное позиционирование. */
+.floating-island {
+  position: fixed !important;
+  z-index: 200 !important;
+}
