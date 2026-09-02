@@ -171,7 +171,7 @@
       particles: oneOf(
         theme.particles,
         ['none', 'snow', 'rain', 'stars', 'dots', 'hearts', 'fireflies', 'sakura', 'network'],
-        'none'
+        'dots'
       ),
       fontFamily: oneOf(
         theme.fontFamily,
@@ -600,10 +600,10 @@
           backgroundUrl: '',
           cornerRadius: 8,
           uiTransparency: 100,
-          backgroundBlur: 0,
-          particles: 'none',
-          fontFamily: 'system'
-        };
+        backgroundBlur: 0,
+        particles: 'dots',
+        fontFamily: 'system'
+      };
         window.VotifyThemeWorkshop.applyTheme(defaultTheme, { id: '', title: 'Стандартная тема' });
         // Clear active scheme id
         const settingsStr = localStorage.getItem('votify-settings');

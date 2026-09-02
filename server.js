@@ -122,6 +122,9 @@ const server = http.createServer(async (req, res) => {
     // --- MUSIC ENDPOINTS ---
     if (await handleMusicRoutes(req, res, u)) return;
 
+    // --- DEMO (offline catalog covers/audio) ---
+    if (require('./routes/demo.js').handleDemoRoutes(req, res, u)) return;
+
     // --- STATIC FILES ---
     await serveStatic(u.pathname, res);
   } catch (e) {

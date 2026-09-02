@@ -7363,7 +7363,7 @@ function updateParticleSystem() {
     return;
   }
 
-  if (!bgParticleCanvas) initParticleEngine();
+  if (!bgParticleCanvas || !bgParticleCanvas.isConnected) initParticleEngine();
   const type = appSettings.bgParticles || 'dots';
   if (type === 'none') {
     bgParticleCtx?.clearRect(0, 0, bgParticleCanvas.width, bgParticleCanvas.height);
@@ -7401,6 +7401,8 @@ function updateParticleSystem() {
 
   function render(timestamp) {
     if (!bgParticleCtx || !bgParticleCanvas) return;
+    // Сбрасываем id кадра: если render упадёт, watchdog увидит null и перезапустит цикл
+    bgParticleAnimationId = null;
     if (document.hidden) {
       bgParticleAnimationId = requestAnimationFrame(render);
       return;
@@ -7413,6 +7415,17 @@ function updateParticleSystem() {
     }
     lastTime = timestamp - (elapsed % fpsInterval);
 
+    try {
+      drawFrame();
+    } catch (err) {
+      console.error('[particles] render error:', err);
+      return;
+    }
+
+    bgParticleAnimationId = requestAnimationFrame(render);
+  }
+
+  function drawFrame() {
     bgParticleCtx.clearRect(0, 0, bgParticleCanvas.width, bgParticleCanvas.height);
 
     particlesArray.forEach(p => {
@@ -7503,11 +7516,23 @@ function updateParticleSystem() {
       }
     }
 
-    bgParticleAnimationId = requestAnimationFrame(render);
   }
 
   render(performance.now());
 }
+
+// Watchdog: если цикл частиц умер (ошибка кадра, сбой вкладки) — перезапускаем
+setInterval(() => {
+  try {
+    if (typeof appSettings === 'undefined' || !appSettings) return;
+    if (appSettings.perfParticles === false) return;
+    const ptype = appSettings.bgParticles || 'dots';
+    if (ptype === 'none') return;
+    if (!bgParticleAnimationId) updateParticleSystem();
+  } catch (e) {
+    /* ignore */
+  }
+}, 3000);
 
 function applyPlayerSettings() {
   const align = appSettings.playerTitleAlign || 'center';
@@ -8190,7 +8215,7 @@ function applyWorkshopTheme(theme, metadata = {}) {
       'network',
     ].includes(theme?.particles)
       ? theme.particles
-      : 'none',
+      : current.particles || 'dots', // тема без поля частиц не гасит текущие
     fontFamily: [
       'system',
       'modern',
