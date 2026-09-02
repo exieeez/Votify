@@ -369,14 +369,14 @@ let appSettings = readStoredJson('votify-settings', {
   accentGlow: true,
   trackCardStyle: 'default',
   backgroundBlur: 0,
-  perfParticles: false,
-  bgParticles: 'none',
+  perfParticles: true,
+  bgParticles: 'dots',
   savedColorSchemes: [],
   activeColorSchemeId: '',
 });
 
-if (appSettings.perfParticles === undefined) appSettings.perfParticles = false;
-if (appSettings.bgParticles === undefined) appSettings.bgParticles = 'none';
+if (appSettings.perfParticles === undefined) appSettings.perfParticles = true;
+if (appSettings.bgParticles === undefined) appSettings.bgParticles = 'dots';
 if (!Array.isArray(appSettings.savedColorSchemes)) appSettings.savedColorSchemes = [];
 if (typeof appSettings.activeColorSchemeId !== 'string') appSettings.activeColorSchemeId = '';
 
@@ -408,8 +408,8 @@ sanitizeAppColorSchemes();
 // defaults. Users can still enable particles again from the appearance panel.
 const cleanPlayerUiMigration = 'votify-clean-player-ui-v1';
 if (localStorage.getItem(cleanPlayerUiMigration) !== 'done') {
-  appSettings.perfParticles = false;
-  appSettings.bgParticles = 'none';
+  appSettings.perfParticles = true;
+  appSettings.bgParticles = 'dots';
   localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   localStorage.setItem(cleanPlayerUiMigration, 'done');
 }
@@ -7247,6 +7247,69 @@ let particlesArray = [];
 let mousePos = { x: 0, y: 0 };
 let particleMouseListenerAdded = false;
 
+// Cursor glow spotlight — follows mouse like cool highlight
+(function initCursorGlow(){
+  let glow = null;
+  let glow2 = null;
+  let ticking = false;
+  let mouseX = 0, mouseY = 0;
+
+  function ensureGlow() {
+    glow = document.getElementById('cursor-glow');
+    glow2 = document.getElementById('cursor-glow-2');
+    if (!glow) {
+      glow = document.createElement('div');
+      glow.id = 'cursor-glow';
+      document.body.appendChild(glow);
+    }
+    if (!glow2) {
+      glow2 = document.createElement('div');
+      glow2.id = 'cursor-glow-2';
+      document.body.appendChild(glow2);
+    }
+  }
+
+  function updateGlow() {
+    if (!glow || !glow2) ensureGlow();
+    if (glow) {
+      glow.style.left = mouseX + 'px';
+      glow.style.top = mouseY + 'px';
+      glow.classList.add('active');
+    }
+    if (glow2) {
+      glow2.style.left = mouseX + 'px';
+      glow2.style.top = mouseY + 'px';
+    }
+    ticking = false;
+  }
+
+  window.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    if (!ticking) {
+      requestAnimationFrame(updateGlow);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  window.addEventListener('mouseleave', () => {
+    if (glow) glow.style.opacity = '0';
+    if (glow2) glow2.style.opacity = '0';
+  });
+
+  window.addEventListener('mouseenter', () => {
+    if (glow) glow.style.opacity = '';
+    if (glow2) glow2.style.opacity = '';
+  });
+
+  // Init after DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureGlow);
+  } else {
+    ensureGlow();
+  }
+})();
+
 function initParticleEngine() {
   let canvas = document.getElementById('bg-particle-canvas');
   if (!canvas) {
@@ -8338,7 +8401,7 @@ function initRedesignedSettings() {
     });
   }
   wireInput('toggle-perf-bg', 'perfBg', true);
-  wireInput('toggle-perf-particles', 'perfParticles', false, null, '', () =>
+  wireInput('toggle-perf-particles', 'perfParticles', true, null, '', () =>
     updateParticleSystem()
   );
   wireInput('toggle-perf-covers', 'perfCovers', true);
@@ -8485,7 +8548,7 @@ function initRedesignedSettings() {
   wireInput('toggle-tab-settings', 'tabSettings', true, null, '', () => applyTabsSettings());
 
   // --- 11. Фон (app-bg) ---
-  wireInput('setting-bg-particles', 'bgParticles', 'none', null, '', () => updateParticleSystem());
+  wireInput('setting-bg-particles', 'bgParticles', 'dots', null, '', () => updateParticleSystem());
   wireInput('slider-particle-count', 'particleCount', 50, 'particle-count-val', '', () =>
     updateParticleSystem()
   );
