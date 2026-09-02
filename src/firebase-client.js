@@ -211,20 +211,13 @@
         banner: '',
         frame: 'none',
         cursor: '',
-        code: makeFriendCode(),
-        nameLower: String(user.displayName || (user.email ? user.email.split('@')[0] : 'Гость')).toLowerCase().slice(0, 40),
         createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
       };
       await reference.set(profile, { merge: true });
       return profile;
     }
-    const existing = snapshot.data() || {};
-    if (!existing.code) {
-      existing.code = makeFriendCode();
-      await reference.set({ code: existing.code }, { merge: true });
-    }
-    return existing;
+    return snapshot.data() || {};
   }
 
   async function register(email, password, displayName) {
@@ -324,7 +317,6 @@
     await profileRef(user.uid).set(
       {
         ...safe,
-        nameLower: (safe.displayName || user.displayName || '').toLowerCase().slice(0, 40),
         email: user.email || '',
         isAnonymous: !!user.isAnonymous,
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
@@ -542,8 +534,7 @@
     document.querySelectorAll('#profile-banner-presets .banner-chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.banner === (profile.banner || ''));
     });
-    const codeEl = document.getElementById('profile-friend-code');
-    if (codeEl) codeEl.textContent = profile.code || '—';
+
     if (email)
       email.textContent =
         user?.email || (user?.isAnonymous ? 'Гостевой аккаунт' : 'Не выполнен вход');
@@ -772,160 +763,6 @@
     updateAccountUi();
   }
 
-  // ==================== ДРУЗЬЯ И АКТИВНОСТЬ ====================
-  function makeFriendCode() {
-    const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-    let out = '';
-    for (let i = 0; i < 6; i++) out += abc[Math.floor(Math.random() * abc.length)];
-    return out;
-  }
-  function friendDocId(a, b) {
-    return [a, b].sort().join('_');
-  }
-  function friendRef(id) {
-    return state.db.collection('friends').doc(id);
-  }
-
-  async function getMyCode() {
-    const user = await requireUser();
-    const snap = await profileRef(user.uid).get();
-    let code = snap.exists ? snap.data().code : '';
-    if (!code) {
-      code = makeFriendCode();
-      await profileRef(user.uid).set({ code }, { merge: true });
-    }
-    return code;
-  }
-
-  async function searchFriendsByName(nameInput) {
-    const user = await requireUser();
-    const q = String(nameInput || '').trim().toLowerCase().slice(0, 40);
-    if (!q) return [];
-    const snap = await state.db.collection('users').where('nameLower', '==', q).limit(8).get();
-    return snap.docs
-      .filter(d => d.id !== user.uid)
-      .map(d => ({ uid: d.id, ...(d.data() || {}) }));
-  }
-
-  async function addFriendByUid(targetUid) {
-    const user = await requireUser();
-    if (!targetUid || targetUid === user.uid) throw new Error('Некого добавлять');
-    const sorted = [user.uid, targetUid].sort();
-    const ref = friendRef(friendDocId(user.uid, targetUid));
-    const snap = await ref.get();
-    if (snap.exists && snap.data().status === 'accepted') throw new Error('Вы уже друзья');
-    await ref.set(
-      {
-        a: sorted[0],
-        b: sorted[1],
-        status: 'pending',
-        requestedBy: user.uid,
-        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-    return targetUid;
-  }
-
-  async function addFriendByCode(codeInput) {
-    const user = await requireUser();
-    const code = String(codeInput || '').trim().toUpperCase();
-    if (!/^[A-Z0-9]{6}$/.test(code)) throw new Error('Код друга состоит из 6 символов');
-    const found = await state.db.collection('users').where('code', '==', code).limit(1).get();
-    if (found.empty) throw new Error('Пользователь с таким кодом не найден');
-    const target = found.docs[0];
-    if (target.id === user.uid) throw new Error('Это ваш собственный код');
-    const sorted = [user.uid, target.id].sort();
-    const ref = friendRef(friendDocId(user.uid, target.id));
-    const snap = await ref.get();
-    if (snap.exists && snap.data().status === 'accepted') throw new Error('Вы уже друзья');
-    await ref.set(
-      {
-        a: sorted[0],
-        b: sorted[1],
-        status: 'pending',
-        requestedBy: user.uid,
-        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-    return target.id;
-  }
-
-  async function listFriendEntries() {
-    const user = await requireUser();
-    const [asA, asB] = await Promise.all([
-      state.db.collection('friends').where('a', '==', user.uid).get(),
-      state.db.collection('friends').where('b', '==', user.uid).get(),
-    ]);
-    const map = new Map();
-    [...asA.docs, ...asB.docs].forEach(d => {
-      const v = d.data();
-      map.set(d.id, {
-        id: d.id,
-        friendUid: v.a === user.uid ? v.b : v.a,
-        status: v.status,
-        requestedBy: v.requestedBy,
-      });
-    });
-    return [...map.values()];
-  }
-
-  async function respondFriend(friendUid, accept) {
-    const user = await requireUser();
-    await friendRef(friendDocId(user.uid, friendUid)).set(
-      {
-        status: accept ? 'accepted' : 'declined',
-        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-  }
-
-  async function fetchProfiles(uids) {
-    const out = {};
-    await Promise.all(
-      (uids || []).map(uid =>
-        profileRef(uid)
-          .get()
-          .then(sn => {
-            out[uid] = sn.exists ? sn.data() : null;
-          })
-          .catch(() => {})
-      )
-    );
-    return out;
-  }
-
-  function onFriendsChange(cb) {
-    const user = state.auth && state.auth.currentUser;
-    if (!user || !state.db) return () => {};
-    const unsubs = [
-      state.db.collection('friends').where('a', '==', user.uid).onSnapshot(() => cb()),
-      state.db.collection('friends').where('b', '==', user.uid).onSnapshot(() => cb()),
-    ];
-    return () => unsubs.forEach(u => u && u());
-  }
-
-  function onProfileChange(uid, cb) {
-    if (!state.db || !uid) return () => {};
-    return profileRef(uid).onSnapshot(sn => cb(sn.exists ? sn.data() : null));
-  }
-
-  async function setActivity(activity) {
-    const user = state.auth && state.auth.currentUser;
-    if (!user || !state.db) return;
-    const cover = String(activity.cover || '');
-    const safe = {
-      title: String(activity.title || '').slice(0, 120),
-      artist: String(activity.artist || '').slice(0, 120),
-      cover: cover.startsWith('https://') ? cover.slice(0, 500) : '',
-      playing: !!activity.playing,
-      ts: Date.now(),
-    };
-    await profileRef(user.uid).set({ activity: safe }, { merge: true }).catch(() => {});
-  }
-
   window.VotifyCloud = {
     whenReady: () => ready,
     isAvailable: () => state.available,
@@ -941,16 +778,6 @@
     saveProfile,
     pullState,
     pushState,
-    getMyCode,
-    searchFriendsByName,
-    addFriendByUid,
-    addFriendByCode,
-    listFriendEntries,
-    respondFriend,
-    fetchProfiles,
-    onFriendsChange,
-    onProfileChange,
-    setActivity,
     listWorkshopThemes,
     publishWorkshopTheme,
     deleteWorkshopTheme,

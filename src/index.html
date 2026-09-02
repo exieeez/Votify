@@ -7,7 +7,7 @@
          настоящую перезагрузку, если документ пришёл из прошлого билда
          или восстановлен из bfcache (иначе частицы/плеер живут старым JS). */
       (function () {
-        var BUILD = '0.7.1';
+        var BUILD = '0.7.2';
         try {
           var fresh = location.search.indexOf('reload=1') !== -1;
           if (localStorage.getItem('votify-build') !== BUILD && !fresh) {
@@ -28,9 +28,9 @@
     <title>Votify</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=0.7.1" />
-    <link rel="stylesheet" href="custom-theme.css?v=0.7.1" />
-    <link rel="stylesheet" href="home-personalization.css?v=0.7.1" />
+    <link rel="stylesheet" href="styles.css?v=0.7.2" />
+    <link rel="stylesheet" href="custom-theme.css?v=0.7.2" />
+    <link rel="stylesheet" href="home-personalization.css?v=0.7.2" />
     <link rel="icon" type="image/png" href="icon.png" />
     <meta name="theme-color" content="#121212" />
   </head>
@@ -191,7 +191,7 @@
         <div class="profile-fields">
           <label>Имя профиля<input type="text" id="profile-display-name" maxlength="40" placeholder="Имя" /></label>
           <label>О себе<input type="text" id="profile-about" maxlength="300" placeholder="Пара слов о себе — увидят друзья" /></label>
-          <div class="profile-meta-row"><span>Код друга</span><strong id="profile-friend-code">—</strong><button class="btn-icon-sm" id="profile-copy-code" title="Скопировать код"><i class="material-icons">content_copy</i></button></div>
+
           <div class="profile-meta-row"><span>Email</span><strong id="profile-email">—</strong></div>
           <div class="profile-meta-row"><span>Тип аккаунта</span><strong id="profile-account-kind">—</strong></div>
           <div class="profile-sync-status"><i class="material-icons">cloud_done</i><span id="profile-cloud-status">Проверка Firebase…</span></div>
@@ -201,58 +201,6 @@
           <button class="auth-btn" id="profile-save-btn">Сохранить профиль</button>
           <button class="auth-btn auth-btn-secondary" id="profile-login-btn">Войти в другой аккаунт</button>
           <button class="profile-danger-btn" id="profile-logout-btn">Выйти</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- FRIENDS PAGE (Discord-style) -->
-    <div class="friends-page" id="friends-overlay" style="display:none">
-      <header class="fp-header">
-        <button class="btn-icon-sm" id="friends-close-btn" aria-label="Закрыть"><i class="material-icons">arrow_back</i></button>
-        <h2>Друзья</h2>
-        <div class="fp-my-code" title="Ваш код друга — можно передать вместо ника">
-          <span>КОД:</span><strong id="friends-my-code">—</strong>
-          <button class="btn-icon-sm" id="friends-copy-code" title="Скопировать код"><i class="material-icons">content_copy</i></button>
-        </div>
-      </header>
-      <div class="fp-shell">
-        <nav class="fp-tabs">
-          <button class="fp-tab active" data-ftab="all"><i class="material-icons">group</i>Все<span class="fp-badge" id="fp-count-all"></span></button>
-          <button class="fp-tab" data-ftab="listening"><i class="material-icons">headphones</i>Слушают сейчас<span class="fp-badge" id="fp-count-listening"></span></button>
-          <button class="fp-tab" data-ftab="requests"><i class="material-icons">person_add</i>Заявки<span class="fp-badge accent" id="fp-count-requests"></span></button>
-          <div class="fp-tabs-divider"></div>
-          <button class="fp-tab add" data-ftab="add"><i class="material-icons">person_search</i>Добавить друга</button>
-        </nav>
-        <div class="fp-body">
-          <section class="fp-pane active" data-fpane="all">
-            <div class="fp-search-row"><input type="text" id="fp-filter-input" placeholder="Поиск по друзьям" /></div>
-            <div class="fp-list" id="friends-list"><div class="friends-empty">Пока никого нет</div></div>
-          </section>
-          <section class="fp-pane" data-fpane="listening">
-            <div class="fp-list" id="friends-listening"><div class="friends-empty">Никто не слушает прямо сейчас</div></div>
-          </section>
-          <section class="fp-pane" data-fpane="requests">
-            <div class="fp-list" id="friends-requests"><div class="friends-empty">Нет заявок</div></div>
-          </section>
-          <section class="fp-pane" data-fpane="add">
-            <div class="fp-add-panel">
-              <h3>Добавить друга</h3>
-              <p>Введите никнейм друга — как в Discord: ему придёт заявка, а после принятия вы увидите, что он слушает.</p>
-              <div class="fp-add-row">
-                <input type="text" id="friends-name-input" maxlength="40" placeholder="Никнейм друга" autocomplete="off" />
-                <button class="auth-btn" id="friends-add-btn"><i class="material-icons">person_add</i>Добавить</button>
-              </div>
-              <div class="profile-message" id="friends-message"></div>
-              <div class="fp-add-results" id="friends-search-results"></div>
-              <div class="fp-add-alt">
-                <span>Или по коду из 6 символов:</span>
-                <div class="fp-add-row small">
-                  <input type="text" id="friends-code-input" maxlength="6" placeholder="КОД" autocomplete="off" />
-                  <button class="auth-btn auth-btn-secondary" id="friends-add-code-btn">По коду</button>
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
       </div>
     </div>
@@ -346,7 +294,6 @@
           </button>
         </nav>
         <div class="sidebar-bottom">
-          <button class="nav-btn" id="nav-friends-btn" title="Друзья и активность"><i class="material-icons">group</i></button>
           <button class="nav-btn" id="nav-profile-btn" title="Войти в аккаунт"><i class="material-icons">person_outline</i></button>
           <button class="nav-btn" id="nav-settings-btn" title="Настройки">
             <i class="material-icons" style="font-size:22px;">tune</i>
@@ -1728,10 +1675,10 @@
     <script src="/vendor/firebase-app-compat.js"></script>
     <script src="/vendor/firebase-auth-compat.js"></script>
     <script src="/vendor/firebase-firestore-compat.js"></script>
-    <script src="firebase-client.js?v=0.7.1"></script>
-    <script src="color-schemes.js?v=0.7.1"></script>
-    <script src="main.js?v=0.7.1"></script>
-    <script src="workshop.js?v=0.7.1"></script>
-    <script src="social.js?v=0.7.1"></script>
+    <script src="firebase-client.js?v=0.7.2"></script>
+    <script src="color-schemes.js?v=0.7.2"></script>
+    <script src="main.js?v=0.7.2"></script>
+    <script src="workshop.js?v=0.7.2"></script>
+    <script src="profile-custom.js?v=0.7.2"></script>
   </body>
 </html>

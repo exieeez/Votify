@@ -7686,25 +7686,7 @@ function renderCursorSettings() {
   applyCursor();
 })();
 
-// "Who is listening to what": send activity to the cloud on playback events
-function pushListenActivity() {
-  const cloud = window.VotifyCloud;
-  if (!cloud || !cloud.setActivity) return;
-  const track = typeof state !== 'undefined' ? state.currentTrack : null;
-  const promise = cloud.setActivity({
-    title: track ? track.title || '' : '',
-    artist: track ? track.artist || '' : '',
-    cover: track ? track.cover || '' : '',
-    playing: !!(track && !audio.paused),
-  });
-  if (promise && promise.catch) promise.catch(() => {});
-}
-if (typeof audio !== 'undefined' && audio) {
-  audio.addEventListener('play', pushListenActivity);
-  audio.addEventListener('pause', pushListenActivity);
-  audio.addEventListener('ended', pushListenActivity);
-}
-on('state:currentTrack', () => pushListenActivity());
+
 
 
 // ============================================================================
