@@ -4276,7 +4276,10 @@ body.no-animations * {
   position: fixed;
   bottom: 16px;
   left: 50%;
-  transform: translateX(-50%);
+  /* Центрирование отдельным свойством translate: hover и player-style
+     могут переписывать transform, но не собьют позицию по горизонтали */
+  translate: -50% 0;
+  transform: none;
   width: clamp(680px, 88vw, 1140px);
   height: 64px;
   border-radius: 9999px;
