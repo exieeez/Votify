@@ -8534,7 +8534,7 @@ body[data-dynamic-player-bg="false"] .fs-lava-lamp {
 }
 .fs-gradient-bg {
   z-index: 0 !important;
-  opacity: 0.85;
+  opacity: 1;
 }
 .fs-top-bar,
 .fs-split-container {
@@ -8551,7 +8551,7 @@ body[data-dynamic-player-bg="false"] .fs-lava-lamp {
   min-height: 400px;
   border-radius: 50%;
   filter: blur(72px) saturate(1.8) brightness(1.1);
-  opacity: 0.62;
+  opacity: 0.8;
   mix-blend-mode: screen;
   will-change: transform;
   transition: background 0.9s ease;
@@ -8573,7 +8573,7 @@ body[data-dynamic-player-bg="false"] .fs-lava-lamp {
   background: radial-gradient(circle at 40% 40%, rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.85) 0%, rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.42) 38%, rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.10) 66%, transparent 80%);
   animation: lavaFloat2 23s ease-in-out infinite;
   animation-delay: -4s;
-  opacity: 0.55;
+  opacity: 0.72;
 }
 /* blob 3 — deeper / complementary */
 .fs-lava-blob:nth-child(3) {
@@ -8584,7 +8584,7 @@ body[data-dynamic-player-bg="false"] .fs-lava-lamp {
   background: radial-gradient(circle at 45% 35%, rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.78) 0%, rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.38) 36%, rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.08) 68%, transparent 82%);
   animation: lavaFloat3 26s ease-in-out infinite;
   animation-delay: -9s;
-  opacity: 0.52;
+  opacity: 0.7;
 }
 
 @keyframes lavaFloat1 {
@@ -8618,7 +8618,7 @@ body[data-dynamic-player-bg="false"] .fs-lava-lamp {
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,0.38) 100%),
+    radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,0.26) 100%),
     radial-gradient(ellipse at 20% 15%, rgba(255,255,255,0.04) 0%, transparent 55%);
   mix-blend-mode: normal;
 }
@@ -8659,7 +8659,7 @@ body[data-dynamic-player-bg="false"] .fs-gradient-bg {
   height: 46vw;
   min-width: 300px;
   min-height: 300px;
-  opacity: 0.5;
+  opacity: 0.68;
   filter: blur(52px) saturate(2) brightness(1.25);
   background: radial-gradient(circle at 42% 40%,
     rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.9) 0%,
@@ -8676,7 +8676,7 @@ body[data-dynamic-player-bg="false"] .fs-gradient-bg {
   height: 62vw;
   min-width: 480px;
   min-height: 380px;
-  opacity: 0.45;
+  opacity: 0.62;
   filter: blur(96px) saturate(1.6) brightness(0.9);
   background: radial-gradient(ellipse at 50% 60%,
     rgba(var(--lava3-r, 10), var(--lava3-g, 90), var(--lava3-b, 40), 0.85) 0%,
@@ -8693,7 +8693,7 @@ body[data-dynamic-player-bg="false"] .fs-gradient-bg {
   height: 30vw;
   min-width: 220px;
   min-height: 220px;
-  opacity: 0.4;
+  opacity: 0.58;
   filter: blur(44px) saturate(1.9) brightness(1.35);
   background: radial-gradient(circle at 46% 44%,
     rgba(var(--lava2-r, 80), var(--lava2-g, 200), var(--lava2-b, 130), 0.75) 0%,

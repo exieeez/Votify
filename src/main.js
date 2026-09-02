@@ -6778,10 +6778,8 @@ on('state:currentTrack', track => {
   // Extract color for fullscreen background gradient — now lava-lamp dynamic
   const fsGradientBg = document.getElementById('fs-gradient-bg');
   if (track.cover) {
-    extractDominantColor(track.cover).then(color => {
-      if (!color) { applyFsLavaLampColors(null); return; }
-      const bright = color._bright || { r: Math.round(color.r/0.35), g: Math.round(color.g/0.35), b: Math.round(color.b/0.35) };
-      applyFsLavaLampColors(bright);
+    extractCoverPalette(track.cover).then(palette => {
+      applyFsLavaLampColors(palette);
     });
   } else {
     applyFsLavaLampColors(null);
@@ -7217,8 +7215,8 @@ function initApp() {
           state.currentTrack = lastTrack;
           updateRightPlayerPanel(lastTrack);
           if(lastTrack.cover){
-            extractDominantColor(lastTrack.cover).then(c=>{
-              if(c){ const bright = c._bright || {r:Math.round(c.r/0.35),g:Math.round(c.g/0.35),b:Math.round(c.b/0.35)}; applyFsLavaLampColors(bright); }
+            extractCoverPalette(lastTrack.cover).then(pal => {
+              if (pal) applyFsLavaLampColors(pal);
             });
           }
         } else {
@@ -7301,6 +7299,56 @@ function extractDominantColor(imgUrl) {
   });
 }
 
+// Точные оттенки обложки: топ-кластеры цветов без усреднения в «кашу».
+// Возвращает массив из <= count цветов (по убыванию частоты), каждый —
+// средний цвет своего кластера, т.е. реальный оттенок с обложки.
+function extractCoverPalette(imgUrl, count = 3) {
+  return new Promise(resolve => {
+    if (!imgUrl) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const size = 48;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        const buckets = new Map();
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+          const cur = buckets.get(key) || { n: 0, r: 0, g: 0, b: 0 };
+          cur.n++;
+          cur.r += r;
+          cur.g += g;
+          cur.b += b;
+          buckets.set(key, cur);
+        }
+        const list = [...buckets.values()]
+          .map(c => ({ n: c.n, r: Math.round(c.r / c.n), g: Math.round(c.g / c.n), b: Math.round(c.b / c.n) }))
+          .sort((a, b) => b.n - a.n);
+        const picked = [];
+        for (const c of list) {
+          if (picked.every(pc => Math.abs(pc.r - c.r) + Math.abs(pc.g - c.g) + Math.abs(pc.b - c.b) > 90)) {
+            picked.push(c);
+          }
+          if (picked.length >= count) break;
+        }
+        resolve(picked.length ? picked : null);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = imgUrl;
+  });
+}
+
 function extractDominantColorBright(imgUrl) {
   return extractDominantColor(imgUrl).then(c => {
     if (!c) return null;
@@ -7357,21 +7405,17 @@ function applyFsLavaLampColors(brightColor){
     if(grad) grad.style.background='';
     return;
   }
-  let {r,g,b} = brightColor;
-  // Ensure vividness — colorful under cover
-  const hsl = rgbToHsl(r,g,b);
-  const baseH = hsl.h;
-  const baseS = Math.max(65, hsl.s);
-  const baseL = Math.min(62, Math.max(48, hsl.l));
-  const c1 = hslToRgb(baseH, baseS, baseL);
-  const c2 = hslToRgb((baseH+32)%360, Math.min(90, baseS+8), Math.min(68, baseL+10));
-  const c3 = hslToRgb((baseH+335)%360, Math.max(55, baseS-6), Math.max(32, baseL-18));
+  // ТОЧНЫЕ оттенки обложки: палитра кластеров как есть, без сдвигов hue/sat/light.
+  const pal = Array.isArray(brightColor) ? brightColor : [brightColor];
+  const c1 = pal[0];
+  const c2 = pal[1] || pal[0];
+  const c3 = pal[2] || { r: Math.round(c1.r * 0.45), g: Math.round(c1.g * 0.45), b: Math.round(c1.b * 0.45) };
   fs.style.setProperty('--lava1-r', c1.r); fs.style.setProperty('--lava1-g', c1.g); fs.style.setProperty('--lava1-b', c1.b);
   fs.style.setProperty('--lava2-r', c2.r); fs.style.setProperty('--lava2-g', c2.g); fs.style.setProperty('--lava2-b', c2.b);
   fs.style.setProperty('--lava3-r', c3.r); fs.style.setProperty('--lava3-g', c3.g); fs.style.setProperty('--lava3-b', c3.b);
   if(grad){
-    const dark = {r: Math.round(c1.r*0.18), g: Math.round(c1.g*0.18), b: Math.round(c1.b*0.18)};
-    grad.style.background = `radial-gradient(120% 90% at 18% 18%, rgba(${c1.r},${c1.g},${c1.b},0.32) 0%, rgba(${dark.r},${dark.g},${dark.b},0.55) 42%, #080a12 78%), radial-gradient(110% 85% at 82% 72%, rgba(${c2.r},${c2.g},${c2.b},0.24) 0%, rgba(${c3.r},${c3.g},${c3.b},0.16) 38%, transparent 76%)`;
+    const dark = {r: Math.round(c1.r*0.3), g: Math.round(c1.g*0.3), b: Math.round(c1.b*0.3)};
+    grad.style.background = `radial-gradient(120% 90% at 18% 18%, rgba(${c1.r},${c1.g},${c1.b},0.55) 0%, rgba(${c1.r},${c1.g},${c1.b},0.34) 42%, rgba(${dark.r},${dark.g},${dark.b},0.5) 82%), radial-gradient(110% 85% at 82% 72%, rgba(${c2.r},${c2.g},${c2.b},0.42) 0%, rgba(${c3.r},${c3.g},${c3.b},0.3) 40%, transparent 78%)`;
   }
 }
 
