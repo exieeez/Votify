@@ -204,9 +204,9 @@ test('settings UI wires the save button, name field and scheme list', () => {
   assert.match(html, /id="saved-color-schemes"/);
   assert.match(html, /id="saved-color-schemes-count"/);
   assert.match(html, /<script src="color-schemes\.js(\?[^"]*)?"><\/script>/);
-  assert.match(html, /<link rel="stylesheet" href="custom-theme.css"\s*\/?>/);
+  assert.match(html, /<link rel="stylesheet" href="custom-theme\.css(\?[^"]*)?"\s*\/?>/);
   assert.ok(html.indexOf('styles.css') < html.indexOf('custom-theme.css'));
-  assert.ok(html.indexOf('color-schemes.js') < html.indexOf('src="main.js"'));
+  assert.ok(html.indexOf('color-schemes.js') < html.indexOf('src="main.js'));
   assert.match(html, /id="picker-color-primary"/);
   assert.match(html, /id="picker-color-bg"/);
   assert.match(html, /id="picker-color-text"/);
