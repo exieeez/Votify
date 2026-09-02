@@ -7520,6 +7520,192 @@ window.VotifyLava = {
   }),
 };
 
+// ============================================================================
+// CUSTOM CURSOR: presets + own files; saved with workshop themes
+// ============================================================================
+const CURSOR_PRESETS = [
+  { id: 'none', title: 'Standard' },
+  { id: 'neon', title: 'Neon', hot: [5, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><path d='M4 2 L23 13 L14 14.5 L18.5 23.5 L14.8 25 L10.6 16 L4 20 Z' fill='#00e5ff' stroke='#ffffff' stroke-width='1.4'/></svg>" },
+  { id: 'pink', title: 'Pink', hot: [5, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><path d='M4 2 L23 13 L14 14.5 L18.5 23.5 L14.8 25 L10.6 16 L4 20 Z' fill='#ff2d78' stroke='#ffffff' stroke-width='1.4'/></svg>" },
+  { id: 'green', title: 'Green', hot: [5, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><path d='M4 2 L23 13 L14 14.5 L18.5 23.5 L14.8 25 L10.6 16 L4 20 Z' fill='#1db954' stroke='#ffffff' stroke-width='1.4'/></svg>" },
+  { id: 'gold', title: 'Gold', hot: [5, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><path d='M4 2 L23 13 L14 14.5 L18.5 23.5 L14.8 25 L10.6 16 L4 20 Z' fill='#ffc93c' stroke='#202020' stroke-width='1.4'/></svg>" },
+  { id: 'violet', title: 'Violet', hot: [5, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><path d='M4 2 L23 13 L14 14.5 L18.5 23.5 L14.8 25 L10.6 16 L4 20 Z' fill='#a855f7' stroke='#ffffff' stroke-width='1.4'/></svg>" },
+  { id: 'heart', title: 'Heart', hot: [13, 12], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><path d='M13 22 C4.5 15.5 2.5 9.5 6.5 6 C9.5 3.5 12 5.5 13 8 C14 5.5 16.5 3.5 19.5 6 C23.5 9.5 21.5 15.5 13 22 Z' fill='#ff2d78' stroke='#ffffff' stroke-width='1.2'/></svg>" },
+  { id: 'star', title: 'Star', hot: [13, 13], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><path d='M13 2 L16 9 L24 9.5 L18 14.5 L20 22 L13 17.6 L6 22 L8 14.5 L2 9.5 L10 9 Z' fill='#ffc93c' stroke='#202020' stroke-width='1.1'/></svg>" },
+  { id: 'ring', title: 'Ring', hot: [13, 13], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><circle cx='13' cy='13' r='8' fill='none' stroke='#00e5ff' stroke-width='3'/><circle cx='13' cy='13' r='2' fill='#ffffff'/></svg>" },
+  { id: 'pixel', title: 'Pixel', hot: [4, 2], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' shape-rendering='crispEdges'><path d='M4 2 L4 18 L8 14 L11 21 L14 19.5 L11 13 L16 13 Z' fill='#ffffff' stroke='#000000' stroke-width='1.6'/></svg>" },
+  { id: 'cross', title: 'Scope', hot: [13, 13], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><path d='M13 3 V10 M13 16 V23 M3 13 H10 M16 13 H23' stroke='#ff5252' stroke-width='2.6'/><circle cx='13' cy='13' r='1.6' fill='#ff5252'/></svg>" },
+];
+const CURSOR_PRESET_IDS = CURSOR_PRESETS.map(preset => preset.id);
+
+function cursorDataUri(svg) {
+  return 'data:image/svg+xml;utf8,' + encodeURI(svg);
+}
+function findCustomCursor(id) {
+  return (appSettings.customCursors || []).find(c => c.id === id) || null;
+}
+function sanitizeCursorCustom(value) {
+  if (!value || typeof value !== 'object') return null;
+  const dataUrl = String(value.dataUrl || '');
+  if (!dataUrl.startsWith('data:image/') || dataUrl.length > 80000) return null;
+  return {
+    dataUrl,
+    hotX: Math.max(0, Math.min(64, Number(value.hotX) || 0)),
+    hotY: Math.max(0, Math.min(64, Number(value.hotY) || 0)),
+  };
+}
+function resolveCursor() {
+  const preset = appSettings.cursorPreset || 'none';
+  if (preset === 'custom') {
+    const safe = sanitizeCursorCustom(findCustomCursor(appSettings.cursorCustomId));
+    if (safe) return { uri: safe.dataUrl, hot: [safe.hotX, safe.hotY] };
+    return null;
+  }
+  const found = CURSOR_PRESETS.find(p => p.id === preset);
+  if (found && found.svg) return { uri: cursorDataUri(found.svg), hot: found.hot || [4, 2] };
+  return null;
+}
+function applyCursor() {
+  const root = document.documentElement;
+  const resolved = resolveCursor();
+  if (!resolved) {
+    root.style.removeProperty('--app-cursor');
+    root.style.removeProperty('--app-cursor-pointer');
+    root.style.removeProperty('--app-cursor-text');
+    return;
+  }
+  const value = `url("${resolved.uri}") ${resolved.hot[0]} ${resolved.hot[1]}, auto`;
+  root.style.setProperty('--app-cursor', value);
+  root.style.setProperty('--app-cursor-pointer', value);
+  root.style.setProperty('--app-cursor-text', value);
+}
+function renderCursorSettings() {
+  const grid = document.getElementById('cursor-preset-grid');
+  if (grid) {
+    grid.innerHTML = CURSOR_PRESETS.map(preset => {
+      const active = (appSettings.cursorPreset || 'none') === preset.id;
+      const preview = preset.svg
+        ? `<img src="${cursorDataUri(preset.svg)}" alt="" />`
+        : '<i class="material-icons">mouse</i>';
+      return `<button class="cursor-tile${active ? ' active' : ''}" data-cursor="${preset.id}" title="${preset.title}">${preview}<span>${preset.title}</span></button>`;
+    }).join('');
+  }
+  const list = document.getElementById('cursor-custom-list');
+  if (list) {
+    const customs = appSettings.customCursors || [];
+    list.innerHTML = customs
+      .map(c => {
+        const active = appSettings.cursorPreset === 'custom' && appSettings.cursorCustomId === c.id;
+        return `<button class="cursor-tile custom${active ? ' active' : ''}" data-custom-cursor="${c.id}" title="${escapeHtml(c.name || 'Custom cursor')}"><img src="${c.dataUrl}" alt="" /><span>${escapeHtml((c.name || 'Cursor').slice(0, 14))}</span><i class="material-icons cursor-tile-del" data-del-cursor="${c.id}">close</i></button>`;
+      })
+      .join('');
+  }
+}
+(function initCursorSettings() {
+  const grid = document.getElementById('cursor-preset-grid');
+  if (grid)
+    grid.addEventListener('click', e => {
+      const tile = e.target.closest('.cursor-tile');
+      if (!tile) return;
+      appSettings.cursorPreset = tile.dataset.cursor;
+      if (appSettings.cursorPreset !== 'custom') appSettings.cursorCustomId = '';
+      saveSettings();
+      applyCursor();
+      renderCursorSettings();
+    });
+  const list = document.getElementById('cursor-custom-list');
+  if (list)
+    list.addEventListener('click', e => {
+      const del = e.target.closest('[data-del-cursor]');
+      if (del) {
+        const id = del.dataset.delCursor;
+        appSettings.customCursors = (appSettings.customCursors || []).filter(c => c.id !== id);
+        if (appSettings.cursorCustomId === id) {
+          appSettings.cursorPreset = 'none';
+          appSettings.cursorCustomId = '';
+        }
+        saveSettings();
+        applyCursor();
+        renderCursorSettings();
+        return;
+      }
+      const tile = e.target.closest('[data-custom-cursor]');
+      if (!tile) return;
+      appSettings.cursorPreset = 'custom';
+      appSettings.cursorCustomId = tile.dataset.customCursor;
+      saveSettings();
+      applyCursor();
+      renderCursorSettings();
+    });
+  const file = document.getElementById('cursor-file-input');
+  if (file)
+    file.addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      if (f.size > 65536) {
+        if (typeof showToast === 'function') showToast('Cursor file must be 64 KB or smaller');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || '');
+        if (!dataUrl.startsWith('data:image/')) {
+          if (typeof showToast === 'function') showToast('Unsupported format');
+          return;
+        }
+        appSettings.customCursors = appSettings.customCursors || [];
+        const id = 'c' + Date.now().toString(36);
+        appSettings.customCursors.push({
+          id,
+          name: (f.name || 'Cursor').replace(/\.[^.]+$/, '').slice(0, 14),
+          dataUrl,
+          hotX: 4,
+          hotY: 2,
+        });
+        if (appSettings.customCursors.length > 8) appSettings.customCursors.shift();
+        appSettings.cursorPreset = 'custom';
+        appSettings.cursorCustomId = id;
+        saveSettings();
+        applyCursor();
+        renderCursorSettings();
+        if (typeof showToast === 'function') showToast('Cursor added');
+      };
+      reader.readAsDataURL(f);
+    });
+  const reset = document.getElementById('cursor-reset-btn');
+  if (reset)
+    reset.addEventListener('click', () => {
+      appSettings.cursorPreset = 'none';
+      appSettings.cursorCustomId = '';
+      saveSettings();
+      applyCursor();
+      renderCursorSettings();
+    });
+  renderCursorSettings();
+  applyCursor();
+})();
+
+// "Who is listening to what": send activity to the cloud on playback events
+function pushListenActivity() {
+  const cloud = window.VotifyCloud;
+  if (!cloud || !cloud.setActivity) return;
+  const track = typeof state !== 'undefined' ? state.currentTrack : null;
+  const promise = cloud.setActivity({
+    title: track ? track.title || '' : '',
+    artist: track ? track.artist || '' : '',
+    cover: track ? track.cover || '' : '',
+    playing: !!(track && !audio.paused),
+  });
+  if (promise && promise.catch) promise.catch(() => {});
+}
+if (typeof audio !== 'undefined' && audio) {
+  audio.addEventListener('play', pushListenActivity);
+  audio.addEventListener('pause', pushListenActivity);
+  audio.addEventListener('ended', pushListenActivity);
+}
+on('state:currentTrack', () => pushListenActivity());
+
 
 // ============================================================================
 // LIVE SETTINGS APPLICATION & PARTICLE CANVAS SYSTEM
@@ -8439,6 +8625,15 @@ function getCurrentWorkshopTheme() {
       : 'default',
     backgroundUrl:
       workshopBackgroundUrl(appSettings.bgUrl) || workshopBackgroundUrl(appSettings.background),
+    cursorPreset: CURSOR_PRESET_IDS.includes(appSettings.cursorPreset)
+      ? appSettings.cursorPreset
+      : appSettings.cursorPreset === 'custom'
+        ? 'custom'
+        : 'none',
+    cursorCustom:
+      appSettings.cursorPreset === 'custom'
+        ? sanitizeCursorCustom(findCustomCursor(appSettings.cursorCustomId))
+        : null,
     cornerRadius: workshopNumber(appSettings.cornerRadius, 0, 24, 8),
     uiTransparency: workshopNumber(appSettings.uiTransparency, 10, 100, 45),
     backgroundBlur: workshopNumber(appSettings.backgroundBlur, 0, 60, 0),
@@ -8518,6 +8713,10 @@ function applyWorkshopTheme(theme, metadata = {}) {
     ].includes(theme?.fontFamily)
       ? theme.fontFamily
       : current.fontFamily,
+    cursorPreset: [...CURSOR_PRESET_IDS, 'custom'].includes(theme?.cursorPreset)
+      ? theme.cursorPreset
+      : current.cursorPreset || 'none',
+    cursorCustom: sanitizeCursorCustom(theme?.cursorCustom),
   };
 
   Object.assign(appSettings, {
@@ -8538,9 +8737,22 @@ function applyWorkshopTheme(theme, metadata = {}) {
     backgroundBlur: safe.backgroundBlur,
     bgParticles: safe.particles,
     fontFamily: safe.fontFamily,
+    cursorPreset: safe.cursorPreset,
     workshopThemeId: String(metadata.id || '').slice(0, 40),
     workshopThemeTitle: String(metadata.title || '').slice(0, 60),
   });
+
+  if (safe.cursorPreset === 'custom' && safe.cursorCustom) {
+    appSettings.customCursors = appSettings.customCursors || [];
+    const existing = appSettings.customCursors.find(c => c.id === 'theme');
+    if (existing) Object.assign(existing, safe.cursorCustom);
+    else appSettings.customCursors.push({ id: 'theme', name: 'From theme', ...safe.cursorCustom });
+    appSettings.cursorCustomId = 'theme';
+  } else if (safe.cursorPreset !== 'custom') {
+    appSettings.cursorCustomId = '';
+  }
+  applyCursor();
+  renderCursorSettings();
 
   const controlValues = {
     'picker-color-primary': safe.primary,

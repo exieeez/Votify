@@ -31,7 +31,11 @@
     };
   }
 
+  const PROFILE_FRAMES = ['none', 'glow', 'neon', 'rainbow', 'pixel', 'double', 'heart'];
+
   function cleanProfile(profile = {}) {
+    const bannerRaw = String(profile.banner || '').trim();
+    const cursorRaw = String(profile.cursor || '').trim();
     return {
       displayName: String(profile.displayName || '')
         .trim()
@@ -39,6 +43,14 @@
       avatar: String(profile.avatar || '').startsWith('data:image/')
         ? String(profile.avatar).slice(0, 150000)
         : '',
+      about: String(profile.about || '').trim().slice(0, 300),
+      banner: bannerRaw.startsWith('data:image/')
+        ? bannerRaw.slice(0, 200000)
+        : /^https:\/\/[^\s]{1,300}$/.test(bannerRaw)
+          ? bannerRaw
+          : oneOf(bannerRaw, ['grad-1','grad-2','grad-3','grad-4','grad-5','grad-6','grad-7','grad-8','grad-9',''], ''),
+      frame: oneOf(profile.frame, PROFILE_FRAMES, 'none'),
+      cursor: cursorRaw.startsWith('data:image/') ? cursorRaw.slice(0, 80000) : '',
     };
   }
 
@@ -195,13 +207,23 @@
         email: user.email || '',
         isAnonymous: !!user.isAnonymous,
         avatar: '',
+        about: '',
+        banner: '',
+        frame: 'none',
+        cursor: '',
+        code: makeFriendCode(),
         createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
       };
       await reference.set(profile, { merge: true });
       return profile;
     }
-    return snapshot.data() || {};
+    const existing = snapshot.data() || {};
+    if (!existing.code) {
+      existing.code = makeFriendCode();
+      await reference.set({ code: existing.code }, { merge: true });
+    }
+    return existing;
   }
 
   async function register(email, password, displayName) {
@@ -506,6 +528,20 @@
       if (icon) icon.textContent = user ? 'account_circle' : 'person_outline';
     }
     if (displayNameInput) displayNameInput.value = profile.displayName || user?.displayName || '';
+    const aboutInput = document.getElementById('profile-about');
+    if (aboutInput) aboutInput.value = profile.about || '';
+    const bannerInput = document.getElementById('profile-banner-value');
+    if (bannerInput) bannerInput.value = profile.banner || '';
+    const frameInput = document.getElementById('profile-frame-value');
+    if (frameInput) frameInput.value = profile.frame || 'none';
+    document.querySelectorAll('#profile-frame-chips .frame-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.frame === (profile.frame || 'none'));
+    });
+    document.querySelectorAll('#profile-banner-presets .banner-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.banner === (profile.banner || ''));
+    });
+    const codeEl = document.getElementById('profile-friend-code');
+    if (codeEl) codeEl.textContent = profile.code || '—';
     if (email)
       email.textContent =
         user?.email || (user?.isAnonymous ? 'Гостевой аккаунт' : 'Не выполнен вход');
@@ -688,6 +724,9 @@
         await saveProfile({
           displayName: document.getElementById('profile-display-name')?.value,
           avatar: state.profile?.avatar || '',
+          about: document.getElementById('profile-about')?.value,
+          banner: document.getElementById('profile-banner-value')?.value,
+          frame: document.getElementById('profile-frame-value')?.value,
         });
         setMessage('profile-message', 'Профиль сохранён');
       } catch (error) {
@@ -703,6 +742,9 @@
         await saveProfile({
           displayName: document.getElementById('profile-display-name')?.value,
           avatar,
+          about: document.getElementById('profile-about')?.value,
+          banner: document.getElementById('profile-banner-value')?.value,
+          frame: document.getElementById('profile-frame-value')?.value,
         });
         setMessage('profile-message', 'Аватар сохранён');
       } catch (error) {
@@ -728,6 +770,130 @@
     updateAccountUi();
   }
 
+  // ==================== ДРУЗЬЯ И АКТИВНОСТЬ ====================
+  function makeFriendCode() {
+    const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let out = '';
+    for (let i = 0; i < 6; i++) out += abc[Math.floor(Math.random() * abc.length)];
+    return out;
+  }
+  function friendDocId(a, b) {
+    return [a, b].sort().join('_');
+  }
+  function friendRef(id) {
+    return state.db.collection('friends').doc(id);
+  }
+
+  async function getMyCode() {
+    const user = await requireUser();
+    const snap = await profileRef(user.uid).get();
+    let code = snap.exists ? snap.data().code : '';
+    if (!code) {
+      code = makeFriendCode();
+      await profileRef(user.uid).set({ code }, { merge: true });
+    }
+    return code;
+  }
+
+  async function addFriendByCode(codeInput) {
+    const user = await requireUser();
+    const code = String(codeInput || '').trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(code)) throw new Error('Код друга состоит из 6 символов');
+    const found = await state.db.collection('users').where('code', '==', code).limit(1).get();
+    if (found.empty) throw new Error('Пользователь с таким кодом не найден');
+    const target = found.docs[0];
+    if (target.id === user.uid) throw new Error('Это ваш собственный код');
+    const sorted = [user.uid, target.id].sort();
+    const ref = friendRef(friendDocId(user.uid, target.id));
+    const snap = await ref.get();
+    if (snap.exists && snap.data().status === 'accepted') throw new Error('Вы уже друзья');
+    await ref.set(
+      {
+        a: sorted[0],
+        b: sorted[1],
+        status: 'pending',
+        requestedBy: user.uid,
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return target.id;
+  }
+
+  async function listFriendEntries() {
+    const user = await requireUser();
+    const [asA, asB] = await Promise.all([
+      state.db.collection('friends').where('a', '==', user.uid).get(),
+      state.db.collection('friends').where('b', '==', user.uid).get(),
+    ]);
+    const map = new Map();
+    [...asA.docs, ...asB.docs].forEach(d => {
+      const v = d.data();
+      map.set(d.id, {
+        id: d.id,
+        friendUid: v.a === user.uid ? v.b : v.a,
+        status: v.status,
+        requestedBy: v.requestedBy,
+      });
+    });
+    return [...map.values()];
+  }
+
+  async function respondFriend(friendUid, accept) {
+    const user = await requireUser();
+    await friendRef(friendDocId(user.uid, friendUid)).set(
+      {
+        status: accept ? 'accepted' : 'declined',
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  async function fetchProfiles(uids) {
+    const out = {};
+    await Promise.all(
+      (uids || []).map(uid =>
+        profileRef(uid)
+          .get()
+          .then(sn => {
+            out[uid] = sn.exists ? sn.data() : null;
+          })
+          .catch(() => {})
+      )
+    );
+    return out;
+  }
+
+  function onFriendsChange(cb) {
+    const user = state.auth && state.auth.currentUser;
+    if (!user || !state.db) return () => {};
+    const unsubs = [
+      state.db.collection('friends').where('a', '==', user.uid).onSnapshot(() => cb()),
+      state.db.collection('friends').where('b', '==', user.uid).onSnapshot(() => cb()),
+    ];
+    return () => unsubs.forEach(u => u && u());
+  }
+
+  function onProfileChange(uid, cb) {
+    if (!state.db || !uid) return () => {};
+    return profileRef(uid).onSnapshot(sn => cb(sn.exists ? sn.data() : null));
+  }
+
+  async function setActivity(activity) {
+    const user = state.auth && state.auth.currentUser;
+    if (!user || !state.db) return;
+    const cover = String(activity.cover || '');
+    const safe = {
+      title: String(activity.title || '').slice(0, 120),
+      artist: String(activity.artist || '').slice(0, 120),
+      cover: cover.startsWith('https://') ? cover.slice(0, 500) : '',
+      playing: !!activity.playing,
+      ts: Date.now(),
+    };
+    await profileRef(user.uid).set({ activity: safe }, { merge: true }).catch(() => {});
+  }
+
   window.VotifyCloud = {
     whenReady: () => ready,
     isAvailable: () => state.available,
@@ -743,6 +909,14 @@
     saveProfile,
     pullState,
     pushState,
+    getMyCode,
+    addFriendByCode,
+    listFriendEntries,
+    respondFriend,
+    fetchProfiles,
+    onFriendsChange,
+    onProfileChange,
+    setActivity,
     listWorkshopThemes,
     publishWorkshopTheme,
     deleteWorkshopTheme,

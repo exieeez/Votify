@@ -7,7 +7,7 @@
          настоящую перезагрузку, если документ пришёл из прошлого билда
          или восстановлен из bfcache (иначе частицы/плеер живут старым JS). */
       (function () {
-        var BUILD = '0.6.12';
+        var BUILD = '0.7.0';
         try {
           var fresh = location.search.indexOf('reload=1') !== -1;
           if (localStorage.getItem('votify-build') !== BUILD && !fresh) {
@@ -28,9 +28,9 @@
     <title>Votify</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=0.6.12" />
-    <link rel="stylesheet" href="custom-theme.css?v=0.6.12" />
-    <link rel="stylesheet" href="home-personalization.css?v=0.6.12" />
+    <link rel="stylesheet" href="styles.css?v=0.7.0" />
+    <link rel="stylesheet" href="custom-theme.css?v=0.7.0" />
+    <link rel="stylesheet" href="home-personalization.css?v=0.7.0" />
     <link rel="icon" type="image/png" href="icon.png" />
     <meta name="theme-color" content="#121212" />
   </head>
@@ -154,8 +154,44 @@
           <label class="profile-avatar-button" for="profile-avatar-input"><i class="material-icons">photo_camera</i> Сменить аватар</label>
           <input type="file" id="profile-avatar-input" accept="image/*" hidden />
         </div>
+        <div class="profile-banner-block">
+          <span class="profile-block-label">Баннер профиля</span>
+          <div class="banner-chips" id="profile-banner-presets">
+            <button class="banner-chip" data-banner="" title="Без баннера"></button>
+            <button class="banner-chip" data-banner="grad-1" style="--chip: linear-gradient(135deg,#7928ca,#ff0080)"></button>
+            <button class="banner-chip" data-banner="grad-2" style="--chip: linear-gradient(135deg,#00f2fe,#4facfe)"></button>
+            <button class="banner-chip" data-banner="grad-3" style="--chip: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)"></button>
+            <button class="banner-chip" data-banner="grad-4" style="--chip: linear-gradient(135deg,#10b981,#022c22)"></button>
+            <button class="banner-chip" data-banner="grad-5" style="--chip: linear-gradient(135deg,#ff416c,#ff4b2b)"></button>
+            <button class="banner-chip" data-banner="grad-6" style="--chip: linear-gradient(135deg,#00c6ff,#0072ff)"></button>
+            <button class="banner-chip" data-banner="grad-7" style="--chip: linear-gradient(135deg,#a855f7,#6366f1)"></button>
+            <button class="banner-chip" data-banner="grad-8" style="--chip: linear-gradient(135deg,#f43f5e,#fb7185)"></button>
+            <button class="banner-chip" data-banner="grad-9" style="--chip: linear-gradient(135deg,#18181b,#09090b)"></button>
+          </div>
+          <div class="profile-banner-url-row">
+            <input type="text" id="profile-banner-url" maxlength="300" placeholder="https://… или загрузите файл" />
+            <label class="btn-icon-sm" for="profile-banner-input" title="Загрузить картинку"><i class="material-icons">upload_file</i></label>
+            <input type="file" id="profile-banner-input" accept="image/*" hidden />
+          </div>
+          <input type="hidden" id="profile-banner-value" />
+        </div>
+        <div class="profile-frame-block">
+          <span class="profile-block-label">Рамка аватара</span>
+          <div class="frame-chips" id="profile-frame-chips">
+            <button class="frame-chip active" data-frame="none">Нет</button>
+            <button class="frame-chip" data-frame="glow">Свечение</button>
+            <button class="frame-chip" data-frame="neon">Неон</button>
+            <button class="frame-chip" data-frame="rainbow">Радуга</button>
+            <button class="frame-chip" data-frame="pixel">Пиксель</button>
+            <button class="frame-chip" data-frame="double">Двойная</button>
+            <button class="frame-chip" data-frame="heart">Сердце</button>
+          </div>
+          <input type="hidden" id="profile-frame-value" value="none" />
+        </div>
         <div class="profile-fields">
           <label>Имя профиля<input type="text" id="profile-display-name" maxlength="40" placeholder="Имя" /></label>
+          <label>О себе<input type="text" id="profile-about" maxlength="300" placeholder="Пара слов о себе — увидят друзья" /></label>
+          <div class="profile-meta-row"><span>Код друга</span><strong id="profile-friend-code">—</strong><button class="btn-icon-sm" id="profile-copy-code" title="Скопировать код"><i class="material-icons">content_copy</i></button></div>
           <div class="profile-meta-row"><span>Email</span><strong id="profile-email">—</strong></div>
           <div class="profile-meta-row"><span>Тип аккаунта</span><strong id="profile-account-kind">—</strong></div>
           <div class="profile-sync-status"><i class="material-icons">cloud_done</i><span id="profile-cloud-status">Проверка Firebase…</span></div>
@@ -166,6 +202,30 @@
           <button class="auth-btn auth-btn-secondary" id="profile-login-btn">Войти в другой аккаунт</button>
           <button class="profile-danger-btn" id="profile-logout-btn">Выйти</button>
         </div>
+      </div>
+    </div>
+
+    <!-- FRIENDS -->
+    <div class="profile-overlay" id="friends-overlay" style="display:none">
+      <div class="profile-card friends-card">
+        <div class="profile-card-header">
+          <div><span class="profile-kicker">VOTIFY SOCIAL</span><h2>Друзья</h2></div>
+          <button class="btn-icon-sm" id="friends-close-btn" aria-label="Закрыть"><i class="material-icons">close</i></button>
+        </div>
+        <div class="friends-my-code-row">
+          <span>Ваш код:</span>
+          <strong id="friends-my-code">—</strong>
+          <button class="btn-icon-sm" id="friends-copy-code" title="Скопировать"><i class="material-icons">content_copy</i></button>
+        </div>
+        <div class="friends-add-row">
+          <input type="text" id="friends-code-input" maxlength="6" placeholder="КОД ДРУГА" autocomplete="off" />
+          <button class="auth-btn" id="friends-add-btn">Добавить</button>
+        </div>
+        <div class="profile-message" id="friends-message"></div>
+        <div class="friends-section-title">Заявки в друзья</div>
+        <div class="friends-requests" id="friends-requests"><div class="friends-empty">Нет заявок</div></div>
+        <div class="friends-section-title">Друзья и их активность</div>
+        <div class="friends-list" id="friends-list"><div class="friends-empty">Пока никого нет — поделитесь кодом с друзьями</div></div>
       </div>
     </div>
 
@@ -258,6 +318,7 @@
           </button>
         </nav>
         <div class="sidebar-bottom">
+          <button class="nav-btn" id="nav-friends-btn" title="Друзья и активность"><i class="material-icons">group</i></button>
           <button class="nav-btn" id="nav-profile-btn" title="Войти в аккаунт"><i class="material-icons">person_outline</i></button>
           <button class="nav-btn" id="nav-settings-btn" title="Настройки">
             <i class="material-icons" style="font-size:22px;">tune</i>
@@ -1395,6 +1456,17 @@
                   <input type="range" class="settings-range" id="slider-ui-scale" min="75" max="125" value="100" />
                 </div>
               </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">mouse</i><h3>Курсор</h3></div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">Готовый курсор или свой файл (PNG/SVG/ICO до 64 КБ). Выбор сохраняется в теме мастерской.</p>
+                <div class="cursor-preset-grid" id="cursor-preset-grid"></div>
+                <div class="cursor-custom-row">
+                  <label class="auth-btn auth-btn-secondary" for="cursor-file-input"><i class="material-icons">upload_file</i> Добавить свой</label>
+                  <input type="file" id="cursor-file-input" accept="image/png,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" hidden />
+                  <button class="auth-btn auth-btn-secondary" id="cursor-reset-btn">Стандартный</button>
+                </div>
+                <div class="cursor-custom-list" id="cursor-custom-list"></div>
+              </div>
             </div>
 
             <!-- SECTION 10: Вкладки (app-tabs) -->
@@ -1628,9 +1700,10 @@
     <script src="/vendor/firebase-app-compat.js"></script>
     <script src="/vendor/firebase-auth-compat.js"></script>
     <script src="/vendor/firebase-firestore-compat.js"></script>
-    <script src="firebase-client.js?v=0.6.12"></script>
-    <script src="color-schemes.js?v=0.6.12"></script>
-    <script src="main.js?v=0.6.12"></script>
-    <script src="workshop.js?v=0.6.12"></script>
+    <script src="firebase-client.js?v=0.7.0"></script>
+    <script src="color-schemes.js?v=0.7.0"></script>
+    <script src="main.js?v=0.7.0"></script>
+    <script src="workshop.js?v=0.7.0"></script>
+    <script src="social.js?v=0.7.0"></script>
   </body>
 </html>

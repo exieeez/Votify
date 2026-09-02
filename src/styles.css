@@ -9370,3 +9370,169 @@ body[data-theme-mode="light"] .update-banner-close:hover { background: rgba(0,0,
   position: fixed !important;
   z-index: 200 !important;
 }
+
+
+/* ============================================================================
+   SOCIAL 2026-09-02: курсоры, друзья, рамки/баннеры профиля
+   ============================================================================ */
+html, body { cursor: var(--app-cursor, auto); }
+body * { cursor: var(--app-cursor, default); }
+button, a, select, label, [role="button"], .nav-btn, .track-card, .bg-card,
+.cursor-tile, .frame-chip, .banner-chip, .friend-card, .friend-row,
+input[type="range"], input[type="checkbox"] {
+  cursor: var(--app-cursor-pointer, pointer);
+}
+input[type="text"], input[type="search"], input[type="email"], input[type="password"], textarea {
+  cursor: var(--app-cursor-text, text);
+}
+
+.cursor-preset-grid,
+.cursor-custom-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.cursor-tile {
+  position: relative;
+  width: 76px;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-highlight);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.cursor-tile img { width: 24px; height: 24px; }
+.cursor-tile .material-icons { font-size: 20px; }
+.cursor-tile.active {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.cursor-tile-del { position: absolute; top: 2px; right: 3px; font-size: 13px; opacity: 0.65; }
+.cursor-custom-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+
+.profile-block-label {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subdued);
+}
+.banner-chips, .frame-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.banner-chip {
+  width: 36px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--bg-highlight);
+  background: var(--chip, var(--bg-elevated));
+}
+.banner-chip.active { outline: 2px solid var(--accent); }
+.profile-banner-url-row { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.profile-banner-url-row input { flex: 1; }
+.frame-chip {
+  padding: 5px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--bg-highlight);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.frame-chip.active { border-color: var(--accent); color: var(--text-primary); }
+
+/* Рамки аватара */
+.frame-glow { box-shadow: 0 0 0 3px var(--accent), 0 0 24px rgba(var(--accent-rgb), 0.85); }
+.frame-neon { box-shadow: 0 0 0 2px #00e5ff, 0 0 16px #00e5ff, 0 0 34px rgba(0, 229, 255, 0.5); }
+.frame-rainbow {
+  background: conic-gradient(#ff004c, #ffc93c, #1db954, #00e5ff, #a855f7, #ff2d78, #ff004c);
+  padding: 3px;
+}
+.frame-rainbow img, .frame-rainbow span { border-radius: inherit; }
+.frame-pixel {
+  box-shadow: 0 0 0 3px #000, 0 0 0 6px #fff, 0 0 0 9px #000;
+  border-radius: 0 !important;
+}
+.frame-double { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--bg-base), 0 0 0 7px var(--accent); }
+.frame-heart { box-shadow: 0 0 0 3px #ff2d78, 0 0 18px rgba(255, 45, 120, 0.6); position: relative; }
+.frame-heart::after {
+  content: '\2665';
+  position: absolute;
+  top: -11px;
+  right: -7px;
+  color: #ff2d78;
+  font-size: 18px;
+  text-shadow: 0 0 8px rgba(255, 45, 120, 0.8);
+}
+
+/* Друзья */
+.friends-card { width: min(560px, 94vw); max-height: 86vh; overflow-y: auto; }
+.friends-my-code-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-highlight);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.friends-my-code-row strong { letter-spacing: 0.22em; font-size: 18px; color: var(--accent); }
+.friends-add-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.friends-add-row input {
+  flex: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+}
+.friends-section-title {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subdued);
+}
+.friend-row, .friend-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-highlight);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.friend-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; }
+.friend-actions { display: flex; gap: 6px; }
+.friend-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: visible;
+}
+.friend-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.friend-avatar span { font-weight: 700; }
+.friend-avatar.frame-rainbow img { border-radius: 50%; }
+.friend-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.friend-info strong { font-size: 14px; }
+.friend-info span { font-size: 12px; color: var(--text-subdued); }
+.friend-about { color: var(--text-secondary) !important; }
+.friend-activity { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--text-subdued); }
+.friend-activity img { width: 22px; height: 22px; border-radius: 4px; object-fit: cover; }
+.friend-activity .material-icons { font-size: 18px; }
+.friend-activity.playing { color: var(--accent); }
+.friend-activity.playing b { color: var(--text-primary); }
+.friend-banner { height: 58px; background: var(--bg-elevated); background-size: cover; background-position: center; }
+.friend-banner.empty { height: 14px; }
+.friend-card-body { display: flex; gap: 10px; padding: 10px; align-items: center; }
+.friends-empty { font-size: 12px; color: var(--text-subdued); padding: 6px 2px; }
+.profile-avatar-large { position: relative; }
