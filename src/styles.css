@@ -6727,8 +6727,8 @@ body[data-theme-mode="light"] .lib-item:hover {
   width: 100vw !important;
   height: 100vh !important;
   pointer-events: none !important;
-  z-index: 1 !important;
-  opacity: 0.85 !important;
+  z-index: 3 !important;
+  opacity: 1 !important;
   display: block !important;
 }
 
@@ -9010,41 +9010,39 @@ body[data-dynamic-player-bg="true"] .fs-gradient-bg {
 }
 
 
-/* === Cursor glow spotlight — cool highlight that follows mouse === */
+/* === Cursor glow spotlight — cool highlight that follows mouse — BRIGHT === */
 #cursor-glow {
   position: fixed;
-  width: 700px;
-  height: 700px;
+  width: 800px;
+  height: 800px;
   border-radius: 50%;
   pointer-events: none;
   z-index: 1;
-  opacity: 0;
-  background: radial-gradient(circle at center, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.02) 40%, transparent 70%);
-  filter: blur(18px);
+  opacity: 0.85;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.10) 25%, rgba(255,255,255,0.04) 45%, transparent 70%);
+  filter: blur(24px);
   transform: translate(-50%, -50%);
-  transition: opacity 0.6s ease, transform 0.12s ease-out;
-  mix-blend-mode: screen;
+  transition: opacity 0.3s ease, transform 0.12s ease-out;
+  mix-blend-mode: normal;
   will-change: left, top, opacity;
 }
-body:hover #cursor-glow { opacity: 1; }
-#cursor-glow.active { opacity: 1; }
+#cursor-glow.active { opacity: 0.95; }
 
-/* Second layer for more depth */
+/* Second layer for more depth — brighter */
 #cursor-glow-2 {
   position: fixed;
-  width: 400px;
-  height: 400px;
+  width: 450px;
+  height: 450px;
   border-radius: 50%;
   pointer-events: none;
   z-index: 1;
-  opacity: 0;
-  background: radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, transparent 60%);
-  filter: blur(12px);
+  opacity: 0.7;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 35%, transparent 65%);
+  filter: blur(16px);
   transform: translate(-50%, -50%);
-  transition: opacity 0.4s ease, transform 0.08s ease-out;
+  transition: opacity 0.3s ease, transform 0.08s ease-out;
   will-change: left, top;
 }
-body:hover #cursor-glow-2 { opacity: 0.8; }
 
 /* Ensure content is above glow and particles */
 .sidebar, .top-bar, .player-bar, .right-player, .floating-island, .player-page-top, .fullscreen-player, .main-content, .screen {
@@ -9058,10 +9056,14 @@ body:hover #cursor-glow-2 { opacity: 0.8; }
   background: transparent !important;
   background-color: transparent !important;
 }
-.app-container, .content-wrapper, body {
+.app-container, .content-wrapper {
+  background: transparent !important;
+}
+body, html {
   background: #121212 !important;
 }
-#bg-particle-canvas { mix-blend-mode: screen; }
+#bg-particle-canvas { mix-blend-mode: normal !important; }
+
 
 /* Ensure particles are white and bright */
 .particle { background: #fff !important; }

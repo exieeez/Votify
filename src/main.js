@@ -7370,10 +7370,10 @@ function updateParticleSystem() {
     return;
   }
 
-  const rawCount = Number(appSettings.particleCount) || 50;
-  const count = type === 'network' ? Math.min(35, rawCount) : Math.min(110, rawCount);
-  const speed = (Number(appSettings.particleSpeed) || 15) / 10;
-  const size = Number(appSettings.particleSize) || 3.5;
+  const rawCount = Number(appSettings.particleCount) || 90;
+  const count = type === 'network' ? Math.min(60, rawCount) : Math.min(140, rawCount);
+  const speed = (Number(appSettings.particleSpeed) || 20) / 10;
+  const size = Number(appSettings.particleSize) || 4.5;
 
   particlesArray = [];
   const w = bgParticleCanvas.width || window.innerWidth;
@@ -7470,10 +7470,11 @@ function updateParticleSystem() {
         bgParticleCtx.arc(px, py, p.size * 4, 0, Math.PI * 2);
         bgParticleCtx.fill();
       } else {
-        bgParticleCtx.fillStyle = accent;
-        bgParticleCtx.shadowColor = accent;
-        bgParticleCtx.shadowBlur = 8;
-        bgParticleCtx.arc(px, py, p.size * 1.5, 0, Math.PI * 2);
+        bgParticleCtx.fillStyle = '#FFFFFF';
+        bgParticleCtx.shadowColor = 'rgba(255,255,255,0.9)';
+        bgParticleCtx.shadowBlur = 12;
+        bgParticleCtx.globalAlpha = p.opacity;
+        bgParticleCtx.arc(px, py, p.size * 2.2, 0, Math.PI * 2);
         bgParticleCtx.fill();
         bgParticleCtx.shadowBlur = 0;
       }
@@ -7490,8 +7491,8 @@ function updateParticleSystem() {
           const distSq = dx * dx + dy * dy;
           if (distSq < maxDistSq) {
             bgParticleCtx.beginPath();
-            bgParticleCtx.strokeStyle = accent;
-            bgParticleCtx.globalAlpha = (1 - Math.sqrt(distSq) / 110) * 0.35;
+            bgParticleCtx.strokeStyle = 'rgba(255,255,255,0.25)';
+            bgParticleCtx.globalAlpha = (1 - Math.sqrt(distSq) / 110) * 0.55;
             bgParticleCtx.lineWidth = 1;
             bgParticleCtx.moveTo(p1.x, p1.y);
             bgParticleCtx.lineTo(p2.x, p2.y);
