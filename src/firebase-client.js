@@ -212,6 +212,7 @@
         frame: 'none',
         cursor: '',
         code: makeFriendCode(),
+        nameLower: String(user.displayName || (user.email ? user.email.split('@')[0] : 'Гость')).toLowerCase().slice(0, 40),
         createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
       };
@@ -323,6 +324,7 @@
     await profileRef(user.uid).set(
       {
         ...safe,
+        nameLower: (safe.displayName || user.displayName || '').toLowerCase().slice(0, 40),
         email: user.email || '',
         isAnonymous: !!user.isAnonymous,
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
@@ -795,6 +797,36 @@
     return code;
   }
 
+  async function searchFriendsByName(nameInput) {
+    const user = await requireUser();
+    const q = String(nameInput || '').trim().toLowerCase().slice(0, 40);
+    if (!q) return [];
+    const snap = await state.db.collection('users').where('nameLower', '==', q).limit(8).get();
+    return snap.docs
+      .filter(d => d.id !== user.uid)
+      .map(d => ({ uid: d.id, ...(d.data() || {}) }));
+  }
+
+  async function addFriendByUid(targetUid) {
+    const user = await requireUser();
+    if (!targetUid || targetUid === user.uid) throw new Error('Некого добавлять');
+    const sorted = [user.uid, targetUid].sort();
+    const ref = friendRef(friendDocId(user.uid, targetUid));
+    const snap = await ref.get();
+    if (snap.exists && snap.data().status === 'accepted') throw new Error('Вы уже друзья');
+    await ref.set(
+      {
+        a: sorted[0],
+        b: sorted[1],
+        status: 'pending',
+        requestedBy: user.uid,
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return targetUid;
+  }
+
   async function addFriendByCode(codeInput) {
     const user = await requireUser();
     const code = String(codeInput || '').trim().toUpperCase();
@@ -910,6 +942,8 @@
     pullState,
     pushState,
     getMyCode,
+    searchFriendsByName,
+    addFriendByUid,
     addFriendByCode,
     listFriendEntries,
     respondFriend,

@@ -1,4 +1,5 @@
-/* Votify Social: друзья, их активность и кастомизация профиля
+/* Votify Social: страница друзей в стиле Discord (вкладки, заявки, добавление
+   по никнейму, живая активность «кто что слушает») + кастомизация профиля
    (баннер / рамка / описание). Работает поверх window.VotifyCloud. */
 (function () {
   'use strict';
@@ -19,6 +20,9 @@
   let unsubFriends = null;
   const unsubProfiles = new Map();
   let refreshScheduled = false;
+  let lastFriends = [];
+  let lastProfiles = {};
+  let lastRequests = [];
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({
@@ -74,27 +78,73 @@
     }
   }
 
-  function friendCard(entry, profile) {
+  function activityRow(profile) {
+    const act = profile && profile.activity;
+    if (!act || !act.title) {
+      return '<div class="fp-status offline"><i class="material-icons">circle</i>Не в сети</div>';
+    }
+    if (act.playing) {
+      return `<div class="fp-status listening"><span class="fp-eq"><i></i><i></i><i></i></span>${
+        act.cover ? `<img src="${esc(act.cover)}" alt="" />` : ''
+      }<span class="fp-status-text">Слушает: <b>${esc(act.title)}</b> — ${esc(act.artist || '')}</span></div>`;
+    }
+    return `<div class="fp-status idle"><i class="material-icons">music_note</i><span class="fp-status-text">Слушал(а): ${esc(act.title)}</span></div>`;
+  }
+
+  function friendRow(uid, profile, withActions) {
     const p = profile || {};
-    const act = p.activity;
-    const activity =
-      act && act.title
-        ? `<div class="friend-activity${act.playing ? ' playing' : ''}">
-            ${act.cover ? `<img src="${esc(act.cover)}" alt="" />` : '<i class="material-icons">music_note</i>'}
-            <span>${act.playing ? 'Сейчас слушает: ' : 'Слушал(а): '}<b>${esc(act.title)}</b> — ${esc(act.artist || '')}</span>
-          </div>`
-        : '<div class="friend-activity muted"><i class="material-icons">music_off</i><span>Сейчас ничего не слушает</span></div>';
-    return `<div class="friend-card">
-      <div class="friend-banner${p.banner ? '' : ' empty'}" style="${bannerCss(p.banner)}"></div>
-      <div class="friend-card-body">
-        <div class="friend-avatar frame-${esc(p.frame || 'none')}">${avatarInner(p)}</div>
-        <div class="friend-info">
-          <strong>${esc(p.displayName || 'Меломан')}</strong>
-          ${p.about ? `<span class="friend-about">${esc(p.about)}</span>` : ''}
-          ${activity}
-        </div>
+    return `<div class="fp-friend-row" data-uid="${uid}">
+      <div class="friend-avatar frame-${esc(p.frame || 'none')}">${avatarInner(p)}</div>
+      <div class="fp-friend-main">
+        <div class="fp-friend-name">${esc(p.displayName || 'Меломан')}</div>
+        ${p.about ? `<div class="fp-friend-about">${esc(p.about)}</div>` : ''}
+        ${activityRow(p)}
       </div>
+      ${
+        withActions
+          ? `<div class="friend-actions">
+              <button class="btn-icon-sm" data-accept="${uid}" title="Принять"><i class="material-icons">check</i></button>
+              <button class="btn-icon-sm" data-decline="${uid}" title="Отклонить"><i class="material-icons">close</i></button>
+            </div>`
+          : ''
+      }
     </div>`;
+  }
+
+  function renderPanes() {
+    const filter = (document.getElementById('fp-filter-input')?.value || '').trim().toLowerCase();
+    const friends = filter
+      ? lastFriends.filter(f => ((lastProfiles[f.friendUid] || {}).displayName || '').toLowerCase().includes(filter))
+      : lastFriends;
+    const listBox = document.getElementById('friends-list');
+    if (listBox)
+      listBox.innerHTML = friends.length
+        ? friends.map(f => friendRow(f.friendUid, lastProfiles[f.friendUid], false)).join('')
+        : '<div class="friends-empty">Никого не нашлось</div>';
+
+    const listening = lastFriends.filter(f => {
+      const act = (lastProfiles[f.friendUid] || {}).activity;
+      return act && act.playing && act.title;
+    });
+    const listenBox = document.getElementById('friends-listening');
+    if (listenBox)
+      listenBox.innerHTML = listening.length
+        ? listening.map(f => friendRow(f.friendUid, lastProfiles[f.friendUid], false)).join('')
+        : '<div class="friends-empty">Никто не слушает прямо сейчас</div>';
+
+    const reqBox = document.getElementById('friends-requests');
+    if (reqBox)
+      reqBox.innerHTML = lastRequests.length
+        ? lastRequests.map(r => friendRow(r.friendUid, lastProfiles[r.friendUid], true)).join('')
+        : '<div class="friends-empty">Нет заявок</div>';
+
+    const setBadge = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value ? String(value) : '';
+    };
+    setBadge('fp-count-all', lastFriends.length);
+    setBadge('fp-count-listening', listening.length);
+    setBadge('fp-count-requests', lastRequests.length);
   }
 
   async function refreshFriends() {
@@ -107,60 +157,79 @@
     } catch (e) {
       return;
     }
-    const requests = entries.filter(en => en.status === 'pending' && en.requestedBy !== me.uid);
-    const friends = entries.filter(en => en.status === 'accepted');
-    const uids = [...requests.map(r => r.friendUid), ...friends.map(f => f.friendUid)];
-    let profiles = {};
+    lastRequests = entries.filter(en => en.status === 'pending' && en.requestedBy !== me.uid);
+    lastFriends = entries.filter(en => en.status === 'accepted');
+    const uids = [...lastRequests.map(r => r.friendUid), ...lastFriends.map(f => f.friendUid)];
     try {
-      profiles = await api.fetchProfiles(uids);
+      lastProfiles = await api.fetchProfiles(uids);
     } catch (e) {
-      profiles = {};
+      lastProfiles = {};
     }
-
-    const reqBox = document.getElementById('friends-requests');
-    if (reqBox)
-      reqBox.innerHTML = requests.length
-        ? requests
-            .map(r => {
-              const p = profiles[r.friendUid] || {};
-              return `<div class="friend-row">
-                <div class="friend-avatar frame-${esc(p.frame || 'none')}">${avatarInner(p)}</div>
-                <div class="friend-info"><strong>${esc(p.displayName || 'Меломан')}</strong><span>Хочет добавить вас в друзья</span></div>
-                <div class="friend-actions">
-                  <button class="btn-icon-sm" data-accept="${r.friendUid}" title="Принять"><i class="material-icons">check</i></button>
-                  <button class="btn-icon-sm" data-decline="${r.friendUid}" title="Отклонить"><i class="material-icons">close</i></button>
-                </div>
-              </div>`;
-            })
-            .join('')
-        : '<div class="friends-empty">Нет заявок</div>';
-
-    const listBox = document.getElementById('friends-list');
-    if (listBox)
-      listBox.innerHTML = friends.length
-        ? friends.map(f => friendCard(f, profiles[f.friendUid])).join('')
-        : '<div class="friends-empty">Пока никого нет — поделитесь кодом с друзьями</div>';
-
+    renderPanes();
     uids.forEach(uid => {
       if (unsubProfiles.has(uid) || !api.onProfileChange) return;
       unsubProfiles.set(uid, api.onProfileChange(uid, () => scheduleRefresh()));
     });
   }
 
+  function switchTab(name) {
+    document.querySelectorAll('.fp-tab').forEach(t => t.classList.toggle('active', t.dataset.ftab === name));
+    document.querySelectorAll('.fp-pane').forEach(p => p.classList.toggle('active', p.dataset.fpane === name));
+  }
+
+  async function addByNickname() {
+    const api = cloud();
+    const input = document.getElementById('friends-name-input');
+    const results = document.getElementById('friends-search-results');
+    const name = (input?.value || '').trim();
+    if (!api || !name) return;
+    setMessage('');
+    let found = [];
+    try {
+      found = await api.searchFriendsByName(name);
+    } catch (e) {
+      setMessage(api.friendlyError ? api.friendlyError(e) : String(e.message || e));
+      return;
+    }
+    if (!found.length) {
+      results.innerHTML = '';
+      setMessage(`Пользователь с ником «${name}» не найден`);
+      return;
+    }
+    if (found.length === 1) {
+      try {
+        await api.addFriendByUid(found[0].uid);
+        setMessage(`Заявка отправлена: ${found[0].displayName || name}`);
+        results.innerHTML = '';
+        input.value = '';
+        refreshFriends();
+      } catch (e) {
+        setMessage(api.friendlyError ? api.friendlyError(e) : String(e.message || e));
+      }
+      return;
+    }
+    results.innerHTML =
+      '<div class="fp-add-hint">Нашлось несколько — выберите нужного:</div>' +
+      found
+        .map(
+          u => `<div class="fp-friend-row">
+            <div class="friend-avatar frame-${esc(u.frame || 'none')}">${avatarInner(u)}</div>
+            <div class="fp-friend-main"><div class="fp-friend-name">${esc(u.displayName || '—')}</div></div>
+            <div class="friend-actions"><button class="auth-btn" data-adduid="${u.uid}">Добавить</button></div>
+          </div>`
+        )
+        .join('');
+  }
+
   function openFriends() {
-    const overlay = document.getElementById('friends-overlay');
-    if (!overlay) return;
-    overlay.style.display = 'flex';
+    const page = document.getElementById('friends-overlay');
+    if (!page) return;
+    page.style.display = 'flex';
     const api = cloud();
     if (!api || !api.getCurrentUser || !api.getCurrentUser()) {
-      const my = document.getElementById('friends-my-code');
-      if (my) my.textContent = '—';
-      const req = document.getElementById('friends-requests');
-      if (req) req.innerHTML = '<div class="friends-empty">Войдите в аккаунт, чтобы добавлять друзей</div>';
-      const list = document.getElementById('friends-list');
-      if (list)
-        list.innerHTML =
-          '<div class="friends-empty"><button class="auth-btn" id="friends-login-hint">Войти в аккаунт</button></div>';
+      document.getElementById('friends-my-code').textContent = '—';
+      document.getElementById('friends-list').innerHTML =
+        '<div class="friends-empty"><button class="auth-btn" id="friends-login-hint">Войти в аккаунт</button></div>';
       document.getElementById('friends-login-hint')?.addEventListener('click', () => {
         if (api && api.openAuth) api.openAuth();
       });
@@ -174,8 +243,8 @@
   }
 
   function closeFriends() {
-    const overlay = document.getElementById('friends-overlay');
-    if (overlay) overlay.style.display = 'none';
+    const page = document.getElementById('friends-overlay');
+    if (page) page.style.display = 'none';
   }
 
   function copyCode() {
@@ -192,8 +261,7 @@
   function applyOwnLook() {
     const api = cloud();
     const profile = (api && api.getProfile && api.getProfile()) || {};
-    const banner =
-      document.getElementById('profile-banner-value')?.value || profile.banner || '';
+    const banner = document.getElementById('profile-banner-value')?.value || profile.banner || '';
     const frame = document.getElementById('profile-frame-value')?.value || profile.frame || 'none';
     const header = document.querySelector('#profile-overlay .profile-card-header');
     if (header) header.style.cssText = bannerCss(banner);
@@ -204,13 +272,19 @@
   function wire() {
     document.getElementById('nav-friends-btn')?.addEventListener('click', openFriends);
     document.getElementById('friends-close-btn')?.addEventListener('click', closeFriends);
-    document.getElementById('friends-overlay')?.addEventListener('click', e => {
-      if (e.target.id === 'friends-overlay') closeFriends();
-    });
     document.getElementById('friends-copy-code')?.addEventListener('click', copyCode);
     document.getElementById('profile-copy-code')?.addEventListener('click', copyCode);
 
-    document.getElementById('friends-add-btn')?.addEventListener('click', async () => {
+    document.querySelectorAll('.fp-tab').forEach(tab => {
+      tab.addEventListener('click', () => switchTab(tab.dataset.ftab));
+    });
+    document.getElementById('fp-filter-input')?.addEventListener('input', renderPanes);
+
+    document.getElementById('friends-add-btn')?.addEventListener('click', addByNickname);
+    document.getElementById('friends-name-input')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') addByNickname();
+    });
+    document.getElementById('friends-add-code-btn')?.addEventListener('click', async () => {
       const api = cloud();
       const input = document.getElementById('friends-code-input');
       if (!api || !input) return;
@@ -221,6 +295,19 @@
         refreshFriends();
       } catch (e) {
         setMessage(api.friendlyError ? api.friendlyError(e) : String(e.message || e));
+      }
+    });
+    document.getElementById('friends-search-results')?.addEventListener('click', async e => {
+      const btn = e.target.closest('[data-adduid]');
+      if (!btn) return;
+      const api = cloud();
+      try {
+        await api.addFriendByUid(btn.dataset.adduid);
+        setMessage('Заявка отправлена');
+        btn.closest('.fp-friend-row')?.remove();
+        refreshFriends();
+      } catch (err) {
+        setMessage(api.friendlyError ? api.friendlyError(err) : String(err.message || err));
       }
     });
 
