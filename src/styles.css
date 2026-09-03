@@ -5219,32 +5219,9 @@ body[data-cover-animation="rotation"] .pp-cover-overlay,
   flex-wrap: wrap;
 }
 
-.artist-listeners {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.12);
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(var(--accent-rgb), 0.25);
-}
-
-.artist-listeners .material-icons {
-  font-size: 16px;
-}
-
 .artist-track-count {
   font-size: 13px;
   color: var(--text-secondary);
-}
-
-.artist-subtle-note {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  margin-top: 8px;
 }
 
 .artist-section {

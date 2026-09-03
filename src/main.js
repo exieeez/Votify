@@ -471,20 +471,26 @@ sanitizeAppColorSchemes();
 // defaults (particles were forced ON for everyone). The new default is a
 // clean background — particles are an opt-in effect from the appearance
 // panel. If the stored values still look like the old forced defaults
-// (dots + untouched sliders), switch them off once; any manual tuning of
-// the type or sliders is respected.
-const cleanPlayerUiMigration = 'votify-clean-player-ui-v3';
+// (dots + untouched sliders in any of the historical stock combinations),
+// switch them off once; any manual tuning of the type or sliders is
+// respected. v4 also covers combos that older migrations missed
+// (e.g. dots + 50/15/3 or dots + 80/undefined/undefined).
+const cleanPlayerUiMigration = 'votify-clean-player-ui-v4';
 if (localStorage.getItem(cleanPlayerUiMigration) !== 'done') {
   appSettings.perfParticles = appSettings.perfParticles !== false;
-  const untouchedDefaults =
-    appSettings.bgParticles === 'dots' &&
-    (appSettings.particleCount === undefined || appSettings.particleCount === 80) &&
-    (appSettings.particleSpeed === undefined || appSettings.particleSpeed === 20) &&
-    (appSettings.particleSize === undefined || appSettings.particleSize === 3.5);
-  if (untouchedDefaults) appSettings.bgParticles = 'none';
-  appSettings.particleCount = appSettings.particleCount || 80;
-  appSettings.particleSize = appSettings.particleSize || 3.5;
-  appSettings.particleSpeed = appSettings.particleSpeed || 20;
+  const pCount = appSettings.particleCount;
+  const pSpeed = appSettings.particleSpeed;
+  const pSize = appSettings.particleSize;
+  const stockCount = pCount === undefined || pCount === 50 || pCount === 80;
+  const stockSpeed = pSpeed === undefined || pSpeed === 15 || pSpeed === 20;
+  const stockSize = pSize === undefined || pSize === 3 || pSize === 3.5;
+  if (appSettings.bgParticles === 'dots' && stockCount && stockSpeed && stockSize) {
+    appSettings.bgParticles = 'none';
+  }
+  // Normalize missing values to the stock UI defaults (50 / 1.5× / 3px).
+  if (pCount === undefined) appSettings.particleCount = 50;
+  if (pSpeed === undefined) appSettings.particleSpeed = 15;
+  if (pSize === undefined) appSettings.particleSize = 3;
   localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   localStorage.setItem(cleanPlayerUiMigration, 'done');
 }
@@ -1865,46 +1871,6 @@ function formatTrackCount(count) {
 // so the goal is *believability*: mostly small/medium numbers, stars in the
 // millions, a quiet tail of unknown local/demo acts. Deterministic per day
 // (stable during a session, drifts slowly) and consistent for one artist.
-function getArtistMonthlyListeners(name, totalViews = 0) {
-  if (totalViews > 0) {
-    const computed = Math.round(totalViews * 0.42);
-    return computed.toLocaleString('ru-RU');
-  }
-  let hash = 0;
-  const str = String(name || '');
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  const abs = Math.abs(hash);
-
-  // FNV-style second hash: adds small per-artist variation.
-  let h2 = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h2 ^= str.charCodeAt(i);
-    h2 = Math.imul(h2, 0x01000193) >>> 0;
-  }
-
-  // Day bucket (UTC): deterministic for 24h, so the number does not jump on
-  // every visit but still breathes a little over time.
-  const day = Math.floor(Date.now() / 86400000);
-
-  const known = /(official|vevo|topic|records|music|group|band|live)/i.test(str);
-  // Slightly "noisy" mainstream (generic YouTube covers + channel keywords)…
-  if (known) {
-    const base = 1200000 + (abs % 39000000); // 1.2M–40.2M
-    const drift = ((day + (h2 % 7)) % 7) - 3; // ±3% around today
-    const value = Math.round(base * (1 + drift * 0.02));
-    return Math.max(40000, value).toLocaleString('ru-RU');
-  }
-
-  const base = 300 + (abs % 8700); // 300 – ~9K: независимые/локальные
-  if (abs % 10 !== 0) return base.toLocaleString('ru-RU');
-  // Rare exceptions: a "demo/local" name can still be a breakout hit.
-  const breakout = 25000 + ((abs * 7919 + day * 104729) % 475000);
-  return breakout.toLocaleString('ru-RU');
-}
-
 // Recent Artists Management
 function recordRecentArtist(track) {
   if (!track || !track.artist || track.artist === '—' || track.artist === 'Неизвестный исполнитель')
@@ -1999,7 +1965,6 @@ async function openArtistPage(artistName) {
   const requestId = ++artistRequestId;
   const nameEl = document.getElementById('artist-name');
   const countEl = document.getElementById('artist-track-count');
-  const listenersCountEl = document.getElementById('artist-listeners-count');
   const statusEl = document.getElementById('artist-status');
   const tracksEl = document.getElementById('artist-tracks');
   const albumsEl = document.getElementById('artist-albums');
@@ -2008,7 +1973,6 @@ async function openArtistPage(artistName) {
 
   if (nameEl) nameEl.textContent = name;
   if (pageTitle) pageTitle.textContent = name;
-  if (listenersCountEl) listenersCountEl.textContent = getArtistMonthlyListeners(name);
   if (countEl) countEl.textContent = 'Загрузка треков…';
   if (statusEl) statusEl.textContent = '';
   if (tracksEl)
@@ -7919,10 +7883,10 @@ function updateParticleSystem() {
     return;
   }
 
-  const rawCount = Number(appSettings.particleCount) || 90;
+  const rawCount = Number(appSettings.particleCount) || 50;
   const count = type === 'network' ? Math.min(60, rawCount) : Math.min(140, rawCount);
-  const speed = (Number(appSettings.particleSpeed) || 20) / 10;
-  const size = Number(appSettings.particleSize) || 4.5;
+  const speed = (Number(appSettings.particleSpeed) || 15) / 10;
+  const size = Number(appSettings.particleSize) || 3;
 
   particlesArray = [];
   const w = bgParticleCanvas.width || window.innerWidth;
@@ -8763,9 +8727,9 @@ function applyWorkshopTheme(theme, metadata = {}) {
       'fireflies',
       'sakura',
       'network',
-    ].includes(theme?.particles) && theme.particles !== 'none'
+    ].includes(theme?.particles)
       ? theme.particles
-      : current.particles || 'dots', // темы не гасят частицы: старые сохранённые темы с 'none' игнорируются
+      : current.particles || 'none',
     fontFamily: [
       'system',
       'modern',
