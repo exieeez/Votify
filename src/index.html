@@ -1037,7 +1037,7 @@
         <div class="settings-modal-body">
           <div class="settings-left-menu">
             <!-- ОСНОВНЫЕ -->
-            <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ОСНОВНЫЕ</div>
+            <div class="settings-menu-category">ОСНОВНЫЕ</div>
             <button class="settings-menu-item active" data-settings-section="gen-main"><i class="material-icons">tune</i>Основные</button>
 
             <button class="settings-menu-item" data-settings-section="gen-audio"><i class="material-icons">volume_up</i>Аудио</button>
@@ -1046,7 +1046,7 @@
             <button class="settings-menu-item" data-settings-section="gen-storage"><i class="material-icons">storage</i>Хранилище</button>
 
             <!-- ОФОРМЛЕНИЕ -->
-            <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ОФОРМЛЕНИЕ</div>
+            <div class="settings-menu-category">ОФОРМЛЕНИЕ</div>
             <button class="settings-menu-item" data-settings-section="app-player"><i class="material-icons">play_circle_filled</i>Плеер</button>
             <button class="settings-menu-item" data-settings-section="app-cover"><i class="material-icons">image</i>Обложка</button>
             <button class="settings-menu-item" data-settings-section="app-ui"><i class="material-icons">widgets</i>Интерфейс</button>
@@ -1135,11 +1135,11 @@
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-gapless" /><span class="toggle-slider"></span></label>
                 </div>
-                <div class="setting-item" style="margin-top: 12px;">
+                <div class="setting-item">
                   <div class="setting-row"><label>Кроссфейд (плавный переход)</label><span class="setting-value" id="crossfade-value">0 сек</span></div>
                   <input type="range" class="settings-range" id="crossfade-duration" min="0" max="15" value="0" />
                 </div>
-                <div class="setting-toggle-item" style="margin-top: 12px;">
+                <div class="setting-toggle-item">
                   <div class="setting-toggle-info">
                     <span class="setting-toggle-label">Нормализация громкости (AGC)</span>
                     <span class="setting-toggle-desc">Выравнивать громкость разных треков на один уровень</span>
@@ -1179,12 +1179,12 @@
                     <option value="low">Экономное — если лагает</option>
                   </select>
                 </div>
-                <div class="setting-item">
-                  <div class="setting-row">
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
                     <span class="setting-toggle-label">Свет под курсором</span>
                     <span class="setting-toggle-desc">Мягкий spotlight, следящий за мышью. Выключите, если нужен максимум производительности</span>
                   </div>
-                  <label class="toggle-switch"><input type="checkbox" id="setting-glow" checked /><span class="toggle-slider"></span></label>
+                  <label class="toggle-switch"><input type="checkbox" id="setting-glow" /><span class="toggle-slider"></span></label>
                 </div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Качество и сила размытия (Blur)</label><span class="setting-value" id="background-blur-value">15px</span></div>
@@ -1224,7 +1224,7 @@
                   <div class="setting-toggle-info"><span class="setting-toggle-label">Глобальная активация горячих клавиш</span><span class="setting-toggle-desc">Управлять плеером, даже когда окно Votify свернуто</span></div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-global-hotkeys" checked /><span class="toggle-slider"></span></label>
                 </div>
-                <div class="hotkeys-list" id="hotkeys-list" style="margin-top: 16px;">
+                <div class="hotkeys-list" id="hotkeys-list">
                   <div class="hotkey-row" data-action="play"><span class="hotkey-action">Воспроизвести/пауза</span><button class="hotkey-key-btn" data-action="play"><kbd><span>Space</span></kbd></button></div>
                   <div class="hotkey-row" data-action="next"><span class="hotkey-action">Следующий трек</span><button class="hotkey-key-btn" data-action="next"><kbd><span>N</span></kbd></button></div>
                   <div class="hotkey-row" data-action="prev"><span class="hotkey-action">Предыдущий трек</span><button class="hotkey-key-btn" data-action="prev"><kbd><span>P</span></kbd></button></div>
@@ -1232,28 +1232,28 @@
                   <div class="hotkey-row" data-action="volup"><span class="hotkey-action">Увеличить громкость</span><button class="hotkey-key-btn" data-action="volup"><kbd><span>↑</span></kbd></button></div>
                   <div class="hotkey-row" data-action="voldown"><span class="hotkey-action">Уменьшить громкость</span><button class="hotkey-key-btn" data-action="voldown"><kbd><span>↓</span></kbd></button></div>
                 </div>
-                <div class="hotkey-hint" style="margin-top:14px;font-size:12px;color:var(--text-tertiary)">Кликните на кнопку сочетания клавиш, чтобы переназначить. Нажмите Esc для отмены.</div>
+                <div class="hotkey-hint">Кликните на кнопку сочетания клавиш, чтобы переназначить. Нажмите Esc для отмены.</div>
               </div>
             </div>
 
             <!-- SECTION 6: Хранилище (gen-storage) -->
             <div class="settings-panel" id="settings-panel-gen-storage">
-              <div class="settings-section" style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap;">
-                <div style="width: 140px; height: 140px; position: relative;">
+              <div class="settings-section storage-hero">
+                <div class="storage-hero-donut">
                   <!-- Beautiful Circular SVG chart -->
-                  <svg width="100%" height="100%" viewBox="0 0 42 42" class="donut">
+                  <svg viewBox="0 0 42 42" class="donut">
                     <circle class="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
                     <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="rgba(255,255,255,0.08)" stroke-width="4"></circle>
                     <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--accent)" stroke-width="4" stroke-dasharray="70 30" stroke-dashoffset="25"></circle>
                   </svg>
-                  <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <span id="storage-pie-used" style="font-size: 18px; font-weight: 800; color: #fff;">1.4 МБ</span>
-                    <span style="font-size: 10px; color: var(--text-secondary);">Использовано</span>
+                  <div class="storage-hero-donut-center">
+                    <span class="storage-donut-value" id="storage-pie-used">1.4 МБ</span>
+                    <span class="storage-donut-caption">Использовано</span>
                   </div>
                 </div>
-                <div style="flex: 1; min-width: 200px;">
+                <div class="storage-hero-info">
                   <h3>Управление памятью приложения</h3>
-                  <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Здесь вы можете выборочно удалять локальный кэш, чтобы освободить место на диске.</p>
+                  <p class="settings-note">Здесь вы можете выборочно удалять локальный кэш, чтобы освободить место на диске.</p>
                 </div>
               </div>
               <div class="settings-section">
@@ -1270,8 +1270,8 @@
                   <div class="setting-toggle-info"><span class="setting-toggle-label">Тексты песен</span><span class="setting-toggle-desc" id="cache-lyrics-size">Размер кэша: 0.2 МБ</span></div>
                   <button class="btn-secondary btn-sm" id="clear-lyrics-cache-btn">Очистить тексты</button>
                 </div>
-                <div style="margin-top: 18px; display: flex; gap: 8px;">
-                  <button class="btn-danger" id="clear-all-storage-btn" style="flex: 1; justify-content: center;"><i class="material-icons">delete_sweep</i> Очистить весь кэш и данные</button>
+                <div class="settings-action-row">
+                  <button class="btn-danger" id="clear-all-storage-btn"><i class="material-icons">delete_sweep</i> Очистить весь кэш и данные</button>
                 </div>
               </div>
             </div>
@@ -1388,13 +1388,13 @@
             <div class="settings-panel" id="settings-panel-app-ui">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">brightness_medium</i><h3>Тема оформления</h3></div>
-                <div class="theme-mode-presets" id="theme-mode-presets" style="margin-bottom: 14px;">
+                <div class="theme-mode-presets" id="theme-mode-presets">
                   <button class="theme-mode-card active" data-theme-mode="dark" title="Тёмная"><span class="theme-mode-swatch theme-mode-swatch-dark"></span><span>Тёмная</span></button>
                   <button class="theme-mode-card" data-theme-mode="light" title="Светлая"><span class="theme-mode-swatch" style="background: #ffffff; border: 1px solid #ddd;"></span><span>Светлая</span></button>
                   <button class="theme-mode-card" data-theme-mode="system" title="Системная"><span class="theme-mode-swatch" style="background: linear-gradient(135deg, #121212 50%, #ffffff 50%);"></span><span>Системная</span></button>
                 </div>
-                <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:8px;">Пресеты цветовой схемы:</style>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;" id="ui-theme-presets">
+                <span class="presets-label">Пресеты цветовой схемы:</span>
+                <div class="scheme-grid" id="ui-theme-presets">
                   <button class="btn-secondary btn-sm active" data-preset="neutral">Neutral</button>
                   <button class="btn-secondary btn-sm" data-preset="amoled">AMOLED</button>
                   <button class="btn-secondary btn-sm" data-preset="crimson">Crimson</button>
@@ -1410,7 +1410,7 @@
                   <button class="btn-secondary btn-sm" data-preset="aqua">Aqua</button>
                   <button class="btn-secondary btn-sm" data-preset="sunset">Sunset</button>
                   <button class="btn-secondary btn-sm" data-preset="slate">Slate</button>
-                  <button class="btn-accent btn-sm" data-preset="custom"><i class="material-icons" style="font-size:16px">palette</i> Своя тема</button>
+                  <button class="btn-accent btn-sm" data-preset="custom"><i class="material-icons">palette</i> Своя тема</button>
                 </div>
               </div>
               <div class="settings-section">
@@ -1431,7 +1431,7 @@
                     <option value="sf">San Francisco</option>
                   </select>
                 </div>
-                <div class="setting-item" style="margin-top: 8px;">
+                <div class="setting-item">
                   <div class="setting-row"><label>Размер шрифта</label><span class="setting-value" id="font-size-slider-value">16px</span></div>
                   <input type="range" class="settings-range" id="font-size-slider" min="12" max="24" value="16" />
                 </div>
@@ -1449,7 +1449,7 @@
               </div>
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">mouse</i><h3>Курсор</h3></div>
-                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">Готовый курсор или свой файл (PNG/SVG/ICO до 64 КБ). Выбор сохраняется в теме мастерской.</p>
+                <p class="settings-note">Готовый курсор или свой файл (PNG/SVG/ICO до 64 КБ). Выбор сохраняется в теме мастерской.</p>
                 <div class="cursor-preset-grid" id="cursor-preset-grid"></div>
                 <div class="cursor-custom-row">
                   <label class="auth-btn auth-btn-secondary" for="cursor-file-input"><i class="material-icons">upload_file</i> Добавить свой</label>
@@ -1464,7 +1464,7 @@
             <div class="settings-panel" id="settings-panel-app-tabs">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">tab</i><h3>Вкладки навигации</h3></div>
-                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Активируйте и настройте вкладки на панели быстрого доступа.</p>
+                <p class="settings-note">Активируйте и настройте вкладки на панели быстрого доступа.</p>
                 <div class="setting-toggle-item">
                   <div class="setting-toggle-info"><span class="setting-toggle-label">Главный экран (Home)</span><span class="setting-toggle-desc">Показывать рекомендации и историю</span></div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-tab-home" checked /><span class="toggle-slider"></span></label>
@@ -1488,7 +1488,7 @@
             <div class="settings-panel" id="settings-panel-app-bg">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">wallpaper</i><h3>Изображение фона</h3></div>
-                <div class="bg-presets" id="bg-presets" style="margin-bottom: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;">
+                <div class="bg-presets" id="bg-presets">
                   <button class="bg-card bg-card-active" data-bg="default"><div class="bg-swatch bg-none"></div><span class="bg-label">Стандарт</span></button>
                   <button class="bg-card" data-bg="grad-1"><div class="bg-swatch" style="background:linear-gradient(135deg, #7928ca 0%, #ff0080 50%, #11101d 100%)"></div><span class="bg-label">Киберпанк</span></button>
                   <button class="bg-card" data-bg="grad-2"><div class="bg-swatch" style="background:linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #050b14 100%)"></div><span class="bg-label">Океан</span></button>
@@ -1502,7 +1502,7 @@
                 </div>
                 <div class="bg-custom-row">
                   <div class="bg-color-picker-wrap">
-                    <span class="material-icons" style="font-size:16px;color:var(--text-secondary)">palette</span>
+                    <span class="material-icons bg-custom-row-icon">palette</span>
                     <label class="bg-color-btn" id="bg-color-btn">
                       <input type="color" id="bg-color-input" value="#121212" class="hidden-color-input" />
                       <div class="bg-color-preview" id="bg-color-preview" style="background:#121212"></div>
@@ -1551,7 +1551,7 @@
                     <option value="network">Network (Нейросеть)</option>
                   </select>
                 </div>
-                <div class="setting-item" style="margin-top: 8px;">
+                <div class="setting-item">
                   <div class="setting-row"><label>Количество частиц</label><span class="setting-value" id="particle-count-val">50</span></div>
                   <input type="range" class="settings-range" id="slider-particle-count" min="10" max="250" value="50" />
                 </div>
@@ -1577,32 +1577,32 @@
             <div class="settings-panel" id="settings-panel-app-custom">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">color_lens</i><h3>Конструктор тем (Моя тема)</h3></div>
-                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">Создайте свой уникальный дизайн оформления Votify, настроив цвета каждого элемента вручную.</p>
+                <p class="settings-note">Создайте свой уникальный дизайн оформления Votify, настроив цвета каждого элемента вручную.</p>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Основной цвет (Accent)</span>
-                  <input type="color" id="picker-color-primary" value="#1DB954" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-primary" value="#1DB954" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Задний фон (Background)</span>
-                  <input type="color" id="picker-color-bg" value="#121212" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-bg" value="#121212" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Цвет текста (Text Color)</span>
-                  <input type="color" id="picker-color-text" value="#ffffff" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-text" value="#ffffff" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Карточки и панели (Card Fill)</span>
-                  <input type="color" id="picker-color-cards" value="#181818" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-cards" value="#181818" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Границы элементов (Borders)</span>
-                  <input type="color" id="picker-color-borders" value="#2a2a2a" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-borders" value="#2a2a2a" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Элемент в фокусе (Focus Glow)</span>
-                  <input type="color" id="picker-color-focus" value="#1DB954" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-focus" value="#1DB954" class="theme-color-input" />
                 </div>
-                <div class="setting-item" style="margin-top: 14px;">
+                <div class="setting-item">
                   <label for="color-scheme-name-input">Название схемы</label>
                   <input
                     type="text"
@@ -1613,11 +1613,11 @@
                     autocomplete="off"
                   />
                 </div>
-                <div style="margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap;">
-                  <button class="btn-accent" id="btn-custom-theme-apply" type="button" style="flex: 1; min-width: 180px; justify-content: center;">
+                <div class="settings-action-row">
+                  <button class="btn-accent" id="btn-custom-theme-apply" type="button">
                     <i class="material-icons">palette</i> Применить свою тему
                   </button>
-                  <button class="btn-secondary" id="btn-custom-theme-save" type="button" style="flex: 1; min-width: 180px; justify-content: center;">
+                  <button class="btn-secondary" id="btn-custom-theme-save" type="button">
                     <i class="material-icons">save</i> Сохранить схему
                   </button>
                 </div>

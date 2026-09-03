@@ -5241,6 +5241,12 @@ body[data-cover-animation="rotation"] .pp-cover-overlay,
   color: var(--text-secondary);
 }
 
+.artist-subtle-note {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+}
+
 .artist-section {
   margin-top: 28px;
 }
@@ -6619,6 +6625,7 @@ body.light-theme .top-bar,
 body.light-theme .floating-island,
 body.light-theme .player-bar,
 body.light-theme .right-player,
+body.light-theme .right-player-panel,
 body.light-theme .page-player,
 body.light-theme .player-page-top,
 body.light-theme .home-quick-card,
@@ -6647,6 +6654,7 @@ body[data-theme-mode="light"] .top-bar,
 body[data-theme-mode="light"] .floating-island,
 body[data-theme-mode="light"] .player-bar,
 body[data-theme-mode="light"] .right-player,
+body[data-theme-mode="light"] .right-player-panel,
 body[data-theme-mode="light"] .page-player,
 body[data-theme-mode="light"] .player-page-top,
 body[data-theme-mode="light"] .home-quick-card,
@@ -9468,4 +9476,248 @@ input[type="text"], input[type="search"], input[type="email"], input[type="passw
 }
 
 
+/* ==========================================
+   KEYBOARD FOCUS — de-slop: один плоский контур без свечения.
+   Инпуты не покрываются (у них уже есть border-фокус: outline:none),
+   поэтому правило доходит только до кнопок, ссылок и кликабельных
+   элементов, где раньше фокус с клавиатуры был невидим.
+   ========================================== */
+:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
 .profile-avatar-large { position: relative; }
+
+/* ==========================================================
+   SETTINGS WINDOW POLISH — consistent, calm, no slop
+   Shared by #settings-overlay; theme-aware via tokens.
+   ========================================================== */
+
+/* --- Sidebar category labels --- */
+.settings-menu-category {
+  margin: 18px 12px 2px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.settings-left-menu > .settings-menu-category:first-child { margin-top: 2px; }
+
+.settings-menu-item { position: relative; }
+.settings-menu-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* --- Section cards: visible relief, calm density --- */
+.settings-section {
+  background: rgba(255,255,255,0.035);
+  border-color: rgba(255,255,255,0.07);
+}
+.settings-section-header { margin-bottom: 12px; }
+.settings-section .setting-item { margin-bottom: 10px; }
+.settings-section > .setting-item:last-child { margin-bottom: 0; }
+.settings-section .setting-toggle-item:last-child { border-bottom: none; }
+
+/* --- Notes / descriptions --- */
+.settings-note {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+}
+
+/* --- Toggle switch: checked = accent, always legible --- */
+.toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+  background: #101010;
+}
+.toggle-switch:focus-within .toggle-slider {
+  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent);
+}
+
+/* --- Color scheme preset grid --- */
+.presets-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.scheme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+.scheme-grid .btn { justify-content: center; }
+.scheme-grid .btn-secondary.active {
+  background: var(--accent);
+  color: #000;
+}
+.btn-sm .material-icons { font-size: 16px; }
+.settings-panel .theme-mode-presets { margin: 0 0 16px; }
+
+/* --- Background picker grid (overrides older inline/layout) --- */
+.settings-panel .bg-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.bg-card { transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.2s ease; }
+.bg-card:hover { transform: translateY(-1px); }
+.bg-custom-row { align-items: center; }
+.bg-custom-row-icon { font-size: 16px; color: var(--text-secondary); }
+
+/* --- Theme constructor color inputs --- */
+.theme-color-input {
+  width: 52px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* --- Action rows (danger zone, apply/save) --- */
+.settings-action-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.settings-action-row > .btn-accent,
+.settings-action-row > .btn-secondary { flex: 1 1 180px; justify-content: center; }
+.settings-action-row > .btn-danger { flex: 1 1 100%; justify-content: center; }
+
+/* --- Storage hero + donut --- */
+.storage-hero { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+.storage-hero-donut {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  flex: 0 0 auto;
+}
+.storage-hero-donut svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.storage-hero-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.storage-donut-value {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.storage-donut-caption { font-size: 10px; color: var(--text-secondary); }
+.donut-ring { stroke: rgba(255,255,255,0.1); }
+.donut-segment { stroke: var(--accent); }
+.storage-hero-info { flex: 1; min-width: 220px; }
+.storage-hero-info h3 { font-size: 16px; margin: 0; }
+.storage-hero-info .settings-note { margin: 6px 0 0; }
+
+/* --- Hotkeys --- */
+.hotkey-hint {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* --- Focus rings (keyboard) --- */
+.settings-overlay button:focus-visible,
+.settings-overlay select:focus-visible,
+.settings-overlay input:not([type="range"]):not([type="color"]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.settings-overlay button:focus-visible { border-radius: var(--radius-sm); }
+
+/* --- Light mode corrections for the window --- */
+body[data-theme-mode="light"] .settings-menu-category { color: #64748b; }
+body[data-theme-mode="light"] .settings-menu-item:hover,
+body[data-theme-mode="light"] .settings-menu-item.active {
+  background: rgba(15,23,42,0.07) !important;
+  color: #0f172a !important;
+}
+body[data-theme-mode="light"] .settings-section {
+  background: #f8fafc !important;
+  border-color: rgba(15,23,42,0.08) !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04) !important;
+}
+body[data-theme-mode="light"] .setting-toggle-item {
+  border-bottom-color: rgba(15,23,42,0.06);
+}
+body[data-theme-mode="light"] .toggle-switch input:checked + .toggle-slider {
+  background: #0f172a;
+}
+body[data-theme-mode="light"] .toggle-switch input:checked + .toggle-slider::before {
+  background: #ffffff;
+}
+body[data-theme-mode="light"] .theme-mode-card {
+  background: rgba(15,23,42,0.04);
+  border-color: rgba(15,23,42,0.1);
+  color: #475569;
+}
+body[data-theme-mode="light"] .theme-mode-card.active {
+  background: rgba(15,23,42,0.08);
+  color: #0f172a;
+}
+body[data-theme-mode="light"] .general-settings-hero {
+  background: rgba(15,23,42,0.04);
+  border-color: rgba(15,23,42,0.08);
+}
+body[data-theme-mode="light"] .general-settings-hero-icon {
+  background: rgba(15,23,42,0.08);
+  color: #0f172a;
+}
+body[data-theme-mode="light"] .donut-ring { stroke: rgba(15,23,42,0.12) !important; }
+body[data-theme-mode="light"] .donut-segment { stroke: #0f172a !important; }
+body[data-theme-mode="light"] .storage-donut-value { color: #0f172a; }
+.settings-section .setting-toggle-item + .setting-item { margin-top: 8px; }
+body[data-theme-mode="light"] .bg-url-input-wrap,
+body[data-theme-mode="light"] .bg-color-btn,
+body[data-theme-mode="light"] .bg-file-btn {
+  background: #ffffff;
+  border-color: rgba(15,23,42,0.14);
+  color: #334155;
+}
+body[data-theme-mode="light"] .bg-color-btn:hover,
+body[data-theme-mode="light"] .bg-file-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+body[data-theme-mode="light"] .bg-swatch {
+  border-color: rgba(15,23,42,0.16);
+}
+body[data-theme-mode="light"] .hotkey-key-btn kbd {
+  background: #ffffff;
+  border-color: rgba(15,23,42,0.14);
+  color: #334155;
+}
+body[data-theme-mode="light"] .btn-danger {
+  background: rgba(220,38,38,0.1);
+  color: #b91c1c;
+}
+body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.18); }
