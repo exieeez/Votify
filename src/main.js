@@ -486,6 +486,7 @@ if (appSettings.bgParticles === 'none' || appSettings.perfParticles === false) {
   appSettings.particleCount = appSettings.particleCount || 80;
   localStorage.setItem('votify-settings', JSON.stringify(appSettings));
 }
+if (!appSettings.fxQuality) appSettings.fxQuality = 'auto';
 
 let isChangingTrack = false;
 let discordPresenceSyncTimer = null;
@@ -7724,13 +7725,11 @@ let particleMouseListenerAdded = false;
   function updateGlow() {
     if (!glow || !glow2) ensureGlow();
     if (glow) {
-      glow.style.left = mouseX + 'px';
-      glow.style.top = mouseY + 'px';
+      glow.style.transform = 'translate3d(' + (mouseX - 400) + 'px, ' + (mouseY - 400) + 'px, 0)';
       glow.classList.add('active');
     }
     if (glow2) {
-      glow2.style.left = mouseX + 'px';
-      glow2.style.top = mouseY + 'px';
+      glow2.style.transform = 'translate3d(' + (mouseX - 225) + 'px, ' + (mouseY - 225) + 'px, 0)';
     }
     ticking = false;
   }
@@ -7761,6 +7760,37 @@ let particleMouseListenerAdded = false;
     ensureGlow();
   }
 })();
+
+// ---- PERF: auto quality for heavy effects (glow, lava lamp) ----
+let perfAutoLow = false;
+let perfFpsAcc = 0;
+let perfFpsFrames = 0;
+let perfLastTs = 0;
+function effectivePerfMode() {
+  if (appSettings.fxQuality === 'low') return 'low';
+  if (appSettings.fxQuality === 'max') return 'max';
+  return perfAutoLow ? 'low' : 'max';
+}
+function applyPerfMode() {
+  document.body.classList.toggle('perf-low', effectivePerfMode() === 'low');
+}
+function perfSample(ts) {
+  if (appSettings.fxQuality !== 'auto' || perfAutoLow) return;
+  if (perfLastTs) {
+    const dt = ts - perfLastTs;
+    if (dt > 0 && dt < 500) { perfFpsAcc += dt; perfFpsFrames++; }
+  }
+  perfLastTs = ts;
+  if (perfFpsFrames >= 150) {
+    const avgMs = perfFpsAcc / perfFpsFrames;
+    perfFpsAcc = 0;
+    perfFpsFrames = 0;
+    if (avgMs > 25) { // below ~40 fps — switch to economy mode once
+      perfAutoLow = true;
+      applyPerfMode();
+    }
+  }
+}
 
 function initParticleEngine() {
   let canvas = document.getElementById('bg-particle-canvas');
@@ -7849,6 +7879,7 @@ function updateParticleSystem() {
       bgParticleAnimationId = requestAnimationFrame(render);
       return;
     }
+    perfSample(timestamp);
 
     const elapsed = timestamp - lastTime;
     if (elapsed < fpsInterval) {
@@ -8910,6 +8941,17 @@ function initRedesignedSettings() {
 
   // --- 4. Эффективность (gen-perf) ---
   wireInput('setting-perf-limiting', 'perfLimiting', 'off');
+  const fxQualitySel = document.getElementById('setting-fx-quality');
+  if (fxQualitySel) {
+    fxQualitySel.value = appSettings.fxQuality || 'auto';
+    fxQualitySel.addEventListener('change', () => {
+      appSettings.fxQuality = fxQualitySel.value;
+      perfAutoLow = false;
+      applyPerfMode();
+      saveSettings();
+    });
+  }
+  applyPerfMode();
   wireInput('background-blur-slider', 'background-blur', 15, 'background-blur-value', 'px');
   const blurSlider = document.getElementById('background-blur-slider');
   if (blurSlider) {

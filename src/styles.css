@@ -9204,6 +9204,8 @@ body[data-dynamic-player-bg="true"] .fs-gradient-bg {
 /* === Cursor glow spotlight — cool highlight that follows mouse — BRIGHT === */
 #cursor-glow {
   position: fixed;
+  left: 0;
+  top: 0;
   width: 800px;
   height: 800px;
   border-radius: 50%;
@@ -9212,16 +9214,18 @@ body[data-dynamic-player-bg="true"] .fs-gradient-bg {
   opacity: 0.85;
   background: radial-gradient(circle at center, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.10) 25%, rgba(255,255,255,0.04) 45%, transparent 70%);
   filter: blur(24px);
-  transform: translate(-50%, -50%);
-  transition: opacity 0.3s ease, transform 0.12s ease-out;
+  transform: translate3d(-10000px, -10000px, 0);
+  transition: opacity 0.3s ease, transform 0.06s linear;
   mix-blend-mode: normal;
-  will-change: left, top, opacity;
+  will-change: transform, opacity;
 }
 #cursor-glow.active { opacity: 0.95; }
 
 /* Second layer for more depth — brighter */
 #cursor-glow-2 {
   position: fixed;
+  left: 0;
+  top: 0;
   width: 450px;
   height: 450px;
   border-radius: 50%;
@@ -9230,10 +9234,17 @@ body[data-dynamic-player-bg="true"] .fs-gradient-bg {
   opacity: 0.7;
   background: radial-gradient(circle at center, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 35%, transparent 65%);
   filter: blur(16px);
-  transform: translate(-50%, -50%);
-  transition: opacity 0.3s ease, transform 0.08s ease-out;
-  will-change: left, top;
+  transform: translate3d(-10000px, -10000px, 0);
+  transition: opacity 0.3s ease, transform 0.14s ease-out;
+  will-change: transform, opacity;
 }
+
+/* Экономный режим эффектов (auto при низком FPS или вручную) */
+body.perf-low #cursor-glow { filter: none; opacity: 0.55; }
+body.perf-low #cursor-glow-2 { display: none; }
+body.perf-low .fs-lava-blob { filter: blur(40px) saturate(1.6) brightness(1.05); mix-blend-mode: normal; transition: none; }
+body.perf-low .fs-lava-blob:nth-child(n+7) { display: none; }
+body.perf-low .fs-lava-lamp { contain: strict; }
 
 /* Ensure content is above glow and particles */
 .sidebar, .top-bar, .player-bar, .right-player, .floating-island, .player-page-top, .fullscreen-player, .main-content, .screen {
