@@ -7539,7 +7539,7 @@ const CURSOR_PRESETS = [
 const CURSOR_PRESET_IDS = CURSOR_PRESETS.map(preset => preset.id);
 
 function cursorDataUri(svg) {
-  return 'data:image/svg+xml;utf8,' + encodeURI(svg);
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 function findCustomCursor(id) {
   return (appSettings.customCursors || []).find(c => c.id === id) || null;
