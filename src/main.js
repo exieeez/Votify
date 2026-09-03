@@ -7430,6 +7430,7 @@ let lavaAnalyser = null;
 let lavaFreqData = null;
 let lavaHooked = false;
 let lavaBeatRaf = 0;
+let lavaBeatLastTs = 0;
 let lavaPulse = 0;
 let lavaLevel = 0;
 let lavaBassAvg = 0.08;
@@ -7465,8 +7466,11 @@ function pushLavaBeatVars() {
   lamp.style.setProperty('--lava-level', lavaLevel.toFixed(3));
 }
 
-function lavaBeatTick() {
+function lavaBeatTick(ts) {
   lavaBeatRaf = requestAnimationFrame(lavaBeatTick);
+  // 30 fps достаточно для пульса: меньше пересчётов стилей огромных блобов
+  if (ts - lavaBeatLastTs < 33) return;
+  lavaBeatLastTs = ts;
   if (!lavaAnalyser || !lavaFreqData) return;
   if (typeof audio === 'undefined' || !audio || audio.paused || audio.ended) {
     lavaPulse += (0 - lavaPulse) * 0.12;
@@ -7781,11 +7785,11 @@ function perfSample(ts) {
     if (dt > 0 && dt < 500) { perfFpsAcc += dt; perfFpsFrames++; }
   }
   perfLastTs = ts;
-  if (perfFpsFrames >= 150) {
+  if (perfFpsFrames >= 90) {
     const avgMs = perfFpsAcc / perfFpsFrames;
     perfFpsAcc = 0;
     perfFpsFrames = 0;
-    if (avgMs > 25) { // below ~40 fps — switch to economy mode once
+    if (avgMs > 22) { // below ~45 fps — switch to economy mode once
       perfAutoLow = true;
       applyPerfMode();
     }
@@ -7869,9 +7873,9 @@ function updateParticleSystem() {
   const accent =
     getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1DB954';
   let lastTime = 0;
-  const fpsInterval = 1000 / 60;
 
   function render(timestamp) {
+    const fpsInterval = effectivePerfMode() === 'low' ? 1000 / 30 : 1000 / 60;
     if (!bgParticleCtx || !bgParticleCanvas) return;
     // Сбрасываем id кадра: если render упадёт, watchdog увидит null и перезапустит цикл
     bgParticleAnimationId = null;
