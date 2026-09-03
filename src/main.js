@@ -433,13 +433,13 @@ let appSettings = readStoredJson('votify-settings', {
   trackCardStyle: 'default',
   backgroundBlur: 0,
   perfParticles: true,
-  bgParticles: 'dots',
+  bgParticles: 'none',
   savedColorSchemes: [],
   activeColorSchemeId: '',
 });
 
 if (appSettings.perfParticles === undefined) appSettings.perfParticles = true;
-if (appSettings.bgParticles === undefined) appSettings.bgParticles = 'dots';
+if (appSettings.bgParticles === undefined) appSettings.bgParticles = 'none';
 if (!Array.isArray(appSettings.savedColorSchemes)) appSettings.savedColorSchemes = [];
 if (typeof appSettings.activeColorSchemeId !== 'string') appSettings.activeColorSchemeId = '';
 
@@ -468,23 +468,25 @@ function sanitizeAppColorSchemes() {
 sanitizeAppColorSchemes();
 
 // One-time cleanup for installations that inherited the old intrusive visual
-// defaults. Users can still enable particles again from the appearance panel.
-const cleanPlayerUiMigration = 'votify-clean-player-ui-v2';
+// defaults (particles were forced ON for everyone). The new default is a
+// clean background — particles are an opt-in effect from the appearance
+// panel. If the stored values still look like the old forced defaults
+// (dots + untouched sliders), switch them off once; any manual tuning of
+// the type or sliders is respected.
+const cleanPlayerUiMigration = 'votify-clean-player-ui-v3';
 if (localStorage.getItem(cleanPlayerUiMigration) !== 'done') {
-  appSettings.perfParticles = true;
-  appSettings.bgParticles = 'dots';
+  appSettings.perfParticles = appSettings.perfParticles !== false;
+  const untouchedDefaults =
+    appSettings.bgParticles === 'dots' &&
+    (appSettings.particleCount === undefined || appSettings.particleCount === 80) &&
+    (appSettings.particleSpeed === undefined || appSettings.particleSpeed === 20) &&
+    (appSettings.particleSize === undefined || appSettings.particleSize === 3.5);
+  if (untouchedDefaults) appSettings.bgParticles = 'none';
   appSettings.particleCount = appSettings.particleCount || 80;
   appSettings.particleSize = appSettings.particleSize || 3.5;
   appSettings.particleSpeed = appSettings.particleSpeed || 20;
   localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   localStorage.setItem(cleanPlayerUiMigration, 'done');
-}
-// Force enable for users who had particles disabled before
-if (appSettings.bgParticles === 'none' || appSettings.perfParticles === false) {
-  appSettings.perfParticles = true;
-  appSettings.bgParticles = appSettings.bgParticles === 'none' ? 'dots' : appSettings.bgParticles;
-  appSettings.particleCount = appSettings.particleCount || 80;
-  localStorage.setItem('votify-settings', JSON.stringify(appSettings));
 }
 if (!appSettings.fxQuality) appSettings.fxQuality = 'auto';
 
@@ -590,19 +592,16 @@ function cloudCacheKey(uid) {
   return `votify-cloud-cache-${uid}`;
 }
 
-// Старые облачные копии настроек (мобильной эпохи) могут нести
-// bgParticles:'none' / perfParticles:false — из-за них частицы гаснут
-// через секунду после старта, когда приходит cloud pull. Облако не должно
-// иметь права гасить частицы: подменяем на живые значения.
+// Облачные копии настроек могут быть старее локальных. Частицы — opt-in
+// эффект: если на этом устройстве пользователь явно включил их (тип не
+// 'none'), облачная копия со значением 'none' не должна их гасить.
+// Во всех остальных случаях облачное значение применяется как есть.
 function sanitizeIncomingCloudSettings(source) {
   const settings = { ...(source || {}) };
-  if (settings.bgParticles === 'none') {
-    settings.bgParticles =
-      appSettings && appSettings.bgParticles && appSettings.bgParticles !== 'none'
-        ? appSettings.bgParticles
-        : 'dots';
+  const localType = appSettings && appSettings.bgParticles;
+  if (settings.bgParticles === 'none' && localType && localType !== 'none') {
+    settings.bgParticles = localType;
   }
-  if (settings.perfParticles === false) settings.perfParticles = true;
   return settings;
 }
 
@@ -675,17 +674,10 @@ async function syncWithCloud(direction = 'pull') {
       if (data.exists) {
         if (data.settings && typeof data.settings === 'object') {
           const safeCloud = sanitizeIncomingCloudSettings(data.settings);
-          const cloudKilledParticles =
-            safeCloud.bgParticles !== data.settings.bgParticles ||
-            safeCloud.perfParticles !== data.settings.perfParticles;
           appSettings = { ...appSettings, ...safeCloud };
           sanitizeAppColorSchemes();
           localStorage.setItem('votify-settings', JSON.stringify(appSettings));
           applyLanguage(appSettings.lang || 'ru');
-          if (cloudKilledParticles) {
-            // облако хранило мёртвые частицы — лечим его копию обратной записью
-            syncWithCloud('push');
-          }
         }
         if (data.playlists && typeof data.playlists === 'object') {
           playlists = data.playlists;
@@ -1672,10 +1664,30 @@ function openPlaylist(name) {
   let subtitle = 'Создан Votify';
 
   if (name === 'Избранное') {
+    // Favorites live in a section of their own: hide the playlists grid and
+    // show the detail pane (mirrors what the "favorites" tab used to do).
+    const playlistsSection = document.getElementById('lib-playlists-section');
+    if (playlistsSection) playlistsSection.style.display = 'none';
+    const filterTabs = document.getElementById('library-filter-tabs');
+    if (filterTabs) {
+      filterTabs.querySelectorAll('.lib-tab-btn').forEach(b => b.classList.remove('active'));
+      const favTab = filterTabs.querySelector('[data-tab="favorites"]');
+      if (favTab) favTab.classList.add('active');
+    }
     tracks = playlists['Избранное'] || [];
     title = 'Любимые треки';
     subtitle = `${tracks.length} треков в вашей коллекции`;
   } else {
+    // User playlists live in the grid: the user clicked a playlist card or
+    // opened it from elsewhere, so show the grid again.
+    const playlistsSection = document.getElementById('lib-playlists-section');
+    if (playlistsSection) playlistsSection.style.display = 'block';
+    const filterTabs = document.getElementById('library-filter-tabs');
+    if (filterTabs) {
+      filterTabs.querySelectorAll('.lib-tab-btn').forEach(b => b.classList.remove('active'));
+      const playlistsTab = filterTabs.querySelector('[data-tab="playlists"]');
+      if (playlistsTab) playlistsTab.classList.add('active');
+    }
     tracks = playlists[name] || [];
     title = name;
     subtitle = `${tracks.length} треков`;
@@ -1849,21 +1861,48 @@ function formatTrackCount(count) {
   return `${count} ${word}`;
 }
 
-// Helper to generate monthly listeners count realistically
+// Approximate monthly listeners. No source exposes real per-artist audience,
+// so the goal is *believability*: mostly small/medium numbers, stars in the
+// millions, a quiet tail of unknown local/demo acts. Deterministic per day
+// (stable during a session, drifts slowly) and consistent for one artist.
 function getArtistMonthlyListeners(name, totalViews = 0) {
   if (totalViews > 0) {
     const computed = Math.round(totalViews * 0.42);
     return computed.toLocaleString('ru-RU');
   }
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash << 5) - hash + name.charCodeAt(i);
+  const str = String(name || '');
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0;
   }
   const abs = Math.abs(hash);
-  // Realistic listener count algorithm
-  const base = 480000 + (abs % 4200000);
-  return base.toLocaleString('ru-RU');
+
+  // FNV-style second hash: adds small per-artist variation.
+  let h2 = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h2 ^= str.charCodeAt(i);
+    h2 = Math.imul(h2, 0x01000193) >>> 0;
+  }
+
+  // Day bucket (UTC): deterministic for 24h, so the number does not jump on
+  // every visit but still breathes a little over time.
+  const day = Math.floor(Date.now() / 86400000);
+
+  const known = /(official|vevo|topic|records|music|group|band|live)/i.test(str);
+  // Slightly "noisy" mainstream (generic YouTube covers + channel keywords)…
+  if (known) {
+    const base = 1200000 + (abs % 39000000); // 1.2M–40.2M
+    const drift = ((day + (h2 % 7)) % 7) - 3; // ±3% around today
+    const value = Math.round(base * (1 + drift * 0.02));
+    return Math.max(40000, value).toLocaleString('ru-RU');
+  }
+
+  const base = 300 + (abs % 8700); // 300 – ~9K: независимые/локальные
+  if (abs % 10 !== 0) return base.toLocaleString('ru-RU');
+  // Rare exceptions: a "demo/local" name can still be a breakout hit.
+  const breakout = 25000 + ((abs * 7919 + day * 104729) % 475000);
+  return breakout.toLocaleString('ru-RU');
 }
 
 // Recent Artists Management
@@ -4720,8 +4759,11 @@ safeClick('morph-reset-all', async () => {
   );
   if (!confirmed) return;
   applyAccentColor('#1DB954');
-  appSettings.fontFamily = 'default';
-  if (fontFamilySelect) fontFamilySelect.value = 'default';
+  // Font reset goes through the modern UI-settings path (default = Inter).
+  delete appSettings.fontFamily;
+  const fontFamilySelectEl = document.getElementById('font-family-select');
+  if (fontFamilySelectEl) fontFamilySelectEl.value = 'inter';
+  if (typeof applyUISettings === 'function') applyUISettings();
   appSettings.compactUI = false;
   if (compactToggle) compactToggle.checked = false;
   appSettings.background = 'default';
@@ -4983,15 +5025,9 @@ const bgGradients = {
 // --- Appearance settings ---
 
 // Font family
-const fontFamilySelect = document.getElementById('font-family-select');
-if (fontFamilySelect) {
-  fontFamilySelect.value = appSettings.fontFamily || 'default';
-  fontFamilySelect.addEventListener('change', () => {
-    appSettings.fontFamily = fontFamilySelect.value;
-    saveSettings();
-    applyAppearance();
-  });
-}
+// font-family-select is wired once, in the modern settings init (wireInput +
+// applyUISettings). An earlier duplicate listener here re-applied the legacy
+// font dict and undid the picked family, so it was removed.
 
 // Liquid Glass mode (morph-toggle checkbox)
 const liquidGlassToggle = document.getElementById('toggle-liquid-glass');
@@ -5381,19 +5417,11 @@ if (langSelect) {
 
 function applyAppearance() {
   const root = document.documentElement;
-  // Font
-  const ff = appSettings.fontFamily || 'default';
-  const fonts = {
-    default: '"Segoe UI", Roboto, sans-serif',
-    mono: '"JetBrains Mono", monospace',
-    rounded: '"Nunito", "Segoe UI", sans-serif',
-  };
-  root.style.setProperty('--font-family', fonts[ff] || fonts.default);
-  document.body.style.fontFamily = fonts[ff] || fonts.default;
-  // Font size
-  root.style.setProperty('--font-size', appSettings.fontSize || '16px');
-  root.style.setProperty('--app-font-size-offset', appSettings.fontSize || '16px');
-  document.body.style.fontSize = appSettings.fontSize || '16px';
+  // Note: font family/size intentionally NOT handled here anymore — the
+  // modern font dict (inter/system/modern/…) lives in applyUISettings().
+  // Keeping a legacy copy here caused the picked UI font (e.g. Inter) to be
+  // silently replaced by "Segoe UI"/Roboto whenever any legacy control
+  // below (blur, transparency, density…) re-ran this function.
   applyInterfaceTextScale();
   // Opacity
   const op = (parseInt(appSettings.opacity) || 98) / 100;
@@ -6196,8 +6224,12 @@ safeClick('tile-history', () => {
     showToast('История пуста');
     return;
   }
-  switchScreen('search-screen', 'nav-search-btn');
+  // "История" открывается как список на search-экране — и клик по любому
+  // треку должен играть музыку, а не запускать повторный поиск.
+  searchAllTracks = []; // not a search session: rows play directly
+  searchCurrentQuery = null;
   if (statusMessage) statusMessage.innerText = `История: ${history.length} треков`;
+  switchScreen('search-screen', 'nav-search-btn');
   renderTrackRows(resultsContainer, history, { showAddButton: true });
 });
 
@@ -7779,7 +7811,10 @@ function applyPerfMode() {
   document.body.classList.toggle('perf-low', effectivePerfMode() === 'low');
 }
 function applyGlowVisibility() {
-  document.body.classList.toggle('no-glow', appSettings.cursorGlow === false);
+  // De-slop: spotlight is opt-in. It only renders when the user explicitly
+  // enabled it (previously an absent setting meant ON, so everyone got the
+  // 800px glow layers by default).
+  document.body.classList.toggle('no-glow', appSettings.cursorGlow !== true);
 }
 function perfSample(ts) {
   if (appSettings.fxQuality !== 'auto' || perfAutoLow) return;
@@ -7878,7 +7913,7 @@ function updateParticleSystem() {
   }
 
   if (!bgParticleCanvas || !bgParticleCanvas.isConnected) initParticleEngine();
-  const type = appSettings.bgParticles || 'dots';
+  const type = appSettings.bgParticles || 'none';
   if (type === 'none') {
     bgParticleCtx?.clearRect(0, 0, bgParticleCanvas.width, bgParticleCanvas.height);
     return;
@@ -8024,7 +8059,7 @@ setInterval(() => {
   try {
     if (typeof appSettings === 'undefined' || !appSettings) return;
     if (appSettings.perfParticles === false) return;
-    const ptype = appSettings.bgParticles || 'dots';
+    const ptype = appSettings.bgParticles || 'none';
     if (ptype === 'none') return;
     if (document.hidden) {
       particleWatchLastCount = particleFrameCount;
@@ -8971,7 +9006,7 @@ function initRedesignedSettings() {
       saveSettings();
     });
   }
-  wireInput('setting-glow', 'cursorGlow', true, '', '', applyGlowVisibility);
+  wireInput('setting-glow', 'cursorGlow', false, '', '', applyGlowVisibility);
   applyGlowVisibility();
   applyPerfMode();
   wireInput('background-blur-slider', 'background-blur', 15, 'background-blur-value', 'px');
@@ -9129,7 +9164,7 @@ function initRedesignedSettings() {
   wireInput('toggle-tab-settings', 'tabSettings', true, null, '', () => applyTabsSettings());
 
   // --- 11. Фон (app-bg) ---
-  wireInput('setting-bg-particles', 'bgParticles', 'dots', null, '', () => updateParticleSystem());
+  wireInput('setting-bg-particles', 'bgParticles', 'none', null, '', () => updateParticleSystem());
   wireInput('slider-particle-count', 'particleCount', 50, 'particle-count-val', '', () =>
     updateParticleSystem()
   );

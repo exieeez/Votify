@@ -22,6 +22,7 @@ body {
 .floating-island,
 .player-bar,
 .right-player,
+.right-player-panel,
 .page-player,
 .player-page-top {
   background: color-mix(in srgb, var(--bg-surface) 78%, transparent) !important;

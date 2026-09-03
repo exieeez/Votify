@@ -171,7 +171,7 @@
       particles: oneOf(
         theme.particles,
         ['none', 'snow', 'rain', 'stars', 'dots', 'hearts', 'fireflies', 'sakura', 'network'],
-        'dots'
+        'none'
       ),
       fontFamily: oneOf(
         theme.fontFamily,
@@ -314,11 +314,12 @@
             </div>
             <span class="workshop-own-badge">Дефолт</span>
           </div>
-          <p>Тёмно-серая тема в стиле Dotify — чёрно-белая, минималистичная, без цветов. Фон #121212, карточки #181818.</p>
+          <p>Тёмно-серая тема в стиле Dotify — чёрно-белая, минималистичная, без цветов. Фон #121212, карточки #181818. Фоновые частицы выключены.</p>
           <div class="workshop-theme-details">
             <span><i style="background:#FFFFFF"></i>contrast</span>
             <span>8px</span>
             <span>system</span>
+            <span>без частиц</span>
           </div>
           <div class="workshop-card-actions">
             <button class="workshop-install-btn" data-action="install-default">
@@ -600,9 +601,10 @@
           backgroundUrl: '',
           cornerRadius: 8,
           uiTransparency: 100,
-        backgroundBlur: 0,
-        particles: 'dots',
-        fontFamily: 'system'
+          backgroundBlur: 0,
+          // De-slop: стандартная тема — без частиц; включаются только вручную.
+          particles: 'none',
+          fontFamily: 'system'
       };
         window.VotifyThemeWorkshop.applyTheme(defaultTheme, { id: '', title: 'Стандартная тема' });
         // Clear active scheme id
