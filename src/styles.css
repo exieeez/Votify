@@ -9359,7 +9359,7 @@ body[data-theme-mode="light"] .update-banner-close:hover { background: rgba(0,0,
 html, body { cursor: var(--app-cursor, auto); }
 body * { cursor: var(--app-cursor, default); }
 button, a, select, label, [role="button"], .nav-btn, .track-card, .bg-card,
-.cursor-tile, .frame-chip, .banner-chip,
+.cursor-tile,
 input[type="range"], input[type="checkbox"] {
   cursor: var(--app-cursor-pointer, pointer);
 }
@@ -9399,58 +9399,6 @@ input[type="text"], input[type="search"], input[type="email"], input[type="passw
 .cursor-tile-del { position: absolute; top: 2px; right: 3px; font-size: 13px; opacity: 0.65; }
 .cursor-custom-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
 
-.profile-block-label {
-  display: block;
-  margin: 12px 0 6px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-subdued);
-}
-.banner-chips, .frame-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.banner-chip {
-  width: 36px;
-  height: 22px;
-  border-radius: 6px;
-  border: 1px solid var(--bg-highlight);
-  background: var(--chip, var(--bg-elevated));
-}
-.banner-chip.active { outline: 2px solid var(--accent); }
-.profile-banner-url-row { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
-.profile-banner-url-row input { flex: 1; }
-.frame-chip {
-  padding: 5px 10px;
-  border-radius: 14px;
-  border: 1px solid var(--bg-highlight);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-.frame-chip.active { border-color: var(--accent); color: var(--text-primary); }
-
-/* Рамки аватара */
-.frame-glow { box-shadow: 0 0 0 3px var(--accent), 0 0 24px rgba(var(--accent-rgb), 0.85); }
-.frame-neon { box-shadow: 0 0 0 2px #00e5ff, 0 0 16px #00e5ff, 0 0 34px rgba(0, 229, 255, 0.5); }
-.frame-rainbow {
-  background: conic-gradient(#ff004c, #ffc93c, #1db954, #00e5ff, #a855f7, #ff2d78, #ff004c);
-  padding: 3px;
-}
-.frame-rainbow img, .frame-rainbow span { border-radius: inherit; }
-.frame-pixel {
-  box-shadow: 0 0 0 3px #000, 0 0 0 6px #fff, 0 0 0 9px #000;
-  border-radius: 0 !important;
-}
-.frame-double { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--bg-base), 0 0 0 7px var(--accent); }
-.frame-heart { box-shadow: 0 0 0 3px #ff2d78, 0 0 18px rgba(255, 45, 120, 0.6); position: relative; }
-.frame-heart::after {
-  content: '\2665';
-  position: absolute;
-  top: -11px;
-  right: -7px;
-  color: #ff2d78;
-  font-size: 18px;
-  text-shadow: 0 0 8px rgba(255, 45, 120, 0.8);
-}
 
 
 /* ==========================================

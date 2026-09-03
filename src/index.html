@@ -154,40 +154,6 @@
           <label class="profile-avatar-button" for="profile-avatar-input"><i class="material-icons">photo_camera</i> Сменить аватар</label>
           <input type="file" id="profile-avatar-input" accept="image/*" hidden />
         </div>
-        <div class="profile-banner-block">
-          <span class="profile-block-label">Баннер профиля</span>
-          <div class="banner-chips" id="profile-banner-presets">
-            <button class="banner-chip" data-banner="" title="Без баннера"></button>
-            <button class="banner-chip" data-banner="grad-1" style="--chip: linear-gradient(135deg,#7928ca,#ff0080)"></button>
-            <button class="banner-chip" data-banner="grad-2" style="--chip: linear-gradient(135deg,#00f2fe,#4facfe)"></button>
-            <button class="banner-chip" data-banner="grad-3" style="--chip: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)"></button>
-            <button class="banner-chip" data-banner="grad-4" style="--chip: linear-gradient(135deg,#10b981,#022c22)"></button>
-            <button class="banner-chip" data-banner="grad-5" style="--chip: linear-gradient(135deg,#ff416c,#ff4b2b)"></button>
-            <button class="banner-chip" data-banner="grad-6" style="--chip: linear-gradient(135deg,#00c6ff,#0072ff)"></button>
-            <button class="banner-chip" data-banner="grad-7" style="--chip: linear-gradient(135deg,#a855f7,#6366f1)"></button>
-            <button class="banner-chip" data-banner="grad-8" style="--chip: linear-gradient(135deg,#f43f5e,#fb7185)"></button>
-            <button class="banner-chip" data-banner="grad-9" style="--chip: linear-gradient(135deg,#18181b,#09090b)"></button>
-          </div>
-          <div class="profile-banner-url-row">
-            <input type="text" id="profile-banner-url" maxlength="300" placeholder="https://… или загрузите файл" />
-            <label class="btn-icon-sm" for="profile-banner-input" title="Загрузить картинку"><i class="material-icons">upload_file</i></label>
-            <input type="file" id="profile-banner-input" accept="image/*" hidden />
-          </div>
-          <input type="hidden" id="profile-banner-value" />
-        </div>
-        <div class="profile-frame-block">
-          <span class="profile-block-label">Рамка аватара</span>
-          <div class="frame-chips" id="profile-frame-chips">
-            <button class="frame-chip active" data-frame="none">Нет</button>
-            <button class="frame-chip" data-frame="glow">Свечение</button>
-            <button class="frame-chip" data-frame="neon">Неон</button>
-            <button class="frame-chip" data-frame="rainbow">Радуга</button>
-            <button class="frame-chip" data-frame="pixel">Пиксель</button>
-            <button class="frame-chip" data-frame="double">Двойная</button>
-            <button class="frame-chip" data-frame="heart">Сердце</button>
-          </div>
-          <input type="hidden" id="profile-frame-value" value="none" />
-        </div>
         <div class="profile-fields">
           <label>Имя профиля<input type="text" id="profile-display-name" maxlength="40" placeholder="Имя" /></label>
           <label>О себе<input type="text" id="profile-about" maxlength="300" placeholder="Пара слов о себе — увидят друзья" /></label>
@@ -1693,6 +1659,5 @@
     <script src="color-schemes.js?v=0.7.8"></script>
     <script src="main.js?v=0.7.8"></script>
     <script src="workshop.js?v=0.7.8"></script>
-    <script src="profile-custom.js?v=0.7.8"></script>
   </body>
 </html>

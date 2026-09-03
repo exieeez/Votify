@@ -524,17 +524,6 @@
     if (displayNameInput) displayNameInput.value = profile.displayName || user?.displayName || '';
     const aboutInput = document.getElementById('profile-about');
     if (aboutInput) aboutInput.value = profile.about || '';
-    const bannerInput = document.getElementById('profile-banner-value');
-    if (bannerInput) bannerInput.value = profile.banner || '';
-    const frameInput = document.getElementById('profile-frame-value');
-    if (frameInput) frameInput.value = profile.frame || 'none';
-    document.querySelectorAll('#profile-frame-chips .frame-chip').forEach(chip => {
-      chip.classList.toggle('active', chip.dataset.frame === (profile.frame || 'none'));
-    });
-    document.querySelectorAll('#profile-banner-presets .banner-chip').forEach(chip => {
-      chip.classList.toggle('active', chip.dataset.banner === (profile.banner || ''));
-    });
-
     if (email)
       email.textContent =
         user?.email || (user?.isAnonymous ? 'Гостевой аккаунт' : 'Не выполнен вход');
@@ -718,8 +707,6 @@
           displayName: document.getElementById('profile-display-name')?.value,
           avatar: state.profile?.avatar || '',
           about: document.getElementById('profile-about')?.value,
-          banner: document.getElementById('profile-banner-value')?.value,
-          frame: document.getElementById('profile-frame-value')?.value,
         });
         setMessage('profile-message', 'Профиль сохранён');
       } catch (error) {
@@ -736,8 +723,6 @@
           displayName: document.getElementById('profile-display-name')?.value,
           avatar,
           about: document.getElementById('profile-about')?.value,
-          banner: document.getElementById('profile-banner-value')?.value,
-          frame: document.getElementById('profile-frame-value')?.value,
         });
         setMessage('profile-message', 'Аватар сохранён');
       } catch (error) {
