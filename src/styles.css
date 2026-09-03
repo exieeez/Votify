@@ -9213,7 +9213,6 @@ body[data-dynamic-player-bg="true"] .fs-gradient-bg {
   z-index: 1;
   opacity: 0.85;
   background: radial-gradient(circle at center, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.10) 25%, rgba(255,255,255,0.04) 45%, transparent 70%);
-  filter: blur(24px);
   transform: translate3d(-10000px, -10000px, 0);
   transition: opacity 0.3s ease, transform 0.06s linear;
   mix-blend-mode: normal;
@@ -9233,7 +9232,6 @@ body[data-dynamic-player-bg="true"] .fs-gradient-bg {
   z-index: 1;
   opacity: 0.7;
   background: radial-gradient(circle at center, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 35%, transparent 65%);
-  filter: blur(16px);
   transform: translate3d(-10000px, -10000px, 0);
   transition: opacity 0.3s ease, transform 0.14s ease-out;
   will-change: transform, opacity;
@@ -9244,7 +9242,8 @@ body.perf-low *, body.perf-low *::before, body.perf-low *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
-body.perf-low #cursor-glow { filter: none; opacity: 0.55; }
+body.no-glow #cursor-glow, body.no-glow #cursor-glow-2 { display: none !important; }
+body.perf-low #cursor-glow { opacity: 0.55; }
 body.perf-low #cursor-glow-2 { display: none; }
 body.perf-low .fs-lava-blob { filter: blur(40px) saturate(1.6) brightness(1.05); mix-blend-mode: normal; transition: none; }
 body.perf-low .fs-lava-blob:nth-child(n+7) { display: none; }

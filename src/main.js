@@ -7778,6 +7778,9 @@ function effectivePerfMode() {
 function applyPerfMode() {
   document.body.classList.toggle('perf-low', effectivePerfMode() === 'low');
 }
+function applyGlowVisibility() {
+  document.body.classList.toggle('no-glow', appSettings.cursorGlow === false);
+}
 function perfSample(ts) {
   if (appSettings.fxQuality !== 'auto' || perfAutoLow) return;
   if (perfLastTs) {
@@ -7791,9 +7794,44 @@ function perfSample(ts) {
     perfFpsFrames = 0;
     if (avgMs > 22) { // below ~45 fps — switch to economy mode once
       perfAutoLow = true;
-      applyPerfMode();
+  applyPerfMode();
     }
   }
+}
+
+// ---- PERF: pre-rendered particle sprites (no per-frame shadowBlur/gradients) ----
+const particleSpriteCache = {};
+function getParticleSprite(type) {
+  if (particleSpriteCache[type]) return particleSpriteCache[type];
+  const s = document.createElement('canvas');
+  s.width = 64; s.height = 64;
+  const c = s.getContext('2d');
+  if (type === 'fireflies') {
+    const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,235,59,1)');
+    g.addColorStop(0.35, 'rgba(255,235,59,0.55)');
+    g.addColorStop(1, 'rgba(255,235,59,0)');
+    c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+  } else if (type === 'hearts') {
+    c.fillStyle = 'rgba(255,105,180,1)';
+    c.font = '48px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('\u2665', 32, 35);
+  } else if (type === 'sakura') {
+    c.save(); c.translate(32, 32); c.rotate(Math.PI / 4);
+    c.fillStyle = 'rgba(255,182,193,1)';
+    c.beginPath(); c.ellipse(0, 0, 26, 13, 0, 0, Math.PI * 2); c.fill();
+    c.restore();
+  } else {
+    const col = type === 'stars' ? '255,255,200' : '255,255,255';
+    const core = type === 'snow' ? 0.55 : (type === 'stars' ? 0.5 : 0.45);
+    const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(' + col + ',1)');
+    g.addColorStop(core, 'rgba(' + col + ',0.9)');
+    g.addColorStop(1, 'rgba(' + col + ',0)');
+    c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+  }
+  particleSpriteCache[type] = s;
+  return s;
 }
 
 function initParticleEngine() {
@@ -7919,55 +7957,33 @@ function updateParticleSystem() {
       const px = p.x + (appSettings.particleParallax !== false ? mousePos.x : 0);
       const py = p.y + (appSettings.particleParallax !== false ? mousePos.y : 0);
 
-      bgParticleCtx.beginPath();
-      if (type === 'snow') {
-        bgParticleCtx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.95})`;
-        bgParticleCtx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-        bgParticleCtx.shadowBlur = 6;
-        bgParticleCtx.arc(px, py, p.size * 1.3, 0, Math.PI * 2);
-        bgParticleCtx.fill();
-        bgParticleCtx.shadowBlur = 0;
-      } else if (type === 'rain') {
+      if (type === 'rain') {
+        bgParticleCtx.beginPath();
         bgParticleCtx.strokeStyle = `rgba(160, 220, 255, ${p.opacity * 0.9})`;
         bgParticleCtx.lineWidth = 2;
         bgParticleCtx.moveTo(px, py);
         bgParticleCtx.lineTo(px, py + p.size * 6);
         bgParticleCtx.stroke();
-      } else if (type === 'stars') {
-        bgParticleCtx.fillStyle = `rgba(255, 255, 200, ${p.opacity})`;
-        bgParticleCtx.shadowColor = 'rgba(255, 255, 180, 0.9)';
-        bgParticleCtx.shadowBlur = 8;
-        bgParticleCtx.arc(px, py, p.size * 1.2, 0, Math.PI * 2);
-        bgParticleCtx.fill();
-        bgParticleCtx.shadowBlur = 0;
-      } else if (type === 'hearts') {
-        bgParticleCtx.fillStyle = `rgba(255, 105, 180, ${p.opacity})`;
-        bgParticleCtx.font = `${Math.max(12, p.size * 3.5)}px sans-serif`;
-        bgParticleCtx.fillText('♥', px, py);
       } else if (type === 'sakura') {
+        const w = p.size * 6.2;
         bgParticleCtx.save();
         bgParticleCtx.translate(px, py);
         bgParticleCtx.rotate(p.angle);
-        bgParticleCtx.fillStyle = `rgba(255, 182, 193, ${p.opacity * 0.9})`;
-        bgParticleCtx.beginPath();
-        bgParticleCtx.ellipse(0, 0, p.size * 2.5, p.size * 1.3, Math.PI / 4, 0, Math.PI * 2);
-        bgParticleCtx.fill();
+        bgParticleCtx.globalAlpha = p.opacity * 0.9;
+        bgParticleCtx.drawImage(getParticleSprite(type), -w / 2, -w / 2, w, w);
         bgParticleCtx.restore();
-      } else if (type === 'fireflies') {
-        const glow = bgParticleCtx.createRadialGradient(px, py, 0, px, py, p.size * 4);
-        glow.addColorStop(0, `rgba(255, 235, 59, ${p.opacity})`);
-        glow.addColorStop(1, 'rgba(255, 235, 59, 0)');
-        bgParticleCtx.fillStyle = glow;
-        bgParticleCtx.arc(px, py, p.size * 4, 0, Math.PI * 2);
-        bgParticleCtx.fill();
+        bgParticleCtx.globalAlpha = 1;
       } else {
-        bgParticleCtx.fillStyle = '#FFFFFF';
-        bgParticleCtx.shadowColor = 'rgba(255,255,255,0.9)';
-        bgParticleCtx.shadowBlur = 12;
+        const spr = getParticleSprite(type);
+        let w;
+        if (type === 'snow') w = p.size * 1.3 * 4.4;
+        else if (type === 'stars') w = p.size * 1.2 * 4.8;
+        else if (type === 'hearts') w = Math.max(12, p.size * 3.5) * 1.33;
+        else if (type === 'fireflies') w = p.size * 8;
+        else w = p.size * 2.2 * 4.5;
         bgParticleCtx.globalAlpha = p.opacity;
-        bgParticleCtx.arc(px, py, p.size * 2.2, 0, Math.PI * 2);
-        bgParticleCtx.fill();
-        bgParticleCtx.shadowBlur = 0;
+        bgParticleCtx.drawImage(spr, px - w / 2, py - w / 2, w, w);
+        bgParticleCtx.globalAlpha = 1;
       }
     });
 
@@ -8955,6 +8971,8 @@ function initRedesignedSettings() {
       saveSettings();
     });
   }
+  wireInput('setting-glow', 'cursorGlow', true, '', '', applyGlowVisibility);
+  applyGlowVisibility();
   applyPerfMode();
   wireInput('background-blur-slider', 'background-blur', 15, 'background-blur-value', 'px');
   const blurSlider = document.getElementById('background-blur-slider');
