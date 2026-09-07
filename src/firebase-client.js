@@ -778,4 +778,11 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireUi);
   else wireUi();
+
+  // Режим проверки: открой окно входа сразу, если в URL есть ?auth=1
+  if (new URLSearchParams(location.search).has('auth')) {
+    const open = () => openAuth('auth-login');
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', open);
+    else open();
+  }
 })();
