@@ -5552,6 +5552,29 @@ if (searchInput) {
     }
   });
 
+  // Click on the magnifier icon = run search (same as Enter)
+  const searchIconBtn = document.querySelector('.skiper106-search-icon');
+  if (searchIconBtn) {
+    searchIconBtn.setAttribute('role', 'button');
+    searchIconBtn.setAttribute('tabindex', '0');
+    searchIconBtn.title = 'Найти';
+    const runSearchFromIcon = () => {
+      const q = searchInput?.value.trim();
+      if (!q) {
+        searchInput?.focus();
+        return;
+      }
+      doSearch();
+    };
+    searchIconBtn.addEventListener('click', runSearchFromIcon);
+    searchIconBtn.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        runSearchFromIcon();
+      }
+    });
+  }
+
   searchInput.addEventListener('focus', () => {
     renderSearchHistory();
   });

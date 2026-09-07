@@ -2,10 +2,14 @@
    ============================================================
    Триггер-свотч с HEX-подписью открывает попап: поле
    «насыщенность/яркость», вертикальный слайдер оттенка, HEX-ввод
-   и быстрые пресеты. Компонент — обёртка над существующим
-   <input type="color" data-vcp>: он синхронизирует его value и
-   шлёт события input/change, поэтому вся логика приложения
-   (сохранение схем, фон и т.д.) продолжает работать без изменений.
+   и быстрые пресеты. Попап крепится к <body> с фиксированным
+   позиционированием и всегда вписывается в экран (переворот
+   вверх/вниз + горизонтальное ограничение).
+
+   Компонент — обёртка над существующим <input type="color"
+   data-vcp>: он синхронизирует его value и шлёт события
+   input/change, поэтому вся логика приложения (сохранение схем,
+   фон и т.д.) продолжает работать без изменений.
    ============================================================ */
 (function () {
   'use strict';
@@ -68,6 +72,14 @@
 
   const fmtHex = hex => String(hex || '').toUpperCase();
 
+  const openPops = [];
+
+  function closeAllPops(except) {
+    openPops.slice().forEach(p => {
+      if (p !== except) p.close();
+    });
+  }
+
   function mount(input) {
     if (!input || input.type !== 'color' || input._vcp) return;
     input._vcp = true;
@@ -83,8 +95,15 @@
       '<span class="vcp-swatch"></span>' +
       '<span class="vcp-text"></span>' +
       '<span class="material-icons vcp-caret" aria-hidden="true">expand_more</span>' +
-      '</button>' +
-      '<div class="vcp-pop" hidden role="dialog" aria-label="Выбор цвета">' +
+      '</button>';
+
+    // Popup lives on <body>: fixed positioning, always fits the viewport.
+    const pop = document.createElement('div');
+    pop.className = 'vcp-pop';
+    pop.hidden = true;
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Выбор цвета');
+    pop.innerHTML =
       '<div class="vcp-main">' +
       '<div class="vcp-area" title="Насыщенность / яркость"><div class="vcp-handle vcp-area-handle"></div></div>' +
       '<div class="vcp-rail" title="Оттенок"><div class="vcp-handle vcp-rail-handle"></div></div>' +
@@ -95,19 +114,18 @@
       '<input class="vcp-hex-input" spellcheck="false" autocomplete="off" maxlength="6" aria-label="Шестнадцатеричный код цвета" />' +
       '</div>' +
       '</div>' +
-      '<div class="vcp-presets" role="listbox" aria-label="Быстрые цвета"></div>' +
-      '</div>';
+      '<div class="vcp-presets" role="listbox" aria-label="Быстрые цвета"></div>';
+    document.body.appendChild(pop);
 
     const trigger = anchor.querySelector('.vcp-trigger');
-    const pop = anchor.querySelector('.vcp-pop');
     const swatch = anchor.querySelector('.vcp-swatch');
     const text = anchor.querySelector('.vcp-text');
-    const area = anchor.querySelector('.vcp-area');
-    const rail = anchor.querySelector('.vcp-rail');
-    const areaHandle = anchor.querySelector('.vcp-area-handle');
-    const railHandle = anchor.querySelector('.vcp-rail-handle');
-    const hexInput = anchor.querySelector('.vcp-hex-input');
-    const presetsEl = anchor.querySelector('.vcp-presets');
+    const area = pop.querySelector('.vcp-area');
+    const rail = pop.querySelector('.vcp-rail');
+    const areaHandle = pop.querySelector('.vcp-area-handle');
+    const railHandle = pop.querySelector('.vcp-rail-handle');
+    const hexInput = pop.querySelector('.vcp-hex-input');
+    const presetsEl = pop.querySelector('.vcp-presets');
 
     const state = { hex: '#000000', h: 0, s: 0, v: 1 };
 
@@ -168,7 +186,26 @@
       input.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // --- S/V area ---
+    // --- Positioning: fixed, fits viewport, flips up when tight ---
+    function reposition() {
+      const r = trigger.getBoundingClientRect();
+      const popW = pop.offsetWidth || 248;
+      const popH = pop.offsetHeight || 300;
+      const gap = 8;
+      const margin = 10;
+
+      let top = r.bottom + gap;
+      if (top + popH > window.innerHeight - margin && r.top - gap - popH > margin) {
+        top = r.top - gap - popH;
+      } else if (top + popH > window.innerHeight - margin) {
+        top = Math.max(margin, window.innerHeight - popH - margin);
+      }
+      const left = clamp(r.left, margin, window.innerWidth - popW - margin);
+      pop.style.left = Math.round(left) + 'px';
+      pop.style.top = Math.round(top) + 'px';
+    }
+
+    // --- S/V area + rail drag ---
     function attachDrag(el, horizontal, vertical, update) {
       let dragging = false;
       const move = e => {
@@ -241,43 +278,40 @@
     });
 
     // --- Open / close ---
-    function position() {
-      pop.hidden = false;
-      const ar = anchor.getBoundingClientRect();
-      const below = window.innerHeight - ar.bottom - 16;
-      const above = ar.top - 16;
-      const needUp = pop.offsetHeight + 12 > below && above > below;
-      pop.classList.toggle('vcp-up', needUp);
-    }
+    const onDocDown = e => {
+      if (!anchor.contains(e.target) && !pop.contains(e.target)) close();
+    };
+    const onKey = e => {
+      if (e.key === 'Escape') {
+        close();
+        trigger.focus();
+      }
+    };
+    const onScroll = () => reposition();
 
     function close() {
       if (pop.hidden) return;
       pop.hidden = true;
       trigger.classList.remove('open');
       trigger.setAttribute('aria-expanded', 'false');
-      document.removeEventListener('pointerdown', onDocDown);
+      const i = openPops.indexOf(api);
+      if (i !== -1) openPops.splice(i, 1);
+      document.removeEventListener('pointerdown', onDocDown, true);
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll, true);
     }
 
     function open() {
+      closeAllPops(api);
       pop.hidden = false;
-      position();
       render();
+      reposition();
       trigger.classList.add('open');
       trigger.setAttribute('aria-expanded', 'true');
+      openPops.push(api);
       document.addEventListener('pointerdown', onDocDown, true);
       document.addEventListener('keydown', onKey);
-    }
-
-    function onDocDown(e) {
-      if (!anchor.contains(e.target)) close();
-    }
-
-    function onKey(e) {
-      if (e.key === 'Escape') {
-        close();
-        trigger.focus();
-      }
+      window.addEventListener('scroll', onScroll, true);
     }
 
     trigger.addEventListener('click', () => {
@@ -288,26 +322,21 @@
     // Начальное значение — из input (учитывает уже применённые настройки).
     setFromHex(input.value || '#000000');
     render();
+
+    const api = {
+      close,
+      // Внешнее изменение (пресет/схема/загрузка настроек) — обновить UI без событий.
+      setExternal(hex) {
+        if (!setFromHex(hex)) return;
+        render();
+      },
+    };
+    input._vcpApi = api;
   }
 
   function refresh(input) {
-    if (!input || !input._vcp) return;
-    const anchor = input.nextElementSibling;
-    if (!anchor || !anchor.classList.contains('vcp-anchor')) return;
-    // Перечитать значение и перерисовать триггер без события.
-    const rgb = hexToRgb(input.value);
-    if (!rgb) return;
-    const hsv = rgbToHsv(rgb);
-    const swatch = anchor.querySelector('.vcp-swatch');
-    const text = anchor.querySelector('.vcp-text');
-    const labelMode = input.dataset.vcpLabel || '';
-    if (swatch) swatch.style.background = input.value;
-    if (text) text.textContent = labelMode || fmtHex(input.value);
-    anchor.querySelector('.vcp-area-handle').style.left = hsv.s * 100 + '%';
-    anchor.querySelector('.vcp-area-handle').style.top = (1 - hsv.v) * 100 + '%';
-    anchor.querySelector('.vcp-rail-handle').style.top = (hsv.h / 360) * 100 + '%';
-    const hexField = anchor.querySelector('.vcp-hex-input');
-    if (hexField) hexField.value = input.value.replace('#', '').toUpperCase();
+    if (!input || !input._vcpApi) return;
+    input._vcpApi.setExternal(input.value);
   }
 
   function init(scope) {
