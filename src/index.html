@@ -77,8 +77,12 @@
     <div class="loading-overlay hidden" id="loading-overlay" aria-hidden="true">
       <div class="loading-card">
         <div class="loading-visual">
-          <div class="loading-vinyl"><div class="loading-vinyl-core"></div></div>
-          <div class="loading-eq"><span class="loading-bar"></span><span class="loading-bar"></span><span class="loading-bar"></span><span class="loading-bar"></span></div>
+          <div class="hero-spinner" role="status" aria-label="Загрузка">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <circle class="hero-spinner-track" cx="22" cy="22" r="19"></circle>
+              <circle class="hero-spinner-arc" cx="22" cy="22" r="19"></circle>
+            </svg>
+          </div>
         </div>
         <div class="loading-copy">
           <div class="loading-title" id="loading-title">Загрузка музыки</div>
