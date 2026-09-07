@@ -5327,15 +5327,13 @@ if (uiTransparencySlider) {
 }
 
 const bgColorInput = document.getElementById('bg-color-input');
-const bgColorPreview = document.getElementById('bg-color-preview');
 if (bgColorInput) {
   if (appSettings.background && appSettings.background.startsWith('#')) {
     bgColorInput.value = appSettings.background;
-    if (bgColorPreview) bgColorPreview.style.background = appSettings.background;
+    if (window.VotifyColorPicker?.refresh) window.VotifyColorPicker.refresh(bgColorInput);
   }
   bgColorInput.addEventListener('input', () => {
     const color = bgColorInput.value;
-    if (bgColorPreview) bgColorPreview.style.background = color;
     appSettings.background = color;
     applyBackground();
   });
@@ -8226,6 +8224,7 @@ function syncColorPickersFromSettings() {
     if (el && value) {
       el.value = value;
       el._committedColorValue = el.value;
+      if (window.VotifyColorPicker?.refresh) window.VotifyColorPicker.refresh(el);
     }
   });
 }
@@ -8415,6 +8414,7 @@ function bindCustomColorPickers() {
     const picker = document.getElementById(id);
     if (!picker) return;
     picker.value = appSettings[key] || fallback;
+    if (window.VotifyColorPicker?.refresh) window.VotifyColorPicker.refresh(picker);
     if (picker._customColorBound) return;
     picker._customColorBound = true;
 
