@@ -107,8 +107,9 @@
     pop.setAttribute('role', 'dialog');
     pop.setAttribute('aria-label', 'Выбор цвета');
     pop.innerHTML =
-      '<div class="vcp-main">' +
+      '<div class="vcp-swatches" role="listbox" aria-label="Быстрые цвета"></div>' +
       '<div class="vcp-area" title="Насыщенность / яркость"><div class="vcp-handle vcp-area-handle"></div></div>' +
+      '<div class="vcp-hue-row">' +
       '<div class="vcp-rail" title="Оттенок"><div class="vcp-handle vcp-rail-handle"></div></div>' +
       '</div>' +
       '<div class="vcp-hex-row">' +
@@ -116,8 +117,7 @@
       '<div class="vcp-hex-field"><span aria-hidden="true">#</span>' +
       '<input class="vcp-hex-input" spellcheck="false" autocomplete="off" maxlength="6" aria-label="Шестнадцатеричный код цвета" />' +
       '</div>' +
-      '</div>' +
-      '<div class="vcp-presets" role="listbox" aria-label="Быстрые цвета"></div>';
+      '</div>';
     document.body.appendChild(pop);
 
     const trigger = anchor.querySelector('.vcp-trigger');
@@ -128,11 +128,11 @@
     const areaHandle = pop.querySelector('.vcp-area-handle');
     const railHandle = pop.querySelector('.vcp-rail-handle');
     const hexInput = pop.querySelector('.vcp-hex-input');
-    const presetsEl = pop.querySelector('.vcp-presets');
+    const swatchesEl = pop.querySelector('.vcp-swatches');
 
     const state = { hex: '#000000', h: 0, s: 0, v: 1 };
 
-    // Пресеты
+    // Свотчи (быстрые цвета) — как карусель в HeroUI
     PRESETS.forEach(hex => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -146,7 +146,7 @@
         commit();
         close();
       });
-      presetsEl.appendChild(b);
+      swatchesEl.appendChild(b);
     });
 
     function setFromHex(hex) {
@@ -169,7 +169,7 @@
         'linear-gradient(to right, #fff 0%, hsl(' + h + ',100%,50%) 100%)';
       areaHandle.style.left = s * 100 + '%';
       areaHandle.style.top = (1 - v) * 100 + '%';
-      railHandle.style.top = (h / 360) * 100 + '%';
+      railHandle.style.left = (h / 360) * 100 + '%';
       hexInput.value = state.hex.slice(1).toUpperCase();
     }
 
@@ -247,8 +247,8 @@
       syncInput(true);
     });
 
-    attachDrag(rail, false, true, (s, y) => {
-      state.h = y * 360;
+    attachDrag(rail, true, false, (x) => {
+      state.h = x * 360;
       const rgb = hsvToRgb(state.h, state.s, state.v);
       state.hex = rgbToHex(rgb);
       render();
