@@ -164,6 +164,13 @@
       state.error = error;
       console.warn('[Firebase]', error.message || error);
       updateAccountUi();
+      // Браузерное превью (например, песочница Arena): firebase-конфига нет,
+      // но окно входа всё равно показываем, чтобы UI первого запуска был виден.
+      const isElectron = /electron/i.test(navigator.userAgent || '');
+      const isPreviewHost = /(^|\.)e2b\.app$/.test(location.hostname);
+      if (!isElectron && isPreviewHost) {
+        window.setTimeout(() => openAuth('auth-login'), 200);
+      }
     } finally {
       state.initialized = true;
     }
