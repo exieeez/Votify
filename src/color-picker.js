@@ -16,9 +16,12 @@
 
   if (window.VotifyColorPicker) return;
 
+  // Упорядоченная палитра: спектр → белый → серые → чёрный.
   const PRESETS = [
-    '#FFFFFF', '#F0F0F0', '#C9C9C9', '#7A7A7A', '#4A4A4A', '#1F1F1F',
-    '#0A0A0A', '#000000', '#1DB954', '#DC263F', '#38BDF8', '#F59E0B',
+    '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16', '#22C55E',
+    '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9', '#3B82F6', '#6366F1',
+    '#8B5CF6', '#A855F7', '#D946EF', '#EC4899', '#F43F5E', '#FFFFFF',
+    '#E5E7EB', '#9CA3AF', '#6B7280', '#374151', '#111827', '#000000',
   ];
 
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -189,18 +192,18 @@
     // --- Positioning: fixed, fits viewport, flips up when tight ---
     function reposition() {
       const r = trigger.getBoundingClientRect();
-      const popW = pop.offsetWidth || 248;
+      const popW = Math.min(pop.offsetWidth || 248, window.innerWidth - 12);
       const popH = pop.offsetHeight || 300;
       const gap = 8;
       const margin = 10;
 
       let top = r.bottom + gap;
       if (top + popH > window.innerHeight - margin && r.top - gap - popH > margin) {
-        top = r.top - gap - popH;
+        top = r.top - gap - popH; // вверх, если снизу нет места
       } else if (top + popH > window.innerHeight - margin) {
         top = Math.max(margin, window.innerHeight - popH - margin);
       }
-      const left = clamp(r.left, margin, window.innerWidth - popW - margin);
+      const left = clamp(r.left, margin, Math.max(margin, window.innerWidth - popW - margin));
       pop.style.left = Math.round(left) + 'px';
       pop.style.top = Math.round(top) + 'px';
     }
@@ -288,6 +291,7 @@
       }
     };
     const onScroll = () => reposition();
+    const onResize = () => { if (!pop.hidden) reposition(); };
 
     function close() {
       if (pop.hidden) return;
@@ -298,7 +302,8 @@
       if (i !== -1) openPops.splice(i, 1);
       document.removeEventListener('pointerdown', onDocDown, true);
       document.removeEventListener('keydown', onKey);
-      window.removeEventListener('scroll', onScroll, true);
+      document.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onResize);
     }
 
     function open() {
@@ -306,12 +311,15 @@
       pop.hidden = false;
       render();
       reposition();
+      // Второй проход: после фактической отрисовки размеры могут уточниться.
+      requestAnimationFrame(() => { if (!pop.hidden) reposition(); });
       trigger.classList.add('open');
       trigger.setAttribute('aria-expanded', 'true');
       openPops.push(api);
       document.addEventListener('pointerdown', onDocDown, true);
       document.addEventListener('keydown', onKey);
-      window.addEventListener('scroll', onScroll, true);
+      document.addEventListener('scroll', onScroll, true);
+      window.addEventListener('resize', onResize);
     }
 
     trigger.addEventListener('click', () => {
