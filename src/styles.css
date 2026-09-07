@@ -9647,3 +9647,140 @@ body[data-theme-mode="light"] .btn-danger {
 }
 body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.18); }
 
+
+/* ============================================
+   AUTH OVERLAY — MUI Sign-in structure (адаптация Votify)
+   ============================================ */
+.auth-overlay {
+  background: rgba(0, 0, 0, 0.72);
+}
+.auth-overlay .auth-card {
+  width: min(430px, calc(100vw - 40px));
+  padding: 34px 30px 26px;
+  border-radius: 14px;
+}
+.auth-overlay .auth-logo {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.auth-overlay .auth-logo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+.auth-overlay .auth-logo h1 {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+.auth-overlay .auth-form h2 {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  margin: 0 0 4px;
+  text-align: left;
+}
+.auth-overlay .auth-desc {
+  margin: 0 0 18px;
+}
+.auth-overlay .auth-field-wrap {
+  margin-bottom: 16px;
+}
+.auth-overlay .auth-field-wrap > label {
+  display: block;
+  margin: 0 0 6px;
+  padding-left: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  color: var(--text-secondary);
+}
+.auth-overlay .auth-field {
+  margin-bottom: 0;
+  padding: 0 14px;
+}
+.auth-overlay .auth-field i { display: none; }
+.auth-overlay .auth-field input {
+  padding: 13px 0;
+  font-size: 15px;
+}
+.auth-overlay .auth-field input::placeholder {
+  color: var(--text-tertiary);
+}
+.auth-overlay .auth-error,
+.auth-overlay .auth-success {
+  font-size: 13px;
+  min-height: 16px;
+  margin: 2px 2px 0;
+}
+.auth-overlay .auth-error { color: var(--danger); }
+.auth-overlay .auth-success { color: var(--text-primary); }
+.auth-overlay .auth-btn {
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 14px;
+  margin-top: 10px;
+  letter-spacing: 0.2px;
+}
+.auth-overlay .auth-btn-google,
+.auth-overlay .auth-btn-secondary {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+}
+.auth-overlay .auth-btn-google:hover,
+.auth-overlay .auth-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+.auth-overlay .google-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.auth-overlay .auth-links {
+  justify-content: center;
+  margin-top: 10px;
+}
+.auth-overlay .auth-links a {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.auth-overlay .auth-links a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.auth-overlay .auth-divider {
+  margin: 16px 0 14px;
+}
+.auth-overlay .auth-divider span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.auth-overlay .auth-divider::before,
+.auth-overlay .auth-divider::after {
+  background: rgba(255, 255, 255, 0.14);
+}
+.auth-overlay .auth-switch-line {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+.auth-overlay .auth-switch-line a {
+  color: var(--accent);
+  font-weight: 600;
+}
+.auth-overlay .auth-switch-line a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+@media (max-width: 520px) {
+  .auth-overlay .auth-card { padding: 22px 18px 20px; }
+}

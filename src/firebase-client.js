@@ -157,7 +157,7 @@
         dispatchAuthState();
         if (!initialAuthStateHandled) {
           initialAuthStateHandled = true;
-          if (!user) window.setTimeout(() => openAuth('auth-register'), 0);
+          if (!user) window.setTimeout(() => openAuth('auth-login'), 0);
         }
       });
     } catch (error) {
@@ -480,6 +480,11 @@
     showAuthForm(formId);
     const overlay = document.getElementById('auth-overlay');
     if (overlay) overlay.style.display = 'flex';
+    window.setTimeout(() => {
+      const form = document.getElementById(formId);
+      const input = form && form.querySelector('input:not([type="hidden"])');
+      if (input) input.focus({ preventScroll: true });
+    }, 60);
   }
 
   function closeAuth() {
