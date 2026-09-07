@@ -9670,18 +9670,18 @@ body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.1
 .vcp-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 34px;
+  gap: 6px;
+  height: 30px;
   width: 100%;
   max-width: 100%;
-  padding: 0 10px 0 6px;
-  border-radius: 10px;
+  padding: 0 8px 0 5px;
+  border-radius: 8px;
   background: var(--bg-elevated);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 .vcp-trigger:hover { border-color: rgba(255, 255, 255, 0.22); background: var(--bg-highlight); }
 .vcp-trigger.open { border-color: rgba(255, 255, 255, 0.32); }
@@ -9712,22 +9712,22 @@ body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.1
 .vcp-pop {
   position: fixed;
   z-index: 90000;
-  width: 248px;
+  width: 240px;
   max-width: calc(100vw - 12px);
   padding: 12px;
-  border-radius: 14px;
-  background: var(--bg-elevated);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 .vcp-pop[hidden] { display: none; }
 
 .vcp-area {
   position: relative;
   width: 100%;
-  height: 132px;
-  margin-top: 12px;
-  border-radius: 10px;
+  height: 96px;
+  margin-top: 10px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   cursor: crosshair;
   touch-action: none;
@@ -9736,14 +9736,14 @@ body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.1
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 .vcp-rail {
   position: relative;
   flex: 1;
   width: 100%;
-  height: 18px;
-  border-radius: 9px;
+  height: 14px;
+  border-radius: 7px;
   cursor: pointer;
   touch-action: none;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -9770,7 +9770,7 @@ body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.1
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 .vcp-hex-field .vcp-hex-input { min-width: 0; }
 .vcp-hex-label {
@@ -9806,18 +9806,17 @@ body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.1
 
 .vcp-swatches {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 7px;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 5px;
 }
 .vcp-preset {
-  height: 26px;
+  height: 20px;
   padding: 0;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: border-color 0.12s ease;
 }
-.vcp-preset:hover { transform: translateY(-1px); border-color: rgba(255, 255, 255, 0.7); }
-.vcp-preset:active { transform: scale(0.94); }
+.vcp-preset:hover { border-color: rgba(255, 255, 255, 0.8); }
 
 /* Light theme */
 body[data-theme-mode="light"] .vcp-trigger {
@@ -9835,7 +9834,7 @@ body[data-theme-mode="light"] .vcp-caret { color: #64748b; }
 body[data-theme-mode="light"] .vcp-pop {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.12);
-  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
 }
 body[data-theme-mode="light"] .vcp-hex-label { color: #64748b; }
 body[data-theme-mode="light"] .vcp-hex-field {
