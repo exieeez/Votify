@@ -9663,18 +9663,18 @@ body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.1
   padding: 0 !important;
   border: 0 !important;
 }
-.vcp-anchor { position: relative; display: inline-flex; flex: 0 1 auto; min-width: 0; max-width: 100%; }
-.vcp-anchor:only-child { flex: 1 1 auto; }
+.vcp-anchor { position: relative; display: inline-flex; flex: 0 0 auto; min-width: 0; max-width: 100%; }
 .setting-toggle-item:has(> .vcp-anchor) { flex-wrap: wrap; row-gap: 6px; }
+.bg-color-picker-wrap { flex-wrap: wrap; }
 
 .vcp-trigger {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
-  width: 100%;
+  height: 28px;
+  width: auto;
   max-width: 100%;
-  padding: 0 8px 0 5px;
+  padding: 0 8px 0 4px;
   border-radius: 8px;
   background: var(--bg-elevated);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -9687,27 +9687,20 @@ body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.1
 .vcp-trigger.open { border-color: rgba(255, 255, 255, 0.32); }
 
 .vcp-swatch {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   flex: none;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
 }
 .vcp-text {
-  min-width: 56px;
   text-align: left;
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 12px;
 }
-.vcp-caret {
-  font-size: 16px;
-  color: var(--text-secondary);
-  transition: transform 0.15s ease;
-}
-.vcp-trigger.open .vcp-caret { transform: rotate(180deg); }
 
 .vcp-pop {
   position: fixed;
@@ -9830,7 +9823,6 @@ body[data-theme-mode="light"] .vcp-trigger:hover {
 }
 body[data-theme-mode="light"] .vcp-trigger.open { border-color: rgba(15, 23, 42, 0.36); }
 body[data-theme-mode="light"] .vcp-swatch { border-color: rgba(15, 23, 42, 0.3); }
-body[data-theme-mode="light"] .vcp-caret { color: #64748b; }
 body[data-theme-mode="light"] .vcp-pop {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.12);

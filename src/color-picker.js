@@ -84,7 +84,6 @@
   function mount(input) {
     if (!input || input.type !== 'color' || input._vcp) return;
     input._vcp = true;
-    const labelMode = input.dataset.vcpLabel || '';
 
     const anchor = document.createElement('span');
     anchor.className = 'vcp-anchor';
@@ -92,10 +91,9 @@
     input.classList.add('vcp-src');
 
     anchor.innerHTML =
-      '<button type="button" class="vcp-trigger" aria-haspopup="dialog" aria-expanded="false">' +
+      '<button type="button" class="vcp-trigger" aria-haspopup="dialog" aria-expanded="false" title="Выбрать цвет">' +
       '<span class="vcp-swatch"></span>' +
       '<span class="vcp-text"></span>' +
-      '<span class="material-icons vcp-caret" aria-hidden="true">expand_more</span>' +
       '</button>';
 
     // Popup lives on <body>: fixed positioning, always fits the viewport.
@@ -161,7 +159,7 @@
     function render() {
       const { h, s, v } = state;
       swatch.style.background = state.hex;
-      text.textContent = labelMode || fmtHex(state.hex);
+      text.textContent = fmtHex(state.hex);
       area.style.background =
         'linear-gradient(to top, #000 0%, rgba(0,0,0,0) 100%),' +
         'linear-gradient(to right, #fff 0%, hsl(' + h + ',100%,50%) 100%)';
