@@ -1489,7 +1489,11 @@
                 <div class="bg-custom-row">
                   <div class="bg-color-picker-wrap">
                     <span class="material-icons bg-custom-row-icon">palette</span>
-                    <input type="color" id="bg-color-input" value="#121212" data-vcp data-vcp-label="Цвет фона" class="vcp-src" />
+                    <label class="bg-color-btn" id="bg-color-btn">
+                      <input type="color" id="bg-color-input" value="#121212" class="hidden-color-input" />
+                      <div class="bg-color-preview" id="bg-color-preview" style="background:#121212"></div>
+                      <span>Цвет фона</span>
+                    </label>
                   </div>
                   <div class="bg-url-input-wrap">
                     <span class="material-icons bg-url-icon">link</span>
@@ -1562,27 +1566,27 @@
                 <p class="settings-note">Создайте свой уникальный дизайн оформления Votify, настроив цвета каждого элемента вручную.</p>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Основной цвет (Accent)</span>
-                  <input type="color" id="picker-color-primary" value="#1DB954" data-vcp class="vcp-src" />
+                  <input type="color" id="picker-color-primary" value="#1DB954" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Задний фон (Background)</span>
-                  <input type="color" id="picker-color-bg" value="#121212" data-vcp class="vcp-src" />
+                  <input type="color" id="picker-color-bg" value="#121212" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Цвет текста (Text Color)</span>
-                  <input type="color" id="picker-color-text" value="#ffffff" data-vcp class="vcp-src" />
+                  <input type="color" id="picker-color-text" value="#ffffff" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Карточки и панели (Card Fill)</span>
-                  <input type="color" id="picker-color-cards" value="#181818" data-vcp class="vcp-src" />
+                  <input type="color" id="picker-color-cards" value="#181818" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Границы элементов (Borders)</span>
-                  <input type="color" id="picker-color-borders" value="#2a2a2a" data-vcp class="vcp-src" />
+                  <input type="color" id="picker-color-borders" value="#2a2a2a" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Элемент в фокусе (Focus Glow)</span>
-                  <input type="color" id="picker-color-focus" value="#1DB954" data-vcp class="vcp-src" />
+                  <input type="color" id="picker-color-focus" value="#1DB954" class="theme-color-input" />
                 </div>
                 <div class="setting-item">
                   <label for="color-scheme-name-input">Название схемы</label>
@@ -1675,7 +1679,6 @@
     <script src="/vendor/firebase-firestore-compat.js"></script>
     <script src="firebase-client.js?v=0.7.8"></script>
     <script src="color-schemes.js?v=0.7.8"></script>
-    <script src="color-picker.js?v=0.7.8"></script>
     <script src="main.js?v=0.7.8"></script>
     <script src="workshop.js?v=0.7.8"></script>
   </body>
