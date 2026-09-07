@@ -256,22 +256,21 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   justify-content: center;
 }
 /* HeroUI-style spinner: faint full ring + accent arc, whole svg rotates */
-.hero-spinner { width: 44px; height: 44px; flex: none; }
+/* HeroUI v3 spinner: градиентная «комета» из двух дуг currentColor,
+   вращается весь SVG (цвет задаётся через color: var(--accent)) */
+.hero-spinner {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  color: var(--accent);
+}
 .hero-spinner svg {
   width: 100%;
   height: 100%;
+  display: block;
   overflow: visible;
-  animation: hu-spin 0.9s linear infinite;
+  animation: hu-spin 0.75s linear infinite;
   transform-origin: 50% 50%;
-}
-.hero-spinner-track { fill: none; stroke: rgba(255, 255, 255, 0.12); stroke-width: 3.5; }
-.hero-spinner-arc {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 3.5;
-  stroke-linecap: round;
-  stroke-dasharray: 26 94;
-  stroke-dashoffset: 0;
 }
 @keyframes hu-spin { to { transform: rotate(360deg); } }
 
@@ -3377,12 +3376,13 @@ input[type="range"]::-moz-range-thumb {
 .setting-toggle-desc { font-size: 12px; color: var(--text-subdued); }
 
 /* Toggle switch */
-/* Toggle switch — HeroUI-style pill: accent when checked, crisp thumb */
+/* Toggle switch — HeroUI v3 geometry: 40×20 track (radius 12),
+   capsule thumb 22×16 (radius 8), travel 2 → 16px, accent fill when checked. */
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 44px;
-  height: 24px;
+  width: 40px;
+  height: 20px;
   flex-shrink: 0;
 }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
@@ -3390,33 +3390,47 @@ input[type="range"]::-moz-range-thumb {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background: var(--bg-highlight);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 999px;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  background: var(--switch-track, rgba(255, 255, 255, 0.16));
+  border-radius: 12px;
+  transition: background-color 200ms ease;
 }
 .toggle-slider::before {
   content: '';
   position: absolute;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 16px;
   left: 2px;
-  bottom: 2px;
+  top: 2px;
   background: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
-  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.15s ease;
+  border-radius: 8px;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.04), 0px 2px 6px rgba(0, 0, 0, 0.18);
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), background-color 200ms ease;
 }
-.toggle-switch:hover .toggle-slider { border-color: rgba(255, 255, 255, 0.16); }
-.toggle-switch input:checked + .toggle-slider { background: var(--accent); border-color: transparent; }
+.toggle-switch:hover .toggle-slider {
+  background: var(--switch-track-hover, rgba(255, 255, 255, 0.24));
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--accent);
+}
 .toggle-switch input:checked + .toggle-slider::before {
-  transform: translateX(20px);
-  background: #0b0b0b;
+  transform: translateX(14px);
+  background: var(--accent-contrast, #ffffff);
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.02), 0px 2px 10px rgba(0, 0, 0, 0.12), 0px 0px 1px rgba(0, 0, 0, 0.3);
+}
+.toggle-switch:focus-within .toggle-slider {
+  box-shadow: 0 0 0 2px var(--bg-surface), 0 0 0 4px var(--accent);
 }
 .toggle-switch input:disabled + .toggle-slider {
   opacity: 0.45;
   cursor: default;
   pointer-events: none;
+}
+body[data-theme-mode="light"] .toggle-slider {
+  background: var(--switch-track, rgba(15, 23, 42, 0.2));
+}
+body[data-theme-mode="light"] .toggle-slider:hover,
+body[data-theme-mode="light"] .toggle-switch:hover .toggle-slider {
+  background: var(--switch-track-hover, rgba(15, 23, 42, 0.3));
 }
 
 /* Select */
@@ -9464,16 +9478,6 @@ input[type="text"], input[type="search"], input[type="email"], input[type="passw
   margin: 0 0 12px;
 }
 
-/* --- Toggle switch: checked = accent, always legible --- */
-.toggle-switch input:checked + .toggle-slider { background: var(--accent); }
-.toggle-switch input:checked + .toggle-slider::before {
-  transform: translateX(20px);
-  background: #101010;
-}
-.toggle-switch:focus-within .toggle-slider {
-  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent);
-}
-
 /* --- Color scheme preset grid --- */
 .presets-label {
   display: block;
@@ -9595,12 +9599,6 @@ body[data-theme-mode="light"] .settings-section {
 }
 body[data-theme-mode="light"] .setting-toggle-item {
   border-bottom-color: rgba(15,23,42,0.06);
-}
-body[data-theme-mode="light"] .toggle-switch input:checked + .toggle-slider {
-  background: #0f172a;
-}
-body[data-theme-mode="light"] .toggle-switch input:checked + .toggle-slider::before {
-  background: #ffffff;
 }
 body[data-theme-mode="light"] .theme-mode-card {
   background: rgba(15,23,42,0.04);

@@ -4936,6 +4936,9 @@ function applyAccentColor(color) {
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
   document.documentElement.style.setProperty('--accent-rgb', `${r},${g},${b}`);
+  // Contrasting ink for content placed ON the accent (thumb of switches).
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  document.documentElement.style.setProperty('--accent-contrast', lum > 0.68 ? '#0d0d0d' : '#ffffff');
   appSettings.accent = normalized;
   appSettings.customColorPrimary = normalized;
   saveSettings();
