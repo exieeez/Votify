@@ -1,17 +1,13 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const {
-  sendJson,
-  serveStatic,
-  parseBody,
-  saveNetworkConfig,
-  getNetworkConfig,
-} = require('./routes/utils.js');
+const { sendJson, parseBody, saveNetworkConfig, getNetworkConfig } = require('./routes/utils.js');
 const { handleAuthRoutes } = require('./routes/auth.js');
 const { handleMusicRoutes } = require('./routes/music.js');
 const { handleSmtpRoutes } = require('./routes/smtp.js');
 const { handleSyncRoutes } = require('./routes/sync.js');
+
+const pkg = require('./package.json');
 
 const FIREBASE_CONFIG_FIELDS = [
   'apiKey',
@@ -21,11 +17,6 @@ const FIREBASE_CONFIG_FIELDS = [
   'messagingSenderId',
   'appId',
 ];
-const FIREBASE_VENDOR_FILES = {
-  '/vendor/firebase-app-compat.js': 'firebase-app-compat.js',
-  '/vendor/firebase-auth-compat.js': 'firebase-auth-compat.js',
-  '/vendor/firebase-firestore-compat.js': 'firebase-firestore-compat.js',
-};
 
 function loadFirebaseConfig() {
   let rawConfig = null;
@@ -48,23 +39,6 @@ function loadFirebaseConfig() {
   return config;
 }
 
-function serveFirebaseVendor(pathname, res) {
-  const filename = FIREBASE_VENDOR_FILES[pathname];
-  if (!filename) return false;
-  const fullPath = path.join(__dirname, 'node_modules', 'firebase', filename);
-  try {
-    const data = fs.readFileSync(fullPath);
-    res.writeHead(200, {
-      'Content-Type': 'application/javascript; charset=utf-8',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    });
-    res.end(data);
-  } catch (error) {
-    sendJson(res, 500, { error: `Firebase SDK is unavailable: ${error.message}` });
-  }
-  return true;
-}
-
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -83,6 +57,17 @@ const server = http.createServer(async (req, res) => {
 
   const u = new URL(req.url, `http://${req.headers.host}`);
   try {
+    // --- HEALTH / INFO ---
+    if (u.pathname === '/' || u.pathname === '/api/health') {
+      sendJson(res, 200, {
+        ok: true,
+        name: pkg.name,
+        version: pkg.version,
+        uptime: process.uptime(),
+      });
+      return;
+    }
+
     if (u.pathname === '/api/firebase/config' && req.method === 'GET') {
       try {
         const config = loadFirebaseConfig();
@@ -96,7 +81,6 @@ const server = http.createServer(async (req, res) => {
       }
       return;
     }
-    if (serveFirebaseVendor(u.pathname, res)) return;
 
     // --- NETWORK ENDPOINTS ---
     if (u.pathname === '/api/network/settings' && req.method === 'GET') {
@@ -122,21 +106,22 @@ const server = http.createServer(async (req, res) => {
     // --- MUSIC ENDPOINTS ---
     if (await handleMusicRoutes(req, res, u)) return;
 
-    // --- STATIC FILES ---
-    await serveStatic(u.pathname, res);
+    // API-only server: no static UI is served from here.
+    sendJson(res, 404, { error: 'Not found' });
   } catch (e) {
     sendJson(res, 500, { error: String(e.message || e) });
   }
 });
 
 const port = Number(process.env.VOTIFY_PORT || process.env.PORT || 17217);
+const host = process.env.VOTIFY_HOST || '0.0.0.0';
 
 server.on('error', err => {
   if (err.code === 'EADDRINUSE') {
     console.log(`Port ${port} busy, retrying...`);
     setTimeout(() => {
       try {
-        server.listen(port, '0.0.0.0');
+        server.listen(port, host);
       } catch (e) {
         // ignore port retry errors
       }
@@ -146,21 +131,11 @@ server.on('error', err => {
   }
 });
 
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Votify server running at http://0.0.0.0:${port}`);
-  if (!process.env.VOTIFY_PORT) {
-    try {
-      const { exec } = require('child_process');
-      const url = `http://127.0.0.1:${port}`;
-      const isWindows = process.platform === 'win32';
-      const isMac = process.platform === 'darwin';
-      const cmd = isWindows ? `start ${url}` : isMac ? `open ${url}` : `xdg-open ${url}`;
-      exec(cmd);
-    } catch (e) {
-      // ignore browser open errors
-    }
-  }
-});
+if (require.main === module) {
+  server.listen(port, host, () => {
+    console.log(`Votify API server running at http://${host}:${port}`);
+  });
+}
 
 process.on('uncaughtException', err => {
   console.error('Uncaught:', err.message);

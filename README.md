@@ -1,75 +1,109 @@
-<img width="924" height="990" alt="image" src="https://github.com/user-attachments/assets/5e820eb3-39e4-43ed-a551-f637016095c0" />
-<img width="924" height="984" alt="image" src="https://github.com/user-attachments/assets/c61e98a5-9221-4dc3-a03e-464993217b7c" />
-<img width="922" height="995" alt="image" src="https://github.com/user-attachments/assets/7bc99d6f-31ac-42e4-ae25-458c878d6af0" />
-<img width="923" height="991" alt="image" src="https://github.com/user-attachments/assets/3517bdc9-f0cf-49da-b397-9889cb1ceee3" />
-<img width="931" height="1004" alt="image" src="https://github.com/user-attachments/assets/9a736c12-f7b3-4840-8923-86124fb3f092" />
-<img width="904" height="1000" alt="image" src="https://github.com/user-attachments/assets/1ce181ed-e9d4-46dc-b158-4615eda1e72c" />
-<img width="919" height="983" alt="image" src="https://github.com/user-attachments/assets/efe4075e-e002-4f6a-bc46-b150c5bb82d8" />
+# Votify — Backend API (mobile edition)
 
+Ветка `arena/01a07e3f-votify` — это **только серверная часть** Votify. Десктопная оболочка
+(Electron, Discord Rich Presence, Google OAuth для десктопа) и веб‑интерфейс из `src/` удалены:
+здесь живёт чистый HTTP API, поверх которого будет строиться мобильное приложение.
 
-## Сборка и запуск
+## Структура
 
-### Требования
-- Node.js (v20+)
-- npm
-
-### Установка зависимостей
-```bash
-npm install
+```
+server.js              — точка входа: HTTP-сервер, CORS, роутинг
+routes/
+  utils.js             — общие хелперы: поиск (YouTube / SoundCloud), yt-dlp, JWT, хранение
+  music.js             — поиск, рекомендации, стриминг, тексты, импорт плейлистов
+  auth.js              — локальная регистрация/вход (JWT), сброс пароля
+  sync.js              — заглушка синхронизации (локальный режим)
+  smtp.js              — заглушка SMTP-настроек
+scripts/
+  download-ytdlp.js    — скачивает yt-dlp при `npm install`
+bin/yt-dlp             — бинарник yt-dlp (Linux)
+assets/                — иконки приложения
+firestore.rules        — правила Firestore (аккаунты + мастерская тем)
 ```
 
-### Запуск в режиме разработки
-```bash
-npm start
-```
+## Запуск
 
-### Discord Rich Presence
-
-Application ID Votify уже встроен в приложение, поэтому дополнительная настройка переменных окружения не требуется. Запустите Discord Desktop, затем Votify:
+Требования: Node.js 20+.
 
 ```bash
-npm install
-npm start
+npm install          # заодно скачает yt-dlp в bin/
+npm start            # http://0.0.0.0:17217
+npm run dev          # то же с авто-перезапуском (node --watch)
 ```
 
-Votify показывает в Discord название трека, исполнителя, обложку и таймлайн воспроизведения. На паузе таймлайн скрывается, чтобы он не продолжал идти; после возобновления или перемотки он автоматически синхронизируется.
+Переменные окружения:
 
-При необходимости встроенный Application ID можно переопределить:
+| Переменная               | Назначение                                        | По умолчанию |
+| ------------------------ | ------------------------------------------------- | ------------ |
+| `PORT` / `VOTIFY_PORT`   | порт сервера                                      | `17217`      |
+| `VOTIFY_HOST`            | адрес прослушивания                               | `0.0.0.0`    |
+| `YT_DLP_PATH`            | путь к бинарнику yt-dlp                           | `bin/yt-dlp` |
+| `VOTIFY_FIREBASE_CONFIG` | JSON Firebase Web Config (иначе читается `firebase-config.json`) | — |
 
-```bash
-VOTIFY_DISCORD_CLIENT_ID=другой_application_id npm start
-```
+Пользовательские данные (users.json, network.json, JWT‑секрет) хранятся в
+`~/.config/Votify` (Linux), `~/Library/Application Support/Votify` (macOS) или `%APPDATA%\Votify` (Windows).
 
-Для локальных треков без публичной обложки можно дополнительно указать ключ изображения, загруженного в Rich Presence Art Assets:
+## API
 
-```bash
-VOTIFY_DISCORD_LARGE_IMAGE_KEY=votify npm start
-```
+Все ответы — JSON, CORS открыт (`*`), для стриминга поддерживаются `Range`‑запросы.
 
+### Служебные
 
-#### Мастерская тем
+| Метод | Путь                    | Описание                                      |
+| ----- | ----------------------- | --------------------------------------------- |
+| GET   | `/` , `/api/health`     | статус сервера, версия, uptime                |
+| GET   | `/api/firebase/config`  | Firebase Web Config для клиента               |
+| GET   | `/api/network/settings` | текущие настройки (`audioQuality`)            |
+| POST  | `/api/network/settings` | `{ audioQuality: 'low' \| 'medium' \| 'high' }` |
 
-Встроенная мастерская хранит публичные темы в `workshopThemes/{themeId}`. Просматривать, искать и устанавливать темы можно без аккаунта; публиковать и удалять собственные темы могут только постоянные Email/Google-аккаунты. Гостевые аккаунты перед публикацией нужно привязать.
+### Музыка
 
-После обновления приложения обязательно повторно опубликуйте `firestore.rules` в Firebase Console. Правила разрешают только безопасный набор цветов и параметров, а также HTTPS-ссылку на фон длиной до 2048 символов; запрещают изменение публикаций и позволяют удаление только владельцу. Локальные изображения, HTTP-ссылки и произвольный CSS в мастерскую не загружаются.
+| Метод | Путь                     | Параметры                                          | Описание |
+| ----- | ------------------------ | -------------------------------------------------- | -------- |
+| GET   | `/api/search`            | `q`, `limit` (≤100)                                | поиск треков (YouTube + SoundCloud) |
+| GET   | `/api/artist`            | `name`, `limit`                                    | треки исполнителя |
+| GET   | `/api/recommendations`   | `limit`                                            | подборка для главной |
+| GET   | `/api/custom-wave`       | `seeds`, `trackSeeds` (через `\|`), `exclude`, `limit` | персональная «волна» |
+| GET   | `/api/stream`            | `id`, `download=1`                                 | **проксирование аудио** (поддерживает Range) |
+| GET   | `/api/stream-url`        | `id`                                               | прямая ссылка на аудио |
+| GET   | `/api/audio`             | `id`                                               | legacy: прямая ссылка |
+| GET   | `/api/preload`           | `ids` (через `,`)                                  | прогрев кэша ссылок |
+| GET   | `/api/lyrics`            | `track`, `artist`                                  | текст песни (lrclib) |
+| GET   | `/api/playlist`          | `url`                                              | импорт плейлиста YouTube / Spotify |
+| GET   | `/api/soundcloud/import` | `url`                                              | импорт плейлиста / лайков SoundCloud |
 
-Правила также можно опубликовать через Firebase CLI (при первом использовании откроется вход Google):
+ID треков: 11‑символьный YouTube ID либо `sc_<id>` для SoundCloud.
+
+### Аккаунты (локальный JWT)
+
+| Метод | Путь                         | Тело                              |
+| ----- | ---------------------------- | --------------------------------- |
+| POST  | `/api/auth/register`         | `{ email, password, username? }`  |
+| POST  | `/api/auth/login`            | `{ email, password }`             |
+| GET   | `/api/auth/me`               | заголовок `Authorization: Bearer <token>` |
+| POST  | `/api/auth/forgot-password`  | `{ email }`                       |
+| POST  | `/api/auth/reset-password`   | `{ email, code, newPassword }`    |
+| POST  | `/api/auth/update-password`  | `{ newPassword }` + Bearer        |
+| POST  | `/api/auth/logout`           | —                                 |
+
+### Синхронизация
+
+`GET /api/sync/get`, `POST /api/sync/push` — пока заглушки (локальный режим).
+
+## Firebase
+
+Облачные аккаунты и мастерская тем используют Firebase напрямую с клиента; сервер лишь отдаёт
+Web Config через `/api/firebase/config`. Правила публикуются командой:
 
 ```bash
 npx firebase-tools@15.26.0 login
 npm run deploy:firestore-rules
 ```
 
-### Сборка релизных дистрибутивов (Linux AppImage & deb)
+## Разработка
 
 ```bash
-# Сборка AppImage & deb (Linux)
-npx electron-builder --linux AppImage deb
-
-# Сборка .exe (Windows)
-npm run build:win
+npm test             # node --test
+npm run lint
+npm run format
 ```
-
-Собраные файлы будут находиться в папке `dist/`.
-
----
