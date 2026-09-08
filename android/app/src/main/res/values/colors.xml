@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="surface_base">#121212</color>
+    <color name="pitch_black">#000000</color>
+    <color name="ic_launcher_background">#1C1C1E</color>
+</resources>

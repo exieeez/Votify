@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Votify</string>
+
+    <string name="nav_home">Главная</string>
+    <string name="nav_search">Поиск</string>
+    <string name="nav_library">Коллекция</string>
+
+    <string name="home_my_wave">Моя волна</string>
+    <string name="home_play_wave">Воспроизвести волну</string>
+    <string name="home_recent">Недавние</string>
+    <string name="home_tracks_count">%1$d треков</string>
+    <string name="home_favorites">Любимое</string>
+    <string name="home_playlist">Плейлист</string>
+    <string name="home_trending">В тренде</string>
+    <string name="home_weekly_chart">Чарт недели</string>
+    <string name="home_listen_now">Слушайте прямо сейчас</string>
+    <string name="home_recommended">Рекомендовано вам</string>
+
+    <string name="search_hint">Поиск</string>
+    <string name="search_results">Результаты поиска</string>
+    <string name="search_empty">Ничего не найдено</string>
+    <string name="search_start">Введите название трека или исполнителя</string>
+    <string name="search_error">Не удалось выполнить поиск</string>
+    <string name="search_retry">Повторить</string>
+    <string name="search_clear">Очистить</string>
+
+    <string name="library_title">Моя Медиатека</string>
+    <string name="library_favorites">Любимые</string>
+    <string name="library_import">Импортировать из сервиса</string>
+    <string name="library_import_subtitle">Spotify, YouTube, SoundCloud</string>
+    <string name="library_soon">Скоро</string>
+
+    <string name="player_now_playing">Сейчас играет</string>
+    <string name="player_collapse">Свернуть плеер</string>
+    <string name="player_play">Воспроизвести</string>
+    <string name="player_pause">Пауза</string>
+    <string name="player_next">Следующий</string>
+    <string name="player_previous">Предыдущий</string>
+    <string name="player_shuffle">Перемешать</string>
+    <string name="player_repeat">Повтор</string>
+    <string name="player_favorite">В любимое</string>
+    <string name="player_queue">Очередь</string>
+    <string name="player_lyrics">Текст песни</string>
+    <string name="player_loading">Загрузка…</string>
+    <string name="player_error">Не удалось воспроизвести трек</string>
+
+    <string name="notification_channel_playback">Воспроизведение</string>
+</resources>
