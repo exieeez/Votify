@@ -227,8 +227,8 @@ private fun WaveOrbit(
             val radius: Dp = if (i % 2 == 0) 118.dp else 92.dp
             val size: Dp = if (i % 3 == 0) 56.dp else 48.dp
             val angle = Math.toRadians((i * (360.0 / bubbles.size)) - 90 + drift)
-            val dx = (radius.value * cos(angle)).dp
-            val dy = (radius.value * sin(angle)).dp
+            val dx = (radius.value * cos(angle)).toFloat().dp
+            val dy = (radius.value * sin(angle)).toFloat().dp
             Box(
                 Modifier
                     .offset(x = dx, y = dy)

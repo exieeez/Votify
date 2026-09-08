@@ -109,7 +109,9 @@ class PlayerController(context: Context, private val api: VotifyApi) {
         }
     }
 
-    fun next() = controller?.takeIf { it.hasNextMediaItem() }?.seekToNextMediaItem()
+    fun next() {
+        controller?.takeIf { it.hasNextMediaItem() }?.seekToNextMediaItem()
+    }
 
     fun previous() {
         val c = controller ?: return
