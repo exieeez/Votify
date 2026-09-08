@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -26,6 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -43,8 +46,12 @@ import app.votify.mobile.ui.theme.VotifyColors
 @Composable
 fun MiniPlayer(
     state: PlayerUiState,
+    isFavorite: Boolean,
     onClick: () -> Unit,
     onPlayPause: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onSwipeLeft: () -> Unit = {},
+    onSwipeRight: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val track = state.current ?: return
@@ -58,7 +65,19 @@ fun MiniPlayer(
             .clip(shape)
             .background(VotifyColors.SurfaceContainer.copy(alpha = 0.92f))
             .border(1.dp, VotifyColors.SurfaceContainerHighest, shape)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .pointerInput(onSwipeLeft, onSwipeRight) {
+                var total = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { total = 0f },
+                    onDragEnd = {
+                        when {
+                            total < -120f -> onSwipeLeft()
+                            total > 120f -> onSwipeRight()
+                        }
+                    },
+                ) { _, dragAmount -> total += dragAmount }
+            },
     ) {
         Row(
             Modifier
@@ -107,9 +126,9 @@ fun MiniPlayer(
                     )
                 }
             }
-            IconButton(onClick = { /* favorites: next iteration */ }) {
+            IconButton(onClick = onToggleFavorite) {
                 Icon(
-                    Icons.Outlined.FavoriteBorder,
+                    if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = stringResource(R.string.player_favorite),
                     tint = VotifyColors.TextPrimary,
                 )

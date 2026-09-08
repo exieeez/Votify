@@ -13,14 +13,17 @@ import androidx.media3.session.SessionToken
 import app.votify.mobile.data.Track
 import app.votify.mobile.data.VotifyApi
 import com.google.common.util.concurrent.MoreExecutors
+import androidx.core.net.toUri
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import androidx.core.net.toUri
+import kotlinx.coroutines.launch
 
 data class PlayerUiState(
     val current: Track? = null,
     val queue: List<Track> = emptyList(),
+    val currentIndex: Int = -1,
     val isPlaying: Boolean = false,
     val isBuffering: Boolean = false,
     val positionMs: Long = 0,
@@ -37,10 +40,17 @@ data class PlayerUiState(
  * Single app-wide bridge between Compose UI and the MediaSession in [PlaybackService].
  * Tracks are turned into MediaItems that point at the backend's /api/stream proxy.
  */
-class PlayerController(context: Context, private val api: VotifyApi) {
+class PlayerController(
+    context: Context,
+    private val api: VotifyApi,
+    private val scope: CoroutineScope,
+    /** Called once per started media item — used to record listening history. */
+    private val onTrackStarted: suspend (Track) -> Unit = {},
+) {
 
     private val appContext = context.applicationContext
     private val handler = Handler(Looper.getMainLooper())
+    private var lastReportedId: String? = null
 
     private val _state = MutableStateFlow(PlayerUiState())
     val state: StateFlow<PlayerUiState> = _state
@@ -49,7 +59,12 @@ class PlayerController(context: Context, private val api: VotifyApi) {
     private var queueTracks: List<Track> = emptyList()
 
     private val listener = object : Player.Listener {
-        override fun onEvents(player: Player, events: Player.Events) = syncFromPlayer(player)
+        override fun onEvents(player: Player, events: Player.Events) {
+            syncFromPlayer(player)
+            if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED)) {
+                reportStartedIfNeeded(player)
+            }
+        }
 
         override fun onPlayerError(error: PlaybackException) {
             _state.update { it.copy(error = error.localizedMessage ?: "Playback error", isBuffering = false) }
@@ -93,6 +108,7 @@ class PlayerController(context: Context, private val api: VotifyApi) {
         val c = controller ?: return
         if (tracks.isEmpty()) return
         queueTracks = tracks
+        lastReportedId = null // a fresh start always counts as a new listen
         _state.update { it.copy(error = null, isBuffering = true) }
         c.setMediaItems(tracks.map(::toMediaItem), startIndex.coerceIn(0, tracks.lastIndex), 0L)
         c.prepare()
@@ -125,6 +141,12 @@ class PlayerController(context: Context, private val api: VotifyApi) {
         if (d > 0) c.seekTo((d * fraction.coerceIn(0f, 1f)).toLong())
     }
 
+    fun seekToMs(positionMs: Long) {
+        val c = controller ?: return
+        c.seekTo(positionMs.coerceAtLeast(0))
+        if (!c.isPlaying) c.play()
+    }
+
     fun toggleShuffle() {
         controller?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
     }
@@ -140,6 +162,54 @@ class PlayerController(context: Context, private val api: VotifyApi) {
     }
 
     fun clearError() = _state.update { it.copy(error = null) }
+
+    /** Append tracks to the end of the current queue (or start playing if idle). */
+    fun enqueue(tracks: List<Track>) {
+        val c = controller ?: return
+        if (tracks.isEmpty()) return
+        if (c.mediaItemCount == 0) {
+            play(tracks)
+            return
+        }
+        val existing = queueTracks.map { it.id }.toSet()
+        val fresh = tracks.filterNot { it.id in existing }
+        if (fresh.isEmpty()) return
+        queueTracks = queueTracks + fresh
+        c.addMediaItems(fresh.map(::toMediaItem))
+        _state.update { it.copy(queue = queueTracks) }
+    }
+
+    /** Insert a track right after the current one. */
+    fun playNext(track: Track) {
+        val c = controller ?: return
+        if (c.mediaItemCount == 0) {
+            play(listOf(track))
+            return
+        }
+        val at = c.currentMediaItemIndex + 1
+        val mutable = queueTracks.toMutableList()
+        mutable.add(at.coerceAtMost(mutable.size), track)
+        queueTracks = mutable
+        c.addMediaItem(at, toMediaItem(track))
+        _state.update { it.copy(queue = queueTracks) }
+    }
+
+    fun skipToQueueItem(index: Int) {
+        val c = controller ?: return
+        if (index in 0 until c.mediaItemCount) {
+            c.seekTo(index, 0L)
+            c.play()
+        }
+    }
+
+    private fun reportStartedIfNeeded(p: Player) {
+        if (!p.isPlaying) return
+        val id = p.currentMediaItem?.mediaId ?: return
+        if (id == lastReportedId) return
+        lastReportedId = id
+        val track = queueTracks.firstOrNull { it.id == id } ?: return
+        scope.launch { runCatching { onTrackStarted(track) } }
+    }
 
     // ---- internals ----
 
@@ -170,6 +240,7 @@ class PlayerController(context: Context, private val api: VotifyApi) {
             it.copy(
                 current = current,
                 queue = queueTracks,
+                currentIndex = p.currentMediaItemIndex,
                 isPlaying = p.isPlaying,
                 isBuffering = p.playbackState == Player.STATE_BUFFERING,
                 positionMs = p.currentPosition.coerceAtLeast(0),

@@ -34,7 +34,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -60,6 +60,9 @@ import app.votify.mobile.ui.components.Artwork
 import app.votify.mobile.ui.components.CircleIconButton
 import app.votify.mobile.ui.components.PillChip
 import app.votify.mobile.ui.components.VotifyCard
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import app.votify.mobile.ui.components.pluralTracks
 import app.votify.mobile.ui.theme.VotifyColors
 import kotlin.math.cos
 import kotlin.math.sin
@@ -70,8 +73,13 @@ fun HomeScreen(
     contentPadding: PaddingValues,
     onPlay: (List<Track>, Int) -> Unit,
     onOpenSearch: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenFavorites: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val recent by viewModel.recent.collectAsStateWithLifecycle()
+    val favoriteCount by viewModel.favoriteCount.collectAsStateWithLifecycle()
 
     Column(
         Modifier
@@ -79,7 +87,7 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
             .padding(top = contentPadding.calculateTopPadding(), bottom = contentPadding.calculateBottomPadding() + 16.dp),
     ) {
-        HomeHeader(onOpenSearch = onOpenSearch)
+        HomeHeader(onOpenSearch = onOpenSearch, onOpenSettings = onOpenSettings)
 
         // --- "Моя волна": big white Play with an orbit of artwork bubbles ---
         Box(
@@ -105,28 +113,54 @@ fun HomeScreen(
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        if (!state.isLoading && state.error == null) {
+            Text(
+                text = when (state.waveSource) {
+                    WaveSource.Personal -> stringResource(R.string.home_wave_personal, state.seeds.take(3).joinToString(", "))
+                    WaveSource.Generic -> stringResource(R.string.home_wave_generic)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = VotifyColors.TextMuted,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp),
+            )
+        }
 
-        // --- Recent ---
+        Spacer(Modifier.height(12.dp))
+
+        // --- Recent (listening history) ---
         VotifyCard(
             Modifier
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth(),
-            onClick = { /* history: next iteration */ },
+            onClick = onOpenHistory,
             contentPadding = PaddingValues(12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(48.dp)) {
-                    Box(
-                        Modifier
-                            .align(Alignment.TopEnd)
-                            .size(40.dp)
-                            .graphicsLayer { rotationZ = 6f }
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(VotifyColors.SurfaceContainerHighest),
-                    )
+                    val second = recent.getOrNull(1)?.cover.orEmpty()
+                    if (second.isNotBlank()) {
+                        Artwork(
+                            url = second,
+                            size = 40.dp,
+                            modifier = Modifier.align(Alignment.TopEnd).graphicsLayer { rotationZ = 6f },
+                        )
+                    } else {
+                        Box(
+                            Modifier
+                                .align(Alignment.TopEnd)
+                                .size(40.dp)
+                                .graphicsLayer { rotationZ = 6f }
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(VotifyColors.SurfaceContainerHighest),
+                        )
+                    }
                     Artwork(
-                        url = state.wave.firstOrNull()?.cover.orEmpty(),
+                        url = recent.firstOrNull()?.cover.orEmpty(),
                         size = 40.dp,
                         modifier = Modifier.align(Alignment.TopStart).border(1.dp, VotifyColors.BorderProminent, RoundedCornerShape(8.dp)),
                     )
@@ -134,7 +168,20 @@ fun HomeScreen(
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.home_recent), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
-                    Text(stringResource(R.string.home_tracks_count, state.wave.size), style = MaterialTheme.typography.bodySmall, color = VotifyColors.TextMuted)
+                    Text(
+                        if (recent.isEmpty()) stringResource(R.string.home_recent_empty)
+                        else recent.first().title + " · " + recent.first().artist,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = VotifyColors.TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (recent.isNotEmpty()) {
+                    CircleIconButton(onClick = { onPlay(recent, 0) }, size = 36.dp, contentDescription = stringResource(R.string.player_play)) {
+                        Icon(Icons.Filled.PlayArrow, null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(4.dp))
                 }
                 Icon(Icons.Outlined.ChevronRight, null, tint = VotifyColors.TextMuted)
             }
@@ -151,10 +198,10 @@ fun HomeScreen(
         ) {
             QuickTile(
                 title = stringResource(R.string.home_favorites),
-                subtitle = stringResource(R.string.home_playlist),
+                subtitle = if (favoriteCount > 0) pluralTracks(favoriteCount) else stringResource(R.string.home_playlist),
                 icon = Icons.Filled.Favorite,
                 modifier = Modifier.weight(1f),
-                onClick = { /* favorites: next iteration */ },
+                onClick = onOpenFavorites,
             )
             QuickTile(
                 title = stringResource(R.string.home_trending),
@@ -169,7 +216,7 @@ fun HomeScreen(
 
 /** Header: "Votify" brand pill on the left, bell / search / avatar on the right. */
 @Composable
-private fun HomeHeader(onOpenSearch: () -> Unit) {
+private fun HomeHeader(onOpenSearch: () -> Unit, onOpenSettings: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -196,8 +243,8 @@ private fun HomeHeader(onOpenSearch: () -> Unit) {
             Icon(Icons.Outlined.Search, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(8.dp))
-        CircleIconButton(onClick = {}, size = 36.dp) {
-            Icon(Icons.Outlined.Person, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(18.dp))
+        CircleIconButton(onClick = onOpenSettings, size = 36.dp, contentDescription = stringResource(R.string.nav_settings)) {
+            Icon(Icons.Outlined.Settings, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(18.dp))
         }
     }
 }

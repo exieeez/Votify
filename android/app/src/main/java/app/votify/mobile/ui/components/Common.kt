@@ -37,6 +37,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.pluralStringResource
+import app.votify.mobile.R
 import app.votify.mobile.data.Track
 import app.votify.mobile.ui.theme.VotifyColors
 import coil.compose.SubcomposeAsyncImage
@@ -212,9 +214,14 @@ fun CircleIconButton(
 
 /** Section header row: "СЛУШАЙТЕ ПРЯМО СЕЙЧАС ......... Все". */
 @Composable
-fun SectionHeader(title: String, action: String? = null, onAction: (() -> Unit)? = null) {
+fun SectionHeader(
+    title: String,
+    action: String? = null,
+    onAction: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -236,6 +243,10 @@ fun SectionHeader(title: String, action: String? = null, onAction: (() -> Unit)?
         }
     }
 }
+
+/** "3 трека" / "5 треков" — Russian plural forms from res/values/strings.xml. */
+@Composable
+fun pluralTracks(count: Int): String = pluralStringResource(R.plurals.tracks_count, count, count)
 
 fun formatDuration(ms: Long): String {
     if (ms <= 0) return "0:00"

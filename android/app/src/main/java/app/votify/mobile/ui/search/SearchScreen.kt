@@ -53,6 +53,7 @@ import app.votify.mobile.data.Track
 import app.votify.mobile.ui.components.PillChip
 import app.votify.mobile.ui.components.SectionHeader
 import app.votify.mobile.ui.components.TrackRow
+import app.votify.mobile.ui.components.pluralTracks
 import app.votify.mobile.ui.components.VotifyCard
 import app.votify.mobile.ui.theme.VotifyColors
 
@@ -62,6 +63,7 @@ fun SearchScreen(
     currentTrackId: String?,
     contentPadding: PaddingValues,
     onPlay: (List<Track>, Int) -> Unit,
+    onMore: (Track) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val keyboard = LocalSoftwareKeyboardController.current
@@ -166,7 +168,7 @@ fun SearchScreen(
                                     track = track,
                                     isCurrent = track.id == currentTrackId,
                                     onClick = { onPlay(state.results, index) },
-                                    onMore = {},
+                                    onMore = { onMore(track) },
                                 )
                                 if (index != state.results.lastIndex) {
                                     HorizontalDivider(color = VotifyColors.BorderSubtle, thickness = 1.dp)
@@ -244,16 +246,4 @@ private fun StatusBlock(title: String, subtitle: String? = null, action: String?
             PillChip(text = action, selected = true, onClick = onAction)
         }
     }
-}
-
-private fun pluralTracks(n: Int): String {
-    val mod10 = n % 10
-    val mod100 = n % 100
-    val word = when {
-        mod100 in 11..14 -> "треков"
-        mod10 == 1 -> "трек"
-        mod10 in 2..4 -> "трека"
-        else -> "треков"
-    }
-    return "$n $word"
 }

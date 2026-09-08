@@ -10,7 +10,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import app.votify.mobile.ui.VotifyRoot
-import app.votify.mobile.ui.theme.VotifyTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -22,9 +21,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         requestNotificationPermissionIfNeeded()
         setContent {
-            VotifyTheme {
-                VotifyRoot()
-            }
+            // VotifyRoot applies VotifyTheme itself (the palette comes from user settings).
+            VotifyRoot()
         }
     }
 

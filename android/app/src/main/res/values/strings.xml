@@ -5,10 +5,15 @@
     <string name="nav_home">Главная</string>
     <string name="nav_search">Поиск</string>
     <string name="nav_library">Коллекция</string>
+    <string name="nav_settings">Настройки</string>
+    <string name="nav_back">Назад</string>
 
     <string name="home_my_wave">Моя волна</string>
     <string name="home_play_wave">Воспроизвести волну</string>
+    <string name="home_wave_personal">На основе ваших прослушиваний: %1$s</string>
+    <string name="home_wave_generic">Начните слушать — и волна подстроится под ваш вкус</string>
     <string name="home_recent">Недавние</string>
+    <string name="home_recent_empty">Здесь появится история прослушиваний</string>
     <string name="home_tracks_count">%1$d треков</string>
     <string name="home_favorites">Любимое</string>
     <string name="home_playlist">Плейлист</string>
@@ -16,6 +21,13 @@
     <string name="home_weekly_chart">Чарт недели</string>
     <string name="home_listen_now">Слушайте прямо сейчас</string>
     <string name="home_recommended">Рекомендовано вам</string>
+
+    <plurals name="tracks_count">
+        <item quantity="one">%1$d трек</item>
+        <item quantity="few">%1$d трека</item>
+        <item quantity="many">%1$d треков</item>
+        <item quantity="other">%1$d треков</item>
+    </plurals>
 
     <string name="search_hint">Поиск</string>
     <string name="search_results">Результаты поиска</string>
@@ -27,9 +39,55 @@
 
     <string name="library_title">Моя Медиатека</string>
     <string name="library_favorites">Любимые</string>
+    <string name="library_favorites_empty">Нажмите ♥ в плеере — трек появится здесь</string>
+    <string name="library_history">История</string>
+    <string name="library_history_empty">Вы ещё ничего не слушали</string>
+    <string name="library_history_clear">Очистить историю</string>
+    <string name="library_playlists">Плейлисты</string>
+    <string name="library_playlists_empty">Создайте первый плейлист</string>
+    <string name="library_new_playlist">Новый плейлист</string>
+    <string name="library_playlist_name">Название</string>
+    <string name="library_playlist_empty">В плейлисте пока пусто. Добавляйте треки через меню «⋮» или из плеера.</string>
     <string name="library_import">Импортировать из сервиса</string>
     <string name="library_import_subtitle">Spotify, YouTube, SoundCloud</string>
     <string name="library_soon">Скоро</string>
+    <string name="library_filter_all">Все</string>
+    <string name="library_filter_playlists">Плейлисты</string>
+    <string name="library_filter_history">История</string>
+    <string name="library_updated">Обновлён %1$s</string>
+
+    <string name="action_create">Создать</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_rename">Переименовать</string>
+    <string name="action_play_all">Слушать всё</string>
+    <string name="action_shuffle_all">Перемешать</string>
+    <string name="action_play_next">Играть следующим</string>
+    <string name="action_add_to_queue">Добавить в очередь</string>
+    <string name="action_add_to_playlist">Добавить в плейлист</string>
+    <string name="action_remove_from_playlist">Убрать из плейлиста</string>
+    <string name="action_go_to_artist">Перейти к исполнителю</string>
+    <string name="action_add_favorite">В любимое</string>
+    <string name="action_remove_favorite">Убрать из любимого</string>
+    <string name="action_close">Закрыть</string>
+    <string name="action_more">Ещё</string>
+
+    <string name="toast_added_to_playlist">Добавлено в «%1$s»</string>
+    <string name="toast_already_in_playlist">Уже есть в «%1$s»</string>
+    <string name="toast_added_to_queue">Добавлено в очередь</string>
+    <string name="toast_play_next">Будет играть следующим</string>
+    <string name="toast_favorite_added">Добавлено в любимое</string>
+    <string name="toast_favorite_removed">Убрано из любимого</string>
+    <string name="toast_quality_saved">Качество на сервере: %1$s</string>
+    <string name="toast_quality_failed">Сервер недоступен — качество не изменено</string>
+    <string name="dialog_delete_playlist">Удалить плейлист «%1$s»?</string>
+    <string name="dialog_clear_history">Очистить историю прослушиваний?</string>
+
+    <string name="artist_title">Исполнитель</string>
+    <string name="artist_tracks">Популярные треки</string>
+    <string name="artist_empty">Не удалось найти треки этого исполнителя</string>
+    <string name="artist_loading">Ищем треки…</string>
 
     <string name="player_now_playing">Сейчас играет</string>
     <string name="player_collapse">Свернуть плеер</string>
@@ -44,6 +102,58 @@
     <string name="player_lyrics">Текст песни</string>
     <string name="player_loading">Загрузка…</string>
     <string name="player_error">Не удалось воспроизвести трек</string>
+    <string name="queue_title">Очередь</string>
+    <string name="queue_now">Сейчас</string>
+    <string name="queue_next">Далее</string>
+
+    <string name="lyrics_not_found">Текст не найден</string>
+    <string name="lyrics_back_to_cover">Вернуться к обложке</string>
+    <string name="lyrics_unsynced">Текст без синхронизации</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="settings_section_audio">Аудио и воспроизведение</string>
+    <string name="settings_section_audio_tag">Сервер</string>
+    <string name="settings_quality">Качество стриминга</string>
+    <string name="settings_quality_hint">Применяется на сервере Votify для всех новых треков</string>
+    <string name="settings_quality_low">Стандарт</string>
+    <string name="settings_quality_low_sub">≤96 kbps</string>
+    <string name="settings_quality_medium">Высокое</string>
+    <string name="settings_quality_medium_sub">≤192 kbps</string>
+    <string name="settings_quality_high">Максимум</string>
+    <string name="settings_quality_high_sub">≥192 kbps</string>
+    <string name="settings_quality_syncing">Синхронизация с сервером…</string>
+    <string name="settings_quality_offline">Сервер недоступен: показано локальное значение</string>
+    <string name="settings_section_appearance">Внешний вид и плеер</string>
+    <string name="settings_section_appearance_tag">UI &amp; Canvas</string>
+    <string name="settings_theme">Тема оформления</string>
+    <string name="settings_theme_oled">OLED Black</string>
+    <string name="settings_theme_graphite">Графит</string>
+    <string name="settings_theme_system">Системная</string>
+    <string name="settings_artwork">Стиль обложки в плеере</string>
+    <string name="settings_artwork_vinyl">Винил</string>
+    <string name="settings_artwork_square">Квадрат</string>
+    <string name="settings_artwork_blur">Размытие</string>
+    <string name="settings_lyrics_over_art">Показывать текст поверх обложки</string>
+    <string name="settings_lyrics_over_art_sub">Открывать плеер сразу с синхронизированным текстом</string>
+    <string name="settings_section_gestures">Жесты и управление</string>
+    <string name="settings_section_gestures_tag">Интерфейс</string>
+    <string name="settings_swipe">Свайп по мини-плееру</string>
+    <string name="settings_swipe_sub">Действие горизонтального жеста</string>
+    <string name="settings_swipe_track">Смена трека</string>
+    <string name="settings_swipe_queue">Очередь</string>
+    <string name="settings_volume_skip">Кнопки громкости на экране блокировки</string>
+    <string name="settings_volume_skip_sub">Длительное нажатие для переключения треков</string>
+    <string name="settings_section_data">Данные</string>
+    <string name="settings_section_data_tag">На устройстве</string>
+    <string name="settings_data_stats">Любимых: %1$d · в истории: %2$d</string>
+    <string name="settings_clear_history">Очистить историю прослушиваний</string>
+    <string name="settings_section_about">О приложении</string>
+    <string name="settings_section_about_tag">Votify</string>
+    <string name="settings_about_name">Votify Mobile</string>
+    <string name="settings_about_server">Сервер: %1$s</string>
+    <string name="settings_about_server_ok">Онлайн · %1$s</string>
+    <string name="settings_about_server_fail">Нет соединения</string>
+    <string name="settings_about_check">Проверить</string>
 
     <string name="notification_channel_playback">Воспроизведение</string>
 </resources>
