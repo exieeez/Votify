@@ -4,7 +4,6 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24"
-    android:tint="?attr/colorControlNormal">
     <path android:fillColor="#FFFFFF" android:pathData="M6.5,8.5 h1.5 a1.25,1.25 0 0 1 1.25,1.25 v4.5 a1.25,1.25 0 0 1 -1.25,1.25 h-1.5 a1.25,1.25 0 0 1 -1.25,-1.25 v-4.5 a1.25,1.25 0 0 1 1.25,-1.25 z" />
     <path android:fillColor="#FFFFFF" android:pathData="M11.25,4 h1.5 a1.25,1.25 0 0 1 1.25,1.25 v13.5 a1.25,1.25 0 0 1 -1.25,1.25 h-1.5 a1.25,1.25 0 0 1 -1.25,-1.25 v-13.5 a1.25,1.25 0 0 1 1.25,-1.25 z" />
     <path android:fillColor="#FFFFFF" android:pathData="M16,6.5 h1.5 a1.25,1.25 0 0 1 1.25,1.25 v8.5 a1.25,1.25 0 0 1 -1.25,1.25 h-1.5 a1.25,1.25 0 0 1 -1.25,-1.25 v-8.5 a1.25,1.25 0 0 1 1.25,-1.25 z" />
