@@ -50,6 +50,14 @@ jobs:
             echo "::error file=${f#$GITHUB_WORKSPACE/},line=${l}::${m}"
           done
 
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: android/build.log
+          retention-days: 3
+
       - uses: actions/upload-artifact@v4
         if: success()
         with:
