@@ -1,10 +1,15 @@
-# Votify — Backend API (mobile edition)
+# Votify — Mobile edition
 
-Ветка `arena/01a07e3f-votify` — это **только серверная часть** Votify. Десктопная оболочка
-(Electron, Discord Rich Presence, Google OAuth для десктопа) и веб‑интерфейс из `src/` удалены:
-здесь живёт чистый HTTP API, поверх которого будет строиться мобильное приложение.
+Ветка `arena/01a07e3f-votify`: **бекенд API** (Node.js, корень репозитория) + **Android‑приложение**
+(`android/`, Kotlin + Jetpack Compose). Десктопная оболочка (Electron) и веб‑интерфейс удалены.
 
-## Структура
+- `android/` — приложение, см. [android/README.md](android/README.md)
+- `design/` — макеты из Google Stitch и дизайн‑система, см. [design/README.md](design/README.md)
+- CI: `.github/workflows/android.yml` собирает debug APK на каждый push (артефакт `votify-debug-apk`)
+
+## Бекенд
+
+### Структура
 
 ```
 server.js              — точка входа: HTTP-сервер, CORS, роутинг
