@@ -1,0 +1,274 @@
+<!DOCTYPE html><html class="dark h-full bg-[#0a0a0a]" lang="ru"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Votify - Главная</title>
+<!-- Tailwind CSS v3 with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            votify: {
+              bg: '#0a0a0a',
+              card: '#161618',
+              cardBorder: '#232326',
+              pill: '#1e1d22',
+              player: '#2d2e24',
+              muted: '#8e8e93',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="base-typography">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+<style data-purpose="custom-decorations">
+    /* Subtle breathing glow around the central wave element */
+    .wave-orbit {
+      position: relative;
+    }
+    .orbit-bubble {
+      position: absolute;
+      border-radius: 9999px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      transition: transform 0.2s ease;
+    }
+    .orbit-bubble:active {
+      transform: scale(0.92);
+    }
+  </style>
+</head>
+<body class="h-full bg-[#0a0a0a] text-white flex justify-center items-center overflow-x-hidden antialiased selection:bg-neutral-800">
+<!-- Mobile Shell Device Wrapper (Max Mobile Dimensions matching standard modern smartphones) -->
+<div class="relative w-full max-w-[430px] h-full min-h-screen sm:h-[932px] sm:max-h-[95vh] bg-[#0c0c0e] flex flex-col justify-between overflow-hidden sm:rounded-[44px] sm:border-[8px] sm:border-[#1e1e20] shadow-2xl">
+<!-- BEGIN: TopStatusBar -->
+<header class="w-full pt-3 px-6 flex justify-between items-center text-xs font-semibold text-neutral-300 z-30 select-none tracking-tight">
+<div class="flex items-center space-x-1.5" data-purpose="clock-and-app-badges">
+<span class="">14:00</span>
+<div class="flex items-center space-x-1 pl-1 opacity-80">
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2z"></path></svg>
+<span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+</div>
+</div>
+<!-- Right Status Bar Icons: Network, 4G, Battery Indicator -->
+<div class="flex items-center space-x-2 text-neutral-300">
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5z"></path></svg>
+<span class="text-[10px] font-bold tracking-tighter uppercase text-neutral-400">4G</span>
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 4c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-3.39C20.26 17.07 21 15.12 21 13c0-4.97-4.03-9-9-9z"></path></svg>
+<div class="flex items-center space-x-0.5 border border-neutral-400 px-1 py-0.5 rounded-[4px]">
+<span class="text-[9px] font-bold">59</span>
+</div>
+</div>
+</header>
+<!-- END: TopStatusBar -->
+<!-- BEGIN: HeaderRow -->
+<nav class="w-full px-5 pt-3 pb-2 flex justify-between items-center z-30" data-purpose="app-navigation-header">
+<!-- App Brand Logo & Title -->
+<div class="flex items-center space-x-2.5 bg-[#1b1b1d] px-3.5 py-1.5 rounded-full border border-neutral-800">
+<img alt="Votify Soundwave Logo" class="w-5 h-5 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1XigbSjwaMn41rQG9JiQHt0G-BF72kV0VttO-QwYMXob_iXGG-GHBwKXEZuGLAmTfVa0riHn_xmZsipaFo1uME8gco1okVkkXYEB94K3JPPhZbwBJITJY5stiQtk85O1rG1gGMz9cZqge007VhuO4E3KVf9OqqbUVu0DZaIM_yxNYPAhfNv8P7eH8JRMtsPOW_KNwhpZJxx6zpUOwsW0exlTMLKJrvQAQK4fHRdB35IQXoAGv85KNdBTmM">
+<span class="text-sm font-semibold tracking-wide text-white">Votify</span>
+</div>
+<!-- Action Icons: Feed/Broadcast, Search, User Avatar -->
+<div class="flex items-center space-x-2">
+<!-- Broadcast/Horn Button -->
+<button aria-label="Broadcast" class="w-9 h-9 rounded-full bg-[#1c1c1f] flex items-center justify-center text-neutral-300 hover:text-white transition" type="button">
+<svg class="w-4 h-4 stroke-current fill-none stroke-[2]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+</svg>
+</button>
+<!-- Search Button -->
+<button aria-label="Поиск" class="w-9 h-9 rounded-full bg-[#1c1c1f] flex items-center justify-center text-neutral-300 hover:text-white transition" type="button">
+<svg class="w-4 h-4 stroke-current fill-none stroke-[2.2]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<circle cx="11" cy="11" r="8"></circle>
+<line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+</svg>
+</button>
+<!-- Profile Headshot Button -->
+<button aria-label="Профиль" class="w-9 h-9 rounded-full overflow-hidden border border-neutral-700 focus:ring-2 focus:ring-neutral-400" type="button">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Up6FwleAHVxutsVYh7BmAVRwwO9bTMlN1a1zmgLY4ZxArtn5PDcgRYgng8BKg7sw9Ba9afcYq-APKeLOgGvdTl1BqV7AFkMWub9pjf16JuiBPfu1945vY1x0OD4b7DOdMx7jxaxAPm68hTbssxfU8068wQ1mnXN5KK1Xc3nsq7P9XyYH-WrU8ZWrlMpX5Ta4U10A2wPzKk_IP0fJWWEz6RswTSH8RlAAOTXClWTLLDmYAzhvSyo1M8lEQ">
+</button>
+</div>
+</nav>
+<!-- END: HeaderRow -->
+<!-- Scrollable Body Content -->
+<main class="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-5 pb-4 space-y-5" data-purpose="main-feed">
+<!-- BEGIN: HeroConstellation ("Моя волна") -->
+<section aria-label="Моя волна" class="relative w-full h-[290px] flex items-center justify-center pt-2">
+<!-- Constellation Bubbles Layout (Positioned around central play button) -->
+<div class="relative w-[280px] h-[280px] flex items-center justify-center">
+<!-- Orbit Node 1 (Top Center) -->
+<div class="orbit-bubble top-1 left-[110px] w-14 h-14 border border-neutral-700/50">
+<img alt="Artist Recommendation" class="w-full h-full object-cover filter brightness-90" src="https://lh3.googleusercontent.com/aida/AEtjO1Up6FwleAHVxutsVYh7BmAVRwwO9bTMlN1a1zmgLY4ZxArtn5PDcgRYgng8BKg7sw9Ba9afcYq-APKeLOgGvdTl1BqV7AFkMWub9pjf16JuiBPfu1945vY1x0OD4b7DOdMx7jxaxAPm68hTbssxfU8068wQ1mnXN5KK1Xc3nsq7P9XyYH-WrU8ZWrlMpX5Ta4U10A2wPzKk_IP0fJWWEz6RswTSH8RlAAOTXClWTLLDmYAzhvSyo1M8lEQ">
+</div>
+<!-- Orbit Node 2 (Top Left) -->
+<div class="orbit-bubble top-8 left-6 w-12 h-12 bg-neutral-800 border border-neutral-700/40">
+<div class="w-full h-full bg-gradient-to-tr from-amber-900 via-neutral-900 to-indigo-950 flex items-center justify-center">
+<svg class="w-5 h-5 text-neutral-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"></path></svg>
+</div>
+</div>
+<!-- Orbit Node 3 (Top Right) -->
+<div class="orbit-bubble top-10 right-4 w-12 h-12 border border-neutral-700/50 bg-neutral-900">
+<img alt="Artist recommendation" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9Wf2G1q8pIcaNYy6Yrhf5XPq0J_tNTGzY2WOp39lKrmoqbPermZkjq_YVcncOU1padWXrA0xYhsCTquoYkzQGRVv2D82KDeTKygqpkB0xhuNJn2j2MgWZdoNicrrFpMZxiV5Sj3Ou4LxiymBGIv6u30eN-lG4H29-HNBT6s3gklNTrQSf5LzCjPZoRLAN5oVtp4tzJlLi56ANP3ZyBBAI8MXwtJMKSJqigC-dnypSfDV6Kl6N-g8kBCTdX82dD_2_VA">
+</div>
+<!-- Orbit Node 4 (Mid Left) -->
+<div class="orbit-bubble top-[108px] left-1 w-14 h-14 border-2 border-red-500/30">
+<img alt="Cover art" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrI1Yw5kDahySKiSbzq-9oFMjtRLXWTpCjjiA7qUuv7NjVAx6eNG8CBIyrnL9qRnkkr6xFefAxFaMTgko49EBHa6lFS30bsHsJ32pXSH5hA33WBy1Yvknss4VTaL7AW_s3ujyQk2CLWBx8LZ2bQAiLjF5mUEsiG0T-IWvi_uE-n87gOU0Ta9M2vXnUwQvlay23q1ExL6-gpyltlJyteEI1DLeRe3Jfdzeo2BmZAxOZFWrM98Mk2LRABUbwTCakxTrJpA">
+</div>
+<!-- Orbit Node 5 (Mid Right) -->
+<div class="orbit-bubble top-[106px] right-2 w-14 h-14 border border-neutral-700/60 bg-neutral-900">
+<img alt="Artist cover" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRbu_TS7gxdHEhdbmv8z59yUDWA2Cl8wKUgTuoEKOhVrSPx7xL7m4MK2OGN-4KvzOKpwdNdCAEsb92OIorHhTJAymF8mTgoC22meqp_nC8VxtWgX_32rz_yj0cFcc3nqMBQeKxEQCb0x_lhlR9kd_AIrPI9fX_uY98USLSAirPuKBHIMkAXa3RX0H3yuE2QQgMYoXDMAEfBb07eTMhtClItRd7-EZQj0ZA0k_TyVnsXOIv7-EoybW5_iFVaNgXTGgXcQ">
+</div>
+<!-- Orbit Node 6 (Bottom Left) -->
+<div class="orbit-bubble bottom-6 left-8 w-12 h-12 border border-neutral-700/40 bg-neutral-800">
+<img alt="Audio soundwave" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1XigbSjwaMn41rQG9JiQHt0G-BF72kV0VttO-QwYMXob_iXGG-GHBwKXEZuGLAmTfVa0riHn_xmZsipaFo1uME8gco1okVkkXYEB94K3JPPhZbwBJITJY5stiQtk85O1rG1gGMz9cZqge007VhuO4E3KVf9OqqbUVu0DZaIM_yxNYPAhfNv8P7eH8JRMtsPOW_KNwhpZJxx6zpUOwsW0exlTMLKJrvQAQK4fHRdB35IQXoAGv85KNdBTmM">
+</div>
+<!-- Orbit Node 7 (Bottom Center) -->
+<div class="orbit-bubble bottom-1 left-[110px] w-14 h-14 border border-neutral-700/50 bg-neutral-900">
+<img alt="Music album" class="w-full h-full object-cover contrast-125" src="https://lh3.googleusercontent.com/aida/AEtjO1Up6FwleAHVxutsVYh7BmAVRwwO9bTMlN1a1zmgLY4ZxArtn5PDcgRYgng8BKg7sw9Ba9afcYq-APKeLOgGvdTl1BqV7AFkMWub9pjf16JuiBPfu1945vY1x0OD4b7DOdMx7jxaxAPm68hTbssxfU8068wQ1mnXN5KK1Xc3nsq7P9XyYH-WrU8ZWrlMpX5Ta4U10A2wPzKk_IP0fJWWEz6RswTSH8RlAAOTXClWTLLDmYAzhvSyo1M8lEQ">
+</div>
+<!-- Orbit Node 8 (Bottom Right) -->
+<div class="orbit-bubble bottom-8 right-5 w-12 h-12 border border-neutral-700/40 bg-neutral-800">
+<img alt="Playlist art" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLKejyME6K949tQh6NwHCmtfg9xBDahhLQ17SsbtoG_BDfDVNeSOdUmi8_7tPOZn9QGys-WJgmtegidH27lWcvic7fg2xmajT3kkLb7NxvxuIJLxzFTYRMNDgeIuLGgTaEW56xDYZdnLNQh1aJcZewZ8ZrR1SgNGV_XOA2g_kNtozxiz00SKCZ18GJfl_yO8xj0kQFFotnC5g4ESgho4eALCmisvzlJk53j8R9JSXFWj1PYeVu2XchXtZ3Mx0upz8eYw">
+</div>
+<!-- Center Large Play Button & Wave Header -->
+<div class="z-20 flex flex-col items-center">
+<button aria-label="Воспроизвести волну" class="w-[72px] h-[72px] rounded-full bg-white text-black flex items-center justify-center shadow-[0_8px_25px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-transform duration-150" type="button">
+<svg class="w-7 h-7 fill-black translate-x-0.5" viewBox="0 0 24 24">
+<polygon points="5 3 19 12 5 21 5 3"></polygon>
+</svg>
+</button>
+<span class="mt-2.5 text-base font-medium tracking-tight text-neutral-200">Моя волна</span>
+</div>
+</div>
+</section>
+<!-- END: HeroConstellation -->
+<!-- BEGIN: RecentTrackSection ("Недавние") -->
+<section aria-label="Недавние треки" class="w-full">
+<div class="w-full bg-[#151518] hover:bg-[#1a1a1e] transition rounded-2xl p-3 flex items-center justify-between border border-[#212125]/80 cursor-pointer">
+<div class="flex items-center space-x-3.5">
+<!-- Overlapping Stacked Covers Thumbnail -->
+<div class="relative w-12 h-12 flex-shrink-0">
+<div class="absolute right-0 top-0 w-10 h-10 rounded-lg bg-sky-600/80 transform rotate-6 overflow-hidden"></div>
+<div class="absolute left-0 top-0 w-10 h-10 rounded-lg overflow-hidden border border-neutral-700 shadow-md">
+<img alt="Недавний альбом" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Up6FwleAHVxutsVYh7BmAVRwwO9bTMlN1a1zmgLY4ZxArtn5PDcgRYgng8BKg7sw9Ba9afcYq-APKeLOgGvdTl1BqV7AFkMWub9pjf16JuiBPfu1945vY1x0OD4b7DOdMx7jxaxAPm68hTbssxfU8068wQ1mnXN5KK1Xc3nsq7P9XyYH-WrU8ZWrlMpX5Ta4U10A2wPzKk_IP0fJWWEz6RswTSH8RlAAOTXClWTLLDmYAzhvSyo1M8lEQ">
+</div>
+</div>
+<!-- Labels -->
+<div class="flex flex-col text-left">
+<span class="text-sm font-semibold text-white tracking-tight">Недавние</span>
+<span class="text-xs text-[#8e8e93] font-normal">19 треков</span>
+</div>
+</div>
+<div class="pr-2 text-neutral-500">
+<svg class="w-4 h-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
+</div>
+</div>
+</section>
+<!-- END: RecentTrackSection -->
+<!-- BEGIN: QuickAccessGrid -->
+<section aria-label="Быстрый доступ" class="w-full space-y-2.5 pt-1">
+<div class="w-24 h-2.5 rounded-full bg-neutral-800/80 mb-2"></div>
+<div class="grid grid-cols-2 gap-3">
+<div class="h-28 rounded-2xl bg-[#141416] border border-[#202024] p-3 flex flex-col justify-end">
+<span class="text-xs font-semibold text-neutral-300">Любимое</span>
+<span class="text-[11px] text-neutral-500">Плейлист</span>
+</div>
+<div class="h-28 rounded-2xl bg-[#141416] border border-[#202024] p-3 flex flex-col justify-end">
+<span class="text-xs font-semibold text-neutral-300">В тренде</span>
+<span class="text-[11px] text-neutral-500">Чарт недели</span>
+</div>
+</div>
+</section>
+<!-- END: QuickAccessGrid -->
+</main>
+<!-- Fixed Bottom Floating Container: Mini-Player + Navigation Bar -->
+<footer class="w-full flex flex-col z-40 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e] to-transparent pt-1">
+<!-- BEGIN: MiniPlayer -->
+<aside aria-label="Мини-плеер" class="mx-3.5 mb-2.5 relative group cursor-pointer"><div class="relative w-full h-[70px] bg-[#23261a] hover:bg-[#282b1e] text-neutral-100 rounded-[34px] px-3.5 flex items-center justify-between shadow-xl border border-[#373a27]/70 backdrop-blur-md overflow-hidden transition">
+    <!-- Track artwork and title/artist block -->
+    <div class="flex items-center space-x-3.5 min-w-0 pr-2">
+      <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#3e422c]/80 shadow-sm">
+        <img alt="Обложка трека черновик" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Up6FwleAHVxutsVYh7BmAVRwwO9bTMlN1a1zmgLY4ZxArtn5PDcgRYgng8BKg7sw9Ba9afcYq-APKeLOgGvdTl1BqV7AFkMWub9pjf16JuiBPfu1945vY1x0OD4b7DOdMx7jxaxAPm68hTbssxfU8068wQ1mnXN5KK1Xc3nsq7P9XyYH-WrU8ZWrlMpX5Ta4U10A2wPzKk_IP0fJWWEz6RswTSH8RlAAOTXClWTLLDmYAzhvSyo1M8lEQ">
+      </div>
+      <div class="flex flex-col justify-center min-w-0 leading-tight">
+        <span class="text-sm font-semibold text-white truncate tracking-tight">черновик</span>
+        <span class="text-xs font-medium text-neutral-400 truncate mt-0.5 tracking-wide">CUPSIZE</span>
+      </div>
+    </div>
+    <!-- Controls: Play button and Favorite Heart -->
+    <div class="flex items-center space-x-3.5 flex-shrink-0 pr-1.5">
+      <button aria-label="Воспроизведение" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 shadow-sm transition-transform" type="button">
+        <svg class="w-5 h-5 fill-black translate-x-0.5" viewBox="0 0 24 24">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+      </button>
+      <button aria-label="Добавить в любимое" class="text-neutral-300 hover:text-white transition-colors active:scale-90" type="button">
+        <svg class="w-6 h-6 stroke-current fill-none stroke-[2]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+        </svg>
+      </button>
+    </div>
+    <!-- Integrated subtle track progress line along the bottom border -->
+    <div class="absolute bottom-0 left-4 right-4 h-[2px] bg-[#3a3d2b] rounded-full overflow-hidden">
+      <div class="h-full w-1/3 bg-neutral-300/80 rounded-full"></div>
+    </div>
+  </div></aside>
+<!-- END: MiniPlayer -->
+<!-- BEGIN: BottomNavigationBar (Exact match: 3 icons, no text labels) -->
+<nav class="w-full bg-[#121214] border-t border-[#1d1d20] px-8 pt-3.5 pb-2 flex items-center justify-between select-none" data-purpose="bottom-navigation-bar">
+<!-- Icon 1: Home (Главная) - ACTIVE -->
+<button aria-label="Главная" class="flex flex-col items-center justify-center w-12 h-10 text-white group focus:outline-none" type="button">
+<!-- House icon matching reference: rounded pitched roof with centered inner slot -->
+<div class="relative w-6 h-6 flex items-center justify-center">
+<svg class="w-6 h-6 fill-white" viewBox="0 0 24 24">
+<!-- Rounded outer house shape with pill cutout -->
+<path clip-rule="evenodd" d="M10.87 2.44a1.75 1.75 0 0 1 2.26 0l7.35 6.01c.96.79 1.52 1.97 1.52 3.22V19a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-7.33c0-1.25.56-2.43 1.52-3.22l7.35-6.01zM10 18a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v2z" fill-rule="evenodd"></path>
+</svg>
+</div>
+</button>
+<!-- Icon 2: Library (Папка / Коллекция) - INACTIVE -->
+<button aria-label="Коллекция" class="flex flex-col items-center justify-center w-12 h-10 text-[#8e8e93] hover:text-white transition group focus:outline-none" type="button">
+<!-- Folder outline icon with rounded corners matching reference -->
+<div class="relative w-6 h-6 flex items-center justify-center">
+<svg class="w-6 h-6 stroke-current fill-none stroke-[1.85]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"></path>
+<line stroke-width="1.5" x1="2" x2="22" y1="10" y2="10"></line>
+</svg>
+</div>
+</button>
+<!-- Icon 3: Settings (Настройки / Шестеренка / Гайка) - INACTIVE -->
+<button aria-label="Настройки" class="flex flex-col items-center justify-center w-12 h-10 text-[#8e8e93] hover:text-white transition group focus:outline-none" type="button">
+<!-- Regular hexagon outline with circular ring cutout matching reference -->
+<div class="relative w-6 h-6 flex items-center justify-center">
+<svg class="w-6 h-6 stroke-current fill-none stroke-[1.85]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<!-- Regular Hexagon Path -->
+<path d="M12 2.5L20 7v10l-8 4.5L4 17V7l8-4.5z"></path>
+<!-- Center Circle / Hole -->
+<circle cx="12" cy="12" r="3.2" stroke-width="1.85"></circle>
+</svg>
+</div>
+</button>
+</nav>
+<!-- END: BottomNavigationBar -->
+<!-- Safe Area Home Indicator Bar (Android/iOS style) -->
+<div class="w-full bg-[#121214] pb-2 pt-1 flex justify-center items-center">
+<div class="w-32 h-1 bg-neutral-600 rounded-full"></div>
+</div>
+</footer>
+</div>
+
+
+
+
+</body></html>
