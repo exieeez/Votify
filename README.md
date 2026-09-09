@@ -16,6 +16,8 @@
 - Node.js (v20+)
 - npm
 
+> 📱 **Android-версия** Votify живёт в отдельной ветке [`android`](https://github.com/exieeez/Votify/tree/android) — каталог `android/` (Kotlin, Room, оффлайн-загрузки). Эта ветка (`main`) содержит только ПК-приложение.
+
 ### Установка зависимостей
 ```bash
 npm install
