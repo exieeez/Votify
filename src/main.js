@@ -329,7 +329,7 @@ let appSettings = readStoredJson('votify-settings', {
   font: 'default',
   bgUrl: '',
   opacity: '98',
-  accent: '#1DB954',
+  accent: '#FFFFFF',
   audioQuality: 'medium',
   autoPlay: true,
   crossfade: 0,
@@ -4534,7 +4534,7 @@ safeClick('morph-reset-all', async () => {
     'Сбросить все настройки оформления до значений по умолчанию?'
   );
   if (!confirmed) return;
-  applyAccentColor('#1DB954');
+  applyAccentColor('#FFFFFF');
   appSettings.fontFamily = 'default';
   if (fontFamilySelect) fontFamilySelect.value = 'default';
   appSettings.compactUI = false;
@@ -4737,7 +4737,7 @@ safeClick('reset-hotkeys-btn', () => {
 function applyAccentColor(color) {
   const normalized = /^#[0-9a-f]{6}$/i.test(String(color || ''))
     ? String(color).toUpperCase()
-    : '#1DB954';
+    : '#FFFFFF';
   document.documentElement.style.setProperty('--accent', normalized);
   // Also compute and set --accent-rgb for rgba() usage
   const hex = normalized.replace('#', '');
@@ -7022,7 +7022,7 @@ function updateParticleSystem() {
   }
 
   const accent =
-    getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1DB954';
+    getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#FFFFFF';
   let lastTime = 0;
   const fpsInterval = 1000 / 60;
 
@@ -7302,12 +7302,12 @@ function syncColorPickersFromSettings() {
   const colors = api
     ? api.readColorSchemeFromSettings(appSettings)
     : {
-        accent: appSettings.customColorPrimary || appSettings.accent || '#1DB954',
+        accent: appSettings.customColorPrimary || appSettings.accent || '#FFFFFF',
         background: appSettings.customColorBg || '#121212',
         text: appSettings.customColorText || '#ffffff',
         cards: appSettings.customColorCards || '#181818',
         borders: appSettings.customColorBorders || '#2a2a2a',
-        focus: appSettings.customColorFocus || appSettings.customColorPrimary || '#1DB954',
+        focus: appSettings.customColorFocus || appSettings.customColorPrimary || '#FFFFFF',
       };
   const map = {
     'picker-color-primary': colors.accent,
@@ -7419,12 +7419,12 @@ function readCurrentColorSchemeColors() {
   const source = { ...appSettings, ...pickerValues };
   if (api) return api.readColorSchemeFromSettings(source);
   return {
-    accent: pickerValues.customColorPrimary || appSettings.customColorPrimary || '#1DB954',
+    accent: pickerValues.customColorPrimary || appSettings.customColorPrimary || '#FFFFFF',
     background: pickerValues.customColorBg || appSettings.customColorBg || '#121212',
     text: pickerValues.customColorText || appSettings.customColorText || '#ffffff',
     cards: pickerValues.customColorCards || appSettings.customColorCards || '#181818',
     borders: pickerValues.customColorBorders || appSettings.customColorBorders || '#2a2a2a',
-    focus: pickerValues.customColorFocus || appSettings.customColorFocus || '#1DB954',
+    focus: pickerValues.customColorFocus || appSettings.customColorFocus || '#FFFFFF',
   };
 }
 
@@ -7499,12 +7499,12 @@ function saveCurrentColorScheme() {
 
 function bindCustomColorPickers() {
   const pickerSettings = {
-    'picker-color-primary': ['customColorPrimary', '#1DB954'],
+    'picker-color-primary': ['customColorPrimary', '#FFFFFF'],
     'picker-color-bg': ['customColorBg', '#121212'],
     'picker-color-text': ['customColorText', '#FFFFFF'],
     'picker-color-cards': ['customColorCards', '#181818'],
     'picker-color-borders': ['customColorBorders', '#2A2A2A'],
-    'picker-color-focus': ['customColorFocus', '#1DB954'],
+    'picker-color-focus': ['customColorFocus', '#FFFFFF'],
   };
 
   Object.entries(pickerSettings).forEach(([id, [key, fallback]]) => {
@@ -7538,8 +7538,8 @@ function bindCustomColorPickers() {
 }
 
 const THEME_COLOR_PRESETS = {
-  neutral: ['#1DB954', '#121212', '#181818', '#FFFFFF', '#333333', '#1DB954'],
-  amoled: ['#1DB954', '#000000', '#080808', '#FFFFFF', '#242424', '#1ED760'],
+  neutral: ['#FFFFFF', '#121212', '#181818', '#FFFFFF', '#333333', '#FFFFFF'],
+  amoled: ['#FFFFFF', '#000000', '#080808', '#FFFFFF', '#242424', '#E4E4E7'],
   crimson: ['#DC263F', '#16080B', '#241014', '#FFF5F6', '#4A1B23', '#FF526A'],
   dracula: ['#BD93F9', '#191A24', '#282A36', '#F8F8F2', '#44475A', '#FF79C6'],
   nord: ['#88C0D0', '#242933', '#2E3440', '#ECEFF4', '#4C566A', '#8FBCBB'],
@@ -7732,7 +7732,7 @@ function getCurrentWorkshopTheme() {
   return {
     primary: workshopCssColor(
       '--accent',
-      workshopColor(appSettings.customColorPrimary || appSettings.accent, '#1DB954')
+      workshopColor(appSettings.customColorPrimary || appSettings.accent, '#FFFFFF')
     ),
     background: workshopCssColor('--bg-base', workshopColor(appSettings.customColorBg, '#121212')),
     text: workshopCssColor('--text-primary', workshopColor(appSettings.customColorText, '#FFFFFF')),
@@ -7743,7 +7743,7 @@ function getCurrentWorkshopTheme() {
     ),
     focus: workshopCssColor(
       '--focus-ring',
-      workshopColor(appSettings.customColorFocus || appSettings.accent, '#1DB954')
+      workshopColor(appSettings.customColorFocus || appSettings.accent, '#FFFFFF')
     ),
     mode: ['dark', 'light', 'system'].includes(appSettings.themeMode)
       ? appSettings.themeMode

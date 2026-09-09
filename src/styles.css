@@ -3,19 +3,22 @@
    ============================================ */
 
 :root {
-  --bg-base: #121212;
-  --bg-surface: #181818;
-  --bg-elevated: #282828;
-  --bg-highlight: #333333;
+  /* Obsidian Wave — pitch-black monochrome palette */
+  --bg-base: #0a0a0b;
+  --bg-surface: #121214;
+  --bg-elevated: #18181b;
+  --bg-highlight: #27272a;
   --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --text-subdued: #6a6a6a;
-  --accent: #1DB954;
-  --accent-hover: #1ed760;
-  --accent-rgb: 29,185,84;
+  --text-secondary: #a1a1aa;
+  --text-subdued: #71717a;
+  --accent: #ffffff;
+  --accent-hover: #e4e4e7;
+  --accent-rgb: 255,255,255;
+  --accent-cool: #7df4ff;           /* Electric cyan — hyper-sparing status accent */
+  --accent-cool-rgb: 125,244,255;
   --danger: #e74c3c;
-  --titlebar-h: 32px;
-  --sidebar-w: 64px;
+  --titlebar-h: 36px;
+  --sidebar-w: 56px;
   --player-h: 72px;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -25,27 +28,52 @@
   --app-font-size-offset: 16px;
   --app-text-transform: none;
   --app-opacity: 0.98;
-  --md-accent: #1DB954;
-  --md-surface: #14171e;
-  --md-surface-variant: #1e2130;
-  --md-on-surface: #e3e2e6;
-  --md-on-surface-variant: #c4c6d0;
+  --md-accent: #ffffff;
+  --md-surface: #101012;
+  --md-surface-variant: #1a1a1e;
+  --md-on-surface: #e5e2e3;
+  --md-on-surface-variant: #c4c7c8;
   --md-outline: rgba(255,255,255,0.08);
-  --md-primary: #1DB954;
-  --md-on-primary: #fff;
-  --md-error: #f2b8b5;
-  --md-on-error: #601410;
-  --md-inverse-surface: #e3e2e6;
+  --md-primary: #ffffff;
+  --md-on-primary: #0a0a0b;
+  --md-error: #ffb4ab;
+  --md-on-error: #690005;
+  --md-inverse-surface: #e5e2e3;
   --md-inverse-on-surface: #1c1b1f;
   --md-scrim: rgba(0,0,0,0.32);
 }
 
+/* Obsidian auxiliary primitives (keep light theme legible) */
+:root {
+  --ob-void: #000000;
+  --ob-card: #121214;
+  --ob-card-hover: #18181b;
+  --ob-card-high: #1c1c1f;
+  --ob-line: rgba(255, 255, 255, 0.07);
+  --ob-line-strong: rgba(255, 255, 255, 0.14);
+  --ob-glass: rgba(12, 12, 14, 0.88);
+  --ob-text-dim: rgba(255, 255, 255, 0.55);
+  --ob-text-faint: rgba(255, 255, 255, 0.4);
+}
+body.light-theme,
+body[data-theme-mode="light"] {
+  --ob-void: #f6f6f7;
+  --ob-card: #ffffff;
+  --ob-card-hover: #f2f2f4;
+  --ob-card-high: #ececef;
+  --ob-line: rgba(0, 0, 0, 0.08);
+  --ob-line-strong: rgba(0, 0, 0, 0.16);
+  --ob-glass: rgba(255, 255, 255, 0.88);
+  --ob-text-dim: rgba(0, 0, 0, 0.55);
+  --ob-text-faint: rgba(0, 0, 0, 0.4);
+}
+
 /* Theme mode variants (Оформление → Тема) */
 body[data-theme-mode="midnight"] {
-  --bg-base: #08090d;
-  --bg-surface: #0d0f16;
-  --bg-elevated: #161822;
-  --bg-highlight: #22242f;
+  --bg-base: #060607;
+  --bg-surface: #0e0e10;
+  --bg-elevated: #141416;
+  --bg-highlight: #232326;
 }
 body[data-theme-mode="contrast"] {
   --bg-base: #000000;
