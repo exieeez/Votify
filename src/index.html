@@ -26,13 +26,15 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Votify</title>
+    <link rel="stylesheet" href="fonts.css" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=0.7.8" />
     <link rel="stylesheet" href="custom-theme.css?v=0.7.8" />
     <link rel="stylesheet" href="home-personalization.css?v=0.7.8" />
+    <link rel="stylesheet" href="obsidian.css" />
     <link rel="icon" type="image/png" href="icon.png" />
-    <meta name="theme-color" content="#121212" />
+    <meta name="theme-color" content="#000000" />
   </head>
   <body>
     <!-- Фоновый слой: пресеты/картинки из настроек и мастерской рисуются здесь
@@ -250,7 +252,7 @@
       <!-- TITLEBAR -->
       <header class="titlebar-strip">
         <div class="titlebar-left">
-          <span class="titlebar-logo">Votify</span>
+          <span class="titlebar-logo">Votify<span class="titlebar-version">0.7.9</span></span>
         </div>
         <div class="titlebar-center">
           <span class="titlebar-page-title" id="page-title">Главная</span>
@@ -1586,7 +1588,7 @@
                 <p class="settings-note">Создайте свой уникальный дизайн оформления Votify, настроив цвета каждого элемента вручную.</p>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Основной цвет (Accent)</span>
-                  <input type="color" id="picker-color-primary" value="#1DB954" class="theme-color-input" />
+                  <input type="color" id="picker-color-primary" value="#FFFFFF" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Задний фон (Background)</span>
@@ -1606,7 +1608,7 @@
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Элемент в фокусе (Focus Glow)</span>
-                  <input type="color" id="picker-color-focus" value="#1DB954" class="theme-color-input" />
+                  <input type="color" id="picker-color-focus" value="#FFFFFF" class="theme-color-input" />
                 </div>
                 <div class="setting-item">
                   <label for="color-scheme-name-input">Название схемы</label>

@@ -3,21 +3,24 @@
    ============================================ */
 
 :root {
-  --bg-base: #121212;
-  --bg-surface: #181818;
-  --bg-elevated: #282828;
-  --bg-highlight: #222222;
-  --bg-card: #0f0f0f;
+  /* Obsidian Wave — pitch-black monochrome palette */
+  --bg-base: #0a0a0b;
+  --bg-surface: #121214;
+  --bg-elevated: #18181b;
+  --bg-highlight: #27272a;
+  --bg-card: #0f0f10;
   --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-tertiary: #6a6a6a;
-  --text-subdued: #5a5a5a;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #52525b;
+  --text-subdued: #71717a;
   --accent: #FFFFFF;
   --accent-hover: #D9D9D9;
   --accent-rgb: 255,255,255;
-  --danger: #ffffff;
-  --titlebar-h: 32px;
-  --sidebar-w: 64px;
+  --accent-cool: #7df4ff;           /* Electric cyan — sparing status accent */
+  --accent-cool-rgb: 125,244,255;
+  --danger: #e74c3c;
+  --titlebar-h: 36px;
+  --sidebar-w: 56px;
   --player-h: 72px;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -40,6 +43,31 @@
   --md-inverse-surface: #ffffff;
   --md-inverse-on-surface: #000000;
   --md-scrim: rgba(0,0,0,0.72);
+}
+
+/* Obsidian auxiliary primitives (keep light theme legible) */
+:root {
+  --ob-void: #000000;
+  --ob-card: #121214;
+  --ob-card-hover: #18181b;
+  --ob-card-high: #1c1c1f;
+  --ob-line: rgba(255, 255, 255, 0.07);
+  --ob-line-strong: rgba(255, 255, 255, 0.14);
+  --ob-glass: rgba(12, 12, 14, 0.88);
+  --ob-text-dim: rgba(255, 255, 255, 0.55);
+  --ob-text-faint: rgba(255, 255, 255, 0.4);
+}
+body.light-theme,
+body[data-theme-mode="light"] {
+  --ob-void: #f6f6f7;
+  --ob-card: #ffffff;
+  --ob-card-hover: #f2f2f4;
+  --ob-card-high: #ececef;
+  --ob-line: rgba(0, 0, 0, 0.08);
+  --ob-line-strong: rgba(0, 0, 0, 0.16);
+  --ob-glass: rgba(255, 255, 255, 0.88);
+  --ob-text-dim: rgba(0, 0, 0, 0.55);
+  --ob-text-faint: rgba(0, 0, 0, 0.4);
 }
 
 /* Theme mode variants (Оформление → Тема) */
