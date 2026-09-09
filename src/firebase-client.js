@@ -31,7 +31,11 @@
     };
   }
 
+  const PROFILE_FRAMES = ['none', 'glow', 'neon', 'rainbow', 'pixel', 'double', 'heart'];
+
   function cleanProfile(profile = {}) {
+    const bannerRaw = String(profile.banner || '').trim();
+    const cursorRaw = String(profile.cursor || '').trim();
     return {
       displayName: String(profile.displayName || '')
         .trim()
@@ -39,6 +43,14 @@
       avatar: String(profile.avatar || '').startsWith('data:image/')
         ? String(profile.avatar).slice(0, 150000)
         : '',
+      about: String(profile.about || '').trim().slice(0, 300),
+      banner: bannerRaw.startsWith('data:image/')
+        ? bannerRaw.slice(0, 200000)
+        : /^https:\/\/[^\s]{1,300}$/.test(bannerRaw)
+          ? bannerRaw
+          : oneOf(bannerRaw, ['grad-1','grad-2','grad-3','grad-4','grad-5','grad-6','grad-7','grad-8','grad-9',''], ''),
+      frame: oneOf(profile.frame, PROFILE_FRAMES, 'none'),
+      cursor: cursorRaw.startsWith('data:image/') ? cursorRaw.slice(0, 80000) : '',
     };
   }
 
@@ -145,13 +157,20 @@
         dispatchAuthState();
         if (!initialAuthStateHandled) {
           initialAuthStateHandled = true;
-          if (!user) window.setTimeout(() => openAuth('auth-register'), 0);
+          if (!user) window.setTimeout(() => openAuth('auth-login'), 0);
         }
       });
     } catch (error) {
       state.error = error;
       console.warn('[Firebase]', error.message || error);
       updateAccountUi();
+      // Браузерное превью (например, песочница Arena): firebase-конфига нет,
+      // но окно входа всё равно показываем, чтобы UI первого запуска был виден.
+      const isElectron = /electron/i.test(navigator.userAgent || '');
+      const isPreviewHost = /(^|\.)e2b\.app$/.test(location.hostname);
+      if (!isElectron && isPreviewHost) {
+        window.setTimeout(() => openAuth('auth-login'), 200);
+      }
     } finally {
       state.initialized = true;
     }
@@ -195,6 +214,10 @@
         email: user.email || '',
         isAnonymous: !!user.isAnonymous,
         avatar: '',
+        about: '',
+        banner: '',
+        frame: 'none',
+        cursor: '',
         createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
       };
@@ -464,6 +487,11 @@
     showAuthForm(formId);
     const overlay = document.getElementById('auth-overlay');
     if (overlay) overlay.style.display = 'flex';
+    window.setTimeout(() => {
+      const form = document.getElementById(formId);
+      const input = form && form.querySelector('input:not([type="hidden"])');
+      if (input) input.focus({ preventScroll: true });
+    }, 60);
   }
 
   function closeAuth() {
@@ -506,6 +534,8 @@
       if (icon) icon.textContent = user ? 'account_circle' : 'person_outline';
     }
     if (displayNameInput) displayNameInput.value = profile.displayName || user?.displayName || '';
+    const aboutInput = document.getElementById('profile-about');
+    if (aboutInput) aboutInput.value = profile.about || '';
     if (email)
       email.textContent =
         user?.email || (user?.isAnonymous ? 'Гостевой аккаунт' : 'Не выполнен вход');
@@ -688,6 +718,7 @@
         await saveProfile({
           displayName: document.getElementById('profile-display-name')?.value,
           avatar: state.profile?.avatar || '',
+          about: document.getElementById('profile-about')?.value,
         });
         setMessage('profile-message', 'Профиль сохранён');
       } catch (error) {
@@ -703,6 +734,7 @@
         await saveProfile({
           displayName: document.getElementById('profile-display-name')?.value,
           avatar,
+          about: document.getElementById('profile-about')?.value,
         });
         setMessage('profile-message', 'Аватар сохранён');
       } catch (error) {
@@ -753,4 +785,11 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireUi);
   else wireUi();
+
+  // Режим проверки: открой окно входа сразу, если в URL есть ?auth=1
+  if (new URLSearchParams(location.search).has('auth')) {
+    const open = () => openAuth('auth-login');
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', open);
+    else open();
+  }
 })();

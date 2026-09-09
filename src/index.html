@@ -2,20 +2,62 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      /* Самовосстановление от старого кэша/bfcache: один раз делаем
+         настоящую перезагрузку, если документ пришёл из прошлого билда
+         или восстановлен из bfcache (иначе частицы/плеер живут старым JS). */
+      (function () {
+        var BUILD = '0.7.2';
+        try {
+          var fresh = location.search.indexOf('reload=1') !== -1;
+          if (localStorage.getItem('votify-build') !== BUILD && !fresh) {
+            localStorage.setItem('votify-build', BUILD);
+            location.replace(location.pathname + '?ts=' + Date.now() + '&reload=1');
+            return;
+          }
+          localStorage.setItem('votify-build', BUILD);
+          window.addEventListener('pageshow', function (e) {
+            if (e.persisted) {
+              location.replace(location.pathname + '?ts=' + Date.now() + '&reload=1');
+            }
+          });
+        } catch (err) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Votify</title>
-    <link rel="stylesheet" href="fonts.css" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="custom-theme.css" />
-    <link rel="stylesheet" href="home-personalization.css" />
-    <link rel="stylesheet" href="obsidian.css" />
+    <link rel="stylesheet" href="styles.css?v=0.7.8" />
+    <link rel="stylesheet" href="custom-theme.css?v=0.7.8" />
+    <link rel="stylesheet" href="home-personalization.css?v=0.7.8" />
     <link rel="icon" type="image/png" href="icon.png" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#121212" />
   </head>
   <body>
+    <!-- Фоновый слой: пресеты/картинки из настроек и мастерской рисуются здесь
+         inline-стилем, чтобы никакие каскадные правила не могли его перебить -->
+    <div id="app-bg-layer" aria-hidden="true"></div>
     <!-- SPLASH -->
+    <!-- Cursor glow spotlight -->
+    <div id="cursor-glow"></div>
+    <div id="cursor-glow-2"></div>
+
+    <!-- Auto-updater banner like Discord -->
+    <div class="update-banner" id="update-banner" style="display:none">
+      <div class="update-banner-content">
+        <i class="material-icons">system_update</i>
+        <span id="update-banner-text">Доступно обновление</span>
+        <div class="update-banner-progress" id="update-banner-progress" style="display:none">
+          <div class="update-banner-progress-bar" id="update-banner-progress-bar"></div>
+        </div>
+      </div>
+      <div class="update-banner-actions">
+        <button class="update-banner-btn" id="update-banner-action">Обновить</button>
+        <button class="update-banner-close" id="update-banner-close"><i class="material-icons">close</i></button>
+      </div>
+    </div>
+
     <div class="splash-screen" id="splash-screen">
       <div class="splash-content">
         <img src="icon.png" alt="Votify" class="splash-app-icon" />
@@ -35,8 +77,30 @@
     <div class="loading-overlay hidden" id="loading-overlay" aria-hidden="true">
       <div class="loading-card">
         <div class="loading-visual">
-          <div class="loading-vinyl"><div class="loading-vinyl-core"></div></div>
-          <div class="loading-eq"><span class="loading-bar"></span><span class="loading-bar"></span><span class="loading-bar"></span><span class="loading-bar"></span></div>
+          <div class="hero-spinner" role="status" aria-label="Загрузка">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="vsp-def-1" x1="50%" x2="50%" y1="5.271%" y2="91.793%">
+                  <stop offset="0%" stop-color="currentColor" />
+                  <stop offset="100%" stop-color="currentColor" stop-opacity="0.55" />
+                </linearGradient>
+                <linearGradient id="vsp-def-2" x1="50%" x2="50%" y1="15.24%" y2="87.15%">
+                  <stop offset="0%" stop-color="currentColor" stop-opacity="0" />
+                  <stop offset="100%" stop-color="currentColor" stop-opacity="0.55" />
+                </linearGradient>
+              </defs>
+              <g transform="translate(1.5 1.625)">
+                <path
+                  d="M8.749.021a1.5 1.5 0 0 1 .497 2.958A7.5 7.5 0 0 0 3 10.375a7.5 7.5 0 0 0 7.5 7.5v3c-5.799 0-10.5-4.7-10.5-10.5C0 5.23 3.726.865 8.749.021"
+                  fill="url(#vsp-def-1)"
+                />
+                <path
+                  d="M15.392 2.673a1.5 1.5 0 0 1 2.119-.115A10.48 10.48 0 0 1 21 10.375c0 5.8-4.701 10.5-10.5 10.5v-3a7.5 7.5 0 0 0 5.007-13.084a1.5 1.5 0 0 1-.115-2.118"
+                  fill="url(#vsp-def-2)"
+                />
+              </g>
+            </svg>
+          </div>
         </div>
         <div class="loading-copy">
           <div class="loading-title" id="loading-title">Загрузка музыки</div>
@@ -52,43 +116,63 @@
         <div class="auth-logo">
           <img src="icon.png" alt="Votify" class="auth-logo-icon" />
           <h1>Votify</h1>
-          <span>Аккаунт и облачная синхронизация</span>
         </div>
         <div class="auth-form" id="auth-login">
           <h2>Вход</h2>
+          <div class="auth-field-wrap">
+            <label for="login-email">Эл. почта</label>
+            <div class="auth-field"><input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" /></div>
+          </div>
+          <div class="auth-field-wrap">
+            <label for="login-password">Пароль</label>
+            <div class="auth-field"><input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" /></div>
+          </div>
+          <div class="auth-error" id="login-error"></div>
+          <button class="auth-btn" id="login-btn">Войти</button>
+          <div class="auth-links"><a href="#" id="show-forgot">Забыли пароль?</a></div>
+          <div class="auth-divider"><span>или</span></div>
           <button class="auth-btn auth-btn-google google-login-btn" data-error-target="login-error">
             <svg class="google-icon" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285f4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62Z"/><path fill="#34a853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.59-5.04-3.72H.95v2.33A9 9 0 0 0 9 18Z"/><path fill="#fbbc05" d="M3.96 10.7A5.4 5.4 0 0 1 3.68 9c0-.59.1-1.16.28-1.7V4.97H.95A9 9 0 0 0 0 9c0 1.45.35 2.82.95 4.03l3.01-2.33Z"/><path fill="#ea4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A8.65 8.65 0 0 0 9 0 9 9 0 0 0 .95 4.97L3.96 7.3C4.67 5.17 6.66 3.58 9 3.58Z"/></svg>
             Войти через Google
           </button>
-          <div class="auth-divider"><span>или через email</span></div>
-          <div class="auth-field"><i class="material-icons">email</i><input type="email" id="login-email" placeholder="Email" autocomplete="email" /></div>
-          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="login-password" placeholder="Пароль" autocomplete="current-password" /></div>
-          <div class="auth-error" id="login-error"></div>
-          <button class="auth-btn" id="login-btn">Войти</button>
           <button class="auth-btn auth-btn-secondary guest-login-btn" id="guest-login-btn"><i class="material-icons">person_outline</i> Продолжить как гость</button>
-          <div class="auth-links"><a href="#" id="show-register">Создать аккаунт</a><a href="#" id="show-forgot">Забыли пароль?</a></div>
+          <p class="auth-switch-line">Нет аккаунта? <a href="#" id="show-register">Создать аккаунт</a></p>
         </div>
         <div class="auth-form" id="auth-register" style="display:none">
           <h2>Создайте аккаунт</h2>
-          <p class="auth-desc">Сохраняйте настройки, плейлисты и историю на всех устройствах.</p>
+          <div class="auth-field-wrap">
+            <label for="register-username">Имя профиля</label>
+            <div class="auth-field"><input type="text" id="register-username" placeholder="Как вас зовут?" autocomplete="username" maxlength="40" /></div>
+          </div>
+          <div class="auth-field-wrap">
+            <label for="register-email">Эл. почта</label>
+            <div class="auth-field"><input type="email" id="register-email" placeholder="you@example.com" autocomplete="email" /></div>
+          </div>
+          <div class="auth-field-wrap">
+            <label for="register-password">Пароль</label>
+            <div class="auth-field"><input type="password" id="register-password" placeholder="Минимум 6 символов" autocomplete="new-password" /></div>
+          </div>
+          <div class="auth-field-wrap">
+            <label for="register-password2">Повторите пароль</label>
+            <div class="auth-field"><input type="password" id="register-password2" placeholder="Ещё раз пароль" autocomplete="new-password" /></div>
+          </div>
+          <div class="auth-error" id="register-error"></div>
+          <button class="auth-btn" id="register-btn">Создать аккаунт</button>
+          <div class="auth-divider"><span>или</span></div>
           <button class="auth-btn auth-btn-google google-login-btn" data-error-target="register-error">
             <svg class="google-icon" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285f4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62Z"/><path fill="#34a853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.59-5.04-3.72H.95v2.33A9 9 0 0 0 9 18Z"/><path fill="#fbbc05" d="M3.96 10.7A5.4 5.4 0 0 1 3.68 9c0-.59.1-1.16.28-1.7V4.97H.95A9 9 0 0 0 0 9c0 1.45.35 2.82.95 4.03l3.01-2.33Z"/><path fill="#ea4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A8.65 8.65 0 0 0 9 0 9 9 0 0 0 .95 4.97L3.96 7.3C4.67 5.17 6.66 3.58 9 3.58Z"/></svg>
             Продолжить через Google
           </button>
-          <div class="auth-divider"><span>или через email</span></div>
-          <div class="auth-field"><i class="material-icons">person</i><input type="text" id="register-username" placeholder="Имя профиля" autocomplete="username" maxlength="40" /></div>
-          <div class="auth-field"><i class="material-icons">email</i><input type="email" id="register-email" placeholder="Email" autocomplete="email" /></div>
-          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="register-password" placeholder="Пароль — минимум 6 символов" autocomplete="new-password" /></div>
-          <div class="auth-field"><i class="material-icons">lock</i><input type="password" id="register-password2" placeholder="Повторите пароль" autocomplete="new-password" /></div>
-          <div class="auth-error" id="register-error"></div>
-          <button class="auth-btn" id="register-btn">Создать аккаунт</button>
           <button class="auth-btn auth-btn-secondary guest-login-btn" id="guest-register-btn"><i class="material-icons">person_outline</i> Продолжить как гость</button>
-          <div class="auth-links"><a href="#" id="show-login-from-register">Уже есть аккаунт? Войти</a></div>
+          <p class="auth-switch-line">Уже есть аккаунт? <a href="#" id="show-login-from-register">Войти</a></p>
         </div>
         <div class="auth-form" id="auth-forgot" style="display:none">
           <h2>Сброс пароля</h2>
-          <p class="auth-desc">Firebase отправит ссылку для создания нового пароля.</p>
-          <div class="auth-field"><i class="material-icons">email</i><input type="email" id="forgot-email" placeholder="Email" autocomplete="email" /></div>
+          <p class="auth-desc">Введите адрес электронной почты — мы отправим ссылку для восстановления пароля.</p>
+          <div class="auth-field-wrap">
+            <label for="forgot-email">Эл. почта</label>
+            <div class="auth-field"><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email" /></div>
+          </div>
           <div class="auth-error" id="forgot-error"></div>
           <div class="auth-success" id="forgot-success"></div>
           <button class="auth-btn" id="forgot-btn">Отправить ссылку</button>
@@ -114,6 +198,8 @@
         </div>
         <div class="profile-fields">
           <label>Имя профиля<input type="text" id="profile-display-name" maxlength="40" placeholder="Имя" /></label>
+          <label>О себе<input type="text" id="profile-about" maxlength="300" placeholder="Пара слов о себе — увидят друзья" /></label>
+
           <div class="profile-meta-row"><span>Email</span><strong id="profile-email">—</strong></div>
           <div class="profile-meta-row"><span>Тип аккаунта</span><strong id="profile-account-kind">—</strong></div>
           <div class="profile-sync-status"><i class="material-icons">cloud_done</i><span id="profile-cloud-status">Проверка Firebase…</span></div>
@@ -164,7 +250,7 @@
       <!-- TITLEBAR -->
       <header class="titlebar-strip">
         <div class="titlebar-left">
-          <span class="titlebar-logo">Votify<span class="titlebar-version">0.6.3</span></span>
+          <span class="titlebar-logo">Votify</span>
         </div>
         <div class="titlebar-center">
           <span class="titlebar-page-title" id="page-title">Главная</span>
@@ -218,10 +304,7 @@
         <div class="sidebar-bottom">
           <button class="nav-btn" id="nav-profile-btn" title="Войти в аккаунт"><i class="material-icons">person_outline</i></button>
           <button class="nav-btn" id="nav-settings-btn" title="Настройки">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-              <circle cx="12" cy="12" r="8"/>
-              <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
-            </svg>
+            <i class="material-icons" style="font-size:22px;">tune</i>
           </button>
         </div>
       </aside>
@@ -246,9 +329,10 @@
           </div>
         </div>
         <div class="right-player-art">
-          <div class="right-player-cover-shell">
+          <div class="right-player-cover-shell is-empty">
             <div class="right-player-cover-glow"></div>
             <img class="right-player-cover" id="right-player-cover" src="" alt="" style="display:none"/>
+            <div class="right-player-cover-fallback cover-fallback" id="right-player-cover-fallback"><i class="material-icons">music_note</i></div>
             <div class="right-player-cover-shine"></div>
           </div>
           <div class="right-player-info">
@@ -430,8 +514,9 @@
           <div class="player-page-container">
             <div class="player-page-top">
               <!-- LEFT: Cover with Hover Overlay -->
-              <div class="pp-cover-wrap">
+              <div class="pp-cover-wrap is-empty">
                 <img class="pp-cover" id="page-player-cover" src="" alt="Обложка трека" />
+                <div class="pp-cover-fallback cover-fallback" id="page-player-cover-fallback"><i class="material-icons">music_note</i></div>
                 <div class="pp-cover-overlay">
                   <button class="pp-overlay-btn pp-fullscreen-btn" id="page-player-fs" title="На весь экран">
                     <i class="material-icons">fullscreen</i>
@@ -576,8 +661,8 @@
               <div class="library-active-playlist-view" id="lib-detail-pane" style="display:none;">
                 <div class="lib-detail-header-card" id="lib-header-card">
                   <div class="lib-detail-left">
-                    <div class="lib-detail-cover" id="lib-detail-cover">
-                      <i class="material-icons" id="lib-detail-cover-icon">queue_music</i>
+                    <div class="lib-detail-cover is-empty" id="lib-detail-cover">
+                      <div class="cover-fallback lib-detail-cover-fallback" id="lib-detail-cover-fallback"><i class="material-icons" id="lib-detail-cover-icon">queue_music</i></div>
                       <img id="lib-detail-cover-img" src="" alt="Cover" style="display:none;" />
                     </div>
                     <div class="lib-detail-info">
@@ -644,7 +729,6 @@
             <div class="artist-info-block">
               <h2 id="artist-name">Artist</h2>
               <div class="artist-meta">
-                <span class="artist-listeners" id="artist-listeners"><i class="material-icons">headphones</i> <span id="artist-listeners-count">0</span> слушателей за месяц</span>
                 <span class="artist-track-count" id="artist-track-count">0 треков</span>
               </div>
               <div class="artist-actions-row" style="margin-top: 12px;">
@@ -675,8 +759,9 @@
             <button class="btn-secondary" id="back-from-album-btn"><i class="material-icons">arrow_back</i> Назад</button>
           </div>
           <div class="album-screen-header">
-            <div class="album-screen-cover-wrap">
+            <div class="album-screen-cover-wrap is-empty">
               <img id="album-screen-cover" src="" alt="Album Cover" />
+              <div class="album-screen-cover-fallback cover-fallback" id="album-screen-cover-fallback"><i class="material-icons">music_note</i></div>
             </div>
             <div class="album-screen-info">
               <span class="album-screen-badge" id="album-screen-badge">Альбом</span>
@@ -701,8 +786,9 @@
       <!-- OLD PLAYER BAR (hidden, keeps IDs alive for existing JS) -->
       <footer class="player-bar" id="player-bar" style="display:none!important">
         <div class="player-bar-left" id="player-expand-btn">
-          <div class="player-bar-cover-wrap">
+          <div class="player-bar-cover-wrap is-empty">
             <img id="player-bar-cover" class="player-bar-cover" src="" alt="" />
+            <div class="player-bar-cover-fallback cover-fallback" id="player-bar-cover-fallback"><i class="material-icons">music_note</i></div>
             <canvas id="mini-visualizer" class="mini-visualizer"></canvas>
           </div>
           <div class="player-bar-info">
@@ -763,7 +849,10 @@
       <footer class="floating-island" id="floating-island">
         <!-- LEFT: cover + info + like -->
         <div class="fi-left">
-          <img class="fi-cover" id="fi-cover" src="" alt="" />
+          <div class="fi-cover-wrap is-empty">
+            <img class="fi-cover" id="fi-cover" src="" alt="" />
+            <div class="fi-cover-fallback cover-fallback" id="fi-cover-fallback"><i class="material-icons">music_note</i></div>
+          </div>
           <div class="fi-info">
             <div class="fi-title" id="fi-title">Votify</div>
             <div class="fi-artist" id="fi-artist">Выберите трек</div>
@@ -835,13 +924,19 @@
             <div class="custom-eq-labels" id="fi-eq-labels"></div>
           </div>
         </div>
-      </div>
-    </div>
+      </footer>
 
     <!-- FULLSCREEN PLAYER (100% FULL SCREEN) -->
     <div class="fullscreen-player" id="fullscreen-player">
       <div class="fs-gradient-bg" id="fs-gradient-bg"></div>
       <div class="fs-lava-lamp" id="fs-lava-lamp">
+        <div class="fs-lava-blob"></div>
+        <div class="fs-lava-blob"></div>
+        <div class="fs-lava-blob"></div>
+        <div class="fs-lava-blob"></div>
+        <div class="fs-lava-blob"></div>
+        <div class="fs-lava-blob"></div>
+        <div class="fs-lava-blob"></div>
         <div class="fs-lava-blob"></div>
         <div class="fs-lava-blob"></div>
         <div class="fs-lava-blob"></div>
@@ -861,8 +956,9 @@
         <!-- LEFT COLUMN: Cover, Overlay Buttons, Meta, Timeline, Controls -->
         <div class="fs-left-column">
           <!-- COVER CONTAINER WITH INSET OVERLAY BUTTONS -->
-          <div class="fs-cover-container">
+          <div class="fs-cover-container is-empty">
             <img class="fs-cover" id="fs-cover" src="" alt="Album Cover" />
+            <div class="fs-cover-fallback cover-fallback" id="fs-cover-fallback"><i class="material-icons">music_note</i></div>
             <div class="fs-cover-overlay-bar">
               <button class="fs-cover-btn fs-fav-btn" id="fs-fav-btn" title="В любимое">
                 <i class="material-icons">favorite_border</i>
@@ -935,6 +1031,7 @@
         </div>
       </div>
     </div>
+    </div>
 
     <!-- SETTINGS OVERLAY -->
     <div class="settings-overlay" id="settings-overlay" style="display:none">
@@ -946,7 +1043,7 @@
         <div class="settings-modal-body">
           <div class="settings-left-menu">
             <!-- ОСНОВНЫЕ -->
-            <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ОСНОВНЫЕ</div>
+            <div class="settings-menu-category">ОСНОВНЫЕ</div>
             <button class="settings-menu-item active" data-settings-section="gen-main"><i class="material-icons">tune</i>Основные</button>
 
             <button class="settings-menu-item" data-settings-section="gen-audio"><i class="material-icons">volume_up</i>Аудио</button>
@@ -955,7 +1052,7 @@
             <button class="settings-menu-item" data-settings-section="gen-storage"><i class="material-icons">storage</i>Хранилище</button>
 
             <!-- ОФОРМЛЕНИЕ -->
-            <div class="settings-menu-category" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); opacity: 0.5; margin: 12px 0 4px 12px; letter-spacing: 0.5px;">ОФОРМЛЕНИЕ</div>
+            <div class="settings-menu-category">ОФОРМЛЕНИЕ</div>
             <button class="settings-menu-item" data-settings-section="app-player"><i class="material-icons">play_circle_filled</i>Плеер</button>
             <button class="settings-menu-item" data-settings-section="app-cover"><i class="material-icons">image</i>Обложка</button>
             <button class="settings-menu-item" data-settings-section="app-ui"><i class="material-icons">widgets</i>Интерфейс</button>
@@ -1044,11 +1141,11 @@
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-gapless" /><span class="toggle-slider"></span></label>
                 </div>
-                <div class="setting-item" style="margin-top: 12px;">
+                <div class="setting-item">
                   <div class="setting-row"><label>Кроссфейд (плавный переход)</label><span class="setting-value" id="crossfade-value">0 сек</span></div>
                   <input type="range" class="settings-range" id="crossfade-duration" min="0" max="15" value="0" />
                 </div>
-                <div class="setting-toggle-item" style="margin-top: 12px;">
+                <div class="setting-toggle-item">
                   <div class="setting-toggle-info">
                     <span class="setting-toggle-label">Нормализация громкости (AGC)</span>
                     <span class="setting-toggle-desc">Выравнивать громкость разных треков на один уровень</span>
@@ -1080,6 +1177,21 @@
               </div>
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">blur_on</i><h3>Эффекты и Размытие</h3></div>
+                <div class="setting-item">
+                  <label for="setting-fx-quality">Качество эффектов (свечение курсора, лава-лампа)</label>
+                  <select id="setting-fx-quality" class="m3-select">
+                    <option value="auto">Авто — по FPS (рекомендуется)</option>
+                    <option value="max">Максимальное</option>
+                    <option value="low">Экономное — если лагает</option>
+                  </select>
+                </div>
+                <div class="setting-toggle-item">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Свет под курсором</span>
+                    <span class="setting-toggle-desc">Мягкий spotlight, следящий за мышью. Выключите, если нужен максимум производительности</span>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" id="setting-glow" /><span class="toggle-slider"></span></label>
+                </div>
                 <div class="setting-item">
                   <div class="setting-row"><label>Качество и сила размытия (Blur)</label><span class="setting-value" id="background-blur-value">15px</span></div>
                   <input type="range" class="settings-range" id="background-blur-slider" min="0" max="30" value="15" />
@@ -1118,7 +1230,7 @@
                   <div class="setting-toggle-info"><span class="setting-toggle-label">Глобальная активация горячих клавиш</span><span class="setting-toggle-desc">Управлять плеером, даже когда окно Votify свернуто</span></div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-global-hotkeys" checked /><span class="toggle-slider"></span></label>
                 </div>
-                <div class="hotkeys-list" id="hotkeys-list" style="margin-top: 16px;">
+                <div class="hotkeys-list" id="hotkeys-list">
                   <div class="hotkey-row" data-action="play"><span class="hotkey-action">Воспроизвести/пауза</span><button class="hotkey-key-btn" data-action="play"><kbd><span>Space</span></kbd></button></div>
                   <div class="hotkey-row" data-action="next"><span class="hotkey-action">Следующий трек</span><button class="hotkey-key-btn" data-action="next"><kbd><span>N</span></kbd></button></div>
                   <div class="hotkey-row" data-action="prev"><span class="hotkey-action">Предыдущий трек</span><button class="hotkey-key-btn" data-action="prev"><kbd><span>P</span></kbd></button></div>
@@ -1126,28 +1238,28 @@
                   <div class="hotkey-row" data-action="volup"><span class="hotkey-action">Увеличить громкость</span><button class="hotkey-key-btn" data-action="volup"><kbd><span>↑</span></kbd></button></div>
                   <div class="hotkey-row" data-action="voldown"><span class="hotkey-action">Уменьшить громкость</span><button class="hotkey-key-btn" data-action="voldown"><kbd><span>↓</span></kbd></button></div>
                 </div>
-                <div class="hotkey-hint" style="margin-top:14px;font-size:12px;color:var(--text-tertiary)">Кликните на кнопку сочетания клавиш, чтобы переназначить. Нажмите Esc для отмены.</div>
+                <div class="hotkey-hint">Кликните на кнопку сочетания клавиш, чтобы переназначить. Нажмите Esc для отмены.</div>
               </div>
             </div>
 
             <!-- SECTION 6: Хранилище (gen-storage) -->
             <div class="settings-panel" id="settings-panel-gen-storage">
-              <div class="settings-section" style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap;">
-                <div style="width: 140px; height: 140px; position: relative;">
+              <div class="settings-section storage-hero">
+                <div class="storage-hero-donut">
                   <!-- Beautiful Circular SVG chart -->
-                  <svg width="100%" height="100%" viewBox="0 0 42 42" class="donut">
+                  <svg viewBox="0 0 42 42" class="donut">
                     <circle class="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
                     <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="rgba(255,255,255,0.08)" stroke-width="4"></circle>
                     <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--accent)" stroke-width="4" stroke-dasharray="70 30" stroke-dashoffset="25"></circle>
                   </svg>
-                  <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <span id="storage-pie-used" style="font-size: 18px; font-weight: 800; color: #fff;">1.4 МБ</span>
-                    <span style="font-size: 10px; color: var(--text-secondary);">Использовано</span>
+                  <div class="storage-hero-donut-center">
+                    <span class="storage-donut-value" id="storage-pie-used">1.4 МБ</span>
+                    <span class="storage-donut-caption">Использовано</span>
                   </div>
                 </div>
-                <div style="flex: 1; min-width: 200px;">
+                <div class="storage-hero-info">
                   <h3>Управление памятью приложения</h3>
-                  <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Здесь вы можете выборочно удалять локальный кэш, чтобы освободить место на диске.</p>
+                  <p class="settings-note">Здесь вы можете выборочно удалять локальный кэш, чтобы освободить место на диске.</p>
                 </div>
               </div>
               <div class="settings-section">
@@ -1164,8 +1276,8 @@
                   <div class="setting-toggle-info"><span class="setting-toggle-label">Тексты песен</span><span class="setting-toggle-desc" id="cache-lyrics-size">Размер кэша: 0.2 МБ</span></div>
                   <button class="btn-secondary btn-sm" id="clear-lyrics-cache-btn">Очистить тексты</button>
                 </div>
-                <div style="margin-top: 18px; display: flex; gap: 8px;">
-                  <button class="btn-danger" id="clear-all-storage-btn" style="flex: 1; justify-content: center;"><i class="material-icons">delete_sweep</i> Очистить весь кэш и данные</button>
+                <div class="settings-action-row">
+                  <button class="btn-danger" id="clear-all-storage-btn"><i class="material-icons">delete_sweep</i> Очистить весь кэш и данные</button>
                 </div>
               </div>
             </div>
@@ -1230,8 +1342,11 @@
                   <select id="setting-cover-shape" class="m3-select">
                     <option value="Закруглённый квадрат" selected>Закруглённый квадрат</option>
                     <option value="Квадрат">Квадрат</option>
+                    <option value="Мягкий квадрат">Мягкий квадрат</option>
                     <option value="Круг">Круг</option>
                     <option value="Виниловая пластинка">Виниловая пластинка</option>
+                    <option value="Шестиугольник">Шестиугольник</option>
+                    <option value="Ромб">Ромб</option>
                   </select>
                 </div>
               </div>
@@ -1279,13 +1394,13 @@
             <div class="settings-panel" id="settings-panel-app-ui">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">brightness_medium</i><h3>Тема оформления</h3></div>
-                <div class="theme-mode-presets" id="theme-mode-presets" style="margin-bottom: 14px;">
+                <div class="theme-mode-presets" id="theme-mode-presets">
                   <button class="theme-mode-card active" data-theme-mode="dark" title="Тёмная"><span class="theme-mode-swatch theme-mode-swatch-dark"></span><span>Тёмная</span></button>
                   <button class="theme-mode-card" data-theme-mode="light" title="Светлая"><span class="theme-mode-swatch" style="background: #ffffff; border: 1px solid #ddd;"></span><span>Светлая</span></button>
                   <button class="theme-mode-card" data-theme-mode="system" title="Системная"><span class="theme-mode-swatch" style="background: linear-gradient(135deg, #121212 50%, #ffffff 50%);"></span><span>Системная</span></button>
                 </div>
-                <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:8px;">Пресеты цветовой схемы:</style>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;" id="ui-theme-presets">
+                <span class="presets-label">Пресеты цветовой схемы:</span>
+                <div class="scheme-grid" id="ui-theme-presets">
                   <button class="btn-secondary btn-sm active" data-preset="neutral">Neutral</button>
                   <button class="btn-secondary btn-sm" data-preset="amoled">AMOLED</button>
                   <button class="btn-secondary btn-sm" data-preset="crimson">Crimson</button>
@@ -1301,7 +1416,7 @@
                   <button class="btn-secondary btn-sm" data-preset="aqua">Aqua</button>
                   <button class="btn-secondary btn-sm" data-preset="sunset">Sunset</button>
                   <button class="btn-secondary btn-sm" data-preset="slate">Slate</button>
-                  <button class="btn-accent btn-sm" data-preset="custom"><i class="material-icons" style="font-size:16px">palette</i> Своя тема</button>
+                  <button class="btn-accent btn-sm" data-preset="custom"><i class="material-icons">palette</i> Своя тема</button>
                 </div>
               </div>
               <div class="settings-section">
@@ -1322,7 +1437,7 @@
                     <option value="sf">San Francisco</option>
                   </select>
                 </div>
-                <div class="setting-item" style="margin-top: 8px;">
+                <div class="setting-item">
                   <div class="setting-row"><label>Размер шрифта</label><span class="setting-value" id="font-size-slider-value">16px</span></div>
                   <input type="range" class="settings-range" id="font-size-slider" min="12" max="24" value="16" />
                 </div>
@@ -1338,13 +1453,24 @@
                   <input type="range" class="settings-range" id="slider-ui-scale" min="75" max="125" value="100" />
                 </div>
               </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">mouse</i><h3>Курсор</h3></div>
+                <p class="settings-note">Готовый курсор или свой файл (PNG/SVG/ICO до 64 КБ). Выбор сохраняется в теме мастерской.</p>
+                <div class="cursor-preset-grid" id="cursor-preset-grid"></div>
+                <div class="cursor-custom-row">
+                  <label class="auth-btn auth-btn-secondary" for="cursor-file-input"><i class="material-icons">upload_file</i> Добавить свой</label>
+                  <input type="file" id="cursor-file-input" accept="image/png,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" hidden />
+                  <button class="auth-btn auth-btn-secondary" id="cursor-reset-btn">Стандартный</button>
+                </div>
+                <div class="cursor-custom-list" id="cursor-custom-list"></div>
+              </div>
             </div>
 
             <!-- SECTION 10: Вкладки (app-tabs) -->
             <div class="settings-panel" id="settings-panel-app-tabs">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">tab</i><h3>Вкладки навигации</h3></div>
-                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Активируйте и настройте вкладки на панели быстрого доступа.</p>
+                <p class="settings-note">Активируйте и настройте вкладки на панели быстрого доступа.</p>
                 <div class="setting-toggle-item">
                   <div class="setting-toggle-info"><span class="setting-toggle-label">Главный экран (Home)</span><span class="setting-toggle-desc">Показывать рекомендации и историю</span></div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-tab-home" checked /><span class="toggle-slider"></span></label>
@@ -1368,7 +1494,7 @@
             <div class="settings-panel" id="settings-panel-app-bg">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">wallpaper</i><h3>Изображение фона</h3></div>
-                <div class="bg-presets" id="bg-presets" style="margin-bottom: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;">
+                <div class="bg-presets" id="bg-presets">
                   <button class="bg-card bg-card-active" data-bg="default"><div class="bg-swatch bg-none"></div><span class="bg-label">Стандарт</span></button>
                   <button class="bg-card" data-bg="grad-1"><div class="bg-swatch" style="background:linear-gradient(135deg, #7928ca 0%, #ff0080 50%, #11101d 100%)"></div><span class="bg-label">Киберпанк</span></button>
                   <button class="bg-card" data-bg="grad-2"><div class="bg-swatch" style="background:linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #050b14 100%)"></div><span class="bg-label">Океан</span></button>
@@ -1382,7 +1508,7 @@
                 </div>
                 <div class="bg-custom-row">
                   <div class="bg-color-picker-wrap">
-                    <span class="material-icons" style="font-size:16px;color:var(--text-secondary)">palette</span>
+                    <span class="material-icons bg-custom-row-icon">palette</span>
                     <label class="bg-color-btn" id="bg-color-btn">
                       <input type="color" id="bg-color-input" value="#121212" class="hidden-color-input" />
                       <div class="bg-color-preview" id="bg-color-preview" style="background:#121212"></div>
@@ -1431,7 +1557,7 @@
                     <option value="network">Network (Нейросеть)</option>
                   </select>
                 </div>
-                <div class="setting-item" style="margin-top: 8px;">
+                <div class="setting-item">
                   <div class="setting-row"><label>Количество частиц</label><span class="setting-value" id="particle-count-val">50</span></div>
                   <input type="range" class="settings-range" id="slider-particle-count" min="10" max="250" value="50" />
                 </div>
@@ -1457,32 +1583,32 @@
             <div class="settings-panel" id="settings-panel-app-custom">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">color_lens</i><h3>Конструктор тем (Моя тема)</h3></div>
-                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">Создайте свой уникальный дизайн оформления Votify, настроив цвета каждого элемента вручную.</p>
+                <p class="settings-note">Создайте свой уникальный дизайн оформления Votify, настроив цвета каждого элемента вручную.</p>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Основной цвет (Accent)</span>
-                  <input type="color" id="picker-color-primary" value="#FFFFFF" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-primary" value="#1DB954" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Задний фон (Background)</span>
-                  <input type="color" id="picker-color-bg" value="#121212" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-bg" value="#121212" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Цвет текста (Text Color)</span>
-                  <input type="color" id="picker-color-text" value="#ffffff" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-text" value="#ffffff" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Карточки и панели (Card Fill)</span>
-                  <input type="color" id="picker-color-cards" value="#181818" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-cards" value="#181818" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Границы элементов (Borders)</span>
-                  <input type="color" id="picker-color-borders" value="#2a2a2a" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-borders" value="#2a2a2a" class="theme-color-input" />
                 </div>
                 <div class="setting-toggle-item">
                   <span class="setting-toggle-label">Элемент в фокусе (Focus Glow)</span>
-                  <input type="color" id="picker-color-focus" value="#FFFFFF" style="border: none; background: none; cursor: pointer; width: 44px; height: 32px;" />
+                  <input type="color" id="picker-color-focus" value="#1DB954" class="theme-color-input" />
                 </div>
-                <div class="setting-item" style="margin-top: 14px;">
+                <div class="setting-item">
                   <label for="color-scheme-name-input">Название схемы</label>
                   <input
                     type="text"
@@ -1493,11 +1619,11 @@
                     autocomplete="off"
                   />
                 </div>
-                <div style="margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap;">
-                  <button class="btn-accent" id="btn-custom-theme-apply" type="button" style="flex: 1; min-width: 180px; justify-content: center;">
+                <div class="settings-action-row">
+                  <button class="btn-accent" id="btn-custom-theme-apply" type="button">
                     <i class="material-icons">palette</i> Применить свою тему
                   </button>
-                  <button class="btn-secondary" id="btn-custom-theme-save" type="button" style="flex: 1; min-width: 180px; justify-content: center;">
+                  <button class="btn-secondary" id="btn-custom-theme-save" type="button">
                     <i class="material-icons">save</i> Сохранить схему
                   </button>
                 </div>
@@ -1571,9 +1697,9 @@
     <script src="/vendor/firebase-app-compat.js"></script>
     <script src="/vendor/firebase-auth-compat.js"></script>
     <script src="/vendor/firebase-firestore-compat.js"></script>
-    <script src="firebase-client.js"></script>
-    <script src="color-schemes.js"></script>
-    <script src="main.js"></script>
-    <script src="workshop.js"></script>
+    <script src="firebase-client.js?v=0.7.8"></script>
+    <script src="color-schemes.js?v=0.7.8"></script>
+    <script src="main.js?v=0.7.8"></script>
+    <script src="workshop.js?v=0.7.8"></script>
   </body>
 </html>

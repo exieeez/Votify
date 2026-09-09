@@ -253,6 +253,7 @@ async function loadLyricsForTrack(title, artist) {
         return null;
       })
       .filter(Boolean);
+    attachWordTimings(currentLyricsLines);
     if (el && currentLyricsLines.length > 0) updateLyricsLine();
   } catch (e) {
     /* ignore */
@@ -273,15 +274,67 @@ function updateLyricsLine() {
   if (idx !== currentLyricIndex) {
     currentLyricIndex = idx;
     const text = idx >= 0 ? currentLyricsLines[idx].text : '';
-    el.textContent = text;
+    el.innerHTML = idx >= 0 ? lyricsWordsHtml(currentLyricsLines[idx]) : '';
+    highlightLyricsWords(el, currentLyricsLines[idx], audio.currentTime);
     if (text && appSettings.translateLyrics) {
       translateLyricLine(text).then(translated => {
         if (translated && currentLyricIndex === idx) {
-          el.textContent = `${text} / ${translated}`;
+          el.insertAdjacentHTML(
+            'beforeend',
+            ` <span class="lyrics-translation">/ ${escapeHtml(translated)}</span>`
+          );
         }
       });
     }
+  } else if (idx >= 0) {
+    highlightLyricsWords(el, currentLyricsLines[idx], audio.currentTime);
   }
+}
+
+// === Караоке: потактовая разбивка строк на слова ===
+// Тайминги слов = пропорциональное распределение длительности строки
+// (до начала следующей) по длине слов: близких к реальным LRC-слов нет,
+// поэтому караоке приближённое, но живое и всегда синхронное со строкой.
+function attachWordTimings(lines) {
+  (lines || []).forEach((line, i) => {
+    const words = String(line.text || '').split(/\s+/).filter(Boolean);
+    const nextTime = lines[i + 1] ? lines[i + 1].time : line.time + Math.max(3, words.length * 0.45);
+    const dur = Math.max(0.6, nextTime - line.time - 0.15);
+    const total = words.reduce((s, w) => s + Math.max(1, w.length), 0) || 1;
+    let acc = line.time;
+    line.words = words.map(w => {
+      const share = (Math.max(1, w.length) / total) * dur;
+      const item = { text: w, start: acc };
+      acc += share;
+      return item;
+    });
+  });
+  return lines;
+}
+
+function lyricsWordsHtml(line) {
+  const words = line.words || [];
+  if (!words.length) return escapeHtml(line.text || '') || '&nbsp;';
+  return words
+    .map((w, wi) => `<span class="lyrics-word" data-w="${wi}">${escapeHtml(w.text)}</span>`)
+    .join(' ');
+}
+
+function highlightLyricsWords(lineEl, line, time) {
+  if (!lineEl || !line || !line.words || !line.words.length) return -1;
+  let wi = -1;
+  for (let k = line.words.length - 1; k >= 0; k--) {
+    if (time >= line.words[k].start) {
+      wi = k;
+      break;
+    }
+  }
+  const spans = lineEl.querySelectorAll('.lyrics-word');
+  spans.forEach((sp, k) => {
+    sp.classList.toggle('w-active', k === wi);
+    sp.classList.toggle('w-past', k < wi);
+  });
+  return wi;
 }
 
 function updateFullscreenLyrics(time) {
@@ -298,9 +351,19 @@ function updateFullscreenLyrics(time) {
     const active = i === idx;
     el.classList.toggle('active', active);
     el.classList.toggle('past', idx >= 0 && i < idx);
-    if (active) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   });
+  // караоке по словам + скролл только при смене строки (без дёрганья на каждое слово)
+  if (idx !== fsLyricsLastLine) {
+    fsLyricsLastLine = idx;
+    // гасим подсветку слов на покинутой строке
+    document
+      .querySelectorAll('#fs-lyrics-body .lyrics-word.w-active, #fs-lyrics-body .lyrics-word.w-past')
+      .forEach(sp => sp.classList.remove('w-active', 'w-past'));
+    if (idx >= 0 && lines[idx]) lines[idx].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  if (idx >= 0 && lines[idx]) highlightLyricsWords(lines[idx], fsLyricsData[idx], time);
 }
+let fsLyricsLastLine = -2;
 
 function readStoredJson(key, fallback) {
   const raw = localStorage.getItem(key);
@@ -329,7 +392,7 @@ let appSettings = readStoredJson('votify-settings', {
   font: 'default',
   bgUrl: '',
   opacity: '98',
-  accent: '#FFFFFF',
+  accent: '#1DB954',
   audioQuality: 'medium',
   autoPlay: true,
   crossfade: 0,
@@ -354,7 +417,7 @@ let appSettings = readStoredJson('votify-settings', {
   playbackRate: 1,
   preload: 'auto',
   // Interface settings
-  theme: 'dark',
+  theme: 'contrast',
   transparency: false,
   fontFamily: 'default',
   fontSize: '16px',
@@ -369,13 +432,13 @@ let appSettings = readStoredJson('votify-settings', {
   accentGlow: true,
   trackCardStyle: 'default',
   backgroundBlur: 0,
-  perfParticles: false,
+  perfParticles: true,
   bgParticles: 'none',
   savedColorSchemes: [],
   activeColorSchemeId: '',
 });
 
-if (appSettings.perfParticles === undefined) appSettings.perfParticles = false;
+if (appSettings.perfParticles === undefined) appSettings.perfParticles = true;
 if (appSettings.bgParticles === undefined) appSettings.bgParticles = 'none';
 if (!Array.isArray(appSettings.savedColorSchemes)) appSettings.savedColorSchemes = [];
 if (typeof appSettings.activeColorSchemeId !== 'string') appSettings.activeColorSchemeId = '';
@@ -405,14 +468,33 @@ function sanitizeAppColorSchemes() {
 sanitizeAppColorSchemes();
 
 // One-time cleanup for installations that inherited the old intrusive visual
-// defaults. Users can still enable particles again from the appearance panel.
-const cleanPlayerUiMigration = 'votify-clean-player-ui-v1';
+// defaults (particles were forced ON for everyone). The new default is a
+// clean background — particles are an opt-in effect from the appearance
+// panel. If the stored values still look like the old forced defaults
+// (dots + untouched sliders in any of the historical stock combinations),
+// switch them off once; any manual tuning of the type or sliders is
+// respected. v4 also covers combos that older migrations missed
+// (e.g. dots + 50/15/3 or dots + 80/undefined/undefined).
+const cleanPlayerUiMigration = 'votify-clean-player-ui-v4';
 if (localStorage.getItem(cleanPlayerUiMigration) !== 'done') {
-  appSettings.perfParticles = false;
-  appSettings.bgParticles = 'none';
+  appSettings.perfParticles = appSettings.perfParticles !== false;
+  const pCount = appSettings.particleCount;
+  const pSpeed = appSettings.particleSpeed;
+  const pSize = appSettings.particleSize;
+  const stockCount = pCount === undefined || pCount === 50 || pCount === 80;
+  const stockSpeed = pSpeed === undefined || pSpeed === 15 || pSpeed === 20;
+  const stockSize = pSize === undefined || pSize === 3 || pSize === 3.5;
+  if (appSettings.bgParticles === 'dots' && stockCount && stockSpeed && stockSize) {
+    appSettings.bgParticles = 'none';
+  }
+  // Normalize missing values to the stock UI defaults (50 / 1.5× / 3px).
+  if (pCount === undefined) appSettings.particleCount = 50;
+  if (pSpeed === undefined) appSettings.particleSpeed = 15;
+  if (pSize === undefined) appSettings.particleSize = 3;
   localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   localStorage.setItem(cleanPlayerUiMigration, 'done');
 }
+if (!appSettings.fxQuality) appSettings.fxQuality = 'auto';
 
 let isChangingTrack = false;
 let discordPresenceSyncTimer = null;
@@ -516,6 +598,19 @@ function cloudCacheKey(uid) {
   return `votify-cloud-cache-${uid}`;
 }
 
+// Облачные копии настроек могут быть старее локальных. Частицы — opt-in
+// эффект: если на этом устройстве пользователь явно включил их (тип не
+// 'none'), облачная копия со значением 'none' не должна их гасить.
+// Во всех остальных случаях облачное значение применяется как есть.
+function sanitizeIncomingCloudSettings(source) {
+  const settings = { ...(source || {}) };
+  const localType = appSettings && appSettings.bgParticles;
+  if (settings.bgParticles === 'none' && localType && localType !== 'none') {
+    settings.bgParticles = localType;
+  }
+  return settings;
+}
+
 function getCloudSafeSettings() {
   const settings = { ...appSettings };
   if (String(settings.bgUrl || '').startsWith('data:')) delete settings.bgUrl;
@@ -548,7 +643,7 @@ function restoreCachedCloudState(uid) {
   const cached = readStoredJson(cloudCacheKey(uid), null);
   if (!cached) return false;
   if (cached.settings && typeof cached.settings === 'object') {
-    appSettings = { ...appSettings, ...cached.settings };
+    appSettings = { ...appSettings, ...sanitizeIncomingCloudSettings(cached.settings) };
     sanitizeAppColorSchemes();
     localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   }
@@ -584,7 +679,8 @@ async function syncWithCloud(direction = 'pull') {
       cloudSyncApplying = true;
       if (data.exists) {
         if (data.settings && typeof data.settings === 'object') {
-          appSettings = { ...appSettings, ...data.settings };
+          const safeCloud = sanitizeIncomingCloudSettings(data.settings);
+          appSettings = { ...appSettings, ...safeCloud };
           sanitizeAppColorSchemes();
           localStorage.setItem('votify-settings', JSON.stringify(appSettings));
           applyLanguage(appSettings.lang || 'ru');
@@ -826,6 +922,61 @@ function formatTime(secs) {
     .toString()
     .padStart(2, '0');
   return `${m}:${s}`;
+}
+
+// --- Premium cover placeholder helper ---
+function setCoverState(imgId, fallbackId, coverUrl, wrapperClass) {
+  const img = document.getElementById(imgId);
+  const fallback = fallbackId ? document.getElementById(fallbackId) : null;
+  let wrapper = null;
+  if (wrapperClass) wrapper = document.querySelector(wrapperClass);
+  else if (img) wrapper = img.parentElement;
+  const hasCover = !!coverUrl && String(coverUrl).trim() !== '';
+  if (img) {
+    if (hasCover) {
+      img.src = coverUrl;
+      img.style.display = '';
+      img.style.opacity = '';
+      img.style.visibility = '';
+    } else {
+      img.removeAttribute('src');
+      img.src = '';
+      img.style.display = 'none';
+    }
+  }
+  if (fallback) fallback.style.display = hasCover ? 'none' : 'flex';
+  if (wrapper) {
+    wrapper.classList.toggle('has-cover', hasCover);
+    wrapper.classList.toggle('is-empty', !hasCover);
+  }
+}
+function applyAllCoverPlaceholders(trackOrCover) {
+  const cover = typeof trackOrCover === 'string' ? trackOrCover : trackOrCover?.cover || '';
+  setCoverState('fi-cover', 'fi-cover-fallback', cover, '.fi-cover-wrap');
+  setCoverState('player-bar-cover', 'player-bar-cover-fallback', cover, '.player-bar-cover-wrap');
+  setCoverState('right-player-cover', 'right-player-cover-fallback', cover, '.right-player-cover-shell');
+  setCoverState('page-player-cover', 'page-player-cover-fallback', cover, '.pp-cover-wrap');
+  setCoverState('fs-cover', 'fs-cover-fallback', cover, '.fs-cover-container');
+  setCoverState('album-screen-cover', 'album-screen-cover-fallback', cover, '.album-screen-cover-wrap');
+  // lib detail uses separate logic but we ensure fallback class
+  const libWrap = document.querySelector('.lib-detail-cover');
+  const libImg = document.getElementById('lib-detail-cover-img');
+  const libFallback = document.getElementById('lib-detail-cover-fallback');
+  const libFallbackIcon = document.getElementById('lib-detail-cover-icon');
+  if (libWrap) {
+    const has = !!cover;
+    libWrap.classList.toggle('has-cover', has);
+    libWrap.classList.toggle('is-empty', !has);
+    if (libImg) {
+      if (has) { libImg.src = cover; libImg.style.display = 'block'; }
+      else { libImg.style.display = 'none'; libImg.removeAttribute('src'); }
+    }
+    if (libFallback) libFallback.style.display = has ? 'none' : 'flex';
+    if (libFallbackIcon) {
+      libFallbackIcon.style.display = 'flex';
+      // icon visibility handled by wrapper; keep text updated elsewhere
+    }
+  }
 }
 
 function preloadTrackStreams(tracks) {
@@ -1519,10 +1670,30 @@ function openPlaylist(name) {
   let subtitle = 'Создан Votify';
 
   if (name === 'Избранное') {
+    // Favorites live in a section of their own: hide the playlists grid and
+    // show the detail pane (mirrors what the "favorites" tab used to do).
+    const playlistsSection = document.getElementById('lib-playlists-section');
+    if (playlistsSection) playlistsSection.style.display = 'none';
+    const filterTabs = document.getElementById('library-filter-tabs');
+    if (filterTabs) {
+      filterTabs.querySelectorAll('.lib-tab-btn').forEach(b => b.classList.remove('active'));
+      const favTab = filterTabs.querySelector('[data-tab="favorites"]');
+      if (favTab) favTab.classList.add('active');
+    }
     tracks = playlists['Избранное'] || [];
     title = 'Любимые треки';
     subtitle = `${tracks.length} треков в вашей коллекции`;
   } else {
+    // User playlists live in the grid: the user clicked a playlist card or
+    // opened it from elsewhere, so show the grid again.
+    const playlistsSection = document.getElementById('lib-playlists-section');
+    if (playlistsSection) playlistsSection.style.display = 'block';
+    const filterTabs = document.getElementById('library-filter-tabs');
+    if (filterTabs) {
+      filterTabs.querySelectorAll('.lib-tab-btn').forEach(b => b.classList.remove('active'));
+      const playlistsTab = filterTabs.querySelector('[data-tab="playlists"]');
+      if (playlistsTab) playlistsTab.classList.add('active');
+    }
     tracks = playlists[name] || [];
     title = name;
     subtitle = `${tracks.length} треков`;
@@ -1534,18 +1705,22 @@ function openPlaylist(name) {
   if (titleEl) titleEl.textContent = title;
   if (subEl) subEl.textContent = subtitle;
 
+  // Use premium placeholder helper for lib detail
+  const libCoverUrl = tracks.length > 0 ? tracks[0].cover || '' : '';
+  const libWrap2 = document.querySelector('.lib-detail-cover');
   const coverImg = document.getElementById('lib-detail-cover-img');
+  const coverFallback = document.getElementById('lib-detail-cover-fallback');
   const coverIcon = document.getElementById('lib-detail-cover-icon');
-  if (tracks.length > 0 && tracks[0].cover) {
+  if (libWrap2) {
+    const has = !!libCoverUrl;
+    libWrap2.classList.toggle('has-cover', has);
+    libWrap2.classList.toggle('is-empty', !has);
     if (coverImg) {
-      coverImg.src = tracks[0].cover;
-      coverImg.style.display = 'block';
+      if (has) { coverImg.src = libCoverUrl; coverImg.style.display = 'block'; }
+      else { coverImg.style.display = 'none'; coverImg.removeAttribute('src'); }
     }
-    if (coverIcon) coverIcon.style.display = 'none';
-  } else {
-    if (coverImg) coverImg.style.display = 'none';
+    if (coverFallback) coverFallback.style.display = has ? 'none' : 'flex';
     if (coverIcon) {
-      coverIcon.style.display = 'block';
       coverIcon.textContent = name === 'Избранное' ? 'favorite' : 'queue_music';
     }
   }
@@ -1692,23 +1867,10 @@ function formatTrackCount(count) {
   return `${count} ${word}`;
 }
 
-// Helper to generate monthly listeners count realistically
-function getArtistMonthlyListeners(name, totalViews = 0) {
-  if (totalViews > 0) {
-    const computed = Math.round(totalViews * 0.42);
-    return computed.toLocaleString('ru-RU');
-  }
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash << 5) - hash + name.charCodeAt(i);
-    hash |= 0;
-  }
-  const abs = Math.abs(hash);
-  // Realistic listener count algorithm
-  const base = 480000 + (abs % 4200000);
-  return base.toLocaleString('ru-RU');
-}
-
+// Approximate monthly listeners. No source exposes real per-artist audience,
+// so the goal is *believability*: mostly small/medium numbers, stars in the
+// millions, a quiet tail of unknown local/demo acts. Deterministic per day
+// (stable during a session, drifts slowly) and consistent for one artist.
 // Recent Artists Management
 function recordRecentArtist(track) {
   if (!track || !track.artist || track.artist === '—' || track.artist === 'Неизвестный исполнитель')
@@ -1803,7 +1965,6 @@ async function openArtistPage(artistName) {
   const requestId = ++artistRequestId;
   const nameEl = document.getElementById('artist-name');
   const countEl = document.getElementById('artist-track-count');
-  const listenersCountEl = document.getElementById('artist-listeners-count');
   const statusEl = document.getElementById('artist-status');
   const tracksEl = document.getElementById('artist-tracks');
   const albumsEl = document.getElementById('artist-albums');
@@ -1812,7 +1973,6 @@ async function openArtistPage(artistName) {
 
   if (nameEl) nameEl.textContent = name;
   if (pageTitle) pageTitle.textContent = name;
-  if (listenersCountEl) listenersCountEl.textContent = getArtistMonthlyListeners(name);
   if (countEl) countEl.textContent = 'Загрузка треков…';
   if (statusEl) statusEl.textContent = '';
   if (tracksEl)
@@ -1987,7 +2147,6 @@ function openAlbumPage(album) {
 
   switchScreen('album-screen', previousActiveBtnId);
 
-  const coverEl = document.getElementById('album-screen-cover');
   const titleEl = document.getElementById('album-screen-title');
   const artistEl = document.getElementById('album-screen-artist');
   const metaEl = document.getElementById('album-screen-meta');
@@ -1995,7 +2154,7 @@ function openAlbumPage(album) {
   const tracksEl = document.getElementById('album-screen-tracks');
   const playBtn = document.getElementById('album-screen-play-btn');
 
-  if (coverEl) coverEl.src = album.cover || '';
+  setCoverState('album-screen-cover', 'album-screen-cover-fallback', album.cover || '', '.album-screen-cover-wrap');
   if (titleEl) titleEl.textContent = album.title || 'Альбом';
   if (badgeEl) badgeEl.textContent = album.type || 'Альбом';
   if (artistEl) {
@@ -2321,6 +2480,26 @@ document.querySelectorAll('.player-style-card').forEach(card => {
     playerStyleValue.textContent =
       style === 'standard' ? 'Стандартный' : style === 'large' ? 'Большой' : 'Пластинка';
     appSettings.playerStyle = style;
+    // Sync: vinyl style should make cover vinyl-shaped, otherwise user sees square staying
+    if (style === 'vinyl') {
+      appSettings.playerCoverShape = 'Виниловая пластинка';
+      const coverShapeValue = document.getElementById('cover-shape-value');
+      const settingCoverShape = document.getElementById('setting-cover-shape');
+      if (coverShapeValue) coverShapeValue.textContent = 'Виниловая пластинка';
+      if (settingCoverShape) settingCoverShape.value = 'Виниловая пластинка';
+      applyPlayerCoverShape();
+    } else {
+      // if leaving vinyl and cover was vinyl, revert to rounded for nicer look
+      if (appSettings.playerCoverShape === 'Виниловая пластинка') {
+        appSettings.playerCoverShape = 'Закруглённый квадрат';
+        const coverShapeValue = document.getElementById('cover-shape-value');
+        const settingCoverShape = document.getElementById('setting-cover-shape');
+        if (coverShapeValue) coverShapeValue.textContent = 'Закруглённый квадрат';
+        if (settingCoverShape) settingCoverShape.value = 'Закруглённый квадрат';
+        applyPlayerCoverShape();
+      }
+    }
+    applyPlayerSettings();
     saveSettings();
     closePlayerStyleModal();
   });
@@ -2451,14 +2630,20 @@ const miniCoverShapeBtn = document.getElementById('mini-cover-shape-btn');
 const miniCoverShapeValue = document.getElementById('mini-cover-shape-value');
 if (miniCoverShapeBtn) {
   miniCoverShapeBtn.addEventListener('click', () => {
-    const shapes = ['Круг', 'Квадрат', 'Прямоугольник', 'Скругленный квадрат'];
+    const shapes = ['Круг', 'Квадрат', 'Прямоугольник', 'Скругленный квадрат', 'Мягкий квадрат', 'Шестиугольник', 'Ромб'];
     const current = miniCoverShapeValue.textContent;
     const idx = shapes.indexOf(current);
     const next = shapes[(idx + 1) % shapes.length];
     miniCoverShapeValue.textContent = next;
     appSettings.miniCoverShape = next;
-    appSettings.playerCoverShape =
-      next === 'Круг' ? 'Круг' : next === 'Квадрат' ? 'Квадрат' : 'Закруглённый квадрат';
+    const mapMini = {
+      'Круг': 'Круг',
+      'Квадрат': 'Квадрат',
+      'Мягкий квадрат': 'Мягкий квадрат',
+      'Шестиугольник': 'Шестиугольник',
+      'Ромб': 'Ромб'
+    };
+    appSettings.playerCoverShape = mapMini[next] || 'Закруглённый квадрат';
     applyPlayerCoverShape();
     saveSettings();
   });
@@ -2516,50 +2701,58 @@ if (miniBtnStyleBtn) {
 // Apply one cover shape consistently in the page, bottom, side and fullscreen players.
 function applyPlayerCoverShape() {
   const shape = appSettings.playerCoverShape || 'Закруглённый квадрат';
-  const shapeKey =
-    shape === 'Виниловая пластинка'
-      ? 'vinyl'
-      : shape === 'Круг'
-        ? 'circle'
-        : shape === 'Квадрат'
-          ? 'square'
-          : 'rounded';
+  const map = {
+    'Виниловая пластинка': 'vinyl',
+    'Круг': 'circle',
+    'Квадрат': 'square',
+    'Закруглённый квадрат': 'rounded',
+    'Мягкий квадрат': 'soft',
+    'Шестиугольник': 'hexagon',
+    'Ромб': 'diamond'
+  };
+  const shapeKey = map[shape] || 'rounded';
   document.body.dataset.playerCoverShape = shapeKey;
 
   const wrappers = document.querySelectorAll(
-    '.pp-cover-wrap, .player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .fi-cover-wrap'
+    '.pp-cover-wrap, .player-bar-cover-wrap, .right-player-cover-shell, .fs-cover-container, .fi-cover-wrap, .lib-detail-cover, .album-screen-cover-wrap'
   );
   wrappers.forEach(wrap => {
     wrap.classList.remove(
       'shape-rounded-square',
       'shape-vinyl',
       'shape-circle',
-      'shape-square'
+      'shape-square',
+      'shape-soft',
+      'shape-hexagon',
+      'shape-diamond'
     );
-    wrap.classList.add(
-      shapeKey === 'vinyl'
-        ? 'shape-vinyl'
-        : shapeKey === 'circle'
-          ? 'shape-circle'
-          : shapeKey === 'square'
-            ? 'shape-square'
-            : 'shape-rounded-square'
-    );
+    const cls =
+      shapeKey === 'vinyl' ? 'shape-vinyl'
+      : shapeKey === 'circle' ? 'shape-circle'
+      : shapeKey === 'square' ? 'shape-square'
+      : shapeKey === 'soft' ? 'shape-soft'
+      : shapeKey === 'hexagon' ? 'shape-hexagon'
+      : shapeKey === 'diamond' ? 'shape-diamond'
+      : 'shape-rounded-square';
+    wrap.classList.add(cls);
     wrap.classList.toggle('is-playing', Boolean(state.isPlaying));
   });
 
   const valueEl = document.getElementById('player-cover-shape-value');
   if (valueEl) valueEl.textContent = shape;
+  const coverShapeSel = document.getElementById('setting-cover-shape');
+  if (coverShapeSel && coverShapeSel.value !== shape) coverShapeSel.value = shape;
 }
 
 const playerCoverShapeBtn = document.getElementById('player-cover-shape-btn');
 const playerCoverShapeValue = document.getElementById('player-cover-shape-value');
 if (playerCoverShapeBtn) {
   playerCoverShapeBtn.addEventListener('click', () => {
-    const shapes = ['Закруглённый квадрат', 'Виниловая пластинка', 'Круг'];
+    const shapes = ['Закруглённый квадрат', 'Квадрат', 'Мягкий квадрат', 'Круг', 'Виниловая пластинка', 'Шестиугольник', 'Ромб'];
     const current =
       playerCoverShapeValue?.textContent || appSettings.playerCoverShape || 'Закруглённый квадрат';
-    const idx = shapes.indexOf(current);
+    let idx = shapes.indexOf(current);
+    if (idx === -1) idx = 0;
     const next = shapes[(idx + 1) % shapes.length];
     if (playerCoverShapeValue) playerCoverShapeValue.textContent = next;
     appSettings.playerCoverShape = next;
@@ -2629,18 +2822,13 @@ if (rightPlayerCloseBtn) {
 // Update right player panel when track changes
 let rightPanelBgTrackId = null;
 function updateRightPlayerPanel(track) {
-  const cover = document.getElementById('right-player-cover');
   const title = document.getElementById('right-player-title');
   const artist = document.getElementById('right-player-artist');
   const playBtn = document.getElementById('right-player-play');
   const bgEl = document.getElementById('right-player-bg');
 
-  if (cover && track.cover) {
-    cover.src = track.cover;
-    cover.style.display = 'block';
-  } else if (cover) {
-    cover.style.display = 'none';
-  }
+  // Use unified placeholder helper
+  if (track) setCoverState('right-player-cover', 'right-player-cover-fallback', track.cover || '', '.right-player-cover-shell');
   if (title) title.textContent = track.title || '—';
   if (artist) artist.textContent = track.artist || '—';
   if (playBtn) {
@@ -3206,8 +3394,8 @@ document.addEventListener('keydown', e => {
 
   // --- Sync state: track info ---
   on('state:currentTrack', track => {
-    if (!track) return;
-    if (fiCover) fiCover.src = track.cover || '';
+    if (!track) { applyAllCoverPlaceholders(''); return; }
+    setCoverState('fi-cover', 'fi-cover-fallback', track.cover || '', '.fi-cover-wrap');
     if (fiTitle) fiTitle.textContent = track.title || '—';
     if (fiArtist) fiArtist.textContent = track.artist || '—';
     // Update like state
@@ -3482,8 +3670,8 @@ document.addEventListener('keydown', e => {
   applyPlayerCoverShape();
 
   on('state:currentTrack', track => {
-    if (!track) return;
-    if (ppCover) ppCover.src = track.cover || '';
+    if (!track) { applyAllCoverPlaceholders(''); return; }
+    setCoverState('page-player-cover', 'page-player-cover-fallback', track.cover || '', '.pp-cover-wrap');
     if (ppTitle) ppTitle.textContent = track.title || '—';
     if (ppArtist) ppArtist.textContent = track.artist || '—';
     if (ppLike) {
@@ -4534,9 +4722,12 @@ safeClick('morph-reset-all', async () => {
     'Сбросить все настройки оформления до значений по умолчанию?'
   );
   if (!confirmed) return;
-  applyAccentColor('#FFFFFF');
-  appSettings.fontFamily = 'default';
-  if (fontFamilySelect) fontFamilySelect.value = 'default';
+  applyAccentColor('#1DB954');
+  // Font reset goes through the modern UI-settings path (default = Inter).
+  delete appSettings.fontFamily;
+  const fontFamilySelectEl = document.getElementById('font-family-select');
+  if (fontFamilySelectEl) fontFamilySelectEl.value = 'inter';
+  if (typeof applyUISettings === 'function') applyUISettings();
   appSettings.compactUI = false;
   if (compactToggle) compactToggle.checked = false;
   appSettings.background = 'default';
@@ -4546,8 +4737,8 @@ safeClick('morph-reset-all', async () => {
       .querySelectorAll('.bg-card')
       .forEach(b => b.classList.toggle('bg-card-active', b.dataset.bg === 'default'));
   // Reset the newer appearance controls too
-  appSettings.theme = 'dark';
-  applyThemeMode('dark');
+  appSettings.theme = 'contrast';
+  applyThemeMode('contrast');
   appSettings.fontSize = '16px';
   const fontSizeSliderEl = document.getElementById('font-size-slider');
   const fontSizeSliderValueEl = document.getElementById('font-size-slider-value');
@@ -4737,7 +4928,7 @@ safeClick('reset-hotkeys-btn', () => {
 function applyAccentColor(color) {
   const normalized = /^#[0-9a-f]{6}$/i.test(String(color || ''))
     ? String(color).toUpperCase()
-    : '#FFFFFF';
+    : '#1DB954';
   document.documentElement.style.setProperty('--accent', normalized);
   // Also compute and set --accent-rgb for rgba() usage
   const hex = normalized.replace('#', '');
@@ -4745,6 +4936,9 @@ function applyAccentColor(color) {
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
   document.documentElement.style.setProperty('--accent-rgb', `${r},${g},${b}`);
+  // Contrasting ink for content placed ON the accent (thumb of switches).
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  document.documentElement.style.setProperty('--accent-contrast', lum > 0.68 ? '#0d0d0d' : '#ffffff');
   appSettings.accent = normalized;
   appSettings.customColorPrimary = normalized;
   saveSettings();
@@ -4798,15 +4992,9 @@ const bgGradients = {
 // --- Appearance settings ---
 
 // Font family
-const fontFamilySelect = document.getElementById('font-family-select');
-if (fontFamilySelect) {
-  fontFamilySelect.value = appSettings.fontFamily || 'default';
-  fontFamilySelect.addEventListener('change', () => {
-    appSettings.fontFamily = fontFamilySelect.value;
-    saveSettings();
-    applyAppearance();
-  });
-}
+// font-family-select is wired once, in the modern settings init (wireInput +
+// applyUISettings). An earlier duplicate listener here re-applied the legacy
+// font dict and undid the picked family, so it was removed.
 
 // Liquid Glass mode (morph-toggle checkbox)
 const liquidGlassToggle = document.getElementById('toggle-liquid-glass');
@@ -4875,9 +5063,9 @@ if (backgroundBlurSlider) {
 
 // Theme mode (dark / midnight / contrast)
 function applyThemeMode(mode) {
-  document.body.setAttribute('data-theme-mode', mode || 'dark');
+  document.body.setAttribute('data-theme-mode', mode || 'contrast');
   document.querySelectorAll('.theme-mode-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.themeMode === (mode || 'dark'));
+    c.classList.toggle('active', c.dataset.themeMode === (mode || 'contrast'));
   });
 }
 document.querySelectorAll('.theme-mode-card').forEach(card => {
@@ -4888,7 +5076,7 @@ document.querySelectorAll('.theme-mode-card').forEach(card => {
     saveSettings();
   });
 });
-applyThemeMode(appSettings.theme || 'dark');
+applyThemeMode(appSettings.theme || 'contrast');
 
 // Font size slider
 const fontSizeSlider = document.getElementById('font-size-slider');
@@ -4990,17 +5178,51 @@ if (splashScreenToggle) {
 function applyBackground() {
   const storedUrl = String(appSettings.bgUrl || '').trim();
   const bg = /^(https?:|data:image\/)/i.test(storedUrl) ? storedUrl : appSettings.background;
+  const layer = document.getElementById('app-bg-layer');
+  const targets = [document.body, layer].filter(Boolean);
+  const clearLonghands = el => {
+    el.style.backgroundImage = '';
+    el.style.backgroundPosition = '';
+    el.style.backgroundSize = '';
+    el.style.backgroundRepeat = '';
+    el.style.backgroundAttachment = '';
+  };
+  const reset = () =>
+    targets.forEach(el => {
+      el.style.background = '';
+      clearLonghands(el);
+    });
   if (!bg || bg === 'default') {
-    document.body.style.background = '';
-    document.body.style.backgroundImage = '';
-  } else if (bgGradients[bg]) {
-    document.body.style.background = bgGradients[bg];
-  } else if (bg.startsWith('http') || bg.startsWith('data:')) {
-    document.body.style.background = `url("${bg}") center/cover no-repeat fixed`;
-  } else {
-    document.body.style.background = bg;
+    reset();
+    if (layer) layer.style.background = '#121212';
+    return;
   }
+  if (bg.startsWith('http') || bg.startsWith('data:')) {
+    // шортхэнд с data:/http-URL парсер иногда отклоняет — длинные свойства
+    const image = `url("${bg}")`;
+    targets.forEach(el => {
+      el.style.background = '';
+      clearLonghands(el);
+      el.style.backgroundImage = image;
+      if (!el.style.backgroundImage) {
+        // парсер отверг сырые <,>,# и т.п. — пробуем percent-encoding
+        el.style.backgroundImage = `url("${encodeURI(bg)}")`;
+      }
+      el.style.backgroundPosition = 'center';
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundRepeat = 'no-repeat';
+      el.style.backgroundAttachment = 'fixed';
+    });
+    return;
+  }
+  const value = bgGradients[bg] || bg;
+  targets.forEach(el => {
+    clearLonghands(el);
+    el.style.background = value;
+  });
+  if (layer && !value) layer.style.background = '#121212';
 }
+
 const bgPresetsEl = document.getElementById('bg-presets');
 if (bgPresetsEl) {
   bgPresetsEl.addEventListener('click', e => {
@@ -5162,19 +5384,11 @@ if (langSelect) {
 
 function applyAppearance() {
   const root = document.documentElement;
-  // Font
-  const ff = appSettings.fontFamily || 'default';
-  const fonts = {
-    default: '"Segoe UI", Roboto, sans-serif',
-    mono: '"JetBrains Mono", monospace',
-    rounded: '"Nunito", "Segoe UI", sans-serif',
-  };
-  root.style.setProperty('--font-family', fonts[ff] || fonts.default);
-  document.body.style.fontFamily = fonts[ff] || fonts.default;
-  // Font size
-  root.style.setProperty('--font-size', appSettings.fontSize || '16px');
-  root.style.setProperty('--app-font-size-offset', appSettings.fontSize || '16px');
-  document.body.style.fontSize = appSettings.fontSize || '16px';
+  // Note: font family/size intentionally NOT handled here anymore — the
+  // modern font dict (inter/system/modern/…) lives in applyUISettings().
+  // Keeping a legacy copy here caused the picked UI font (e.g. Inter) to be
+  // silently replaced by "Segoe UI"/Roboto whenever any legacy control
+  // below (blur, transparency, density…) re-ran this function.
   applyInterfaceTextScale();
   // Opacity
   const op = (parseInt(appSettings.opacity) || 98) / 100;
@@ -5342,6 +5556,29 @@ if (searchInput) {
       if (searchSuggestions) searchSuggestions.style.display = 'none';
     }
   });
+
+  // Click on the magnifier icon = run search (same as Enter)
+  const searchIconBtn = document.querySelector('.skiper106-search-icon');
+  if (searchIconBtn) {
+    searchIconBtn.setAttribute('role', 'button');
+    searchIconBtn.setAttribute('tabindex', '0');
+    searchIconBtn.title = 'Найти';
+    const runSearchFromIcon = () => {
+      const q = searchInput?.value.trim();
+      if (!q) {
+        searchInput?.focus();
+        return;
+      }
+      doSearch();
+    };
+    searchIconBtn.addEventListener('click', runSearchFromIcon);
+    searchIconBtn.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        runSearchFromIcon();
+      }
+    });
+  }
 
   searchInput.addEventListener('focus', () => {
     renderSearchHistory();
@@ -5977,8 +6214,12 @@ safeClick('tile-history', () => {
     showToast('История пуста');
     return;
   }
-  switchScreen('search-screen', 'nav-search-btn');
+  // "История" открывается как список на search-экране — и клик по любому
+  // треку должен играть музыку, а не запускать повторный поиск.
+  searchAllTracks = []; // not a search session: rows play directly
+  searchCurrentQuery = null;
   if (statusMessage) statusMessage.innerText = `История: ${history.length} треков`;
+  switchScreen('search-screen', 'nav-search-btn');
   renderTrackRows(resultsContainer, history, { showAddButton: true });
 });
 
@@ -6097,9 +6338,8 @@ async function playTrack(track) {
   if (playerArtist) playerArtist.innerText = track.artist || 'Unknown';
   currentTrackCover = track.cover || '';
 
-  // Update player bar cover
-  const barCover = document.getElementById('player-bar-cover');
-  if (barCover) barCover.src = currentTrackCover || '';
+  // Unified premium placeholder for all covers
+  applyAllCoverPlaceholders(track);
   if (typeof applyCoverSettings === 'function') applyCoverSettings();
 
   // Force-stop any previous playback before switching source
@@ -6546,8 +6786,8 @@ if (fsDislikeBtn) {
 
 // Update fullscreen player with track info
 on('state:currentTrack', track => {
-  if (!track) return;
-  if (fsCover) fsCover.src = track.cover || '';
+  if (!track) { applyAllCoverPlaceholders(''); return; }
+  setCoverState('fs-cover', 'fs-cover-fallback', track.cover || '', '.fs-cover-container');
   if (fsTitle) fsTitle.textContent = track.title || '—';
   if (fsArtist) fsArtist.textContent = track.artist || '—';
 
@@ -6558,14 +6798,14 @@ on('state:currentTrack', track => {
     if (icon) icon.textContent = isFav ? 'favorite' : 'favorite_border';
   }
 
-  // Extract color for fullscreen background gradient
+  // Extract color for fullscreen background gradient — now lava-lamp dynamic
   const fsGradientBg = document.getElementById('fs-gradient-bg');
   if (track.cover) {
-    extractDominantColor(track.cover).then(color => {
-      if (color && fsGradientBg) {
-        fsGradientBg.style.background = `radial-gradient(circle at 20% 40%, rgba(${color.r},${color.g},${color.b},0.45) 0%, rgba(${color.r},${color.g},${color.b},0.12) 55%, transparent 80%), radial-gradient(circle at 80% 60%, rgba(${color.r},${color.g},${color.b},0.25) 0%, transparent 75%)`;
-      }
+    extractCoverPalette(track.cover).then(palette => {
+      applyFsLavaLampColors(palette);
     });
+  } else {
+    applyFsLavaLampColors(null);
   }
   if (fullscreenPlayer && fullscreenPlayer.classList.contains('open')) {
     loadFsLyrics(track.title, track.artist);
@@ -6775,9 +7015,10 @@ async function loadFsLyrics(title, artist) {
         return null;
       })
       .filter(Boolean);
+    attachWordTimings(fsLyricsData);
     if (body)
       body.innerHTML = fsLyricsData
-        .map((l, i) => `<div class="lyrics-line" data-idx="${i}">${l.text || '&nbsp;'}</div>`)
+        .map((l, i) => `<div class="lyrics-line" data-idx="${i}">${lyricsWordsHtml(l)}</div>`)
         .join('');
   } catch {
     if (body) body.innerHTML = '<div class="lyrics-placeholder">Нет текста</div>';
@@ -6841,6 +7082,133 @@ function hideSplash() {
   }
 }
 
+// Auto-updater like Discord — checks GitHub on each app start
+(function setupUpdaterUI(){
+  const banner = document.getElementById('update-banner');
+  const text = document.getElementById('update-banner-text');
+  const actionBtn = document.getElementById('update-banner-action');
+  const closeBtn = document.getElementById('update-banner-close');
+  const progressWrap = document.getElementById('update-banner-progress');
+  const progressBar = document.getElementById('update-banner-progress-bar');
+  let downloaded = false;
+  let availableInfo = null;
+
+  function showBanner(msg, actionLabel = 'Обновить') {
+    if (!banner) return;
+    if (text) text.textContent = msg;
+    if (actionBtn) actionBtn.textContent = actionLabel;
+    banner.style.display = 'flex';
+  }
+  function hideBanner() {
+    if (banner) banner.style.display = 'none';
+  }
+
+  if (closeBtn) closeBtn.addEventListener('click', hideBanner);
+
+  if (actionBtn) actionBtn.addEventListener('click', () => {
+    if (downloaded) {
+      if (window.electronAPI?.installUpdate) {
+        window.electronAPI.installUpdate();
+      }
+    } else {
+      if (window.electronAPI?.checkForUpdates) {
+        showBanner('Проверка обновлений...', '...');
+        window.electronAPI.checkForUpdates();
+      } else {
+        // Fallback: open GitHub releases
+        window.open('https://github.com/exieeez/Votify/releases', '_blank');
+      }
+    }
+  });
+
+  // Electron updater events
+  if (window.electronAPI) {
+    window.electronAPI.onUpdateChecking?.(() => {
+      showBanner('Проверка обновлений...', '...');
+      if (progressWrap) progressWrap.style.display = 'none';
+    });
+    window.electronAPI.onUpdateAvailable?.(info => {
+      availableInfo = info;
+      downloaded = false;
+      showBanner(`Доступно обновление ${info.version || ''}`.trim(), 'Скачать');
+      if (progressWrap) progressWrap.style.display = 'none';
+    });
+    window.electronAPI.onUpdateNotAvailable?.(() => {
+      // hideBanner();
+    });
+    window.electronAPI.onUpdateProgress?.(p => {
+      if (progressWrap) progressWrap.style.display = 'block';
+      if (progressBar) progressBar.style.width = Math.round(p.percent || 0) + '%';
+      showBanner(`Скачивание ${Math.round(p.percent || 0)}%...`, `${Math.round(p.percent || 0)}%`);
+    });
+    window.electronAPI.onUpdateDownloaded?.(info => {
+      downloaded = true;
+      availableInfo = info;
+      showBanner(`Обновление ${info.version || ''} готово`.trim(), 'Перезапустить');
+      if (progressWrap) progressWrap.style.display = 'none';
+      if (progressBar) progressBar.style.width = '100%';
+      // Auto-show like Discord
+      // Optionally auto-install on quit is already enabled, but we show banner
+    });
+    window.electronAPI.onUpdateError?.(err => {
+      console.warn('Updater error:', err);
+      hideBanner();
+    });
+
+    // Also check via GitHub API on each start for dev mode
+    if (!window.electronAPI.checkForUpdates) {
+      // Fallback GitHub check
+      fetch('https://api.github.com/repos/exieeez/Votify/releases/latest')
+        .then(r => r.json())
+        .then(release => {
+          const latest = (release.tag_name || '').replace(/^v/, '');
+          const current = '0.6.3'; // fallback, will be replaced by app version if available
+          if (latest && latest !== current) {
+            showBanner(`Доступно обновление ${latest}`, 'Скачать');
+            if (actionBtn) {
+              actionBtn.onclick = () => window.open(release.html_url, '_blank');
+            }
+          }
+        }).catch(() => {});
+    }
+  }
+})();
+
+// Material Icons robust loading — add class when font ready, fallback check
+(function ensureMaterialIcons(){
+  const check = () => {
+    const test = document.createElement('span');
+    test.className = 'material-icons';
+    test.style.position='absolute'; test.style.visibility='hidden'; test.textContent='play_arrow';
+    document.body.appendChild(test);
+    const w1 = test.offsetWidth;
+    // If font loaded, width will be different from fallback
+    setTimeout(()=>{
+      const w2 = test.offsetWidth;
+      if(w1===0 || w2===0 || document.fonts && document.fonts.check && document.fonts.check('24px "Material Icons"')){
+        document.documentElement.classList.add('mi-loaded');
+      } else {
+        // font not loaded — still add class to show fallback styling, but icons may show text
+        // Try reload link
+        const link = document.querySelector('link[href*="Material+Icons"]');
+        if(link){
+          const clone = link.cloneNode();
+          clone.href = clone.href + (clone.href.includes('?')?'&':'?') + 'reload=' + Date.now();
+          document.head.appendChild(clone);
+        }
+        document.documentElement.classList.add('mi-fallback');
+      }
+      test.remove();
+    }, 800);
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', check);
+  else check();
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{ document.documentElement.classList.add('mi-loaded'); });
+  }
+})();
+
+
 // ==========================================
 // Initialization
 // ==========================================
@@ -6865,15 +7233,32 @@ function initApp() {
           // Update UI without playing
           if (playerTitle) playerTitle.innerText = lastTrack.title;
           if (playerArtist) playerArtist.innerText = lastTrack.artist || 'Unknown';
-          const barCover = document.getElementById('player-bar-cover');
-          if (barCover) barCover.src = lastTrack.cover || '';
+          applyAllCoverPlaceholders(lastTrack);
 
           state.currentTrack = lastTrack;
           updateRightPlayerPanel(lastTrack);
+          if(lastTrack.cover){
+            extractCoverPalette(lastTrack.cover).then(pal => {
+              if (pal) applyFsLavaLampColors(pal);
+            });
+          }
+        } else {
+          applyAllCoverPlaceholders('');
         }
       } catch (e) {
         console.warn('Failed to load last track:', e);
+        applyAllCoverPlaceholders('');
       }
+    } else {
+      // No track ever played — show beautiful placeholder everywhere
+      applyAllCoverPlaceholders('');
+    }
+
+    // Финальный запуск частиц после всех тем/оверлеев старта
+    try {
+      updateParticleSystem();
+    } catch (e) {
+      console.error('Particles init error:', e);
     }
 
     console.log('Votify initialized successfully.');
@@ -6924,10 +7309,10 @@ function extractDominantColor(imgUrl) {
         g = Math.round(g / count);
         b = Math.round(b / count);
         // Darken it for player bar background
-        r = Math.round(r * 0.35);
-        g = Math.round(g * 0.35);
-        b = Math.round(b * 0.35);
-        resolve({ r, g, b });
+        const darkR = Math.round(r * 0.35);
+        const darkG = Math.round(g * 0.35);
+        const darkB = Math.round(b * 0.35);
+        resolve({ r: darkR, g: darkG, b: darkB, _bright: { r, g, b } });
       } catch {
         resolve(null);
       }
@@ -6936,6 +7321,400 @@ function extractDominantColor(imgUrl) {
     img.src = imgUrl;
   });
 }
+
+// Точные оттенки обложки: топ-кластеры цветов без усреднения в «кашу».
+// Возвращает массив из <= count цветов (по убыванию частоты), каждый —
+// средний цвет своего кластера, т.е. реальный оттенок с обложки.
+function extractCoverPalette(imgUrl, count = 3) {
+  return new Promise(resolve => {
+    if (!imgUrl) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const size = 48;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        const buckets = new Map();
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+          const cur = buckets.get(key) || { n: 0, r: 0, g: 0, b: 0 };
+          cur.n++;
+          cur.r += r;
+          cur.g += g;
+          cur.b += b;
+          buckets.set(key, cur);
+        }
+        const list = [...buckets.values()]
+          .map(c => ({ n: c.n, r: Math.round(c.r / c.n), g: Math.round(c.g / c.n), b: Math.round(c.b / c.n) }))
+          .sort((a, b) => b.n - a.n);
+        const picked = [];
+        for (const c of list) {
+          if (picked.every(pc => Math.abs(pc.r - c.r) + Math.abs(pc.g - c.g) + Math.abs(pc.b - c.b) > 90)) {
+            picked.push(c);
+          }
+          if (picked.length >= count) break;
+        }
+        resolve(picked.length ? picked : null);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = imgUrl;
+  });
+}
+
+function extractDominantColorBright(imgUrl) {
+  return extractDominantColor(imgUrl).then(c => {
+    if (!c) return null;
+    return c._bright || { r: Math.round(c.r/0.35), g: Math.round(c.g/0.35), b: Math.round(c.b/0.35) };
+  });
+}
+
+function rgbToHsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if(max===min){ h=s=0; } else {
+    const d=max-min;
+    s=l>0.5? d/(2-max-min): d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d + (g<b?6:0); break;
+      case g: h=(b-r)/d + 2; break;
+      case b: h=(r-g)/d + 4; break;
+    }
+    h/=6;
+  }
+  return {h:h*360, s:s*100, l:l*100};
+}
+function hslToRgb(h,s,l){
+  h/=360; s/=100; l/=100;
+  let r,g,b;
+  if(s===0){ r=g=b=l; } else {
+    const hue2rgb=(p,q,t)=>{
+      if(t<0) t+=1;
+      if(t>1) t-=1;
+      if(t<1/6) return p+(q-p)*6*t;
+      if(t<1/2) return q;
+      if(t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    const q=l<0.5? l*(1+s): l+s-l*s;
+    const p=2*l-q;
+    r=hue2rgb(p,q,h+1/3);
+    g=hue2rgb(p,q,h);
+    b=hue2rgb(p,q,h-1/3);
+  }
+  return {r:Math.round(r*255), g:Math.round(g*255), b:Math.round(b*255)};
+}
+
+function applyFsLavaLampColors(brightColor){
+  const fs = document.getElementById('fullscreen-player');
+  const lamp = document.getElementById('fs-lava-lamp');
+  const grad = document.getElementById('fs-gradient-bg');
+  if(!fs || !lamp) return;
+  if(!brightColor){
+    fs.style.removeProperty('--lava1-r'); fs.style.removeProperty('--lava1-g'); fs.style.removeProperty('--lava1-b');
+    fs.style.removeProperty('--lava2-r'); fs.style.removeProperty('--lava2-g'); fs.style.removeProperty('--lava2-b');
+    fs.style.removeProperty('--lava3-r'); fs.style.removeProperty('--lava3-g'); fs.style.removeProperty('--lava3-b');
+    if(grad) grad.style.background='';
+    return;
+  }
+  // ТОЧНЫЕ оттенки обложки: палитра кластеров как есть, без сдвигов hue/sat/light.
+  const pal = Array.isArray(brightColor) ? brightColor : [brightColor];
+  const c1 = pal[0];
+  const c2 = pal[1] || pal[0];
+  const c3 = pal[2] || { r: Math.round(c1.r * 0.45), g: Math.round(c1.g * 0.45), b: Math.round(c1.b * 0.45) };
+  fs.style.setProperty('--lava1-r', c1.r); fs.style.setProperty('--lava1-g', c1.g); fs.style.setProperty('--lava1-b', c1.b);
+  fs.style.setProperty('--lava2-r', c2.r); fs.style.setProperty('--lava2-g', c2.g); fs.style.setProperty('--lava2-b', c2.b);
+  fs.style.setProperty('--lava3-r', c3.r); fs.style.setProperty('--lava3-g', c3.g); fs.style.setProperty('--lava3-b', c3.b);
+  if(grad){
+    const dark = {r: Math.round(c1.r*0.3), g: Math.round(c1.g*0.3), b: Math.round(c1.b*0.3)};
+    grad.style.background = `radial-gradient(120% 90% at 18% 18%, rgba(${c1.r},${c1.g},${c1.b},0.55) 0%, rgba(${c1.r},${c1.g},${c1.b},0.34) 42%, rgba(${dark.r},${dark.g},${dark.b},0.5) 82%), radial-gradient(110% 85% at 82% 72%, rgba(${c2.r},${c2.g},${c2.b},0.42) 0%, rgba(${c3.r},${c3.g},${c3.b},0.3) 40%, transparent 78%)`;
+  }
+}
+
+// ============================================================================
+// LAVA LAMP v2 — синхронизация ритма с музыкой (WebAudio-анализатор).
+// Хук создаётся лениво, на первом play (жест пользователя): до этого аудио
+// звучит напрямую, а AudioContext не создаётся (autoplay-политики).
+// Бит = бас выше скользящего среднего; атака быстрая, отпускание вязкое.
+// ============================================================================
+let lavaAnalyser = null;
+let lavaFreqData = null;
+let lavaHooked = false;
+let lavaBeatRaf = 0;
+let lavaBeatLastTs = 0;
+let lavaPulse = 0;
+let lavaLevel = 0;
+let lavaBassAvg = 0.08;
+
+function ensureLavaAudioHook() {
+  if (lavaHooked) return true;
+  try {
+    // Аудио-граф уже занят EQ (createMediaElementSource один на элемент),
+    // поэтому не строим свой: берём общий анализатор EQ-цепочки.
+    if (typeof sharedAnalyser === 'undefined' || !sharedAnalyser) {
+      if (typeof initEQ === 'function') initEQ();
+    }
+    if (typeof sharedAnalyser !== 'undefined' && sharedAnalyser) {
+      lavaAnalyser = sharedAnalyser;
+    } else {
+      return false;
+    }
+    lavaFreqData = new Uint8Array(lavaAnalyser.frequencyBinCount);
+    lavaHooked = true;
+    return true;
+  } catch (err) {
+    console.warn('[lava] audio hook failed:', err);
+    lavaHooked = false;
+    lavaAnalyser = null;
+    return false;
+  }
+}
+
+function pushLavaBeatVars() {
+  const lamp = document.getElementById('fs-lava-lamp');
+  if (!lamp) return;
+  lamp.style.setProperty('--lava-pulse', lavaPulse.toFixed(3));
+  lamp.style.setProperty('--lava-level', lavaLevel.toFixed(3));
+}
+
+function lavaBeatTick(ts) {
+  lavaBeatRaf = requestAnimationFrame(lavaBeatTick);
+  // 30 fps достаточно для пульса: меньше пересчётов стилей огромных блобов
+  if (ts - lavaBeatLastTs < 33) return;
+  lavaBeatLastTs = ts;
+  if (!lavaAnalyser || !lavaFreqData) return;
+  if (typeof audio === 'undefined' || !audio || audio.paused || audio.ended) {
+    lavaPulse += (0 - lavaPulse) * 0.12;
+    lavaLevel += (0 - lavaLevel) * 0.12;
+    pushLavaBeatVars();
+    if (lavaPulse < 0.01 && lavaLevel < 0.01) {
+      cancelAnimationFrame(lavaBeatRaf);
+      lavaBeatRaf = 0;
+      lavaPulse = 0;
+      lavaLevel = 0;
+      pushLavaBeatVars();
+    }
+    return;
+  }
+  lavaAnalyser.getByteFrequencyData(lavaFreqData);
+  const bins = lavaFreqData.length;
+  const binHz = lavaAnalyser.context ? lavaAnalyser.context.sampleRate / 2 / bins : 750;
+  const bassBins = Math.max(2, Math.min(8, Math.round(260 / binHz))); // низ (~0–260 Гц)
+  let bass = 0;
+  for (let i = 1; i <= bassBins; i++) bass += lavaFreqData[i];
+  bass /= bassBins * 255;
+  let all = 0;
+  for (let i = 0; i < bins; i++) all += lavaFreqData[i];
+  all /= bins * 255;
+  lavaBassAvg += (bass - lavaBassAvg) * 0.045;
+  const beat = Math.max(0, bass - lavaBassAvg * 1.18);
+  const target = Math.min(1, beat * 3.2 + all * 0.5);
+  lavaPulse += (target - lavaPulse) * (target > lavaPulse ? 0.55 : 0.1);
+  lavaLevel += (all - lavaLevel) * 0.2;
+  pushLavaBeatVars();
+}
+
+function startLavaBeatLoop() {
+  if (!lavaBeatRaf) lavaBeatRaf = requestAnimationFrame(lavaBeatTick);
+}
+
+if (typeof audio !== 'undefined' && audio) {
+  audio.addEventListener('play', () => {
+    if (ensureLavaAudioHook()) startLavaBeatLoop();
+  });
+  audio.addEventListener('pause', startLavaBeatLoop); // дай пульсу красиво затухнуть
+  audio.addEventListener('ended', startLavaBeatLoop);
+}
+window.VotifyLava = {
+  ensure: ensureLavaAudioHook,
+  start: startLavaBeatLoop,
+  state: () => ({
+    hooked: lavaHooked,
+    pulse: lavaPulse,
+    level: lavaLevel,
+    ctx: typeof audioCtx !== 'undefined' && audioCtx ? audioCtx.state : 'none',
+  }),
+};
+
+// ============================================================================
+// CUSTOM CURSOR: presets + own files; saved with workshop themes
+// ============================================================================
+const CURSOR_PRESETS = [
+  { id: 'none', title: 'Стандарт' },
+  { id: 'neon', title: 'Неон', hot: [7, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#7ff6ff'/><stop offset='1' stop-color='#0090ff'/></linearGradient><filter id='f' x='-60%' y='-60%' width='220%' height='220%'><feDropShadow dx='0' dy='0' stdDeviation='2.2' flood-color='#00e5ff' flood-opacity='0.95'/></filter></defs><path d='M7 3 L27 17.5 L17.6 19 L22.2 28.6 L17.9 30.6 L13.4 21 L7 26 Z' fill='url(#g)' stroke='#ffffff' stroke-width='1.3' stroke-linejoin='round' filter='url(#f)'/><path d='M9.4 7.6 L21.5 16.4 L16.2 17.3 L12.9 15.4 L9.4 12.6 Z' fill='#ffffff' opacity='0.35'/></svg>" },
+  { id: 'pink', title: 'Роза', hot: [7, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#ffb3d9'/><stop offset='1' stop-color='#ff2d78'/></linearGradient><filter id='f' x='-60%' y='-60%' width='220%' height='220%'><feDropShadow dx='0' dy='0' stdDeviation='2.2' flood-color='#ff2d78' flood-opacity='0.9'/></filter></defs><path d='M7 3 L27 17.5 L17.6 19 L22.2 28.6 L17.9 30.6 L13.4 21 L7 26 Z' fill='url(#g)' stroke='#ffffff' stroke-width='1.3' stroke-linejoin='round' filter='url(#f)'/><path d='M9.4 7.6 L21.5 16.4 L16.2 17.3 L12.9 15.4 L9.4 12.6 Z' fill='#ffffff' opacity='0.4'/></svg>" },
+  { id: 'green', title: 'Изумруд', hot: [7, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#8dffbc'/><stop offset='1' stop-color='#0faf62'/></linearGradient><filter id='f' x='-60%' y='-60%' width='220%' height='220%'><feDropShadow dx='0' dy='0' stdDeviation='2.2' flood-color='#1db954' flood-opacity='0.9'/></filter></defs><path d='M7 3 L27 17.5 L17.6 19 L22.2 28.6 L17.9 30.6 L13.4 21 L7 26 Z' fill='url(#g)' stroke='#ffffff' stroke-width='1.3' stroke-linejoin='round' filter='url(#f)'/><path d='M9.4 7.6 L21.5 16.4 L16.2 17.3 L12.9 15.4 L9.4 12.6 Z' fill='#ffffff' opacity='0.4'/></svg>" },
+  { id: 'gold', title: 'Золото', hot: [7, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#ffe9a8'/><stop offset='1' stop-color='#ff9f1a'/></linearGradient><filter id='f' x='-60%' y='-60%' width='220%' height='220%'><feDropShadow dx='0' dy='0' stdDeviation='2.2' flood-color='#ffb300' flood-opacity='0.9'/></filter></defs><path d='M7 3 L27 17.5 L17.6 19 L22.2 28.6 L17.9 30.6 L13.4 21 L7 26 Z' fill='url(#g)' stroke='#ffffff' stroke-width='1.3' stroke-linejoin='round' filter='url(#f)'/><path d='M9.4 7.6 L21.5 16.4 L16.2 17.3 L12.9 15.4 L9.4 12.6 Z' fill='#ffffff' opacity='0.5'/></svg>" },
+  { id: 'violet', title: 'Аметист', hot: [7, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#e3c8ff'/><stop offset='1' stop-color='#7c3aed'/></linearGradient><filter id='f' x='-60%' y='-60%' width='220%' height='220%'><feDropShadow dx='0' dy='0' stdDeviation='2.2' flood-color='#a855f7' flood-opacity='0.9'/></filter></defs><path d='M7 3 L27 17.5 L17.6 19 L22.2 28.6 L17.9 30.6 L13.4 21 L7 26 Z' fill='url(#g)' stroke='#ffffff' stroke-width='1.3' stroke-linejoin='round' filter='url(#f)'/><path d='M9.4 7.6 L21.5 16.4 L16.2 17.3 L12.9 15.4 L9.4 12.6 Z' fill='#ffffff' opacity='0.4'/></svg>" },
+  { id: 'heart', title: 'Сердце', hot: [16, 15], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#ff8fab'/><stop offset='1' stop-color='#e11d48'/></linearGradient><filter id='f' x='-60%' y='-60%' width='220%' height='220%'><feDropShadow dx='0' dy='0' stdDeviation='2.4' flood-color='#ff4d6d' flood-opacity='0.95'/></filter></defs><path d='M16 28 C6.5 21 3.5 14.5 7.5 10.2 C10.6 6.9 14.2 8.6 16 12 C17.8 8.6 21.4 6.9 24.5 10.2 C28.5 14.5 25.5 21 16 28 Z' fill='url(#g)' stroke='#ffffff' stroke-width='1.3' stroke-linejoin='round' filter='url(#f)'/><ellipse cx='11.6' cy='12.4' rx='2.6' ry='1.7' fill='#ffffff' opacity='0.55' transform='rotate(-24 11.6 12.4)'/></svg>" },
+  { id: 'star', title: 'Звезда', hot: [16, 16], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#fff3b0'/><stop offset='1' stop-color='#ffb703'/></linearGradient><filter id='f' x='-60%' y='-60%' width='220%' height='220%'><feDropShadow dx='0' dy='0' stdDeviation='2.4' flood-color='#ffd60a' flood-opacity='0.95'/></filter></defs><path d='M16 3 L19.6 11.4 L28.6 12.2 L21.8 18.2 L23.9 27 L16 22.3 L8.1 27 L10.2 18.2 L3.4 12.2 L12.4 11.4 Z' fill='url(#g)' stroke='#ffffff' stroke-width='1.2' stroke-linejoin='round' filter='url(#f)'/><circle cx='13' cy='12' r='1.6' fill='#ffffff' opacity='0.75'/></svg>" },
+  { id: 'ring', title: 'Кольцо', hot: [16, 16], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#a5f3fc'/><stop offset='1' stop-color='#6366f1'/></linearGradient><filter id='f' x='-60%' y='-60%' width='220%' height='220%'><feDropShadow dx='0' dy='0' stdDeviation='2.4' flood-color='#818cf8' flood-opacity='0.95'/></filter></defs><circle cx='16' cy='16' r='9' fill='none' stroke='url(#g)' stroke-width='3.6' filter='url(#f)'/><circle cx='16' cy='16' r='2.6' fill='#ffffff'/></svg>" },
+  { id: 'pixel', title: 'Пиксель', hot: [6, 3], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' shape-rendering='crispEdges'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#e0f2fe'/><stop offset='1' stop-color='#38bdf8'/></linearGradient></defs><path d='M6 2 L6 22 L11 17 L14.5 25 L18.5 23 L15 15.5 L21 15.5 Z' fill='url(#g)' stroke='#0b1220' stroke-width='2'/><path d='M8 6 L8 17 L10.5 14.5 L8 6 Z' fill='#ffffff' opacity='0.8'/></svg>" },
+  { id: 'cross', title: 'Прицел', hot: [16, 16], svg: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#fecaca'/><stop offset='1' stop-color='#ef4444'/></linearGradient><filter id='f' x='-60%' y='-60%' width='220%' height='220%'><feDropShadow dx='0' dy='0' stdDeviation='2' flood-color='#ef4444' flood-opacity='0.9'/></filter></defs><circle cx='16' cy='16' r='8.5' fill='none' stroke='url(#g)' stroke-width='2.2' filter='url(#f)'/><path d='M16 3.5 V10.5 M16 21.5 V28.5 M3.5 16 H10.5 M21.5 16 H28.5' stroke='url(#g)' stroke-width='2.2' stroke-linecap='round' filter='url(#f)'/><circle cx='16' cy='16' r='2.2' fill='#ff6b6b' stroke='#ffffff' stroke-width='1'/></svg>" },
+];
+const CURSOR_PRESET_IDS = CURSOR_PRESETS.map(preset => preset.id);
+
+function cursorDataUri(svg) {
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+function findCustomCursor(id) {
+  return (appSettings.customCursors || []).find(c => c.id === id) || null;
+}
+function sanitizeCursorCustom(value) {
+  if (!value || typeof value !== 'object') return null;
+  const dataUrl = String(value.dataUrl || '');
+  if (!dataUrl.startsWith('data:image/') || dataUrl.length > 80000) return null;
+  return {
+    dataUrl,
+    hotX: Math.max(0, Math.min(64, Number(value.hotX) || 0)),
+    hotY: Math.max(0, Math.min(64, Number(value.hotY) || 0)),
+  };
+}
+function resolveCursor() {
+  const preset = appSettings.cursorPreset || 'none';
+  if (preset === 'custom') {
+    const safe = sanitizeCursorCustom(findCustomCursor(appSettings.cursorCustomId));
+    if (safe) return { uri: safe.dataUrl, hot: [safe.hotX, safe.hotY] };
+    return null;
+  }
+  const found = CURSOR_PRESETS.find(p => p.id === preset);
+  if (found && found.svg) return { uri: cursorDataUri(found.svg), hot: found.hot || [4, 2] };
+  return null;
+}
+function applyCursor() {
+  const root = document.documentElement;
+  const resolved = resolveCursor();
+  if (!resolved) {
+    root.style.removeProperty('--app-cursor');
+    root.style.removeProperty('--app-cursor-pointer');
+    root.style.removeProperty('--app-cursor-text');
+    return;
+  }
+  const value = `url("${resolved.uri}") ${resolved.hot[0]} ${resolved.hot[1]}, auto`;
+  root.style.setProperty('--app-cursor', value);
+  root.style.setProperty('--app-cursor-pointer', value);
+  root.style.setProperty('--app-cursor-text', value);
+}
+function renderCursorSettings() {
+  const grid = document.getElementById('cursor-preset-grid');
+  if (grid) {
+    grid.innerHTML = CURSOR_PRESETS.map(preset => {
+      const active = (appSettings.cursorPreset || 'none') === preset.id;
+      const preview = preset.svg
+        ? `<img src="${cursorDataUri(preset.svg)}" alt="" />`
+        : '<i class="material-icons">mouse</i>';
+      return `<button class="cursor-tile${active ? ' active' : ''}" data-cursor="${preset.id}" title="${preset.title}">${preview}<span>${preset.title}</span></button>`;
+    }).join('');
+  }
+  const list = document.getElementById('cursor-custom-list');
+  if (list) {
+    const customs = appSettings.customCursors || [];
+    list.innerHTML = customs
+      .map(c => {
+        const active = appSettings.cursorPreset === 'custom' && appSettings.cursorCustomId === c.id;
+        return `<button class="cursor-tile custom${active ? ' active' : ''}" data-custom-cursor="${c.id}" title="${escapeHtml(c.name || 'Custom cursor')}"><img src="${c.dataUrl}" alt="" /><span>${escapeHtml((c.name || 'Cursor').slice(0, 14))}</span><i class="material-icons cursor-tile-del" data-del-cursor="${c.id}">close</i></button>`;
+      })
+      .join('');
+  }
+}
+(function initCursorSettings() {
+  const grid = document.getElementById('cursor-preset-grid');
+  if (grid)
+    grid.addEventListener('click', e => {
+      const tile = e.target.closest('.cursor-tile');
+      if (!tile) return;
+      appSettings.cursorPreset = tile.dataset.cursor;
+      if (appSettings.cursorPreset !== 'custom') appSettings.cursorCustomId = '';
+      saveSettings();
+      applyCursor();
+      renderCursorSettings();
+    });
+  const list = document.getElementById('cursor-custom-list');
+  if (list)
+    list.addEventListener('click', e => {
+      const del = e.target.closest('[data-del-cursor]');
+      if (del) {
+        const id = del.dataset.delCursor;
+        appSettings.customCursors = (appSettings.customCursors || []).filter(c => c.id !== id);
+        if (appSettings.cursorCustomId === id) {
+          appSettings.cursorPreset = 'none';
+          appSettings.cursorCustomId = '';
+        }
+        saveSettings();
+        applyCursor();
+        renderCursorSettings();
+        return;
+      }
+      const tile = e.target.closest('[data-custom-cursor]');
+      if (!tile) return;
+      appSettings.cursorPreset = 'custom';
+      appSettings.cursorCustomId = tile.dataset.customCursor;
+      saveSettings();
+      applyCursor();
+      renderCursorSettings();
+    });
+  const file = document.getElementById('cursor-file-input');
+  if (file)
+    file.addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      if (f.size > 65536) {
+        if (typeof showToast === 'function') showToast('Cursor file must be 64 KB or smaller');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || '');
+        if (!dataUrl.startsWith('data:image/')) {
+          if (typeof showToast === 'function') showToast('Unsupported format');
+          return;
+        }
+        appSettings.customCursors = appSettings.customCursors || [];
+        const id = 'c' + Date.now().toString(36);
+        appSettings.customCursors.push({
+          id,
+          name: (f.name || 'Cursor').replace(/\.[^.]+$/, '').slice(0, 14),
+          dataUrl,
+          hotX: 4,
+          hotY: 2,
+        });
+        if (appSettings.customCursors.length > 8) appSettings.customCursors.shift();
+        appSettings.cursorPreset = 'custom';
+        appSettings.cursorCustomId = id;
+        saveSettings();
+        applyCursor();
+        renderCursorSettings();
+        if (typeof showToast === 'function') showToast('Cursor added');
+      };
+      reader.readAsDataURL(f);
+    });
+  const reset = document.getElementById('cursor-reset-btn');
+  if (reset)
+    reset.addEventListener('click', () => {
+      appSettings.cursorPreset = 'none';
+      appSettings.cursorCustomId = '';
+      saveSettings();
+      applyCursor();
+      renderCursorSettings();
+    });
+  renderCursorSettings();
+  applyCursor();
+})();
+
+
+
 
 // ============================================================================
 // LIVE SETTINGS APPLICATION & PARTICLE CANVAS SYSTEM
@@ -6946,6 +7725,139 @@ let bgParticleAnimationId = null;
 let particlesArray = [];
 let mousePos = { x: 0, y: 0 };
 let particleMouseListenerAdded = false;
+
+// Cursor glow spotlight — follows mouse like cool highlight
+(function initCursorGlow(){
+  let glow = null;
+  let glow2 = null;
+  let ticking = false;
+  let mouseX = 0, mouseY = 0;
+
+  function ensureGlow() {
+    glow = document.getElementById('cursor-glow');
+    glow2 = document.getElementById('cursor-glow-2');
+    if (!glow) {
+      glow = document.createElement('div');
+      glow.id = 'cursor-glow';
+      document.body.appendChild(glow);
+    }
+    if (!glow2) {
+      glow2 = document.createElement('div');
+      glow2.id = 'cursor-glow-2';
+      document.body.appendChild(glow2);
+    }
+  }
+
+  function updateGlow() {
+    if (!glow || !glow2) ensureGlow();
+    if (glow) {
+      glow.style.transform = 'translate3d(' + (mouseX - 400) + 'px, ' + (mouseY - 400) + 'px, 0)';
+      glow.classList.add('active');
+    }
+    if (glow2) {
+      glow2.style.transform = 'translate3d(' + (mouseX - 225) + 'px, ' + (mouseY - 225) + 'px, 0)';
+    }
+    ticking = false;
+  }
+
+  window.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    if (!ticking) {
+      requestAnimationFrame(updateGlow);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  window.addEventListener('mouseleave', () => {
+    if (glow) glow.style.opacity = '0';
+    if (glow2) glow2.style.opacity = '0';
+  });
+
+  window.addEventListener('mouseenter', () => {
+    if (glow) glow.style.opacity = '';
+    if (glow2) glow2.style.opacity = '';
+  });
+
+  // Init after DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureGlow);
+  } else {
+    ensureGlow();
+  }
+})();
+
+// ---- PERF: auto quality for heavy effects (glow, lava lamp) ----
+let perfAutoLow = false;
+let perfFpsAcc = 0;
+let perfFpsFrames = 0;
+let perfLastTs = 0;
+function effectivePerfMode() {
+  if (appSettings.fxQuality === 'low') return 'low';
+  if (appSettings.fxQuality === 'max') return 'max';
+  return perfAutoLow ? 'low' : 'max';
+}
+function applyPerfMode() {
+  document.body.classList.toggle('perf-low', effectivePerfMode() === 'low');
+}
+function applyGlowVisibility() {
+  // De-slop: spotlight is opt-in. It only renders when the user explicitly
+  // enabled it (previously an absent setting meant ON, so everyone got the
+  // 800px glow layers by default).
+  document.body.classList.toggle('no-glow', appSettings.cursorGlow !== true);
+}
+function perfSample(ts) {
+  if (appSettings.fxQuality !== 'auto' || perfAutoLow) return;
+  if (perfLastTs) {
+    const dt = ts - perfLastTs;
+    if (dt > 0 && dt < 500) { perfFpsAcc += dt; perfFpsFrames++; }
+  }
+  perfLastTs = ts;
+  if (perfFpsFrames >= 90) {
+    const avgMs = perfFpsAcc / perfFpsFrames;
+    perfFpsAcc = 0;
+    perfFpsFrames = 0;
+    if (avgMs > 22) { // below ~45 fps — switch to economy mode once
+      perfAutoLow = true;
+  applyPerfMode();
+    }
+  }
+}
+
+// ---- PERF: pre-rendered particle sprites (no per-frame shadowBlur/gradients) ----
+const particleSpriteCache = {};
+function getParticleSprite(type) {
+  if (particleSpriteCache[type]) return particleSpriteCache[type];
+  const s = document.createElement('canvas');
+  s.width = 64; s.height = 64;
+  const c = s.getContext('2d');
+  if (type === 'fireflies') {
+    const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,235,59,1)');
+    g.addColorStop(0.35, 'rgba(255,235,59,0.55)');
+    g.addColorStop(1, 'rgba(255,235,59,0)');
+    c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+  } else if (type === 'hearts') {
+    c.fillStyle = 'rgba(255,105,180,1)';
+    c.font = '48px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('\u2665', 32, 35);
+  } else if (type === 'sakura') {
+    c.save(); c.translate(32, 32); c.rotate(Math.PI / 4);
+    c.fillStyle = 'rgba(255,182,193,1)';
+    c.beginPath(); c.ellipse(0, 0, 26, 13, 0, 0, Math.PI * 2); c.fill();
+    c.restore();
+  } else {
+    const col = type === 'stars' ? '255,255,200' : '255,255,255';
+    const core = type === 'snow' ? 0.55 : (type === 'stars' ? 0.5 : 0.45);
+    const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(' + col + ',1)');
+    g.addColorStop(core, 'rgba(' + col + ',0.9)');
+    g.addColorStop(1, 'rgba(' + col + ',0)');
+    c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+  }
+  particleSpriteCache[type] = s;
+  return s;
+}
 
 function initParticleEngine() {
   let canvas = document.getElementById('bg-particle-canvas');
@@ -6990,17 +7902,17 @@ function updateParticleSystem() {
     return;
   }
 
-  if (!bgParticleCanvas) initParticleEngine();
-  const type = appSettings.bgParticles || 'dots';
+  if (!bgParticleCanvas || !bgParticleCanvas.isConnected) initParticleEngine();
+  const type = appSettings.bgParticles || 'none';
   if (type === 'none') {
     bgParticleCtx?.clearRect(0, 0, bgParticleCanvas.width, bgParticleCanvas.height);
     return;
   }
 
   const rawCount = Number(appSettings.particleCount) || 50;
-  const count = type === 'network' ? Math.min(35, rawCount) : Math.min(110, rawCount);
+  const count = type === 'network' ? Math.min(60, rawCount) : Math.min(140, rawCount);
   const speed = (Number(appSettings.particleSpeed) || 15) / 10;
-  const size = Number(appSettings.particleSize) || 3.5;
+  const size = Number(appSettings.particleSize) || 3;
 
   particlesArray = [];
   const w = bgParticleCanvas.width || window.innerWidth;
@@ -7022,16 +7934,19 @@ function updateParticleSystem() {
   }
 
   const accent =
-    getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#FFFFFF';
+    getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1DB954';
   let lastTime = 0;
-  const fpsInterval = 1000 / 60;
 
   function render(timestamp) {
+    const fpsInterval = effectivePerfMode() === 'low' ? 1000 / 30 : 1000 / 60;
     if (!bgParticleCtx || !bgParticleCanvas) return;
+    // Сбрасываем id кадра: если render упадёт, watchdog увидит null и перезапустит цикл
+    bgParticleAnimationId = null;
     if (document.hidden) {
       bgParticleAnimationId = requestAnimationFrame(render);
       return;
     }
+    perfSample(timestamp);
 
     const elapsed = timestamp - lastTime;
     if (elapsed < fpsInterval) {
@@ -7040,6 +7955,18 @@ function updateParticleSystem() {
     }
     lastTime = timestamp - (elapsed % fpsInterval);
 
+    try {
+      drawFrame();
+    } catch (err) {
+      console.error('[particles] render error:', err);
+      return;
+    }
+
+    bgParticleAnimationId = requestAnimationFrame(render);
+  }
+
+  function drawFrame() {
+    particleFrameCount++;
     bgParticleCtx.clearRect(0, 0, bgParticleCanvas.width, bgParticleCanvas.height);
 
     particlesArray.forEach(p => {
@@ -7055,54 +7982,33 @@ function updateParticleSystem() {
       const px = p.x + (appSettings.particleParallax !== false ? mousePos.x : 0);
       const py = p.y + (appSettings.particleParallax !== false ? mousePos.y : 0);
 
-      bgParticleCtx.beginPath();
-      if (type === 'snow') {
-        bgParticleCtx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.95})`;
-        bgParticleCtx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-        bgParticleCtx.shadowBlur = 6;
-        bgParticleCtx.arc(px, py, p.size * 1.3, 0, Math.PI * 2);
-        bgParticleCtx.fill();
-        bgParticleCtx.shadowBlur = 0;
-      } else if (type === 'rain') {
+      if (type === 'rain') {
+        bgParticleCtx.beginPath();
         bgParticleCtx.strokeStyle = `rgba(160, 220, 255, ${p.opacity * 0.9})`;
         bgParticleCtx.lineWidth = 2;
         bgParticleCtx.moveTo(px, py);
         bgParticleCtx.lineTo(px, py + p.size * 6);
         bgParticleCtx.stroke();
-      } else if (type === 'stars') {
-        bgParticleCtx.fillStyle = `rgba(255, 255, 200, ${p.opacity})`;
-        bgParticleCtx.shadowColor = 'rgba(255, 255, 180, 0.9)';
-        bgParticleCtx.shadowBlur = 8;
-        bgParticleCtx.arc(px, py, p.size * 1.2, 0, Math.PI * 2);
-        bgParticleCtx.fill();
-        bgParticleCtx.shadowBlur = 0;
-      } else if (type === 'hearts') {
-        bgParticleCtx.fillStyle = `rgba(255, 105, 180, ${p.opacity})`;
-        bgParticleCtx.font = `${Math.max(12, p.size * 3.5)}px sans-serif`;
-        bgParticleCtx.fillText('♥', px, py);
       } else if (type === 'sakura') {
+        const w = p.size * 6.2;
         bgParticleCtx.save();
         bgParticleCtx.translate(px, py);
         bgParticleCtx.rotate(p.angle);
-        bgParticleCtx.fillStyle = `rgba(255, 182, 193, ${p.opacity * 0.9})`;
-        bgParticleCtx.beginPath();
-        bgParticleCtx.ellipse(0, 0, p.size * 2.5, p.size * 1.3, Math.PI / 4, 0, Math.PI * 2);
-        bgParticleCtx.fill();
+        bgParticleCtx.globalAlpha = p.opacity * 0.9;
+        bgParticleCtx.drawImage(getParticleSprite(type), -w / 2, -w / 2, w, w);
         bgParticleCtx.restore();
-      } else if (type === 'fireflies') {
-        const glow = bgParticleCtx.createRadialGradient(px, py, 0, px, py, p.size * 4);
-        glow.addColorStop(0, `rgba(255, 235, 59, ${p.opacity})`);
-        glow.addColorStop(1, 'rgba(255, 235, 59, 0)');
-        bgParticleCtx.fillStyle = glow;
-        bgParticleCtx.arc(px, py, p.size * 4, 0, Math.PI * 2);
-        bgParticleCtx.fill();
+        bgParticleCtx.globalAlpha = 1;
       } else {
-        bgParticleCtx.fillStyle = accent;
-        bgParticleCtx.shadowColor = accent;
-        bgParticleCtx.shadowBlur = 8;
-        bgParticleCtx.arc(px, py, p.size * 1.5, 0, Math.PI * 2);
-        bgParticleCtx.fill();
-        bgParticleCtx.shadowBlur = 0;
+        const spr = getParticleSprite(type);
+        let w;
+        if (type === 'snow') w = p.size * 1.3 * 4.4;
+        else if (type === 'stars') w = p.size * 1.2 * 4.8;
+        else if (type === 'hearts') w = Math.max(12, p.size * 3.5) * 1.33;
+        else if (type === 'fireflies') w = p.size * 8;
+        else w = p.size * 2.2 * 4.5;
+        bgParticleCtx.globalAlpha = p.opacity;
+        bgParticleCtx.drawImage(spr, px - w / 2, py - w / 2, w, w);
+        bgParticleCtx.globalAlpha = 1;
       }
     });
 
@@ -7117,8 +8023,8 @@ function updateParticleSystem() {
           const distSq = dx * dx + dy * dy;
           if (distSq < maxDistSq) {
             bgParticleCtx.beginPath();
-            bgParticleCtx.strokeStyle = accent;
-            bgParticleCtx.globalAlpha = (1 - Math.sqrt(distSq) / 110) * 0.35;
+            bgParticleCtx.strokeStyle = 'rgba(255,255,255,0.25)';
+            bgParticleCtx.globalAlpha = (1 - Math.sqrt(distSq) / 110) * 0.55;
             bgParticleCtx.lineWidth = 1;
             bgParticleCtx.moveTo(p1.x, p1.y);
             bgParticleCtx.lineTo(p2.x, p2.y);
@@ -7129,11 +8035,35 @@ function updateParticleSystem() {
       }
     }
 
-    bgParticleAnimationId = requestAnimationFrame(render);
   }
 
   render(performance.now());
 }
+
+// Watchdog: если цикл частиц умер (ошибка кадра, сбой вкладки) — перезапускаем.
+// Плюс детектор «тихой остановки»: считаем кадры и, если при включённых частицах
+// счётчик не растёт (цикл жив, но не рисует / завис), перезапускаем систему.
+let particleFrameCount = 0;
+let particleWatchLastCount = 0;
+setInterval(() => {
+  try {
+    if (typeof appSettings === 'undefined' || !appSettings) return;
+    if (appSettings.perfParticles === false) return;
+    const ptype = appSettings.bgParticles || 'none';
+    if (ptype === 'none') return;
+    if (document.hidden) {
+      particleWatchLastCount = particleFrameCount;
+      return;
+    }
+    if (!bgParticleAnimationId || particleFrameCount === particleWatchLastCount) {
+      console.warn('[particles] watchdog: restart (stall or dead loop)');
+      updateParticleSystem();
+    }
+    particleWatchLastCount = particleFrameCount;
+  } catch (e) {
+    /* ignore */
+  }
+}, 3000);
 
 function applyPlayerSettings() {
   const align = appSettings.playerTitleAlign || 'center';
@@ -7270,12 +8200,12 @@ function applyUISettings() {
     appContainer.style.height = '';
   }
 
-  const mode = appSettings.themeMode || 'dark';
-  document.body.dataset.themeMode = mode;
+  const mode = appSettings.themeMode || 'contrast';
+  document.body.dataset.themeMode = mode || 'contrast';
   if (mode === 'light') {
     document.body.classList.add('light-theme');
     document.body.classList.remove('dark-theme');
-  } else if (mode === 'dark') {
+  } else if (mode === 'dark' || mode === 'contrast') {
     document.body.classList.add('dark-theme');
     document.body.classList.remove('light-theme');
   } else {
@@ -7302,12 +8232,12 @@ function syncColorPickersFromSettings() {
   const colors = api
     ? api.readColorSchemeFromSettings(appSettings)
     : {
-        accent: appSettings.customColorPrimary || appSettings.accent || '#FFFFFF',
+        accent: appSettings.customColorPrimary || appSettings.accent || '#1DB954',
         background: appSettings.customColorBg || '#121212',
         text: appSettings.customColorText || '#ffffff',
         cards: appSettings.customColorCards || '#181818',
         borders: appSettings.customColorBorders || '#2a2a2a',
-        focus: appSettings.customColorFocus || appSettings.customColorPrimary || '#FFFFFF',
+        focus: appSettings.customColorFocus || appSettings.customColorPrimary || '#1DB954',
       };
   const map = {
     'picker-color-primary': colors.accent,
@@ -7419,12 +8349,12 @@ function readCurrentColorSchemeColors() {
   const source = { ...appSettings, ...pickerValues };
   if (api) return api.readColorSchemeFromSettings(source);
   return {
-    accent: pickerValues.customColorPrimary || appSettings.customColorPrimary || '#FFFFFF',
+    accent: pickerValues.customColorPrimary || appSettings.customColorPrimary || '#1DB954',
     background: pickerValues.customColorBg || appSettings.customColorBg || '#121212',
     text: pickerValues.customColorText || appSettings.customColorText || '#ffffff',
     cards: pickerValues.customColorCards || appSettings.customColorCards || '#181818',
     borders: pickerValues.customColorBorders || appSettings.customColorBorders || '#2a2a2a',
-    focus: pickerValues.customColorFocus || appSettings.customColorFocus || '#FFFFFF',
+    focus: pickerValues.customColorFocus || appSettings.customColorFocus || '#1DB954',
   };
 }
 
@@ -7499,12 +8429,12 @@ function saveCurrentColorScheme() {
 
 function bindCustomColorPickers() {
   const pickerSettings = {
-    'picker-color-primary': ['customColorPrimary', '#FFFFFF'],
+    'picker-color-primary': ['customColorPrimary', '#1DB954'],
     'picker-color-bg': ['customColorBg', '#121212'],
     'picker-color-text': ['customColorText', '#FFFFFF'],
     'picker-color-cards': ['customColorCards', '#181818'],
     'picker-color-borders': ['customColorBorders', '#2A2A2A'],
-    'picker-color-focus': ['customColorFocus', '#FFFFFF'],
+    'picker-color-focus': ['customColorFocus', '#1DB954'],
   };
 
   Object.entries(pickerSettings).forEach(([id, [key, fallback]]) => {
@@ -7538,8 +8468,8 @@ function bindCustomColorPickers() {
 }
 
 const THEME_COLOR_PRESETS = {
-  neutral: ['#FFFFFF', '#121212', '#181818', '#FFFFFF', '#333333', '#FFFFFF'],
-  amoled: ['#FFFFFF', '#000000', '#080808', '#FFFFFF', '#242424', '#E4E4E7'],
+  neutral: ['#1DB954', '#121212', '#181818', '#FFFFFF', '#333333', '#1DB954'],
+  amoled: ['#1DB954', '#000000', '#080808', '#FFFFFF', '#242424', '#1ED760'],
   crimson: ['#DC263F', '#16080B', '#241014', '#FFF5F6', '#4A1B23', '#FF526A'],
   dracula: ['#BD93F9', '#191A24', '#282A36', '#F8F8F2', '#44475A', '#FF79C6'],
   nord: ['#88C0D0', '#242933', '#2E3440', '#ECEFF4', '#4C566A', '#8FBCBB'],
@@ -7732,7 +8662,7 @@ function getCurrentWorkshopTheme() {
   return {
     primary: workshopCssColor(
       '--accent',
-      workshopColor(appSettings.customColorPrimary || appSettings.accent, '#FFFFFF')
+      workshopColor(appSettings.customColorPrimary || appSettings.accent, '#1DB954')
     ),
     background: workshopCssColor('--bg-base', workshopColor(appSettings.customColorBg, '#121212')),
     text: workshopCssColor('--text-primary', workshopColor(appSettings.customColorText, '#FFFFFF')),
@@ -7743,16 +8673,25 @@ function getCurrentWorkshopTheme() {
     ),
     focus: workshopCssColor(
       '--focus-ring',
-      workshopColor(appSettings.customColorFocus || appSettings.accent, '#FFFFFF')
+      workshopColor(appSettings.customColorFocus || appSettings.accent, '#1DB954')
     ),
-    mode: ['dark', 'light', 'system'].includes(appSettings.themeMode)
+    mode: ['dark', 'light', 'system', 'contrast', 'midnight'].includes(appSettings.themeMode)
       ? appSettings.themeMode
-      : 'dark',
+      : 'contrast',
     backgroundPreset: /^grad-[1-9]$/.test(appSettings.bgPreset || appSettings.background)
       ? appSettings.bgPreset || appSettings.background
       : 'default',
     backgroundUrl:
       workshopBackgroundUrl(appSettings.bgUrl) || workshopBackgroundUrl(appSettings.background),
+    cursorPreset: CURSOR_PRESET_IDS.includes(appSettings.cursorPreset)
+      ? appSettings.cursorPreset
+      : appSettings.cursorPreset === 'custom'
+        ? 'custom'
+        : 'none',
+    cursorCustom:
+      appSettings.cursorPreset === 'custom'
+        ? sanitizeCursorCustom(findCustomCursor(appSettings.cursorCustomId))
+        : null,
     cornerRadius: workshopNumber(appSettings.cornerRadius, 0, 24, 8),
     uiTransparency: workshopNumber(appSettings.uiTransparency, 10, 100, 45),
     backgroundBlur: workshopNumber(appSettings.backgroundBlur, 0, 60, 0),
@@ -7796,7 +8735,7 @@ function applyWorkshopTheme(theme, metadata = {}) {
     cards: workshopColor(theme?.cards, current.cards),
     borders: workshopColor(theme?.borders, current.borders),
     focus: workshopColor(theme?.focus, current.focus),
-    mode: ['dark', 'light', 'system'].includes(theme?.mode) ? theme.mode : current.mode,
+    mode: ['dark', 'light', 'system', 'contrast', 'midnight'].includes(theme?.mode) ? theme.mode : current.mode,
     backgroundPreset: /^grad-[1-9]$/.test(theme?.backgroundPreset)
       ? theme.backgroundPreset
       : 'default',
@@ -7816,7 +8755,7 @@ function applyWorkshopTheme(theme, metadata = {}) {
       'network',
     ].includes(theme?.particles)
       ? theme.particles
-      : 'none',
+      : current.particles || 'none',
     fontFamily: [
       'system',
       'modern',
@@ -7832,6 +8771,10 @@ function applyWorkshopTheme(theme, metadata = {}) {
     ].includes(theme?.fontFamily)
       ? theme.fontFamily
       : current.fontFamily,
+    cursorPreset: [...CURSOR_PRESET_IDS, 'custom'].includes(theme?.cursorPreset)
+      ? theme.cursorPreset
+      : current.cursorPreset || 'none',
+    cursorCustom: sanitizeCursorCustom(theme?.cursorCustom),
   };
 
   Object.assign(appSettings, {
@@ -7852,9 +8795,22 @@ function applyWorkshopTheme(theme, metadata = {}) {
     backgroundBlur: safe.backgroundBlur,
     bgParticles: safe.particles,
     fontFamily: safe.fontFamily,
+    cursorPreset: safe.cursorPreset,
     workshopThemeId: String(metadata.id || '').slice(0, 40),
     workshopThemeTitle: String(metadata.title || '').slice(0, 60),
   });
+
+  if (safe.cursorPreset === 'custom' && safe.cursorCustom) {
+    appSettings.customCursors = appSettings.customCursors || [];
+    const existing = appSettings.customCursors.find(c => c.id === 'theme');
+    if (existing) Object.assign(existing, safe.cursorCustom);
+    else appSettings.customCursors.push({ id: 'theme', name: 'From theme', ...safe.cursorCustom });
+    appSettings.cursorCustomId = 'theme';
+  } else if (safe.cursorPreset !== 'custom') {
+    appSettings.cursorCustomId = '';
+  }
+  applyCursor();
+  renderCursorSettings();
 
   const controlValues = {
     'picker-color-primary': safe.primary,
@@ -8030,6 +8986,19 @@ function initRedesignedSettings() {
 
   // --- 4. Эффективность (gen-perf) ---
   wireInput('setting-perf-limiting', 'perfLimiting', 'off');
+  const fxQualitySel = document.getElementById('setting-fx-quality');
+  if (fxQualitySel) {
+    fxQualitySel.value = appSettings.fxQuality || 'auto';
+    fxQualitySel.addEventListener('change', () => {
+      appSettings.fxQuality = fxQualitySel.value;
+      perfAutoLow = false;
+      applyPerfMode();
+      saveSettings();
+    });
+  }
+  wireInput('setting-glow', 'cursorGlow', false, '', '', applyGlowVisibility);
+  applyGlowVisibility();
+  applyPerfMode();
   wireInput('background-blur-slider', 'background-blur', 15, 'background-blur-value', 'px');
   const blurSlider = document.getElementById('background-blur-slider');
   if (blurSlider) {
@@ -8038,7 +9007,7 @@ function initRedesignedSettings() {
     });
   }
   wireInput('toggle-perf-bg', 'perfBg', true);
-  wireInput('toggle-perf-particles', 'perfParticles', false, null, '', () =>
+  wireInput('toggle-perf-particles', 'perfParticles', true, null, '', () =>
     updateParticleSystem()
   );
   wireInput('toggle-perf-covers', 'perfCovers', true);
@@ -8112,9 +9081,19 @@ function initRedesignedSettings() {
   wireInput('setting-player-title-align', 'playerTitleAlign', 'center', null, '', () =>
     applyPlayerSettings()
   );
-  wireInput('setting-player-style', 'playerStyle', 'standard', null, '', () =>
-    applyPlayerSettings()
-  );
+  wireInput('setting-player-style', 'playerStyle', 'standard', null, '', () => {
+    applyPlayerSettings();
+    // auto vinyl shape when style vinyl selected via select
+    if (appSettings.playerStyle === 'vinyl' && appSettings.playerCoverShape !== 'Виниловая пластинка') {
+      appSettings.playerCoverShape = 'Виниловая пластинка';
+      const coverShapeValue = document.getElementById('cover-shape-value');
+      const settingCoverShape = document.getElementById('setting-cover-shape');
+      if (coverShapeValue) coverShapeValue.textContent = 'Виниловая пластинка';
+      if (settingCoverShape) settingCoverShape.value = 'Виниловая пластинка';
+      applyPlayerCoverShape();
+      saveSettings();
+    }
+  });
   wireInput('setting-player-slider-type', 'playerSliderType', 'normal', null, '', () =>
     applyPlayerSettings()
   );

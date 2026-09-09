@@ -604,6 +604,14 @@ async function searchTracks(query, limit, useCache = true) {
     }
   }
   const tracks = await ytSearchScrape(query, limit);
+  // Офлайн-фолбэк: нет сети — показываем локальный демо-каталог
+  if (!tracks.length) {
+    const demo = require('./demo.js').searchDemo(query, limit);
+    if (demo.length) {
+      console.log(`[demo] Offline catalog fallback for: "${query}"`);
+      return demo;
+    }
+  }
   if (useCache) {
     searchCache.set(cacheKey, { tracks, expires: Date.now() + SEARCH_CACHE_TTL });
   }
@@ -612,7 +620,12 @@ async function searchTracks(query, limit, useCache = true) {
 
 async function searchTracksByArtist(name, limit) {
   const query = `${name} official audio`;
-  return searchTracks(query, limit, false);
+  const tracks = await searchTracks(query, limit, false);
+  if (!tracks.length) {
+    const demo = require('./demo.js').searchDemoByArtist(name, limit);
+    if (demo.length) return demo;
+  }
+  return tracks;
 }
 
 async function getRecommendations(limit = RECOMMENDATION_LIMIT) {
@@ -630,6 +643,13 @@ async function getRecommendations(limit = RECOMMENDATION_LIMIT) {
     seen.add(t.id);
     return true;
   });
+  if (!unique.length) {
+    const demo = require('./demo.js').demoAll(limit);
+    if (demo.length) {
+      console.log('[demo] Offline recommendations fallback');
+      return demo;
+    }
+  }
   return unique.slice(0, limit);
 }
 

@@ -116,6 +116,11 @@ async function handleMusicRoutes(req, res, u) {
     }
     const isDownload = u.searchParams.get('download') === '1';
     const upstreamTimeoutMs = isDownload ? 300000 : 30000;
+    // Демо-треки офлайн-каталога отдаются локально, без YouTube
+    const demo = require('./demo.js');
+    if (demo.isDemoId(id)) {
+      if (demo.serveDemoAudio(id, res)) return true;
+    }
     try {
       const streamUrl = await fetchStreamUrl(id);
       if (!streamUrl) {
@@ -198,6 +203,12 @@ async function handleMusicRoutes(req, res, u) {
     const id = u.searchParams.get('id')?.trim();
     if (!id) {
       sendJson(res, 400, { error: 'No id' });
+      return true;
+    }
+    // Демо-треки офлайн-каталога отдаются локально
+    const demoLib = require('./demo.js');
+    if (demoLib.isDemoId(id)) {
+      sendJson(res, 200, { url: '/demo/audio/' + id + '.wav' });
       return true;
     }
     // SoundCloud tracks - use fetchStreamUrl
