@@ -739,7 +739,7 @@ private class AppViewModelFactory(private val app: VotifyApp) : ViewModelProvide
     override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
         modelClass.isAssignableFrom(HomeViewModel::class.java) -> HomeViewModel(app.music, app.library) as T
         modelClass.isAssignableFrom(SearchViewModel::class.java) -> SearchViewModel(app.music) as T
-        modelClass.isAssignableFrom(LibraryViewModel::class.java) -> LibraryViewModel(app.library, app.player) as T
+        modelClass.isAssignableFrom(LibraryViewModel::class.java) -> LibraryViewModel(app.library, app.player, app.music) as T
         modelClass.isAssignableFrom(PlayerViewModel::class.java) -> PlayerViewModel(app.music, app.player, app.library) as T
         modelClass.isAssignableFrom(ArtistViewModel::class.java) -> ArtistViewModel(app.music) as T
         modelClass.isAssignableFrom(SettingsViewModel::class.java) -> SettingsViewModel(app.api, app.settings, app.library, app) as T

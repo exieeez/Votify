@@ -9,6 +9,7 @@ import app.votify.mobile.data.Track
 import app.votify.mobile.data.local.PlaylistEntity
 import app.votify.mobile.data.local.PlaylistSummary
 import app.votify.mobile.player.PlayerController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -36,6 +37,7 @@ data class TrackMenu(val track: Track, val playlistId: Long? = null, val downloa
 class LibraryViewModel(
     private val library: LibraryRepository,
     private val player: PlayerController,
+    private val music: app.votify.mobile.data.MusicRepository,
 ) : ViewModel() {
 
     private fun <T> stream(flow: Flow<T>, initial: T): StateFlow<T> =
