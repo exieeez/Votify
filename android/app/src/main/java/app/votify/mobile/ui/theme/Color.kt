@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 
 /**
  * Votify palette — see design/DESIGN-monochrome.md.
@@ -75,6 +76,23 @@ val OledBlackPalette = VotifyPalette(
     inverseSurface = Color(0xFFE5E2E1),
     inverseOnSurface = Color(0xFF313030),
 )
+
+/** Accent themes: the OLED dark hierarchy with a colored primary (play buttons, chips, slider). */
+private fun accentPalette(primary: Color, onPrimary: Color, container: Color): VotifyPalette =
+    OledBlackPalette.copy(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = container,
+        onPrimaryContainer = primary,
+        secondary = primary,
+        secondaryContainer = container,
+    )
+
+val VioletPalette = accentPalette(Color(0xFFA78BFA), Color(0xFF151024), Color(0xFF322A4D))
+val AzurePalette = accentPalette(Color(0xFF6AA6FF), Color(0xFF0D1B2E), Color(0xFF27364B))
+val EmeraldPalette = accentPalette(Color(0xFF4CD7A0), Color(0xFF06231A), Color(0xFF1F3D33))
+val AmberPalette = accentPalette(Color(0xFFF5C044), Color(0xFF241B04), Color(0xFF3F3418))
+val RosePalette = accentPalette(Color(0xFFF9708B), Color(0xFF2A0912), Color(0xFF45242E))
 
 /** "Графит" — same hierarchy, lifted one tonal step so nothing is pure black. */
 val GraphitePalette = OledBlackPalette.copy(
@@ -164,4 +182,71 @@ object VotifyColors {
     val OnErrorContainer: Color @Composable @ReadOnlyComposable get() = p.onErrorContainer
     val InverseSurface: Color @Composable @ReadOnlyComposable get() = p.inverseSurface
     val InverseOnSurface: Color @Composable @ReadOnlyComposable get() = p.inverseOnSurface
+}
+
+// ---------------------------------------------------------------------------
+// Workshop themes (мастерская тем)
+// ---------------------------------------------------------------------------
+
+/** Subset of the PC workshop theme schema (firestore.rules) that mobile applies. */
+@kotlinx.serialization.Serializable
+data class WorkshopThemeSpec(
+    val primary: String = "#FFFFFF",
+    val background: String = "#121212",
+    val text: String = "#FFFFFF",
+    val cards: String = "#1E1E1E",
+    val borders: String = "#2A2A2A",
+    val focus: String = "#48484A",
+    val mode: String = "dark",
+    val backgroundPreset: String = "default",
+    val backgroundUrl: String = "",
+    val cornerRadius: Int = 16,
+    val uiTransparency: Int = 100,
+    val backgroundBlur: Int = 0,
+    val particles: String = "none",
+    val fontFamily: String = "inter",
+)
+
+private fun parseColorOrNull(hex: String): Color? = runCatching {
+    Color(android.graphics.Color.parseColor(hex.trim()))
+}.getOrNull()
+
+/** Contrast-safe foreground for an arbitrary accent (workshop themes). */
+private fun onColorFor(c: Color): Color =
+    if (c.red * 0.299 + c.green * 0.587 + c.blue * 0.114 > 0.55) Color(0xFF101013) else Color(0xFFFFFFFF)
+
+/** Maps a workshop theme onto the Votify palette; falls back to OLED Black on bad values. */
+fun WorkshopThemeSpec.toPalette(): VotifyPalette {
+    val bg = parseColorOrNull(background) ?: Color(0xFF121212)
+    val cards = parseColorOrNull(cards) ?: Color(0xFF1E1E1E)
+    val text = parseColorOrNull(text) ?: Color(0xFFFFFFFF)
+    val borders = parseColorOrNull(borders) ?: Color(0xFF2A2A2A)
+    val focus = parseColorOrNull(focus) ?: Color(0xFF48484A)
+    val accent = parseColorOrNull(primary) ?: Color(0xFFFFFFFF)
+    val light = mode == "light" || (mode == "system" && false)
+    val dark = !light
+    // Keep text readable over the author's background.
+    val textPrimary = if (dark && text == Color(0xFF000000)) Color(0xFFFFFFFF) else text
+    return OledBlackPalette.copy(
+        isDark = dark,
+        pitchBlack = bg,
+        surfaceBase = bg,
+        surfaceContainerLowest = bg,
+        surfaceContainerLow = cards,
+        surfaceContainer = cards,
+        surfaceContainerHigh = focus,
+        surfaceContainerHighest = focus,
+        surfaceBright = focus,
+        borderSubtle = borders,
+        borderProminent = focus,
+        textPrimary = textPrimary,
+        textSecondary = textPrimary.copy(alpha = 0.88f).compositeOver(bg),
+        textMuted = textPrimary.copy(alpha = 0.55f).compositeOver(bg),
+        primary = accent,
+        onPrimary = onColorFor(accent),
+        primaryContainer = accent.copy(alpha = 0.22f).compositeOver(bg),
+        onPrimaryContainer = accent,
+        secondary = accent,
+        secondaryContainer = accent.copy(alpha = 0.22f).compositeOver(bg),
+    )
 }

@@ -3,6 +3,12 @@
 Ветка `arena/01a07e3f-votify`: **бекенд API** (Node.js, корень репозитория) + **Android‑приложение**
 (`android/`, Kotlin + Jetpack Compose). Десктопная оболочка (Electron) и веб‑интерфейс удалены.
 
+Ветка `arena/01a0816e-votify` — **самостоятельное приложение**: поиск (YouTube Music), стриминг,
+тексты песен и импорт плейлистов работают прямо на телефоне, без сервера (NewPipeExtractor).
+Свой сервер остаётся опцией (Настройки → Режим работы). Также: экран аккаунта
+(вход/регистрация/сброс пароля), импорт плейлистов (YouTube / Spotify / SoundCloud), цветной фон
+плеера из обложки, «Поделиться» и меню «⋮» в плеере.
+
 - `android/` — приложение, см. [android/README.md](android/README.md)
 - `design/` — макеты из Google Stitch и дизайн‑система, см. [design/README.md](design/README.md)
 - CI: `.github/workflows/android.yml` собирает debug APK на каждый push (артефакт `votify-debug-apk`)

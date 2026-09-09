@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: ['arena/01a07e3f-votify']
+    branches: ['arena/01a07e3f-votify', 'arena/01a0816e-votify']
     paths: ['android/**', '.github/workflows/android.yml']
   workflow_dispatch:
 
@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # Firebase Web Config injected into BuildConfig at build time (from a secret,
+    # never committed; masked out of logs automatically).
+    env:
+      VOTIFY_FIREBASE_CONFIG: ${{ secrets.VOTIFY_FIREBASE_CONFIG }}
     defaults:
       run:
         working-directory: android

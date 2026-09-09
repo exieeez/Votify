@@ -68,23 +68,79 @@ val VotifyShapes = Shapes(
     extraLarge = RoundedCornerShape(24.dp),
 )
 
+/** Font family / size chosen in the Interface settings, applied on top of the base typography. */
+private fun androidx.compose.material3.Typography.withPrefs(
+    family: androidx.compose.ui.text.font.FontFamily?,
+    scale: Float,
+): androidx.compose.material3.Typography {
+    fun androidx.compose.ui.text.TextStyle.t() =
+        copy(fontSize = fontSize * scale, lineHeight = lineHeight * scale, fontFamily = family ?: fontFamily)
+    return androidx.compose.material3.Typography(
+        displayLarge = displayLarge.t(), displayMedium = displayMedium.t(), displaySmall = displaySmall.t(),
+        headlineLarge = headlineLarge.t(), headlineMedium = headlineMedium.t(), headlineSmall = headlineSmall.t(),
+        titleLarge = titleLarge.t(), titleMedium = titleMedium.t(), titleSmall = titleSmall.t(),
+        bodyLarge = bodyLarge.t(), bodyMedium = bodyMedium.t(), bodySmall = bodySmall.t(),
+        labelLarge = labelLarge.t(), labelMedium = labelMedium.t(), labelSmall = labelSmall.t(),
+    )
+}
+
 @Composable
-fun VotifyTheme(theme: AppTheme = AppTheme.OledBlack, content: @Composable () -> Unit) {
+fun VotifyTheme(
+    theme: AppTheme = AppTheme.OledBlack,
+    customThemeJson: String = "",
+    prefs: app.votify.mobile.data.CustomPrefs = app.votify.mobile.data.CustomPrefs(),
+    content: @Composable () -> Unit,
+) {
     val palette = when (theme) {
         AppTheme.OledBlack -> OledBlackPalette
         AppTheme.Graphite -> GraphitePalette
+        AppTheme.Violet -> VioletPalette
+        AppTheme.Light -> LightPalette
+        AppTheme.Azure -> AzurePalette
+        AppTheme.Emerald -> EmeraldPalette
+        AppTheme.Amber -> AmberPalette
+        AppTheme.Rose -> RosePalette
         AppTheme.System -> if (isSystemInDarkTheme()) OledBlackPalette else LightPalette
+        AppTheme.Workshop -> parseWorkshopSpec(customThemeJson).toPalette()
     }
+    // Interface settings: translucent cards over a background image.
+    val effectivePalette = if (prefs.transparentCards) palette.copy(
+        surfaceContainerLowest = palette.surfaceContainerLowest.copy(alpha = 0.78f),
+        surfaceContainerLow = palette.surfaceContainerLow.copy(alpha = 0.80f),
+        surfaceContainer = palette.surfaceContainer.copy(alpha = 0.82f),
+        surfaceContainerHigh = palette.surfaceContainerHigh.copy(alpha = 0.86f),
+        surfaceContainerHighest = palette.surfaceContainerHighest.copy(alpha = 0.90f),
+    ) else palette
+
+    val family = when (prefs.fontFamily) {
+        "serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+        "mono" -> androidx.compose.ui.text.font.FontFamily.Monospace
+        "rounded" -> androidx.compose.ui.text.font.FontFamily.Cursive
+        else -> null
+    }
+    val scale = when (prefs.fontScale) {
+        "small" -> 0.92f
+        "large" -> 1.08f
+        else -> 1f
+    }
+
     SystemBarsEffect(darkTheme = palette.isDark)
-    CompositionLocalProvider(LocalVotifyPalette provides palette) {
+    CompositionLocalProvider(LocalVotifyPalette provides effectivePalette) {
         MaterialTheme(
-            colorScheme = palette.toColorScheme(),
-            typography = VotifyTypography,
+            colorScheme = effectivePalette.toColorScheme(),
+            typography = if (family == null && scale == 1f) VotifyTypography else VotifyTypography.withPrefs(family, scale),
             shapes = VotifyShapes,
             content = content,
         )
     }
 }
+
+/** Parses a stored workshop theme; any parse failure falls back to the stock dark palette. */
+fun parseWorkshopSpec(json: String): WorkshopThemeSpec =
+    if (json.isBlank()) WorkshopThemeSpec()
+    else runCatching {
+        kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.decodeFromString<WorkshopThemeSpec>(json)
+    }.getOrDefault(WorkshopThemeSpec())
 
 /** Keeps status/navigation bar icons readable when the palette flips between dark and light. */
 @Composable

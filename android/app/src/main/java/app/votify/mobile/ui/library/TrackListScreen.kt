@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.QueueMusic
@@ -269,6 +270,9 @@ fun PlaylistScreen(
             onBack = onBack,
             onPlay = onPlay,
             trailing = {
+                IconButton(onClick = { viewModel.downloadPlaylist(tracks) }) {
+                    Icon(Icons.Outlined.Download, stringResource(R.string.action_download_playlist), tint = VotifyColors.TextSecondary)
+                }
                 IconButton(onClick = { renaming = true }) {
                     Icon(Icons.Outlined.Edit, stringResource(R.string.action_rename), tint = VotifyColors.TextSecondary)
                 }

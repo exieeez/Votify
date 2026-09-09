@@ -28,7 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import app.votify.mobile.R
 import app.votify.mobile.data.Track
-import app.votify.mobile.data.VotifyApi
+import app.votify.mobile.data.MusicRepository
 import app.votify.mobile.ui.components.PillChip
 import app.votify.mobile.ui.components.SectionHeader
 import app.votify.mobile.ui.components.TrackRow
@@ -49,8 +49,8 @@ data class ArtistUiState(
     val error: String? = null,
 )
 
-/** Loads `/api/artist?name=` for the artist currently opened; caches the last result. */
-class ArtistViewModel(private val api: VotifyApi) : ViewModel() {
+/** Popular tracks of the opened artist — server `/api/artist` or on-device YouTube Music search. */
+class ArtistViewModel(private val music: MusicRepository) : ViewModel() {
 
     private val _state = MutableStateFlow(ArtistUiState())
     val state: StateFlow<ArtistUiState> = _state
@@ -61,7 +61,7 @@ class ArtistViewModel(private val api: VotifyApi) : ViewModel() {
         job?.cancel()
         _state.value = ArtistUiState(name = name, isLoading = true)
         job = viewModelScope.launch {
-            runCatching { api.artist(name, limit = 50) }
+            runCatching { music.artist(name, limit = 50) }
                 .onSuccess { tracks -> _state.update { it.copy(tracks = tracks, isLoading = false) } }
                 .onFailure { e ->
                     if (e is kotlinx.coroutines.CancellationException) return@onFailure

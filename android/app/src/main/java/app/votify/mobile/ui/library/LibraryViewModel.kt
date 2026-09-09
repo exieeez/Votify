@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 data class UiMessage(@StringRes val id: Int, val args: List<Any> = emptyList())
 
 /** Which "⋮" menu is open and where it was opened from (affects the available actions). */
-data class TrackMenu(val track: Track, val playlistId: Long? = null)
+data class TrackMenu(val track: Track, val playlistId: Long? = null, val downloaded: Boolean = false)
 
 /**
  * Shared by every screen that shows tracks: favorites / history / playlists state plus the
@@ -79,11 +79,54 @@ class LibraryViewModel(
     val messages: SharedFlow<UiMessage> = _messages
 
     fun openMenu(track: Track, playlistId: Long? = null) {
-        _menu.value = TrackMenu(track, playlistId)
+        _menu.value = TrackMenu(track, playlistId, music.isDownloaded(track.id))
     }
 
     fun closeMenu() {
         _menu.value = null
+    }
+
+    /** Download one track for offline listening (menu action). */
+    fun downloadTrack(track: Track) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (music.isServerMode) {
+                _messages.tryEmit(UiMessage(R.string.toast_download_server))
+                return@launch
+            }
+            _messages.tryEmit(UiMessage(R.string.toast_download_started))
+            val ok = music.downloadTrackSync(track.id)
+            _messages.tryEmit(
+                UiMessage(if (ok) R.string.toast_download_track_done else R.string.toast_download_track_failed, listOf(track.title)),
+            )
+        }
+    }
+
+    /** Remove a track's offline copy. */
+    fun removeDownload(track: Track) {
+        viewModelScope.launch(Dispatchers.IO) {
+            music.deleteDownload(track.id)
+            _messages.tryEmit(UiMessage(R.string.toast_download_removed))
+        }
+    }
+
+    /** Download a whole playlist sequentially, reporting progress every few tracks. */
+    fun downloadPlaylist(tracks: List<Track>) {
+        if (tracks.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            if (music.isServerMode) {
+                _messages.tryEmit(UiMessage(R.string.toast_download_server))
+                return@launch
+            }
+            _messages.tryEmit(UiMessage(R.string.toast_download_started))
+            var ok = 0
+            tracks.forEachIndexed { i, t ->
+                if (music.downloadTrackSync(t.id)) ok++
+                if ((i + 1) % 10 == 0 || i == tracks.lastIndex) {
+                    _messages.tryEmit(UiMessage(R.string.toast_download_progress, listOf(i + 1, tracks.size)))
+                }
+            }
+            _messages.tryEmit(UiMessage(R.string.toast_download_done, listOf(ok, tracks.size)))
+        }
     }
 
     fun openPlaylistPicker(track: Track) {

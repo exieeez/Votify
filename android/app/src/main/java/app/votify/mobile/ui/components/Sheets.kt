@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.DownloadDone
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PlaylistAdd
@@ -123,9 +125,17 @@ fun TrackMenuSheet(
     onAddToPlaylist: () -> Unit,
     onRemoveFromPlaylist: () -> Unit,
     onOpenArtist: () -> Unit,
+    downloaded: Boolean = false,
+    onDownload: () -> Unit = {},
+    onRemoveDownload: () -> Unit = {},
 ) {
     VotifySheet(onDismiss = onDismiss) {
         SheetTrackHeader(track)
+        if (downloaded) {
+            SheetAction(Icons.Outlined.DownloadDone, stringResource(R.string.action_delete_download), onRemoveDownload)
+        } else {
+            SheetAction(Icons.Outlined.Download, stringResource(R.string.action_download), onDownload)
+        }
         SheetAction(
             icon = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
             label = stringResource(if (isFavorite) R.string.action_remove_favorite else R.string.action_add_favorite),

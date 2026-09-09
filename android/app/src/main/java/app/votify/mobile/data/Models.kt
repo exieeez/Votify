@@ -45,3 +45,29 @@ data class HealthResponse(
 
 @Serializable
 data class ApiError(val error: String = "")
+
+// ---- Account (routes/auth.js) ----
+
+@Serializable
+data class AuthUser(val id: String = "", val email: String = "", val username: String = "")
+
+@Serializable
+data class AuthResponse(val token: String = "", val user: AuthUser = AuthUser())
+
+/** /api/sync/push — the server's ack for a settings upload. */
+@Serializable
+data class SyncPushResponse(val ok: Boolean = false, val savedAt: Long = 0)
+
+/** /api/sync/get — the user's saved settings blob (raw CustomPrefs JSON). */
+@Serializable
+data class SyncData(val settings: String = "", val savedAt: Long = 0)
+
+/** /api/auth/forgot-password returns the code inline when SMTP is not configured. */
+@Serializable
+data class ForgotResponse(val message: String = "", val code: String? = null)
+
+// ---- Playlist import (routes/music.js) ----
+
+/** /api/playlist (YouTube/Spotify) and /api/soundcloud/import. */
+@Serializable
+data class ImportedTracks(val name: String? = null, val tracks: List<Track> = emptyList())

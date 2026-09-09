@@ -1,0 +1,11 @@
+<!-- Dotify-style rounded house, filled (active tab). Pill cutout via evenOdd. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M10.87,2.44a1.75,1.75 0,0 1,2.26 0l7.35,6.01c0.96,0.79 1.52,1.97 1.52,3.22V19a3,3 0,0 1,-3 3H5a3,3 0,0 1,-3 -3v-7.33c0,-1.25 0.56,-2.43 1.52,-3.22l7.35,-6.01zM10,18a1,1 0,0 0,1 1h2a1,1 0,0 0,1 -1v-2a1,1 0,0 0,-1 -1h-2a1,1 0,0 0,-1 1v2z" />
+</vector>

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -64,6 +63,7 @@ fun SearchScreen(
     contentPadding: PaddingValues,
     onPlay: (List<Track>, Int) -> Unit,
     onMore: (Track) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val keyboard = LocalSoftwareKeyboardController.current
@@ -83,19 +83,6 @@ fun SearchScreen(
                 onClear = viewModel::clear,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
-        }
-
-        item {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 12.dp),
-            ) {
-                val filters = listOf("Всё", "Треки", "Плейлисты", "Артисты")
-                itemsIndexed(filters) { i, f ->
-                    PillChip(text = f, selected = i == 1, onClick = { /* filters: next iteration */ })
-                }
-            }
         }
 
         if (state.recent.isNotEmpty() && state.results.isEmpty() && !state.isLoading) {
@@ -134,13 +121,29 @@ fun SearchScreen(
                 }
             }
 
-            state.error != null -> item {
-                StatusBlock(
-                    title = stringResource(R.string.search_error),
-                    subtitle = state.error,
-                    action = stringResource(R.string.search_retry),
-                    onAction = viewModel::retry,
-                )
+            state.error != null || state.offline -> item {
+                when {
+                    state.offline && state.serverMode -> StatusBlock(
+                        title = stringResource(R.string.search_offline_title),
+                        subtitle = stringResource(R.string.search_offline_sub),
+                        action = stringResource(R.string.search_open_settings),
+                        onAction = onOpenSettings,
+                        secondaryAction = stringResource(R.string.search_retry),
+                        onSecondaryAction = viewModel::retry,
+                    )
+                    state.offline -> StatusBlock(
+                        title = stringResource(R.string.search_no_internet_title),
+                        subtitle = stringResource(R.string.search_no_internet_sub),
+                        action = stringResource(R.string.search_retry),
+                        onAction = viewModel::retry,
+                    )
+                    else -> StatusBlock(
+                        title = stringResource(R.string.search_error),
+                        subtitle = state.error,
+                        action = stringResource(R.string.search_retry),
+                        onAction = viewModel::retry,
+                    )
+                }
             }
 
             state.searched && state.results.isEmpty() -> item {
@@ -229,7 +232,14 @@ private fun SearchBar(
 }
 
 @Composable
-private fun StatusBlock(title: String, subtitle: String? = null, action: String? = null, onAction: (() -> Unit)? = null) {
+private fun StatusBlock(
+    title: String,
+    subtitle: String? = null,
+    action: String? = null,
+    onAction: (() -> Unit)? = null,
+    secondaryAction: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -243,7 +253,14 @@ private fun StatusBlock(title: String, subtitle: String? = null, action: String?
         }
         if (action != null && onAction != null) {
             Spacer(Modifier.height(12.dp))
-            PillChip(text = action, selected = true, onClick = onAction)
+            if (secondaryAction != null && onSecondaryAction != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PillChip(text = action, selected = true, onClick = onAction)
+                    PillChip(text = secondaryAction, selected = false, onClick = onSecondaryAction)
+                }
+            } else {
+                PillChip(text = action, selected = true, onClick = onAction)
+            }
         }
     }
 }

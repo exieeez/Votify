@@ -32,8 +32,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
@@ -72,10 +72,15 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     contentPadding: PaddingValues,
     onPlay: (List<Track>, Int) -> Unit,
+    playerState: app.votify.mobile.player.PlayerUiState,
+    onSeek: (Float) -> Unit,
+    iosSlider: Boolean,
     onOpenSearch: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAccount: () -> Unit,
+    onOpenTrending: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val recent by viewModel.recent.collectAsStateWithLifecycle()
@@ -87,7 +92,7 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
             .padding(top = contentPadding.calculateTopPadding(), bottom = contentPadding.calculateBottomPadding() + 16.dp),
     ) {
-        HomeHeader(onOpenSearch = onOpenSearch, onOpenSettings = onOpenSettings)
+        HomeHeader(onOpenSearch = onOpenSearch, onOpenSettings = onOpenSettings, onOpenAccount = onOpenAccount)
 
         // --- "Моя волна": big white Play with an orbit of artwork bubbles ---
         Box(
@@ -105,10 +110,25 @@ fun HomeScreen(
                     Spacer(Modifier.height(12.dp))
                     PillChip(text = stringResource(R.string.search_retry), selected = true, onClick = viewModel::refresh)
                 }
+                state.wave.isEmpty() -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.home_wave_empty), color = VotifyColors.TextSecondary, style = MaterialTheme.typography.titleSmall)
+                }
                 else -> WaveOrbit(
                     tracks = state.wave,
                     onPlayWave = { onPlay(state.wave, 0) },
                     onPlayTrack = { index -> onPlay(state.wave, index) },
+                )
+            }
+        }
+
+        // While a wave track plays, a seek slider rides right under the hero.
+        if (playerState.current != null) {
+            Box(Modifier.padding(horizontal = 20.dp)) {
+                app.votify.mobile.ui.player.Scrubber(
+                    state = playerState,
+                    onSeek = onSeek,
+                    accent = VotifyColors.Primary,
+                    ios = iosSlider,
                 )
             }
         }
@@ -208,15 +228,15 @@ fun HomeScreen(
                 subtitle = stringResource(R.string.home_weekly_chart),
                 icon = Icons.Filled.TrendingUp,
                 modifier = Modifier.weight(1f),
-                onClick = { if (state.wave.isNotEmpty()) onPlay(state.wave, 0) },
+                onClick = onOpenTrending,
             )
         }
     }
 }
 
-/** Header: "Votify" brand pill on the left, bell / search / avatar on the right. */
+/** Header: "Votify" brand pill on the left, account / search / settings on the right. */
 @Composable
-private fun HomeHeader(onOpenSearch: () -> Unit, onOpenSettings: () -> Unit) {
+private fun HomeHeader(onOpenSearch: () -> Unit, onOpenSettings: () -> Unit, onOpenAccount: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -235,8 +255,8 @@ private fun HomeHeader(onOpenSearch: () -> Unit, onOpenSettings: () -> Unit) {
             }
         }
         Spacer(Modifier.weight(1f))
-        CircleIconButton(onClick = {}, size = 36.dp) {
-            Icon(Icons.Outlined.Notifications, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(18.dp))
+        CircleIconButton(onClick = onOpenAccount, size = 36.dp, contentDescription = stringResource(R.string.settings_section_account)) {
+            Icon(Icons.Outlined.AccountCircle, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(19.dp))
         }
         Spacer(Modifier.width(8.dp))
         CircleIconButton(onClick = onOpenSearch, size = 36.dp, contentDescription = stringResource(R.string.nav_search)) {
@@ -270,9 +290,9 @@ private fun WaveOrbit(
 
     Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
         bubbles.forEachIndexed { i, track ->
-            // Alternate two radii and two sizes so the layout reads as a loose constellation.
-            val radius: Dp = if (i % 2 == 0) 118.dp else 92.dp
-            val size: Dp = if (i % 3 == 0) 56.dp else 48.dp
+            // One round orbit for every bubble (user request); sizes still vary a little.
+            val radius: Dp = 118.dp
+            val size: Dp = if (i % 2 == 0) 56.dp else 48.dp
             val angle = Math.toRadians((i * (360.0 / bubbles.size)) - 90 + drift)
             val dx = (radius.value * cos(angle)).toFloat().dp
             val dy = (radius.value * sin(angle)).toFloat().dp

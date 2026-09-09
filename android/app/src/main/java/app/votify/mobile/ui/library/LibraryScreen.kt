@@ -22,9 +22,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.QueueMusic
 import androidx.compose.material.icons.outlined.Settings
@@ -79,6 +81,7 @@ fun LibraryScreen(
     onOpenHistory: () -> Unit,
     onOpenPlaylist: (Long) -> Unit,
     onOpenSettings: () -> Unit,
+    onImport: () -> Unit,
 ) {
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
@@ -132,6 +135,8 @@ fun LibraryScreen(
                     onPlay = { if (favorites.isNotEmpty()) onPlay(favorites, 0) },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
+                Spacer(Modifier.height(12.dp))
+                ImportServiceCard(onImport = onImport, modifier = Modifier.padding(horizontal = 16.dp))
                 Spacer(Modifier.height(16.dp))
             }
         }
@@ -211,52 +216,106 @@ fun LibraryScreen(
     }
 }
 
+/** «Импортировать из сервиса» card (design/screens/library.png): opens the import screen. */
 @Composable
-private fun FavoritesHero(favorites: List<Track>, onOpen: () -> Unit, onPlay: () -> Unit, modifier: Modifier = Modifier) {
-    VotifyCard(modifier.fillMaxWidth(), onClick = onOpen, contentPadding = PaddingValues(20.dp)) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(150.dp)
-                .background(
-                    Brush.verticalGradient(listOf(VotifyColors.SurfaceContainerHigh.copy(alpha = 0.6f), VotifyColors.SurfaceContainer)),
-                ),
-        ) {
-            // Fan of the 3 latest covers behind the heart, if any.
-            Row(Modifier.align(Alignment.TopStart), horizontalArrangement = Arrangement.spacedBy((-14).dp)) {
-                favorites.take(3).forEach { t ->
-                    Artwork(
-                        t.cover,
-                        size = 48.dp,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.border(1.dp, VotifyColors.BorderProminent, RoundedCornerShape(12.dp)),
-                    )
-                }
-                if (favorites.isEmpty()) {
-                    Box(
-                        Modifier.size(48.dp).clip(CircleShape).background(VotifyColors.SurfaceContainerHigh),
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Filled.Favorite, null, tint = VotifyColors.TextPrimary) }
-                }
-            }
-
-            CircleIconButton(onClick = onPlay, size = 48.dp, filled = true, modifier = Modifier.align(Alignment.TopEnd)) {
-                Icon(Icons.Filled.PlayArrow, stringResource(R.string.player_play), modifier = Modifier.size(26.dp))
-            }
-
-            Column(Modifier.align(Alignment.BottomStart)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Favorite, null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.library_favorites), style = MaterialTheme.typography.headlineMedium, color = VotifyColors.TextPrimary, fontWeight = FontWeight.Bold)
-                }
+private fun ImportServiceCard(onImport: () -> Unit, modifier: Modifier = Modifier) {
+    VotifyCard(modifier.fillMaxWidth(), onClick = onImport, contentPadding = PaddingValues(16.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(VotifyColors.SurfaceContainerHigh),
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.Outlined.Download, null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(22.dp)) }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
                 Text(
-                    if (favorites.isEmpty()) stringResource(R.string.library_favorites_empty) else pluralTracks(favorites.size),
+                    stringResource(R.string.library_import),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = VotifyColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    stringResource(R.string.library_import_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = VotifyColors.TextMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = VotifyColors.TextMuted)
+        }
+    }
+}
+
+@Composable
+private fun FavoritesHero(favorites: List<Track>, onOpen: () -> Unit, onPlay: () -> Unit, modifier: Modifier = Modifier) {
+    VotifyCard(modifier.fillMaxWidth(), onClick = onOpen, contentPadding = PaddingValues(14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 2x2 cover mosaic (or a heart when empty)
+            Box(
+                Modifier
+                    .size(76.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(VotifyColors.SurfaceContainerHigh),
+            ) {
+                if (favorites.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Favorite, null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(28.dp))
+                    }
+                } else {
+                    val cells = listOf(
+                        Alignment.TopStart, Alignment.TopEnd,
+                        Alignment.BottomStart, Alignment.BottomEnd,
+                    )
+                    cells.forEachIndexed { i, align ->
+                        Box(Modifier.align(align).size(37.dp).padding(1.dp)) {
+                            val cover = favorites.getOrNull(i)?.cover.orEmpty()
+                            if (i == 3 && favorites.size > 4) {
+                                Box(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(VotifyColors.SurfaceContainerHighest),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        "+${favorites.size - 3}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = VotifyColors.TextPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            } else {
+                                Artwork(cover, size = 37.dp, shape = RoundedCornerShape(8.dp))
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.library_favorites),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = VotifyColors.TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    if (favorites.isEmpty()) stringResource(R.string.library_favorites_empty)
+                    else pluralTracks(favorites.size) + " · " + stringResource(R.string.library_favorites_play),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = VotifyColors.TextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            CircleIconButton(onClick = onPlay, size = 48.dp, filled = true) {
+                Icon(Icons.Filled.PlayArrow, stringResource(R.string.player_play), modifier = Modifier.size(26.dp))
             }
         }
     }

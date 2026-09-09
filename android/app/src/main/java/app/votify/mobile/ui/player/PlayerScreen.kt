@@ -1,6 +1,8 @@
 package app.votify.mobile.ui.player
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -15,13 +17,21 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -69,31 +79,62 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.media3.common.Player
 import app.votify.mobile.R
 import app.votify.mobile.data.ArtworkStyle
 import app.votify.mobile.data.Lyrics as LyricsModel
+import app.votify.mobile.data.PlayerBackground
 import app.votify.mobile.player.PlayerUiState
 import app.votify.mobile.ui.components.Artwork
 import app.votify.mobile.ui.components.formatDuration
 import app.votify.mobile.ui.theme.VotifyColors
+import androidx.palette.graphics.Palette
 import coil.compose.AsyncImage
+import coil.imageLoader
+import coil.request.ImageRequest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Full-screen "Сейчас играет": header, artwork (vinyl / square / blur per settings) that swaps
  * to synced lyrics, title/artist with ♥ and "add to playlist", scrubber, transport panel and a
- * secondary row (lyrics / queue).
+ * secondary row (lyrics / queue). With [PlayerBackground.Artwork] the background is a gradient
+ * of the cover's dominant color — the PC-style tinted player.
  */
+/** Visual options from the «Плеер»/«Обложка» settings screens. */
+data class PlayerVisuals(
+    val titleLeft: Boolean = false,
+    val pillPlayButton: Boolean = false,
+    val infoChip: String = "source", // source | text | none
+    val gifArtwork: String = "",
+    val artworkAnimation: String = "none", // none | spin | sway | pulse | float
+    /** Themed slider: hex color from the applied workshop theme ("" = off). */
+    val themedSliderHex: String = "",
+    val artBlur: Int = 0,
+    val artDim: Int = 0,
+    val gifAlways: Boolean = true,
+    val artworkEffect: String = "none", // none | grayscale | blur
+    val artworkInside: Boolean = false,
+    val accentFromArt: Boolean = false,
+    val swipeNavigation: Boolean = true,
+    val iosSlider: Boolean = true,
+)
+
 @Composable
 fun PlayerScreen(
     state: PlayerUiState,
     artworkStyle: ArtworkStyle,
+    background: PlayerBackground,
+    visuals: PlayerVisuals = PlayerVisuals(),
     isFavorite: Boolean,
     lyricsVisible: Boolean,
     lyrics: LyricsState,
@@ -110,10 +151,47 @@ fun PlayerScreen(
     onAddToPlaylist: () -> Unit,
     onOpenQueue: () -> Unit,
     onOpenArtist: (String) -> Unit,
+    onShare: () -> Unit,
+    onOpenMenu: () -> Unit,
 ) {
     val track = state.current
 
-    Box(Modifier.fillMaxSize().background(VotifyColors.SurfaceBase)) {
+    // PC-style tinted background: dominant color of the current cover, fading to black.
+    val palette = rememberArtworkPalette(
+        track?.cover,
+        enabled = background == PlayerBackground.Artwork || background == PlayerBackground.Lava || visuals.accentFromArt,
+        isDark = app.votify.mobile.ui.theme.LocalVotifyPalette.current.isDark,
+    )
+    val topColor by animateColorAsState(palette?.top ?: VotifyColors.SurfaceBase, tween(600), label = "bgTop")
+    val bottomColor by animateColorAsState(palette?.bottom ?: VotifyColors.SurfaceBase, tween(600), label = "bgBottom")
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(topColor, bottomColor)))
+            .let { m ->
+                if (visuals.swipeNavigation) m.pointerInput(Unit) {
+                    var total = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { total = 0f },
+                        onDragEnd = {
+                            when {
+                                total < -110f -> onNext()
+                                total > 110f -> onPrevious()
+                            }
+                        },
+                    ) { _, dragAmount -> total += dragAmount }
+                } else m
+            },
+    ) {
+        if (background == PlayerBackground.Lava) {
+            LavaBackground(
+                top = palette?.top ?: VotifyColors.SurfaceBase,
+                bottom = palette?.bottom ?: VotifyColors.SurfaceBase,
+                accent = palette?.accent,
+            )
+        }
+
         if (artworkStyle == ArtworkStyle.Blur && !track?.cover.isNullOrBlank()) {
             AsyncImage(
                 model = track?.cover,
@@ -124,7 +202,7 @@ fun PlayerScreen(
             )
             Box(
                 Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(listOf(Color.Transparent, VotifyColors.SurfaceBase.copy(alpha = 0.85f), VotifyColors.SurfaceBase)),
+                    Brush.verticalGradient(listOf(Color.Transparent, bottomColor.copy(alpha = 0.7f), bottomColor)),
                 ),
             )
         }
@@ -152,8 +230,8 @@ fun PlayerScreen(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                 )
-                IconButton(onClick = {}) { Icon(Icons.Outlined.Share, null, tint = VotifyColors.TextSecondary) }
-                IconButton(onClick = {}) { Icon(Icons.Outlined.MoreVert, null, tint = VotifyColors.TextSecondary) }
+                IconButton(onClick = onShare) { Icon(Icons.Outlined.Share, stringResource(R.string.action_share), tint = VotifyColors.TextSecondary) }
+                IconButton(onClick = onOpenMenu) { Icon(Icons.Outlined.MoreVert, stringResource(R.string.player_menu), tint = VotifyColors.TextSecondary) }
             }
 
             // Artwork / lyrics area
@@ -165,19 +243,45 @@ fun PlayerScreen(
             ) {
                 AnimatedContent(
                     targetState = lyricsVisible,
-                    transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) },
+                    transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
                     label = "artwork-lyrics",
                 ) { showLyrics ->
                     if (showLyrics) {
                         LyricsPanel(state = lyrics, positionMs = state.positionMs, onSeekToMs = onSeekToMs, onClose = onToggleLyrics)
                     } else {
                         Box(contentAlignment = Alignment.Center) {
-                            when (artworkStyle) {
-                                ArtworkStyle.Vinyl -> Vinyl(coverUrl = track?.cover.orEmpty(), spinning = state.isPlaying)
-                                ArtworkStyle.Square, ArtworkStyle.Blur -> SquareArtwork(coverUrl = track?.cover.orEmpty())
+                            // «Всегда» = заменять обложку трека всегда; иначе только когда у трека нет своей.
+                            val useOverride = visuals.gifArtwork.isNotBlank() &&
+                                (visuals.gifAlways || track?.cover.isNullOrBlank())
+                            val artworkUrl = if (useOverride) visuals.gifArtwork else track?.cover.orEmpty()
+                            val grayFilter = if (visuals.artworkEffect == "grayscale") {
+                                androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) })
+                            } else null
+                            val effect: Modifier = when {
+                                visuals.artworkEffect == "blur" -> Modifier.blur(14.dp)
+                                visuals.artBlur > 0 -> Modifier.blur(visuals.artBlur.coerceIn(1, 30).dp)
+                                else -> Modifier
                             }
-                            if (state.isBuffering) {
-                                CircularProgressIndicator(color = VotifyColors.TextPrimary, strokeWidth = 2.dp, modifier = Modifier.size(280.dp))
+                            val artShape = if (artworkStyle == ArtworkStyle.Circle) CircleShape else RoundedCornerShape(24.dp)
+                            when (artworkStyle) {
+                                ArtworkStyle.Vinyl -> Vinyl(coverUrl = hiRes(artworkUrl), spinning = state.isPlaying, loading = state.isBuffering)
+                                ArtworkStyle.Square, ArtworkStyle.Circle, ArtworkStyle.Blur -> Box(
+                                    artworkAnimModifier(visuals.artworkAnimation, state.isPlaying),
+                                ) {
+                                    SquareArtwork(
+                                        coverUrl = hiRes(artworkUrl),
+                                        modifier = effect,
+                                        colorFilter = grayFilter,
+                                        shape = artShape,
+                                        dim = visuals.artDim.coerceIn(0, 80) / 100f,
+                                        loading = state.isBuffering,
+                                    )
+                                }
+                            }
+                            if (visuals.artworkInside && visuals.gifArtwork.isNotBlank()) {
+                                Box(Modifier.align(Alignment.BottomEnd).padding(8.dp)) {
+                                    Artwork(track?.cover.orEmpty(), size = 72.dp)
+                                }
                             }
                         }
                     }
@@ -193,7 +297,7 @@ fun PlayerScreen(
                         tint = VotifyColors.TextPrimary,
                     )
                 }
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(Modifier.weight(1f), horizontalAlignment = if (visuals.titleLeft) Alignment.Start else Alignment.CenterHorizontally) {
                     Text(
                         track?.title ?: "—",
                         style = MaterialTheme.typography.headlineSmall,
@@ -201,7 +305,8 @@ fun PlayerScreen(
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
+                        textAlign = if (visuals.titleLeft) TextAlign.Start else TextAlign.Center,
+                        modifier = if (visuals.titleLeft) Modifier.fillMaxWidth() else Modifier,
                     )
                     Text(
                         track?.artist ?: "",
@@ -217,7 +322,17 @@ fun PlayerScreen(
 
             Spacer(Modifier.height(4.dp))
 
-            Scrubber(state = state, onSeek = onSeek)
+            Scrubber(
+                state = state,
+                onSeek = onSeek,
+                accent = when {
+                    visuals.themedSliderHex.isNotBlank() ->
+                        runCatching { Color(android.graphics.Color.parseColor(visuals.themedSliderHex)) }.getOrDefault(VotifyColors.Primary)
+                    visuals.accentFromArt -> palette?.accent ?: VotifyColors.Primary
+                    else -> VotifyColors.Primary
+                },
+                ios = visuals.iosSlider,
+            )
 
             Spacer(Modifier.height(10.dp))
 
@@ -245,10 +360,10 @@ fun PlayerScreen(
                     }
                     Surface(
                         onClick = onPlayPause,
-                        shape = CircleShape,
-                        color = VotifyColors.Primary,
-                        contentColor = VotifyColors.OnPrimary,
-                        modifier = Modifier.size(64.dp),
+                        shape = if (visuals.pillPlayButton) RoundedCornerShape(32.dp) else CircleShape,
+                        color = if (visuals.accentFromArt) palette?.accent ?: VotifyColors.Primary else VotifyColors.Primary,
+                        contentColor = VotifyColors.PitchBlack,
+                        modifier = if (visuals.pillPlayButton) Modifier.height(56.dp).width(120.dp) else Modifier.size(64.dp),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
@@ -310,7 +425,21 @@ fun PlayerScreen(
 
 /** Artwork inside a spinning vinyl disc: dark gradient platter, cover, centre spindle. */
 @Composable
-private fun Vinyl(coverUrl: String, spinning: Boolean) {
+private fun Vinyl(coverUrl: String, spinning: Boolean, loading: Boolean = false) {
+    Box(contentAlignment = Alignment.Center) {
+        VinylDisc(coverUrl = coverUrl, spinning = spinning)
+        if (loading) {
+            CircularProgressIndicator(
+                color = VotifyColors.TextPrimary,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(326.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun VinylDisc(coverUrl: String, spinning: Boolean) {
     val transition = rememberInfiniteTransition(label = "vinyl")
     val angle by transition.animateFloat(
         initialValue = 0f,
@@ -335,7 +464,7 @@ private fun Vinyl(coverUrl: String, spinning: Boolean) {
         contentAlignment = Alignment.Center,
     ) {
         for (r in listOf(250, 220, 190)) {
-            Box(Modifier.size(r.dp).border(1.dp, Color.White.copy(alpha = 0.04f), CircleShape))
+            Box(Modifier.size(r.dp).border(1.dp, VotifyColors.TextMuted.copy(alpha = 0.15f), CircleShape))
         }
         Artwork(coverUrl, size = 176.dp, shape = RoundedCornerShape(50))
         Box(
@@ -349,15 +478,79 @@ private fun Vinyl(coverUrl: String, spinning: Boolean) {
 }
 
 @Composable
-private fun SquareArtwork(coverUrl: String) {
+private fun SquareArtwork(
+    coverUrl: String,
+    modifier: Modifier = Modifier,
+    colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+    shape: RoundedCornerShape = RoundedCornerShape(24.dp),
+    dim: Float = 0f,
+    loading: Boolean = false,
+) {
     Box(
         Modifier
             .fillMaxWidth(0.8f)
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(24.dp))
-            .border(1.dp, VotifyColors.BorderSubtle, RoundedCornerShape(24.dp)),
+            .clip(shape)
+            .border(1.dp, VotifyColors.BorderSubtle, shape)
+            .then(modifier),
     ) {
-        Artwork(coverUrl, size = 400.dp, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxSize())
+        Artwork(coverUrl, size = 400.dp, shape = shape, modifier = Modifier.fillMaxSize(), colorFilter = colorFilter)
+        if (dim > 0f) {
+            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = dim)))
+        }
+        // Buffering: a ring exactly around the artwork (was a mismatched 280dp circle outside).
+        if (loading) {
+            CircularProgressIndicator(
+                color = VotifyColors.TextPrimary,
+                strokeWidth = 2.dp,
+                modifier = Modifier.fillMaxSize().padding(6.dp),
+            )
+        }
+    }
+}
+
+/**
+ * YouTube search thumbnails come small (173–360 px) — the big player artwork looked
+ * blurry. Swap any i.ytimg.com variant for hqdefault (480 px, always exists).
+ */
+private fun hiRes(url: String): String =
+    url.replace(Regex("(i\\.ytimg\\.com/vi/[A-Za-z0-9_-]{11}/)\\w+\\.\\w+"), "$1hqdefault.jpg")
+
+/** Artwork motion: spin (диск), sway (покачивание), pulse (пульсация), float (полёт). */
+@Composable
+private fun artworkAnimModifier(anim: String, playing: Boolean): Modifier {
+    if (anim == "none" || !playing) return Modifier
+    val t = rememberInfiniteTransition(label = "art-$anim")
+    return when (anim) {
+        "spin" -> {
+            val a by t.animateFloat(0f, 360f, infiniteRepeatable(tween(12_000, easing = LinearEasing)), label = "a")
+            Modifier.graphicsLayer { rotationZ = a }
+        }
+        "sway" -> {
+            val a by t.animateFloat(
+                -6f, 6f,
+                infiniteRepeatable(tween(2_600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "a",
+            )
+            Modifier.graphicsLayer { rotationZ = a }
+        }
+        "pulse" -> {
+            val a by t.animateFloat(
+                0f, 1f,
+                infiniteRepeatable(tween(1_700, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "a",
+            )
+            Modifier.graphicsLayer { val sc = 1f + 0.05f * a; scaleX = sc; scaleY = sc }
+        }
+        "float" -> {
+            val a by t.animateFloat(
+                -8f, 8f,
+                infiniteRepeatable(tween(3_000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "a",
+            )
+            Modifier.graphicsLayer { translationY = a }
+        }
+        else -> Modifier
     }
 }
 
@@ -430,10 +623,44 @@ private fun LyricsList(lyrics: LyricsModel, positionMs: Long, onSeekToMs: (Long)
 }
 
 @Composable
-private fun Scrubber(state: PlayerUiState, onSeek: (Float) -> Unit) {
+fun Scrubber(state: PlayerUiState, onSeek: (Float) -> Unit, accent: Color, ios: Boolean = true) {
     var dragging by remember { mutableStateOf<Float?>(null) }
     val value = dragging ?: state.progress
     Column(Modifier.fillMaxWidth()) {
+        if (ios) {
+            // iOS-style: 10dp pill track with a white knob, times inside the row.
+            BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 10.dp)) {
+                val width = maxWidth
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(VotifyColors.SurfaceContainerHigh)
+                        .pointerInput(Unit) {
+                            detectTapGestures { pos ->
+                                onSeek((pos.x / width.toPx()).coerceIn(0f, 1f))
+                            }
+                        },
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(value)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(accent),
+                    )
+                }
+                Box(
+                    Modifier
+                        .offset(x = (width - 14.dp) * value)
+                        .size(14.dp)
+                        .clip(CircleShape)
+                        .background(VotifyColors.TextPrimary)
+                        .border(1.dp, VotifyColors.BorderProminent, CircleShape),
+                )
+            }
+        } else {
         Slider(
             value = value,
             onValueChange = { dragging = it },
@@ -442,16 +669,120 @@ private fun Scrubber(state: PlayerUiState, onSeek: (Float) -> Unit) {
                 dragging = null
             },
             colors = SliderDefaults.colors(
-                thumbColor = VotifyColors.Primary,
-                activeTrackColor = VotifyColors.Primary,
+                thumbColor = accent,
+                activeTrackColor = accent,
                 inactiveTrackColor = VotifyColors.SurfaceContainerHigh,
             ),
             modifier = Modifier.fillMaxWidth().height(24.dp),
         )
+        }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             val shown = if (dragging != null) (state.durationMs * value).toLong() else state.positionMs
             Text(formatDuration(shown), style = MaterialTheme.typography.labelSmall, color = VotifyColors.TextMuted)
             Text(formatDuration(state.durationMs), style = MaterialTheme.typography.labelSmall, color = VotifyColors.TextMuted)
         }
     }
+}
+
+/** Colors derived from the current cover for the tinted player background. */
+private data class ArtworkPalette(val top: Color, val bottom: Color, val accent: Color)
+
+/**
+ * «Лавовая лампа»: медленно плавающие мягкие пятна в цветах текущей обложки.
+ * Radial gradients (no RenderEffect → works on every Android version).
+ */
+@Composable
+private fun LavaBackground(top: Color, bottom: Color, accent: Color?) {
+    val t = rememberInfiniteTransition(label = "lava")
+    val p1 by t.animateFloat(0f, 360f, infiniteRepeatable(tween(26_000, easing = LinearEasing)), label = "p1")
+    val p2 by t.animateFloat(0f, 360f, infiniteRepeatable(tween(34_000, easing = LinearEasing)), label = "p2")
+    val p3 by t.animateFloat(0f, 360f, infiniteRepeatable(tween(42_000, easing = LinearEasing)), label = "p3")
+
+    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        drawRect(
+            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                listOf(
+                    androidx.compose.ui.graphics.lerp(top, androidx.compose.ui.graphics.Color.Black, 0.45f),
+                    androidx.compose.ui.graphics.lerp(bottom, androidx.compose.ui.graphics.Color.Black, 0.55f),
+                ),
+            ),
+        )
+
+        fun androidx.compose.ui.graphics.drawscope.DrawScope.blob(phase: Float, sx: Float, sy: Float, ox: Float, oy: Float, radius: Float, color: Color, alpha: Float) {
+            val x = w * (ox + sx * 0.5f * kotlin.math.sin(Math.toRadians(phase.toDouble())).toFloat())
+            val y = h * (oy + sy * 0.5f * kotlin.math.cos(Math.toRadians(phase * 0.8)).toFloat())
+            val c = androidx.compose.ui.geometry.Offset(x, y)
+            drawCircle(
+                brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                    listOf(color.copy(alpha = alpha), color.copy(alpha = 0f)),
+                    center = c,
+                    radius = radius,
+                ),
+                radius = radius,
+                center = c,
+            )
+        }
+
+        val big = size.minDimension * 0.62f
+        blob(p1, 0.7f, 0.55f, 0.32f, 0.30f, big, accent ?: top, 0.50f)
+        blob(p2, 0.8f, 0.6f, 0.72f, 0.68f, big * 0.9f, top, 0.45f)
+        blob(p3, 0.6f, 0.7f, 0.5f, 0.9f, big * 1.1f, bottom, 0.40f)
+        blob(p1 + 140f, 0.9f, 0.5f, 0.15f, 0.8f, big * 0.7f, accent ?: bottom, 0.30f)
+        blob(p2 + 220f, 0.7f, 0.8f, 0.85f, 0.2f, big * 0.8f, top, 0.28f)
+    }
+}
+
+/**
+ * Extracts the dominant + vibrant colors of [coverUrl] with the Android Palette API (like the
+ * desktop player). The result is remembered per cover so switching tracks crossfades between
+ * palettes; null while nothing has been extracted yet (or when [enabled] is off).
+ */
+@Composable
+private fun rememberArtworkPalette(coverUrl: String?, enabled: Boolean, isDark: Boolean = true): ArtworkPalette? {
+    if (!enabled) return null
+    val context = LocalContext.current
+    var palette by remember { mutableStateOf<ArtworkPalette?>(null) }
+
+    LaunchedEffect(coverUrl, enabled) {
+        if (coverUrl.isNullOrBlank()) {
+            palette = null
+            return@LaunchedEffect
+        }
+        val loader = context.imageLoader
+        val request = ImageRequest.Builder(context).data(coverUrl).size(192).allowHardware(false).build()
+        val bitmap = runCatching { loader.execute(request) }.getOrNull()?.drawable?.toBitmap()
+        if (bitmap == null) {
+            palette = null
+            return@LaunchedEffect
+        }
+        val swatches = withContext(Dispatchers.Default) { Palette.from(bitmap).maximumColorCount(24).generate() }
+        val dominant = swatches.dominantSwatch?.let { Color(it.rgb) }
+        if (dominant == null) {
+            palette = null
+        } else {
+            val accent = swatches.vibrantSwatch?.let { Color(it.rgb) }
+                ?: swatches.lightVibrantSwatch?.let { Color(it.rgb) }
+                ?: swatches.mutedSwatch?.let { Color(it.rgb) }
+                ?: dominant
+            // Dark theme: tint toward black (classic tinted player). Light theme: keep the
+            // background light so dark text from the light palette stays readable.
+            palette = if (isDark) {
+                ArtworkPalette(
+                    top = lerp(dominant, Color.Black, 0.25f),
+                    bottom = lerp(dominant, Color.Black, 0.72f),
+                    accent = accent,
+                )
+            } else {
+                ArtworkPalette(
+                    top = lerp(dominant, Color.White, 0.62f),
+                    bottom = lerp(dominant, Color.White, 0.30f),
+                    accent = accent,
+                )
+            }
+        }
+    }
+
+    return palette
 }

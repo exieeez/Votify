@@ -21,6 +21,14 @@ interface TrackDao {
 
     @Query("SELECT * FROM tracks WHERE id = :id")
     suspend fun byId(id: String): TrackEntity?
+
+    /** Tracks referenced by favorites or playlists — the sync export set. */
+    @Query(
+        """SELECT * FROM tracks
+           WHERE id IN (SELECT trackId FROM favorites)
+              OR id IN (SELECT trackId FROM playlist_tracks)""",
+    )
+    suspend fun syncExport(): List<TrackEntity>
 }
 
 @Dao
@@ -43,8 +51,20 @@ interface FavoriteDao {
     @Query("DELETE FROM favorites WHERE trackId = :trackId")
     suspend fun delete(trackId: String)
 
+    @Query("DELETE FROM favorites")
+    suspend fun clear()
+
     @Query("SELECT EXISTS(SELECT 1 FROM favorites WHERE trackId = :trackId)")
     suspend fun isFavorite(trackId: String): Boolean
+
+    @Query("SELECT * FROM favorites ORDER BY addedAt DESC")
+    suspend fun getAll(): List<FavoriteEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(favs: List<FavoriteEntity>)
+
+    @Query("SELECT COUNT(*) FROM favorites")
+    suspend fun count(): Int
 }
 
 @Dao
@@ -111,6 +131,15 @@ interface PlaylistDao {
     @Query("UPDATE playlists SET updatedAt = :now WHERE id = :id")
     suspend fun touch(id: Long, now: Long)
 
+    @Query("DELETE FROM playlists")
+    suspend fun clearAll()
+
+    @Query("DELETE FROM playlist_tracks")
+    suspend fun clearAllTracks()
+
+    @Query("DELETE FROM tracks")
+    suspend fun clearAllTracksData()
+
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun delete(id: Long)
 
@@ -122,4 +151,16 @@ interface PlaylistDao {
 
     @Query("DELETE FROM playlist_tracks WHERE playlistId = :playlistId AND trackId = :trackId")
     suspend fun removeTrack(playlistId: Long, trackId: String)
+
+    @Query("SELECT * FROM playlists ORDER BY createdAt ASC")
+    suspend fun getAll(): List<PlaylistEntity>
+
+    @Query(
+        """SELECT t.* FROM tracks t INNER JOIN playlist_tracks pt ON pt.trackId = t.id
+           WHERE pt.playlistId = :playlistId ORDER BY pt.position ASC""",
+    )
+    suspend fun tracksOf(playlistId: Long): List<TrackEntity>
+
+    @Query("SELECT COUNT(*) FROM playlists")
+    suspend fun count(): Int
 }

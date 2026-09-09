@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.votify.mobile.data.LibraryRepository
 import app.votify.mobile.data.Track
-import app.votify.mobile.data.VotifyApi
+import app.votify.mobile.data.MusicRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +27,7 @@ data class HomeUiState(
 )
 
 class HomeViewModel(
-    private val api: VotifyApi,
+    private val music: MusicRepository,
     private val library: LibraryRepository,
 ) : ViewModel() {
 
@@ -56,7 +56,11 @@ class HomeViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             val recentTracks = runCatching { library.recent(limit = 30).first() }.getOrDefault(emptyList())
-            val artistSeeds = runCatching { library.topArtists(limit = 5) }.getOrDefault(emptyList())
+            val playlistArtists = runCatching { library.playlistArtists(limit = 8) }.getOrDefault(emptyList())
+            // Wave seeds: what the user PLAYS (history) + what they COLLECT (playlists, favorites).
+            val artistSeeds = (runCatching { library.topArtists(limit = 6) }.getOrDefault(emptyList()) + playlistArtists)
+                .distinct()
+                .take(6)
             val favorites = runCatching { library.favorites.first() }.getOrDefault(emptyList())
 
             val trackSeeds = (favorites.take(3) + recentTracks.take(6))
@@ -70,21 +74,21 @@ class HomeViewModel(
 
             val result = if (personal) {
                 runCatching {
-                    api.customWave(
+                    music.customWave(
                         artistSeeds = artistSeeds,
                         trackSeeds = trackSeeds,
                         exclude = recentTracks.map { it.id },
                         limit = 24,
                     )
-                }.recoverCatching { api.recommendations(limit = 20) }
+                }.recoverCatching { music.recommendations(limit = 20) }
             } else {
-                runCatching { api.recommendations(limit = 20) }
+                runCatching { music.recommendations(limit = 20) }
             }
 
             result
                 .onSuccess { tracks ->
                     val wave = if (tracks.isEmpty() && personal) {
-                        runCatching { api.recommendations(limit = 20) }.getOrDefault(emptyList())
+                        runCatching { music.recommendations(limit = 20) }.getOrDefault(emptyList())
                     } else {
                         tracks
                     }
@@ -96,7 +100,7 @@ class HomeViewModel(
                             isLoading = false,
                         )
                     }
-                    api.preload(wave.take(2).map { t -> t.id })
+                    music.preload(wave.take(2).map { t -> t.id })
                 }
                 .onFailure { e ->
                     _state.update { it.copy(isLoading = false, error = e.message ?: "error") }

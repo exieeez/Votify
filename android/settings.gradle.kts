@@ -10,6 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // NewPipeExtractor (YouTube/SoundCloud extraction without a server) lives on JitPack.
+        maven(url = "https://jitpack.io")
     }
 }
 rootProject.name = "Votify"

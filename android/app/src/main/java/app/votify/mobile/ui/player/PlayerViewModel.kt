@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.votify.mobile.data.LibraryRepository
 import app.votify.mobile.data.Lyrics
 import app.votify.mobile.data.Track
-import app.votify.mobile.data.VotifyApi
+import app.votify.mobile.data.MusicRepository
 import app.votify.mobile.player.PlayerController
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +29,7 @@ sealed interface LyricsState {
  * favorite flag, artwork style preference.
  */
 class PlayerViewModel(
-    private val api: VotifyApi,
+    private val music: MusicRepository,
     private val player: PlayerController,
     private val library: LibraryRepository,
 ) : ViewModel() {
@@ -76,7 +76,7 @@ class PlayerViewModel(
         lyricsForId = id
         _lyrics.value = LyricsState.Loading
         lyricsJob = viewModelScope.launch {
-            val result = runCatching { api.lyrics(track = track.title, artist = track.artist) }
+            val result = runCatching { music.lyrics(track = track.title, artist = track.artist) }
                 .getOrNull()
                 ?.let(Lyrics::from)
             // Ignore late results for a track that is no longer current.

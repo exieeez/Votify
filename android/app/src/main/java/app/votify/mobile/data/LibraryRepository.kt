@@ -48,7 +48,30 @@ class LibraryRepository(private val db: VotifyDatabase) {
 
     suspend fun topArtists(limit: Int = 6): List<String> = db.history().topArtists(limit)
 
+    /** Artists across ALL playlists, weighted by track count — wave seeds for collectors. */
+    suspend fun playlistArtists(limit: Int = 8): List<String> {
+        val counts = LinkedHashMap<String, Int>()
+        db.playlists().getAll().forEach { pl ->
+            db.playlists().tracksOf(pl.id).forEach { t ->
+                val artist = t.artist.trim()
+                if (artist.isNotBlank() && !artist.equals("Unknown", true)) {
+                    counts[artist] = (counts[artist] ?: 0) + 1
+                }
+            }
+        }
+        return counts.entries.sortedByDescending { it.value }.map { it.key }.take(limit)
+    }
+
     suspend fun clearHistory() = db.history().clear()
+
+    /** «Очистить всё»: favorites, history, playlists and the cached track rows. */
+    suspend fun clearAllData() = db.withTransaction {
+        db.favorites().clear()
+        db.history().clear()
+        db.playlists().clearAllTracks()
+        db.playlists().clearAll()
+        db.playlists().clearAllTracksData()
+    }
 
     // ---- Playlists ----
 

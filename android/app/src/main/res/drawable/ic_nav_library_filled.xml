@@ -1,0 +1,11 @@
+<!-- Dotify-style folder, filled with a line cutout (active tab). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M4,20h16a2,2 0,0 0,2 -2V8a2,2 0,0 0,-2 -2h-7.93a2,2 0,0 1,-1.66 -0.9l-0.82,-1.2A2,2 0,0 0,7.93 3H4a2,2 0,0 0,-2 2v13a2,2 0,0 0,2 2zM2.75,9.1h18.5v1.55H2.75z" />
+</vector>

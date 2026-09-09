@@ -2,6 +2,7 @@ package app.votify.mobile.player
 
 import android.content.ComponentName
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.MediaItem
@@ -11,7 +12,6 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import app.votify.mobile.data.Track
-import app.votify.mobile.data.VotifyApi
 import com.google.common.util.concurrent.MoreExecutors
 import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
@@ -40,9 +40,11 @@ data class PlayerUiState(
  * Single app-wide bridge between Compose UI and the MediaSession in [PlaybackService].
  * Tracks are turned into MediaItems that point at the backend's /api/stream proxy.
  */
+/** Media items use this scheme; the ResolvingDataSource swaps it for the real stream URL. */
+const val RESOLVE_URI_SCHEME = "votify://stream/"
+
 class PlayerController(
     context: Context,
-    private val api: VotifyApi,
     private val scope: CoroutineScope,
     /** Called once per started media item — used to record listening history. */
     private val onTrackStarted: suspend (Track) -> Unit = {},
@@ -215,7 +217,7 @@ class PlayerController(
 
     private fun toMediaItem(t: Track): MediaItem = MediaItem.Builder()
         .setMediaId(t.id)
-        .setUri(api.streamUrl(t.id))
+        .setUri(RESOLVE_URI_SCHEME + Uri.encode(t.id))
         .setMediaMetadata(
             MediaMetadata.Builder()
                 .setTitle(t.title)

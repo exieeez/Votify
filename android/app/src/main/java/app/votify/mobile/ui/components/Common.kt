@@ -24,6 +24,8 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +40,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import app.votify.mobile.R
 import app.votify.mobile.data.Track
 import app.votify.mobile.ui.theme.VotifyColors
@@ -51,6 +55,7 @@ fun Artwork(
     size: Dp = 44.dp,
     shape: RoundedCornerShape = RoundedCornerShape(8.dp),
     contentDescription: String? = null,
+    colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
 ) {
     Box(
         modifier
@@ -66,6 +71,7 @@ fun Artwork(
                 model = url,
                 contentDescription = contentDescription,
                 contentScale = ContentScale.Crop,
+                colorFilter = colorFilter,
                 modifier = Modifier.fillMaxSize(),
                 error = {
                     Icon(Icons.Default.MusicNote, null, tint = VotifyColors.TextMuted, modifier = Modifier.size(size * 0.45f))
@@ -247,6 +253,38 @@ fun SectionHeader(
 /** "3 трека" / "5 треков" — Russian plural forms from res/values/strings.xml. */
 @Composable
 fun pluralTracks(count: Int): String = pluralStringResource(R.plurals.tracks_count, count, count)
+
+/**
+ * OutlinedTextField in Votify colors (same treatment as the playlist-name dialog):
+ * white text, #48484A hairline that lights up to white when focused.
+ */
+@Composable
+fun VotifyTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
+    password: Boolean = false,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = singleLine,
+        label = { Text(label) },
+        visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = VotifyColors.TextPrimary,
+            unfocusedTextColor = VotifyColors.TextPrimary,
+            cursorColor = VotifyColors.TextPrimary,
+            focusedBorderColor = VotifyColors.TextPrimary,
+            unfocusedBorderColor = VotifyColors.BorderProminent,
+            focusedLabelColor = VotifyColors.TextSecondary,
+            unfocusedLabelColor = VotifyColors.TextMuted,
+        ),
+        modifier = modifier.fillMaxWidth(),
+    )
+}
 
 fun formatDuration(ms: Long): String {
     if (ms <= 0) return "0:00"

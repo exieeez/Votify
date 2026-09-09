@@ -3,7 +3,7 @@ package app.votify.mobile.ui.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.votify.mobile.data.Track
-import app.votify.mobile.data.VotifyApi
+import app.votify.mobile.data.MusicRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,11 +23,15 @@ data class SearchUiState(
     val recent: List<String> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    /** True when the failure was a network/timeout error → show a connection hint. */
+    val offline: Boolean = false,
+    /** Which hint to show for [offline]: server address (server mode) or plain "no internet". */
+    val serverMode: Boolean = true,
     val searched: Boolean = false,
 )
 
 @OptIn(FlowPreview::class)
-class SearchViewModel(private val api: VotifyApi) : ViewModel() {
+class SearchViewModel(private val music: MusicRepository) : ViewModel() {
 
     private val _state = MutableStateFlow(SearchUiState())
     val state: StateFlow<SearchUiState> = _state
@@ -50,7 +54,7 @@ class SearchViewModel(private val api: VotifyApi) : ViewModel() {
         _state.update { it.copy(query = q) }
         if (q.isBlank()) {
             job?.cancel()
-            _state.update { it.copy(results = emptyList(), isLoading = false, error = null, searched = false) }
+            _state.update { it.copy(results = emptyList(), isLoading = false, error = null, offline = false, searched = false) }
         }
         queryFlow.value = q
     }
@@ -74,8 +78,8 @@ class SearchViewModel(private val api: VotifyApi) : ViewModel() {
     private fun runSearch(q: String) {
         job?.cancel()
         job = viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            runCatching { api.search(q) }
+            _state.update { it.copy(isLoading = true, error = null, offline = false, serverMode = music.isServerMode) }
+            runCatching { music.search(q) }
                 .onSuccess { tracks ->
                     _state.update {
                         it.copy(
@@ -88,7 +92,19 @@ class SearchViewModel(private val api: VotifyApi) : ViewModel() {
                 }
                 .onFailure { e ->
                     if (e is kotlinx.coroutines.CancellationException) return@onFailure
-                    _state.update { it.copy(isLoading = false, searched = true, error = e.message ?: "error") }
+                    // Connection failures get a dedicated localized hint instead of a raw
+                    // stack string: "check the server address" in server mode, "check
+                    // internet" in standalone mode.
+                    val netFail = e is java.io.IOException && e !is app.votify.mobile.data.ApiException
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            searched = true,
+                            offline = netFail,
+                            serverMode = music.isServerMode,
+                            error = if (netFail) null else (e.message ?: "error"),
+                        )
+                    }
                 }
         }
     }
