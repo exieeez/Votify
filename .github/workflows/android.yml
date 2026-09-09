@@ -1,0 +1,72 @@
+name: Android CI
+
+on:
+  push:
+    branches: ['arena/01a07e3f-votify', 'arena/01a0816e-votify']
+    paths: ['android/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Firebase Web Config injected into BuildConfig at build time (from a secret,
+    # never committed; masked out of logs automatically).
+    env:
+      VOTIFY_FIREBASE_CONFIG: ${{ secrets.VOTIFY_FIREBASE_CONFIG }}
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x gradlew
+
+      - name: Build
+        id: build
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --console=plain assembleDebug 2>&1 | tee build.log
+
+      # Surface compiler errors in the job summary + annotations so they can be read
+      # through the GitHub API even when raw logs are not reachable.
+      - name: Report errors
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "### Android build failed (run ${{ github.run_id }})"
+            echo '```'
+            grep -E "^(e: |w: .*error|> Task .* FAILED|FAILURE|\* What went wrong|Execution failed|Caused by|Unresolved|error:|Error:|Could not)" build.log | head -100 | cut -c1-400
+            echo '```'
+            echo "<details><summary>tail</summary>"
+            echo
+            echo '```'
+            tail -40 build.log | cut -c1-400
+            echo '```'
+            echo "</details>"
+          } > report.md
+          cp report.md "$GITHUB_STEP_SUMMARY"
+          # Commit comments are readable through api.github.com even when the
+          # Azure-hosted log storage is unreachable from the client.
+          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" -F body=@report.md >/dev/null || true
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: android/build.log
+          retention-days: 3
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: votify-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk

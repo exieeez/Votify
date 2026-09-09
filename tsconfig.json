@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022"],
     "moduleResolution": "node",
     "allowJs": true,
     "checkJs": false,
@@ -14,14 +14,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "declaration": false,
-    "outDir": "./dist",
+    "noEmit": true,
     "rootDir": ".",
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*", "routes/*"]
-    },
-    "types": ["node", "electron"]
+    "types": ["node"]
   },
-  "include": ["main.js", "preload.js", "server.js", "routes/**/*.js", "src/**/*.js"],
+  "include": ["server.js", "routes/**/*.js", "scripts/**/*.js"],
   "exclude": ["node_modules", "dist", "bin"]
 }

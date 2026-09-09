@@ -1,0 +1,320 @@
+<!DOCTYPE html><html class="dark h-full bg-[#0a0a0a]" lang="ru"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Votify - Главная</title>
+<!-- Tailwind CSS v3 with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            votify: {
+              bg: '#0a0a0a',
+              card: '#141416',
+              cardBorder: '#232327',
+              pill: '#1e1d22',
+              player: '#23261a',
+              muted: '#8e8e93',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="base-typography">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+<style data-purpose="custom-decorations">
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Dynamic soundwave animation simulation */
+    @keyframes wavePulse {
+      0%, 100% { height: 28%; opacity: 0.45; }
+      50% { height: 96%; opacity: 1; }
+    }
+    .bar-anim-1 { animation: wavePulse 1.4s ease-in-out infinite; }
+    .bar-anim-2 { animation: wavePulse 1.1s ease-in-out 0.2s infinite; }
+    .bar-anim-3 { animation: wavePulse 1.6s ease-in-out 0.4s infinite; }
+    .bar-anim-4 { animation: wavePulse 0.9s ease-in-out 0.15s infinite; }
+    .bar-anim-5 { animation: wavePulse 1.3s ease-in-out 0.35s infinite; }
+  </style>
+</head>
+<body class="h-full bg-[#0a0a0a] text-white flex justify-center items-center overflow-x-hidden antialiased selection:bg-neutral-800">
+<!-- Mobile Shell Device Wrapper -->
+<div class="relative w-full max-w-[430px] h-full min-h-screen sm:h-[932px] sm:max-h-[95vh] bg-[#0c0c0e] flex flex-col justify-between overflow-hidden sm:rounded-[44px] sm:border-[8px] sm:border-[#1e1e20] shadow-2xl">
+<!-- BEGIN: TopStatusBar -->
+<header class="w-full pt-3 px-6 flex justify-between items-center text-xs font-semibold text-neutral-300 z-30 select-none tracking-tight">
+<div class="flex items-center space-x-1.5" data-purpose="clock-and-app-badges">
+<span class="">14:00</span>
+<div class="flex items-center space-x-1 pl-1 opacity-80">
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2z"></path></svg>
+<span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+</div>
+</div>
+<!-- Right Status Bar Icons -->
+<div class="flex items-center space-x-2 text-neutral-300">
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5z"></path></svg>
+<span class="text-[10px] font-bold tracking-tighter uppercase text-neutral-400">4G</span>
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 4c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-3.39C20.26 17.07 21 15.12 21 13c0-4.97-4.03-9-9-9z"></path></svg>
+<div class="flex items-center space-x-0.5 border border-neutral-400 px-1 py-0.5 rounded-[4px]">
+<span class="text-[9px] font-bold">59</span>
+</div>
+</div>
+</header>
+<!-- END: TopStatusBar -->
+<!-- BEGIN: HeaderRow -->
+<nav class="w-full px-5 pt-3 pb-2 flex justify-between items-center z-30" data-purpose="app-navigation-header">
+<!-- App Brand Logo & Title -->
+<div class="flex items-center space-x-2 cursor-pointer">
+<div class="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm">
+<svg class="w-3.5 h-3.5 text-black" fill="currentColor" viewBox="0 0 24 24">
+<path d="M12 3v18M7 7v10M17 9v6M2 11v2M22 10v4" stroke="currentColor" stroke-linecap="round" stroke-width="2.5"></path>
+</svg>
+</div>
+<span class="text-base font-bold tracking-tight text-white">Votify</span>
+</div>
+<!-- Action Icons -->
+<div class="flex items-center space-x-2">
+<button aria-label="Уведомления" class="w-9 h-9 rounded-full bg-[#18181b] flex items-center justify-center text-neutral-300 hover:text-white transition border border-neutral-800/60" type="button">
+<svg class="w-4 h-4 stroke-current fill-none stroke-[2]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+</svg>
+</button>
+<button aria-label="Поиск" class="w-9 h-9 rounded-full bg-[#18181b] flex items-center justify-center text-neutral-300 hover:text-white transition border border-neutral-800/60" type="button">
+<svg class="w-4 h-4 stroke-current fill-none stroke-[2.2]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<circle cx="11" cy="11" r="8"></circle>
+<line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+</svg>
+</button>
+<button aria-label="Профиль" class="w-9 h-9 rounded-full overflow-hidden border border-neutral-700/80 focus:ring-2 focus:ring-neutral-400" type="button">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Up6FwleAHVxutsVYh7BmAVRwwO9bTMlN1a1zmgLY4ZxArtn5PDcgRYgng8BKg7sw9Ba9afcYq-APKeLOgGvdTl1BqV7AFkMWub9pjf16JuiBPfu1945vY1x0OD4b7DOdMx7jxaxAPm68hTbssxfU8068wQ1mnXN5KK1Xc3nsq7P9XyYH-WrU8ZWrlMpX5Ta4U10A2wPzKk_IP0fJWWEz6RswTSH8RlAAOTXClWTLLDmYAzhvSyo1M8lEQ">
+</button>
+</div>
+</nav>
+<!-- END: HeaderRow -->
+<!-- Scrollable Body Content -->
+<main class="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-4 pb-4 space-y-5" data-purpose="main-feed">
+<!-- BEGIN: Votify Hero - Fluid Sound Radar ("Поток Votify") -->
+<section aria-label="Быстрый выбор и рекомендации" class="relative w-full space-y-4">
+<!-- Minimal Music Filter Pills -->
+<div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-0.5 text-xs">
+<button class="px-4 py-1.5 rounded-full bg-white text-black font-semibold shadow-sm whitespace-nowrap active:scale-95 transition">
+Всё
+</button>
+<button class="px-4 py-1.5 rounded-full bg-[#18181b] border border-neutral-800 text-neutral-300 font-medium whitespace-nowrap hover:border-neutral-700 hover:text-white transition active:scale-95">
+Треки
+</button>
+<button class="px-4 py-1.5 rounded-full bg-[#18181b] border border-neutral-800 text-neutral-300 font-medium whitespace-nowrap hover:border-neutral-700 hover:text-white transition active:scale-95">
+Альбомы
+</button>
+<button class="px-4 py-1.5 rounded-full bg-[#18181b] border border-neutral-800 text-neutral-300 font-medium whitespace-nowrap hover:border-neutral-700 hover:text-white transition active:scale-95">
+Плейлисты
+</button>
+<button class="px-4 py-1.5 rounded-full bg-[#18181b] border border-neutral-800 text-neutral-300 font-medium whitespace-nowrap hover:border-neutral-700 hover:text-white transition active:scale-95">
+Артисты
+</button>
+</div>
+
+<!-- Authentic Minimal Music Feature Card -->
+<div class="relative w-full rounded-2xl bg-[#141417] border border-neutral-800/80 p-4 flex flex-col justify-between overflow-hidden shadow-xl group">
+<div class="flex items-start justify-between mb-2.5">
+<span class="text-[11px] font-semibold tracking-wider uppercase text-neutral-400">Рекомендовано вам</span>
+<span class="text-xs text-neutral-500 font-medium">Радио по вкусу</span>
+</div>
+
+<div class="flex items-center justify-between mt-1">
+<div class="flex items-center space-x-3.5 min-w-0 pr-3">
+<div class="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-700/60 shadow-md">
+<img alt="Обложка альбома" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9Wf2G1q8pIcaNYy6Yrhf5XPq0J_tNTGzY2WOp39lKrmoqbPermZkjq_YVcncOU1padWXrA0xYhsCTquoYkzQGRVv2D82KDeTKygqpkB0xhuNJn2j2MgWZdoNicrrFpMZxiV5Sj3Ou4LxiymBGIv6u30eN-lG4H29-HNBT6s3gklNTrQSf5LzCjPZoRLAN5oVtp4tzJlLi56ANP3ZyBBAI8MXwtJMKSJqigC-dnypSfDV6Kl6N-g8kBCTdX82dD_2_VA">
+</div>
+<div class="flex flex-col min-w-0 text-left">
+<h2 class="text-base font-bold text-white tracking-tight truncate">Инди-волна</h2>
+<p class="text-xs text-neutral-400 mt-0.5 truncate">CUPSIZE, Zoloto, Сироткин</p>
+<span class="text-[11px] text-neutral-500 mt-1">Более 50 треков</span>
+</div>
+</div>
+
+<button aria-label="Слушать радио" class="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform flex-shrink-0">
+<svg class="w-5 h-5 fill-black translate-x-0.5" viewBox="0 0 24 24">
+<polygon points="5 3 19 12 5 21 5 3"></polygon>
+</svg>
+</button>
+</div>
+</div>
+</section>
+<!-- END: Votify Hero -->
+<!-- BEGIN: Section "Недавние треки" Compact Bar -->
+<section aria-label="Недавние треки" class="w-full">
+<div class="w-full bg-[#141417] hover:bg-[#19191d] transition rounded-2xl p-3 flex items-center justify-between border border-[#212126] cursor-pointer">
+<div class="flex items-center space-x-3.5">
+<!-- Stacked thumbnail -->
+<div class="relative w-12 h-12 flex-shrink-0">
+<div class="absolute right-0 top-0 w-10 h-10 rounded-lg bg-sky-950/80 border border-sky-800/40 transform rotate-6 overflow-hidden"></div>
+<div class="absolute left-0 top-0 w-10 h-10 rounded-lg overflow-hidden border border-neutral-700/80 shadow-md">
+<img alt="Недавний альбом" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Up6FwleAHVxutsVYh7BmAVRwwO9bTMlN1a1zmgLY4ZxArtn5PDcgRYgng8BKg7sw9Ba9afcYq-APKeLOgGvdTl1BqV7AFkMWub9pjf16JuiBPfu1945vY1x0OD4b7DOdMx7jxaxAPm68hTbssxfU8068wQ1mnXN5KK1Xc3nsq7P9XyYH-WrU8ZWrlMpX5Ta4U10A2wPzKk_IP0fJWWEz6RswTSH8RlAAOTXClWTLLDmYAzhvSyo1M8lEQ">
+</div>
+</div>
+<!-- Labels -->
+<div class="flex flex-col text-left">
+<span class="text-sm font-semibold text-white tracking-tight">Недавние</span>
+<span class="text-xs text-[#8e8e93] font-normal">19 прослушанных треков</span>
+</div>
+</div>
+<div class="flex items-center space-x-2 text-neutral-400 pr-1">
+<span class="text-xs text-neutral-500 font-medium">История</span>
+<svg class="w-4 h-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
+</div>
+</div>
+</section>
+<!-- END: Section "Недавние треки" -->
+<!-- BEGIN: Section "Слушайте прямо сейчас" -->
+<section aria-label="Слушайте прямо сейчас" class="w-full space-y-3">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-sm bg-white"></span>
+<h3 class="text-sm font-bold uppercase tracking-wider text-white">Слушайте прямо сейчас</h3>
+</div>
+<span class="text-xs text-neutral-500 hover:text-white cursor-pointer transition">Все</span>
+</div>
+<!-- Modern Asymmetrical Smart Grid -->
+<div class="grid grid-cols-2 gap-3">
+<!-- Card 1: Daily Smart Radar -->
+<div class="group relative h-40 rounded-2xl bg-[#141418] border border-neutral-800/80 p-3.5 flex flex-col justify-between overflow-hidden cursor-pointer hover:border-neutral-700 transition">
+<div class="flex items-start justify-between">
+<span class="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 bg-white/5 border border-white/5 px-2 py-0.5 rounded-md">Микс дня</span>
+<div class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white group-hover:text-black transition text-neutral-300">
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><polygon points="6 4 18 12 6 20 6 4"></polygon></svg>
+</div>
+</div>
+<div class="relative z-10">
+<h4 class="text-base font-bold text-white tracking-tight leading-tight">Радар новинок</h4>
+<p class="text-xs text-neutral-400 mt-0.5">34 новых релиза</p>
+</div>
+<!-- Corner vinyl ring silhouette decoration -->
+<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full border-4 border-neutral-800/50 pointer-events-none group-hover:scale-110 transition duration-300"></div>
+</div>
+<!-- Card 2: Editorial Top Chart -->
+<div class="group relative h-40 rounded-2xl bg-[#141418] border border-neutral-800/80 p-3.5 flex flex-col justify-between overflow-hidden cursor-pointer hover:border-neutral-700 transition">
+<div class="flex items-start justify-between">
+<span class="text-[10px] font-semibold uppercase tracking-wider text-amber-300/80 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-md">Топ 100</span>
+<div class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white group-hover:text-black transition text-neutral-300">
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><polygon points="6 4 18 12 6 20 6 4"></polygon></svg>
+</div>
+</div>
+<div class="relative z-10">
+<h4 class="text-base font-bold text-white tracking-tight leading-tight">В тренде недели</h4>
+<p class="text-xs text-neutral-400 mt-0.5">Главные хиты</p>
+</div>
+<div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center pointer-events-none">
+<svg class="w-6 h-6 text-neutral-600" fill="currentColor" viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"></path></svg>
+</div>
+</div>
+<!-- Card 3: Wide Curated Strip ("Для ночной дороги") -->
+<div class="col-span-2 relative rounded-2xl bg-[#131317] border border-neutral-800/80 p-3.5 flex items-center justify-between cursor-pointer hover:border-neutral-700 transition">
+<div class="flex items-center space-x-3">
+<div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-700/60">
+<img alt="Атмосферный плейлист" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLKejyME6K949tQh6NwHCmtfg9xBDahhLQ17SsbtoG_BDfDVNeSOdUmi8_7tPOZn9QGys-WJgmtegidH27lWcvic7fg2xmajT3kkLb7NxvxuIJLxzFTYRMNDgeIuLGgTaEW56xDYZdnLNQh1aJcZewZ8ZrR1SgNGV_XOA2g_kNtozxiz00SKCZ18GJfl_yO8xj0kQFFotnC5g4ESgho4eALCmisvzlJk53j8R9JSXFWj1PYeVu2XchXtZ3Mx0upz8eYw">
+</div>
+<div>
+<div class="flex items-center space-x-1.5">
+<span class="text-sm font-bold text-white tracking-tight">Ночной драйв</span>
+<span class="text-[10px] bg-neutral-800 text-neutral-400 px-1.5 py-0.2 rounded font-mono">HQ</span>
+</div>
+<p class="text-xs text-neutral-400 mt-0.5">Synthwave, Phonk, Deep House</p>
+</div>
+</div>
+<button aria-label="Слушать" class="w-8 h-8 rounded-full bg-neutral-800 hover:bg-white hover:text-black text-neutral-300 flex items-center justify-center transition">
+<svg class="w-3.5 h-3.5 fill-current translate-x-0.5" viewBox="0 0 24 24"><polygon points="6 4 18 12 6 20 6 4"></polygon></svg>
+</button>
+</div>
+</div>
+</section>
+<!-- END: Section "Слушайте прямо сейчас" -->
+</main>
+<!-- Fixed Bottom Floating Container: Mini-Player + Navigation Bar -->
+<footer class="w-full flex flex-col z-40 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e] to-transparent pt-1">
+<!-- BEGIN: MiniPlayer (Preserved signature component) -->
+<aside aria-label="Мини-плеер" class="mx-3.5 mb-2.5 relative group cursor-pointer">
+<div class="relative w-full h-[70px] bg-[#23261a] hover:bg-[#282b1e] text-neutral-100 rounded-[34px] px-3.5 flex items-center justify-between shadow-xl border border-[#373a27]/70 backdrop-blur-md overflow-hidden transition">
+<!-- Track artwork and title/artist block -->
+<div class="flex items-center space-x-3.5 min-w-0 pr-2">
+<div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#3e422c]/80 shadow-sm">
+<img alt="Обложка трека черновик" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Up6FwleAHVxutsVYh7BmAVRwwO9bTMlN1a1zmgLY4ZxArtn5PDcgRYgng8BKg7sw9Ba9afcYq-APKeLOgGvdTl1BqV7AFkMWub9pjf16JuiBPfu1945vY1x0OD4b7DOdMx7jxaxAPm68hTbssxfU8068wQ1mnXN5KK1Xc3nsq7P9XyYH-WrU8ZWrlMpX5Ta4U10A2wPzKk_IP0fJWWEz6RswTSH8RlAAOTXClWTLLDmYAzhvSyo1M8lEQ">
+</div>
+<div class="flex flex-col justify-center min-w-0 leading-tight">
+<span class="text-sm font-semibold text-white truncate tracking-tight">черновик</span>
+<span class="text-xs font-medium text-neutral-400 truncate mt-0.5 tracking-wide">CUPSIZE</span>
+</div>
+</div>
+<!-- Controls: Play button and Favorite Heart -->
+<div class="flex items-center space-x-3.5 flex-shrink-0 pr-1.5">
+<button aria-label="Воспроизведение" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 shadow-sm transition-transform" type="button">
+<svg class="w-5 h-5 fill-black translate-x-0.5" viewBox="0 0 24 24">
+<polygon points="5 3 19 12 5 21 5 3"></polygon>
+</svg>
+</button>
+<button aria-label="Добавить в любимое" class="text-neutral-300 hover:text-white transition-colors active:scale-90" type="button">
+<svg class="w-6 h-6 stroke-current fill-none stroke-[2]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+</svg>
+</button>
+</div>
+<!-- Integrated subtle track progress line along the bottom border -->
+<div class="absolute bottom-0 left-4 right-4 h-[2px] bg-[#3a3d2b] rounded-full overflow-hidden">
+<div class="h-full w-1/3 bg-neutral-300/80 rounded-full"></div>
+</div>
+</div>
+</aside>
+<!-- END: MiniPlayer -->
+<!-- BEGIN: BottomNavigationBar (3 clean icons) -->
+<nav class="w-full bg-[#121214] border-t border-[#1d1d20] px-8 pt-3.5 pb-2 flex items-center justify-between select-none" data-purpose="bottom-navigation-bar">
+<!-- Icon 1: Home - ACTIVE -->
+<button aria-label="Главная" class="flex flex-col items-center justify-center w-12 h-10 text-white group focus:outline-none" type="button">
+<div class="relative w-6 h-6 flex items-center justify-center">
+<svg class="w-6 h-6 fill-white" viewBox="0 0 24 24">
+<path clip-rule="evenodd" d="M10.87 2.44a1.75 1.75 0 0 1 2.26 0l7.35 6.01c.96.79 1.52 1.97 1.52 3.22V19a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-7.33c0-1.25.56-2.43 1.52-3.22l7.35-6.01zM10 18a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v2z" fill-rule="evenodd"></path>
+</svg>
+</div>
+</button>
+<!-- Icon 2: Library - INACTIVE -->
+<button aria-label="Коллекция" class="flex flex-col items-center justify-center w-12 h-10 text-[#8e8e93] hover:text-white transition group focus:outline-none" type="button">
+<div class="relative w-6 h-6 flex items-center justify-center">
+<svg class="w-6 h-6 stroke-current fill-none stroke-[1.85]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"></path>
+<line stroke-width="1.5" x1="2" x2="22" y1="10" y2="10"></line>
+</svg>
+</div>
+</button>
+<!-- Icon 3: Settings - INACTIVE -->
+<button aria-label="Настройки" class="flex flex-col items-center justify-center w-12 h-10 text-[#8e8e93] hover:text-white transition group focus:outline-none" type="button">
+<div class="relative w-6 h-6 flex items-center justify-center">
+<svg class="w-6 h-6 stroke-current fill-none stroke-[1.85]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<path d="M12 2.5L20 7v10l-8 4.5L4 17V7l8-4.5z"></path>
+<circle cx="12" cy="12" r="3.2" stroke-width="1.85"></circle>
+</svg>
+</div>
+</button>
+</nav>
+<!-- END: BottomNavigationBar -->
+<!-- Safe Area Home Indicator Bar -->
+<div class="w-full bg-[#121214] pb-2 pt-1 flex justify-center items-center">
+<div class="w-32 h-1 bg-neutral-600 rounded-full"></div>
+</div>
+</footer>
+</div>
+
+
+</body></html>

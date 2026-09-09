@@ -344,18 +344,19 @@
   border-radius: var(--radius-lg);
 }
 
-/* Spinner */
+/* Spinner (HeroUI-style: faint track ring + accent arc) */
 .spinner {
   width: 24px;
   height: 24px;
-  border: 2px solid var(--border);
+  border: 3px solid rgba(255, 255, 255, 0.14);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-.spinner-sm { width: 16px; height: 16px; border-width: 1.5px; }
-.spinner-lg { width: 40px; height: 40px; border-width: 3px; }
+.spinner-sm { width: 16px; height: 16px; border-width: 2px; }
+.spinner-lg { width: 40px; height: 40px; border-width: 3.5px; }
+body[data-theme-mode="light"] .spinner { border-color: rgba(15, 23, 42, 0.16); border-top-color: #0f172a; }
 
 /* ==========================================
    PAGE TRANSITIONS

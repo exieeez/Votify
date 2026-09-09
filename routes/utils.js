@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const { spawn } = require('child_process');
 const fs = require('fs');
-const fsPromises = require('fs/promises');
 const path = require('path');
 const https = require('https');
 const http = require('http');
@@ -11,8 +10,6 @@ const { URL } = require('url');
 const crypto = require('crypto');
 
 const appRoot = path.dirname(__dirname);
-const srcDir = path.resolve(process.env.VOTIFY_SRC_DIR || path.join(appRoot, 'src'));
-const port = Number(process.env.VOTIFY_PORT || process.env.PORT || 17217);
 
 const os = require('os');
 function getConfigDir() {
@@ -154,19 +151,6 @@ const BLOCKED_KEYWORDS = [
   'live stream',
   '24/7',
 ];
-
-const MIME_TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'application/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.webmanifest': 'application/manifest+json',
-};
 
 const SALT_ROUNDS = 10;
 const resetCodes = new Map();
@@ -604,6 +588,14 @@ async function searchTracks(query, limit, useCache = true) {
     }
   }
   const tracks = await ytSearchScrape(query, limit);
+  // Офлайн-фолбэк: нет сети — показываем локальный демо-каталог
+  if (!tracks.length) {
+    const demo = require('./demo.js').searchDemo(query, limit);
+    if (demo.length) {
+      console.log(`[demo] Offline catalog fallback for: "${query}"`);
+      return demo;
+    }
+  }
   if (useCache) {
     searchCache.set(cacheKey, { tracks, expires: Date.now() + SEARCH_CACHE_TTL });
   }
@@ -612,7 +604,12 @@ async function searchTracks(query, limit, useCache = true) {
 
 async function searchTracksByArtist(name, limit) {
   const query = `${name} official audio`;
-  return searchTracks(query, limit, false);
+  const tracks = await searchTracks(query, limit, false);
+  if (!tracks.length) {
+    const demo = require('./demo.js').searchDemoByArtist(name, limit);
+    if (demo.length) return demo;
+  }
+  return tracks;
 }
 
 async function getRecommendations(limit = RECOMMENDATION_LIMIT) {
@@ -630,6 +627,13 @@ async function getRecommendations(limit = RECOMMENDATION_LIMIT) {
     seen.add(t.id);
     return true;
   });
+  if (!unique.length) {
+    const demo = require('./demo.js').demoAll(limit);
+    if (demo.length) {
+      console.log('[demo] Offline recommendations fallback');
+      return demo;
+    }
+  }
   return unique.slice(0, limit);
 }
 
@@ -715,35 +719,6 @@ async function fetchStreamUrl(videoId) {
   }
 
   return null;
-}
-
-async function serveStatic(filePath, res) {
-  if (!filePath || filePath === '/') filePath = '/index.html';
-  if (filePath.startsWith('/')) filePath = filePath.slice(1);
-  const fullPath = path.join(srcDir, filePath);
-  if (!fullPath.startsWith(srcDir)) {
-    sendJson(res, 403, { error: 'Forbidden' });
-    return;
-  }
-  try {
-    const stat = await fsPromises.stat(fullPath);
-    if (stat.isDirectory()) {
-      sendJson(res, 403, { error: 'Forbidden' });
-      return;
-    }
-    const ext = path.extname(fullPath);
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    const data = await fsPromises.readFile(fullPath);
-    res.writeHead(200, {
-      'Content-Type': contentType,
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-      Pragma: 'no-cache',
-      Expires: '0',
-    });
-    res.end(data);
-  } catch (e) {
-    sendJson(res, 404, { error: 'Not found' });
-  }
 }
 
 // --- SOUNDCLOUD ---
@@ -884,28 +859,42 @@ async function scImportPlaylist(playlistUrl) {
 }
 
 module.exports = {
+  // http helpers
   sendJson,
-  serveStatic,
   parseBody,
+  httpGet,
+  httpPostJSON,
+  YT_UA,
+  // config / storage
+  appRoot,
+  PERSISTENT_DIR,
+  networkConfig,
+  loadNetworkConfig,
   saveNetworkConfig,
   getNetworkConfig,
-  networkConfig,
+  findYtDlp,
+  // auth helpers
+  bcrypt,
+  SALT_ROUNDS,
+  generateToken,
+  verifyToken,
+  getAuthUser,
+  generateResetCode,
+  createEmailTransporter,
+  loadUsers,
+  saveUsers,
+  resetCodes,
+  // music
+  SEARCH_LIMIT,
+  SEARCH_MAX_LIMIT,
   searchTracks,
   searchTracksByArtist,
   getRecommendations,
   fetchStreamUrl,
   streamCache,
   STREAM_CACHE_TTL,
-  httpGet,
-  httpPostJSON,
-  appRoot,
-  SEARCH_LIMIT,
-  SEARCH_MAX_LIMIT,
-  findYtDlp,
-  loadNetworkConfig,
-  PERSISTENT_DIR,
+  // soundcloud
   scSearch,
   scGetStreamUrl,
   scImportPlaylist,
-  YT_UA,
 };

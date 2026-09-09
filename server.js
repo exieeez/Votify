@@ -98,6 +98,18 @@ const server = http.createServer(async (req, res) => {
     }
     if (serveFirebaseVendor(u.pathname, res)) return;
 
+    // Корень — редирект на уникальный URL: ломает любые кэши прокси/браузера,
+    // чтобы превью всегда получало свежий index.html и свежие ассеты
+    if (u.pathname === '/' && req.method === 'GET') {
+      res.writeHead(302, {
+        Location: '/index.html?ts=' + Date.now(),
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        Pragma: 'no-cache',
+      });
+      res.end();
+      return;
+    }
+
     // --- NETWORK ENDPOINTS ---
     if (u.pathname === '/api/network/settings' && req.method === 'GET') {
       sendJson(res, 200, getNetworkConfig());
@@ -121,6 +133,9 @@ const server = http.createServer(async (req, res) => {
 
     // --- MUSIC ENDPOINTS ---
     if (await handleMusicRoutes(req, res, u)) return;
+
+    // --- DEMO (offline catalog covers/audio) ---
+    if (require('./routes/demo.js').handleDemoRoutes(req, res, u)) return;
 
     // --- STATIC FILES ---
     await serveStatic(u.pathname, res);

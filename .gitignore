@@ -27,13 +27,10 @@ npm-debug.log*
 *.tmp
 *.temp
 
-# Windows-specific (not needed for Linux)
-*.exe
-*.blockmap
-
 # Local data
 *.json
 !package.json
+!package-lock.json
 !firebase.json
 !tsconfig.json
 !*.config.js
@@ -45,12 +42,11 @@ firebase-config.json
 firebase-service-account.json
 
 # Temporary and backup files
-.backup-side-player-20260809/
 .trae/
 nohup.out
 repomix-output.xml
-test-fix*.js
-*.bdic
 
-# Binaries
+# Binaries (Windows build is downloaded by `npm install` via scripts/download-ytdlp.js)
+*.exe
+*.blockmap
 bin/yt-dlp.exe
