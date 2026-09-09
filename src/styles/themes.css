@@ -1,0 +1,38 @@
+/* Theme Variants */
+
+/* OLED — pure black */
+[data-theme="oled"] {
+  --bg-deep: #000000;
+  --bg-surface: #050505;
+  --bg-elevated: #0A0A0A;
+  --bg-card: #111111;
+  --border: #1A1A1A;
+}
+
+/* Sepia — warm tones */
+[data-theme="sepia"] {
+  --bg-deep: #1A1612;
+  --bg-surface: #211D18;
+  --bg-elevated: #2A2520;
+  --bg-card: #332D27;
+  --border: #3D352E;
+  --fg-primary: #F0E6D6;
+  --fg-secondary: #C4B8A4;
+  --fg-tertiary: #8A7E6A;
+  --accent: #D4A843;
+  --accent-hover: #E0B84D;
+}
+
+/* High Contrast */
+[data-theme="high-contrast"] {
+  --bg-deep: #000000;
+  --bg-surface: #0A0A0A;
+  --bg-elevated: #141414;
+  --bg-card: #1E1E1E;
+  --fg-primary: #FFFFFF;
+  --fg-secondary: #E0E0E0;
+  --fg-tertiary: #B0B0B0;
+  --border: #333333;
+  --accent: #FFD700;
+  --accent-hover: #FFE033;
+}

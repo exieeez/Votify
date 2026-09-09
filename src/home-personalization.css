@@ -1,0 +1,84 @@
+/* Home artist carousel and personal recommendations */
+.home-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.home-carousel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.home-carousel-btn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--bg-highlight);
+  border-radius: 50%;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.home-carousel-btn:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
+  transform: scale(1.04);
+}
+
+.artists-grid.artists-carousel {
+  display: flex;
+  grid-template-columns: none;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+  padding: 6px 2px 12px;
+}
+
+.artists-grid.artists-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.artists-carousel .artist-card {
+  flex: 0 0 clamp(132px, 15vw, 168px);
+  scroll-snap-align: start;
+}
+
+.for-you-status {
+  min-height: 18px;
+  margin: 4px 0 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.rec-grid.for-you-carousel {
+  display: flex;
+  grid-template-columns: none;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+  padding: 2px 2px 12px;
+}
+
+.rec-grid.for-you-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.for-you-carousel .rec-tile {
+  flex: 0 0 clamp(168px, 18vw, 210px);
+  scroll-snap-align: start;
+}
