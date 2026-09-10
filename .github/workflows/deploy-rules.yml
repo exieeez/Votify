@@ -27,4 +27,27 @@ jobs:
             echo "::error::FIREBASE_TOKEN secret is missing — see the setup note at the top of deploy-rules.yml"
             exit 1
           fi
-          npx -y firebase-tools@15.26.0 deploy --only firestore:rules --project votify-f461a --token "$FIREBASE_TOKEN" --non-interactive
+          npx -y firebase-tools@15.26.0 deploy --only firestore:rules --project votify-f461a --token "$FIREBASE_TOKEN" --non-interactive 2>&1 | tee deploy.log; STATUS=${PIPESTATUS[0]}
+          tail -c 800 deploy.log | tr '\n' ' ' > tail.txt
+          echo "::notice::DEPLOY-EXIT status=$STATUS tail=$(cat tail.txt)"
+          exit $STATUS
+
+      - name: Verify social rules are live
+        run: |
+          set +e
+          APIKEY="AIzaSyBSRslJWfFlpgX3Sm3_RbXEILtj2PL0A-k"
+          FS="https://firestore.googleapis.com/v1/projects/votify-f461a/databases/(default)/documents"
+          SIGNUP=$(curl -s --max-time 20 "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$APIKEY" -H 'Content-Type: application/json' -d '{"returnSecureToken":true}')
+          TOKEN=$(echo "$SIGNUP" | jq -r '.idToken // empty')
+          UID=$(echo "$SIGNUP" | jq -r '.localId // empty')
+          if [ -z "$TOKEN" ]; then
+            RND="verify$RANDOM$RANDOM@example.com"
+            SIGNUP=$(curl -s --max-time 20 "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$APIKEY" -H 'Content-Type: application/json' -d "{\"email\":\"$RND\",\"password\":\"Verify12345678!\",\"returnSecureToken\":true}")
+            TOKEN=$(echo "$SIGNUP" | jq -r '.idToken // empty')
+            UID=$(echo "$SIGNUP" | jq -r '.localId // empty')
+          fi
+          if [ -z "$TOKEN" ]; then echo "signup failed"; exit 1; fi
+          CODE=$(curl -s --max-time 20 -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$FS/profiles/$UID")
+          curl -s --max-time 20 "https://identitytoolkit.googleapis.com/v1/accounts:delete?key=$APIKEY" -H 'Content-Type: application/json' -d "{\"idToken\":\"$TOKEN\"}" -o /dev/null || true
+          echo "own-profile-read code=$CODE (want 404: rules live, doc absent)"
+          [ "$CODE" = "404" ] || [ "$CODE" = "200" ]

@@ -1,4 +1,5 @@
 rules_version = '2';
+// Deployed automatically by .github/workflows/deploy-rules.yml (FIREBASE_TOKEN secret).
 
 service cloud.firestore {
   match /databases/{database}/documents {
