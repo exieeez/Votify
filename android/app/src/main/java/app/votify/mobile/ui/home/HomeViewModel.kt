@@ -78,12 +78,13 @@ class HomeViewModel(
                 .take(6)
             val favorites = runCatching { library.favorites.first() }.getOrDefault(emptyList())
 
-            val trackSeeds = (favorites.take(3) + recentTracks.take(6))
+            // Якоря — то, что человек реально слушал/любит: по ним ищем похожее.
+            val trackSeeds = (favorites.take(4) + recentTracks.take(8))
                 .distinctBy { it.id }
                 .map { "${it.artist} ${it.title}".trim() }
                 .filter { it.isNotBlank() }
                 .distinct()
-                .take(4)
+                .take(6)
 
             val personal = artistSeeds.isNotEmpty() || trackSeeds.isNotEmpty()
 
@@ -109,7 +110,9 @@ class HomeViewModel(
                     }
                     _state.update {
                         it.copy(
-                            wave = wave.shuffled(),
+                            // Персональную волну не перемешиваем: она уже отранжирована
+                            // по похожести. Общие рекомендации мешаем — там порядок случаен.
+                            wave = if (personal && wave.isNotEmpty()) wave else wave.shuffled(),
                             waveSource = if (personal && wave.isNotEmpty()) WaveSource.Personal else WaveSource.Generic,
                             seeds = artistSeeds,
                             isLoading = false,

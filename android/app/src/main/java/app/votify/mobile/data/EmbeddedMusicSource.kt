@@ -4,12 +4,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request as OkHttpRequest
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -54,8 +56,27 @@ object EmbeddedMusicSource {
         .readTimeout(45, TimeUnit.SECONDS)
         .build()
 
+    /**
+     * Отдельный клиент для скачивания: пул побольше (качаем несколькими соединениями
+     * сразу) и более длинный таймаут чтения — долгий трек на слабой сети не должен
+     * обрываться на середине.
+     */
+    private val downloadHttp: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .connectionPool(okhttp3.ConnectionPool(16, 5, TimeUnit.MINUTES))
+        .build()
+
     /** YouTube stream URLs live ~6h — cache 4h to be safe. */
     private const val STREAM_TTL_MS = 4 * 60 * 60 * 1000L
+
+    /** Сколько параллельных соединений качает один трек (HTTP Range). */
+    private const val MAX_CHUNKS = 4
+    /** Мелкие файлы нарезать бессмысленно — только лишние запросы. */
+    private const val CHUNK_MIN_SIZE = 320L * 1024L
+
+    /** Живой чарт Apple Music (Россия): что слушают прямо сейчас, без ключа и регистрации. */
+    private const val CHART_URL = "https://rss.marketingtools.apple.com/api/v2/ru/music/most-played/50/songs.json"
 
     /** Tracks shorter/longer than this are noise: intros, livestreams, hour-long mixes. */
     private const val MIN_TRACK_SECONDS = 30L
@@ -71,7 +92,7 @@ object EmbeddedMusicSource {
 @Volatile
 private var trendingCache: Pair<Long, List<Track>>? = null
 
-private const val TRENDING_TTL_MS = 10 * 60 * 1000L
+private const val TRENDING_TTL_MS = 30 * 60 * 1000L
 
     private data class CachedUrl(val url: String, val at: Long)
 
@@ -138,27 +159,142 @@ private const val TRENDING_TTL_MS = 10 * 60 * 1000L
      */
     fun wave(artistSeeds: List<String>, trackSeeds: List<String>, exclude: Set<String>, limit: Int): List<Track> {
         ensureInit()
-        val excludeSet = exclude.toSet()
-        // 1. Похожее: для треков-якорей берём related-блок YouTube — это и есть «похожие треки».
-        val related = mutableListOf<Track>()
-        trackSeeds.take(3).filter { it.isNotBlank() }.forEach { seed ->
-            val anchor = runCatching { rawSearch(seed, music = true, 1).firstOrNull() }.getOrNull() ?: return@forEach
-            related += relatedTracks(anchor.id)
+        val blocked = exclude.toMutableSet()
+
+        // 1. Якоря — недавние и любимые треки: по одному поиску на трек, параллельно.
+        val anchors = fanOut(trackSeeds.take(6).filter { it.isNotBlank() }, limit = 3) { seed ->
+            rawSearch(seed, music = true, 1)
+        }.distinctBy { it.id }
+        blocked += anchors.map { it.id }
+
+        // 2. Похожее: блок «Далее» у каждого якоря отдельно. Трек, который всплыл у
+        //    нескольких якорей, правда похож — считаем, сколько раз он встретился.
+        val anchorIds = anchors.map { it.id }.distinct().take(4)
+        val perAnchor: List<List<Track>> = if (anchorIds.isEmpty()) emptyList() else runBlocking {
+            coroutineScope {
+                anchorIds.map { id ->
+                    async(Dispatchers.IO) { runCatching { relatedTracks(id, 12) }.getOrDefault(emptyList()) }
+                }.awaitAll()
+            }
         }
-        // 2. Опорное: свежие треки тех же артистов, что пользователь реально слушает.
-        val collected = mutableListOf<Track>()
-        artistSeeds.take(5).filter { it.isNotBlank() && !it.equals("Unknown", true) }.forEach { artist ->
-            runCatching { rawSearch(artist, music = true, 5) }.getOrNull()?.let { collected += it }
-        }
-        // Похожее идёт первым, дальше — подмешиваем артистов из истории.
-        val pooled = related.shuffled() + collected.shuffled()
-        if (pooled.isEmpty()) return recommendations(limit)
-        return pooled
+        val hits = mutableMapOf<String, Int>()
+        perAnchor.forEach { list -> list.distinctBy { it.id }.forEach { t -> hits[t.id] = (hits[t.id] ?: 0) + 1 } }
+        val related = perAnchor.flatten()
+
+        // 3. Свежие треки артистов из истории — только чтобы добить хвост, если
+        //    «похожего» набралось мало.
+        val fromArtists = fanOut(
+            artistSeeds.take(4).filter { it.isNotBlank() && !it.equals("Unknown", true) },
+            limit = 4,
+        ) { artist -> rawSearch(artist, music = true, 6) }
+
+        if (related.isEmpty() && fromArtists.isEmpty()) return recommendations(limit)
+
+        val seedArtists = artistSeeds.map { normalizeArtist(it) }.filter { it.isNotBlank() }.toSet()
+        val anchorArtists = anchors.map { normalizeArtist(it.artist) }.filter { it.isNotBlank() }.toSet()
+        val anchorWords = anchors.flatMap { significantWords(it.title) }.toSet()
+
+        val ranked = (related + fromArtists)
+            .asSequence()
             .distinctBy { it.id }
-            .distinctBy { "${it.artist}|${it.title}".lowercase() }
-            .filter { it.id !in excludeSet && it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
-            .shuffled()
+            .distinctBy { dedupeKey(it) }
+            .filter { it.id !in blocked && it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
+            .map { track -> track to relevance(track, anchorArtists, seedArtists, anchorWords, hits[track.id] ?: 0) }
+            .sortedByDescending { it.second }
+            .map { it.first }
+            .toList()
             .take(limit)
+
+        if (ranked.isEmpty()) return recommendations(limit)
+        // Подряд идущие треки одного артиста разводим, порядок по похожести сохраняем.
+        return spreadByArtist(ranked)
+    }
+
+    /** Насколько трек близок к тому, что человек реально слушает (больше — лучше). */
+    private fun relevance(
+        track: Track,
+        anchorArtists: Set<String>,
+        seedArtists: Set<String>,
+        anchorWords: Set<String>,
+        hits: Int,
+    ): Double {
+        val artist = normalizeArtist(track.artist)
+        var score = 0.0
+        if (artist in anchorArtists) score += 6.0
+        else if (anchorArtists.any { artist.contains(it) || it.contains(artist) }) score += 4.0
+        if (artist in seedArtists) score += 2.5
+        else if (seedArtists.any { artist.contains(it) || it.contains(artist) }) score += 1.5
+        if (significantWords(track.title).any { it in anchorWords }) score += 0.75
+        score += hits * 1.5
+        // Немного случайности, чтобы волна не залипала на одном и том же наборе.
+        return score + Math.random()
+    }
+
+    /** Round-robin по артистам: подряд не идут пять треков одного исполнителя. */
+    private fun spreadByArtist(tracks: List<Track>): List<Track> {
+        val groups = linkedMapOf<String, MutableList<Track>>()
+        tracks.forEach { track -> groups.getOrPut(normalizeArtist(track.artist)) { mutableListOf() } += track }
+        val queues = groups.values.toList()
+        val out = mutableListOf<Track>()
+        var index = 0
+        while (out.size < tracks.size) {
+            var added = false
+            for (queue in queues) {
+                if (index < queue.size) {
+                    out += queue[index]
+                    added = true
+                }
+            }
+            if (!added) break
+            index++
+        }
+        return out
+    }
+
+    private fun dedupeKey(track: Track): String = "${normalizeArtist(track.artist)}|${track.title.lowercase()}"
+
+    /** «Artist Name», «artist-name», «ARTIST» — один и тот же артист. */
+    private fun normalizeArtist(value: String): String =
+        value.lowercase()
+            .replace(Regex("[^\\p{L}\\p{N}& ]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+    private fun significantWords(title: String): Set<String> =
+        title.lowercase()
+            .replace(Regex("[^\\p{L}\\p{N} ]"), " ")
+            .split(Regex("\\s+"))
+            .filter { it.length >= 3 }
+            .toSet()
+
+    /**
+     * Выполняет [block] для каждого элемента на пуле IO (не более [limit] одновременно)
+     * и склеивает результаты. Ошибки проглатываются: волна и чарт должны жить, даже
+     * если один из запросов не прошёл.
+     */
+    private fun <T> fanOut(items: List<T>, limit: Int = 6, block: (T) -> List<Track>): List<Track> {
+        if (items.isEmpty()) return emptyList()
+        return runBlocking {
+            coroutineScope {
+                items.chunked(limit).flatMap { batch ->
+                    batch.map { item -> async(Dispatchers.IO) { runCatching { block(item) }.getOrDefault(emptyList()) } }
+                        .awaitAll()
+                        .flatten()
+                }
+            }
+        }
+    }
+
+    /** То же, что [fanOut], но результат каждого элемента остаётся отдельным списком. */
+    private fun <T, R : Any> mapParallel(items: List<T>, limit: Int = 6, block: (T) -> R): List<R> {
+        if (items.isEmpty()) return emptyList()
+        return runBlocking {
+            coroutineScope {
+                items.chunked(limit).flatMap { batch ->
+                    batch.map { item -> async(Dispatchers.IO) { runCatching { block(item) }.getOrNull() } }.awaitAll()
+                }
+            }
+        }.filterNotNull()
     }
 
     /**
@@ -185,9 +321,11 @@ private const val TRENDING_TTL_MS = 10 * 60 * 1000L
     }
 
     /**
-     * «В тренде — СНГ»: current top tracks of the artists actually charting in the CIS
-     * (each artist's top songs on YouTube Music are demand-ranked, i.e. what is really
-     * listened to). Interleaved round-robin so the list stays varied; cached 10 min.
+     * «В тренде»: живой чарт Apple Music (Россия) — то, что действительно слушают прямо
+     * сейчас. Позиции чарта ищем на YouTube Music параллельно и сохраняем порядок:
+     * первая строчка чарта остаётся первой в списке. Кэш 30 минут.
+     *
+     * Если чарт недоступен — запасной путь: свежие запросы и хиты актуальных артистов.
      */
     fun trendingCis(limit: Int = 50): List<Track> {
         ensureInit()
@@ -195,29 +333,57 @@ private const val TRENDING_TTL_MS = 10 * 60 * 1000L
         if (cached != null && System.currentTimeMillis() - cached.first < TRENDING_TTL_MS) {
             return cached.second.take(limit)
         }
-        // Список живых артистов (обновлён под 2026) + свежие запросы «что слушают сейчас»:
-        // сама подборка устаревает, а запросы дают то, что в тренде прямо сейчас.
+
+        // 1. Чарт: сверху вниз по реальной популярности.
+        val chart = chartEntries(60)
+        val chartTracks = fanOut(chart, limit = 6) { (artist, title) ->
+            rawSearch(if (artist.isBlank()) title else "$artist $title", music = true, 1)
+        }
+            .distinctBy { it.id }
+            .distinctBy { dedupeKey(it) }
+            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
+            .take(limit)
+
+        if (chartTracks.size >= 10) {
+            trendingCache = System.currentTimeMillis() to chartTracks
+            return chartTracks
+        }
+
+        // 2. Запасной путь: свежие запросы + хиты артистов, которые сейчас в ротации
+        //    (round-robin, чтобы один артист не забивал весь верх списка).
         val artists = listOf(
             "ONDA ANDAR", "XOLIDAYBOY", "Nasty Babe", "Jakone", "ICEGERGERT", "Kamazz",
             "Три дня дождя", "ANNA ASTI", "Zivert", "Artik & Asti", "VERBEE", "Клава Кока",
             "JONY", "Ay Yola", "Баста", "Мари Краймбрери",
         )
         val freshQueries = listOf("хиты 2026", "популярное сейчас 2026", "новинки музыки 2026", "тренды музыки 2026")
-        val fresh = freshQueries.flatMap { q ->
-            runCatching { rawSearch(q, music = true, 12) }.getOrDefault(emptyList())
-        }
-        val perArtist = artists.map { artist ->
-            runCatching { rawSearch(artist, music = true, 5).take(4) }.getOrDefault(emptyList())
-        }
-        // Round-robin interleave: no artist hogs the top of the chart.
+        val fresh = fanOut(freshQueries, limit = 4) { q -> rawSearch(q, music = true, 12) }
+        val perArtist = mapParallel(artists, limit = 4) { artist -> rawSearch(artist, music = true, 5).take(4) }
         val interleaved = mutableListOf<Track>()
         (0 until 4).forEach { i -> perArtist.forEach { page -> page.getOrNull(i)?.let { interleaved += it } } }
-        val result = (fresh + interleaved)
+        val result = (chartTracks + fresh + interleaved)
             .distinctBy { it.id }
-            .distinctBy { "${it.artist}|${it.title}".lowercase() }
+            .distinctBy { dedupeKey(it) }
             .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
         if (result.isNotEmpty()) trendingCache = System.currentTimeMillis() to result
         return if (result.size >= 6) result.take(limit) else result + recommendations(limit)
+    }
+
+    /** Позиции живого чарта Apple Music: (артист, название). Без ключа и без регистрации. */
+    private fun chartEntries(limit: Int): List<Pair<String, String>> {
+        val body = runCatching { httpGetString(CHART_URL) }.getOrNull() ?: return emptyList()
+        return runCatching {
+            val results = json.parseToJsonElement(body)
+                .jsonObject["feed"]?.jsonObject
+                ?.get("results")?.jsonArray
+                .orEmpty()
+            results.mapNotNull { item ->
+                val obj = runCatching { item.jsonObject }.getOrNull() ?: return@mapNotNull null
+                val title = obj["name"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                val artist = obj["artistName"]?.jsonPrimitive?.content.orEmpty()
+                artist to title
+            }.take(limit)
+        }.getOrDefault(emptyList())
     }
 
     fun recommendations(limit: Int): List<Track> {
@@ -273,14 +439,113 @@ private const val TRENDING_TTL_MS = 10 * 60 * 1000L
         dir.mkdirs()
         val target = java.io.File(dir, downloadName(trackId) + ".audio")
         if (target.exists() && target.length() > 0) return target
-        val url = resolveAudioUrl(trackId, quality)
+        val url = stripRangeParam(resolveAudioUrl(trackId, quality))
+        val tmp = java.io.File(dir, downloadName(trackId) + ".tmp")
+        try {
+            downloadInChunks(url, tmp, onProgress)
+        } catch (e: Throwable) {
+            if (e is InterruptedException) throw e
+            // Диапазоны не поддерживаются или поток оборвался — страхуем обычной загрузкой.
+            tmp.delete()
+            downloadWhole(url, tmp, onProgress)
+        }
+        if (tmp.length() == 0L) {
+            tmp.delete()
+            throw IOException("Пустой файл")
+        }
+        if (!tmp.renameTo(target)) {
+            tmp.delete()
+            throw IOException("Не удалось сохранить файл")
+        }
+        return target
+    }
+
+    /**
+     * Качает трек кусками в несколько соединений (HTTP Range). Одно соединение с
+     * googlevideo упирается в собственный потолок скорости, поэтому плейлист из
+     * сотни треков уходил в часы; 4 потока на трек дают кратный прирост.
+     * Если размер неизвестен или файл мелкий — качаем в один поток.
+     */
+    private fun downloadInChunks(url: String, tmp: java.io.File, onProgress: (Long, Long) -> Unit) {
+        val total = contentLength(url)
+        val chunks = when {
+            total <= 0L -> throw IOException("Диапазоны не поддерживаются")
+            total < CHUNK_MIN_SIZE -> 1
+            total < 1_500_000L -> 2
+            else -> MAX_CHUNKS
+        }
+        if (chunks == 1) {
+            downloadWhole(url, tmp, onProgress, total)
+            return
+        }
+
+        val received = java.util.concurrent.atomic.AtomicLong(0)
+        val lock = Any()
+        var reported = 0L
+        val report: (Long) -> Unit = { value ->
+            synchronized(lock) {
+                if (value - reported >= 256 * 1024 || value >= total) {
+                    reported = value
+                    onProgress(value.coerceAtMost(total), total)
+                }
+            }
+        }
+
+        java.io.RandomAccessFile(tmp, "rw").use { file ->
+            file.setLength(total)
+            val errors = java.util.Collections.synchronizedList(mutableListOf<Throwable>())
+            val workers = (0 until chunks).map { index ->
+                val start = total * index / chunks
+                val end = if (index == chunks - 1) total - 1 else (total * (index + 1) / chunks) - 1
+                Thread {
+                    runCatching {
+                        val request = OkHttpRequest.Builder()
+                            .url(url)
+                            .header("Range", "bytes=$start-$end")
+                            .build()
+                        downloadHttp.newCall(request).execute().use { resp ->
+                            // 200 вместо 206 — сервер Range не умеет: пишем в один поток.
+                            if (resp.code != 206) throw IOException("HTTP ${resp.code}")
+                            val body = resp.body ?: throw IOException("Пустой ответ")
+                            body.byteStream().use { input ->
+                                val buffer = ByteArray(64 * 1024)
+                                var offset = start
+                                while (true) {
+                                    val read = input.read(buffer)
+                                    if (read == -1) break
+                                    synchronized(file) {
+                                        file.seek(offset)
+                                        file.write(buffer, 0, read)
+                                    }
+                                    offset += read
+                                    report(received.addAndGet(read.toLong()))
+                                }
+                            }
+                        }
+                    }.onFailure { errors += it }
+                }.apply { isDaemon = true }
+            }
+            workers.forEach { it.start() }
+            workers.forEach { it.join() }
+            if (errors.isNotEmpty()) throw errors.first()
+        }
+        onProgress(total, total)
+        if (tmp.length() != total) throw IOException("Файл докачан не полностью")
+    }
+
+    /** Обычная последовательная загрузка — страховка и вариант для мелких файлов. */
+    private fun downloadWhole(
+        url: String,
+        tmp: java.io.File,
+        onProgress: (Long, Long) -> Unit,
+        knownTotal: Long = -1L,
+    ) {
         val request = OkHttpRequest.Builder().url(url).build()
-        http.newCall(request).execute().use { resp ->
+        downloadHttp.newCall(request).execute().use { resp ->
             if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
-            val tmp = java.io.File(dir, downloadName(trackId) + ".tmp")
             runCatching {
                 val body = resp.body ?: throw IOException("Пустой ответ")
-                val total = body.contentLength()
+                val total = if (knownTotal > 0) knownTotal else body.contentLength()
                 onProgress(0L, total)
                 body.byteStream().use { input ->
                     tmp.outputStream().use { output ->
@@ -302,16 +567,29 @@ private const val TRENDING_TTL_MS = 10 * 60 * 1000L
                     }
                 }
             }.onFailure { tmp.delete(); throw IOException("Не удалось сохранить файл") }
-            if (tmp.length() == 0L) {
-                tmp.delete()
-                throw IOException("Пустой файл")
-            }
-            if (!tmp.renameTo(target)) {
-                tmp.delete()
-                throw IOException("Не удалось сохранить файл")
-            }
         }
-        return target
+    }
+
+    /** Размер файла и поддержка Range — без этого загрузку не нарезать на части. */
+    private fun contentLength(url: String): Long {
+        val request = OkHttpRequest.Builder().url(url).head().build()
+        downloadHttp.newCall(request).execute().use { resp ->
+            if (!resp.isSuccessful) return -1L
+            val ranges = resp.header("Accept-Ranges")?.equals("bytes", ignoreCase = true) == true
+            val length = resp.header("Content-Length")?.toLongOrNull() ?: -1L
+            return if (ranges && length > 0) length else -1L
+        }
+    }
+
+    /**
+     * Ссылки YouTube бывают с параметром «range=0-N»: он ограничивает отдачу, поэтому
+     * для своей нарезки на куски этот параметр убираем.
+     */
+    private fun stripRangeParam(url: String): String {
+        if (!url.contains("range=")) return url
+        return runCatching {
+            url.toHttpUrl().newBuilder().removeAllQueryParameters("range").build().toString()
+        }.getOrDefault(url)
     }
 
     // ------------------------------------------------------------------ streaming
@@ -338,9 +616,20 @@ private const val TRENDING_TTL_MS = 10 * 60 * 1000L
         return url
     }
 
-    /** Warm the cache for upcoming tracks (called from a background coroutine). */
+    /**
+     * Warm the cache for upcoming tracks (called from a background coroutine).
+     * Параллельно и с запасом: разбор страницы — самое долгое в загрузке трека,
+     * поэтому ссылки для следующей пачки готовим заранее.
+     */
     fun preload(ids: List<String>, quality: AudioQuality) {
-        ids.take(3).forEach { id -> runCatching { resolveAudioUrl(id, quality) } }
+        if (ids.isEmpty()) return
+        runBlocking {
+            coroutineScope {
+                ids.take(8).map { id ->
+                    async(Dispatchers.IO) { runCatching { resolveAudioUrl(id, quality) } }
+                }.awaitAll()
+            }
+        }
     }
 
     private fun pickAudioStream(streams: List<AudioStream>, quality: AudioQuality): AudioStream? {

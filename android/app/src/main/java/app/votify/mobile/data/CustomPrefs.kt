@@ -80,9 +80,10 @@ data class CustomPrefs(
     val backgrounds: List<String> = emptyList(),
     val bgDim: Int = 35, // затемнение фоновой картинки, % (0..92)
     val bgBlur: Int = 0, // размытие фоновой картинки, dp (0..60)
-    val bgScale: Float = 1f, // масштаб фона (1..3) — чтобы обрезать широкий ПК-фон
+    val bgScale: Float = 1f, // масштаб фона (1..5) — чтобы обрезать широкий ПК-фон
     val bgOffsetX: Float = 0f, // сдвиг кадра по горизонтали (-1..1)
     val bgOffsetY: Float = 0f, // сдвиг кадра по вертикали (-1..1)
+    val bgFit: Int = 0, // как фон ложится на экран: 0 — заполнить (обрезать), 1 — целиком, 2 — растянуть
 
     // ---- Прокси ----
     val proxyEnabled: Boolean = false,

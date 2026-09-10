@@ -3,6 +3,7 @@ const {
   searchTracks,
   searchTracksByArtist,
   getRecommendations,
+  getChartTracks,
   fetchStreamUrl,
   streamCache,
   STREAM_CACHE_TTL,
@@ -60,6 +61,24 @@ async function handleMusicRoutes(req, res, u) {
     return true;
   }
 
+  // --- CHARTS (живой чарт Apple Music: что слушают прямо сейчас) ---
+  if (u.pathname === '/api/charts') {
+    const region = (u.searchParams.get('region') || 'ru').toLowerCase();
+    const limit = Math.min(Math.max(Number(u.searchParams.get('limit')) || 30, 1), 50);
+    try {
+      const chart = await getChartTracks(region, limit);
+      if (chart.length) {
+        sendJson(res, 200, { tracks: chart });
+        return true;
+      }
+    } catch (e) {
+      console.error('[charts] не удалось получить чарт:', e.message);
+    }
+    // Чарт недоступен — отдаём обычные рекомендации, чтобы экран не пустовал.
+    sendJson(res, 200, { tracks: await getRecommendations(limit) });
+    return true;
+  }
+
   // --- CUSTOM WAVE (seeds from playlists + recent) ---
   if (u.pathname === '/api/custom-wave') {
     const seedsParam = u.searchParams.get('seeds') || '';
@@ -90,12 +109,30 @@ async function handleMusicRoutes(req, res, u) {
       seen.add(t.id);
       return true;
     });
-    // Shuffle
-    for (let i = unique.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [unique[i], unique[j]] = [unique[j], unique[i]];
-    }
-    sendJson(res, 200, { tracks: unique.slice(0, limit) });
+    // Ранжируем по похожести: совпадение артиста весит больше всего, потом —
+    // совпадение слов в названии. Раньше список просто перемешивался, поэтому
+    // в волну попадало что угодно, только не похожее на то, что вы слушаете.
+    const norm = s =>
+      String(s || '')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}& ]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const words = s => norm(s).split(' ').filter(w => w.length >= 3);
+    const seedArtists = [...seeds.map(norm), ...trackSeeds.map(s => norm(s.split(' ').slice(0, 2).join(' ')))].filter(
+      Boolean,
+    );
+    const seedWords = new Set(trackSeeds.flatMap(words));
+    const scored = unique.map(t => {
+      const artist = norm(t.artist);
+      let score = 0;
+      if (seedArtists.some(a => artist === a)) score += 6;
+      else if (seedArtists.some(a => a && (artist.includes(a) || a.includes(artist)))) score += 4;
+      if (words(t.title).some(w => seedWords.has(w))) score += 0.75;
+      return { t, score: score + Math.random() };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    sendJson(res, 200, { tracks: scored.map(s => s.t).slice(0, limit) });
     return true;
   }
 

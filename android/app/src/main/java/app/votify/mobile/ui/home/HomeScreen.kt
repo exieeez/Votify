@@ -11,6 +11,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,6 +65,7 @@ import app.votify.mobile.ui.components.PillChip
 import app.votify.mobile.ui.components.VotifyCard
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import app.votify.mobile.ui.components.pluralTracks
 import app.votify.mobile.ui.theme.VotifyColors
 import kotlin.math.cos
@@ -132,9 +134,15 @@ fun HomeScreen(
         // Под «Моей волной» — одна строка текста текущей песни (как в Spotify под обложкой).
         val lyricLine = homeLyricLine(viewModel, playerState)
         if (!lyricLine.isNullOrBlank()) {
+            // Одна строка, которая влезает целиком: длинную строку печатаем мельче.
+            val lyricSize = when {
+                lyricLine.length > 64 -> 11.sp
+                lyricLine.length > 44 -> 12.sp
+                else -> 14.sp
+            }
             Text(
                 lyricLine,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = lyricSize, lineHeight = lyricSize * 1.25f),
                 color = VotifyColors.TextSecondary,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -235,7 +243,7 @@ fun HomeScreen(
             )
             QuickTile(
                 title = stringResource(R.string.home_trending),
-                subtitle = stringResource(R.string.home_weekly_chart),
+                subtitle = stringResource(R.string.trending_live),
                 icon = Icons.Filled.TrendingUp,
                 modifier = Modifier.weight(1f),
                 onClick = onOpenTrending,
@@ -265,7 +273,11 @@ private fun HomeHeader(
             border = BorderStroke(1.dp, VotifyColors.BorderSubtle),
         ) {
             Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(painterResource(R.drawable.ic_votify_logo), null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(18.dp))
+                Image(
+                    painter = painterResource(R.drawable.ic_votify_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
                 Spacer(Modifier.width(8.dp))
                 Text("Votify", style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
             }

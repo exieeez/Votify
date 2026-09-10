@@ -439,6 +439,12 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   letter-spacing: -0.5px;
   color: var(--text-primary);
   padding: 0 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+}
+.titlebar-logo:hover {
+  color: var(--accent, #fff);
 }
 .titlebar-center {
   flex: 1;
