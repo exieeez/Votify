@@ -96,13 +96,19 @@ class MusicRepository(
         if (isServerMode) api.recommendations(limit)
         else io { EmbeddedMusicSource.recommendations(limit) }
 
-    /** «В тренде»: живой чарт (на телефоне — Apple Music, на сервере — /api/charts). */
-    suspend fun trending(limit: Int = 50): List<Track> = if (isServerMode) {
-        // Сервер может быть старой версии без /api/charts — тогда берём рекомендации.
-        val chart = runCatching { api.charts(limit) }.getOrNull()
-        if (!chart.isNullOrEmpty()) chart else api.recommendations(limit)
-    } else {
-        io { EmbeddedMusicSource.trendingCis(limit) }
+    /**
+     * «Чарты»: на телефоне — секции DiscoverySource (чарты UA/RU/мира, новинки,
+     * топы жанров), прилетают по мере готовности; на сервере — один блок /api/charts.
+     */
+    suspend fun chartSections(onSection: suspend (ChartSection) -> Unit) {
+        if (isServerMode) {
+            // Сервер может быть старой версии без /api/charts — тогда берём рекомендации.
+            val chart = runCatching { api.charts(30) }.getOrNull()
+            val tracks = if (!chart.isNullOrEmpty()) chart else api.recommendations(30)
+            if (tracks.isNotEmpty()) onSection(ChartSection("chart", app.votify.mobile.R.string.section_chart, tracks))
+        } else {
+            DiscoverySource.loadAll(onSection)
+        }
     }
 
     suspend fun lyrics(track: String, artist: String): LyricsResponse =

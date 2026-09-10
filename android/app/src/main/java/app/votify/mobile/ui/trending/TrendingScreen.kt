@@ -11,9 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
@@ -36,6 +35,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.votify.mobile.R
+import app.votify.mobile.data.ChartSection
+import app.votify.mobile.data.DiscoverySource
 import app.votify.mobile.data.MusicRepository
 import app.votify.mobile.data.Track
 import app.votify.mobile.ui.components.PillChip
@@ -50,12 +51,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class TrendingUiState(
-    val tracks: List<Track> = emptyList(),
+    val sections: List<ChartSection> = emptyList(),
     val isLoading: Boolean = false,
+    /** Finished loading but every source failed — show error with retry. */
+    val loadFailed: Boolean = false,
     val error: String? = null,
 )
 
-/** «В тренде»: fresh popular tracks (recommendations), refreshable. */
+/** «Чарты»: sections arrive progressively as each source finishes. */
 class TrendingViewModel(private val music: MusicRepository) : ViewModel() {
 
     private val _state = MutableStateFlow(TrendingUiState())
@@ -67,13 +70,28 @@ class TrendingViewModel(private val music: MusicRepository) : ViewModel() {
 
     fun refresh() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            runCatching { music.trending(limit = 50) }
-                .onSuccess { tracks -> _state.update { it.copy(tracks = tracks, isLoading = false) } }
-                .onFailure { e ->
-                    if (e is CancellationException) throw e
-                    _state.update { it.copy(isLoading = false, error = e.message ?: "error") }
+            _state.update { it.copy(sections = emptyList(), isLoading = true, loadFailed = false, error = null) }
+            runCatching {
+                music.chartSections { section ->
+                    _state.update { st ->
+                        val merged = (st.sections.filterNot { it.id == section.id } + section)
+                            .sortedBy { s ->
+                                DiscoverySource.SECTION_ORDER.indexOf(s.id).let { i -> if (i < 0) Int.MAX_VALUE else i }
+                            }
+                        st.copy(sections = merged)
+                    }
                 }
+            }.onFailure { e ->
+                if (e is CancellationException) throw e
+                _state.update { it.copy(error = e.message) }
+            }
+            _state.update { st ->
+                st.copy(
+                    isLoading = false,
+                    loadFailed = st.sections.isEmpty(),
+                    error = if (st.sections.isEmpty()) st.error else null,
+                )
+            }
         }
     }
 }
@@ -89,6 +107,7 @@ fun TrendingScreen(
 ) {
     LaunchedEffect(Unit) { viewModel.refresh() }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val allTracks = state.sections.flatMap { it.tracks }
 
     Column(
         Modifier
@@ -108,12 +127,12 @@ fun TrendingScreen(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    pluralTracks(state.tracks.size) + " · " + stringResource(R.string.trending_live),
+                    pluralTracks(allTracks.size) + " · " + stringResource(R.string.trending_live),
                     style = MaterialTheme.typography.bodySmall,
                     color = VotifyColors.TextMuted,
                 )
             }
-            IconButton(onClick = { if (state.tracks.isNotEmpty()) onPlay(state.tracks.shuffled(), 0) }) {
+            IconButton(onClick = { if (allTracks.isNotEmpty()) onPlay(allTracks.shuffled(), 0) }) {
                 Icon(Icons.Filled.Shuffle, stringResource(R.string.action_shuffle_all), tint = VotifyColors.TextPrimary)
             }
         }
@@ -125,7 +144,7 @@ fun TrendingScreen(
             PillChip(
                 text = stringResource(R.string.action_play_all),
                 selected = true,
-                onClick = { if (state.tracks.isNotEmpty()) onPlay(state.tracks, 0) },
+                onClick = { if (allTracks.isNotEmpty()) onPlay(allTracks, 0) },
                 leading = { Icon(Icons.Filled.PlayArrow, null, tint = VotifyColors.OnPrimary, modifier = Modifier.size(16.dp)) },
                 modifier = Modifier.weight(1f),
             )
@@ -138,22 +157,20 @@ fun TrendingScreen(
         }
 
         when {
-            state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            state.isLoading && state.sections.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = VotifyColors.Primary, strokeWidth = 2.dp)
             }
 
-            state.error != null -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+            (state.error != null || state.loadFailed) && state.sections.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(stringResource(R.string.search_error), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextSecondary)
-                    Spacer(Modifier.height(4.dp))
-                    Text(state.error ?: "", style = MaterialTheme.typography.bodySmall, color = VotifyColors.TextMuted)
+                    if (state.error != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(state.error ?: "", style = MaterialTheme.typography.bodySmall, color = VotifyColors.TextMuted)
+                    }
                     Spacer(Modifier.height(12.dp))
                     PillChip(text = stringResource(R.string.search_retry), selected = true, onClick = viewModel::refresh)
                 }
-            }
-
-            state.tracks.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.search_empty), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextSecondary)
             }
 
             else -> LazyColumn(
@@ -163,21 +180,69 @@ fun TrendingScreen(
                     bottom = contentPadding.calculateBottomPadding() + 16.dp,
                 ),
             ) {
-                item {
-                    VotifyCard(Modifier.fillMaxWidth()) {
-                        Column {
-                            state.tracks.forEachIndexed { index, track ->
-                                TrackRow(
-                                    track = track,
-                                    isCurrent = track.id == currentTrackId,
-                                    onClick = { onPlay(state.tracks, index) },
-                                    onMore = { onMore(track) },
-                                )
-                                if (index != state.tracks.lastIndex) {
-                                    HorizontalDivider(color = VotifyColors.BorderSubtle, thickness = 1.dp)
-                                }
-                            }
+                items(state.sections, key = { it.id }) { section ->
+                    ChartSectionBlock(
+                        section = section,
+                        currentTrackId = currentTrackId,
+                        onPlaySection = { onPlay(section.tracks, 0) },
+                        onPlayAt = { index -> onPlay(section.tracks, index) },
+                        onMore = onMore,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                }
+                if (state.isLoading) {
+                    item(key = "loading-more") {
+                        Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = VotifyColors.Primary, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChartSectionBlock(
+    section: ChartSection,
+    currentTrackId: String?,
+    onPlaySection: () -> Unit,
+    onPlayAt: (Int) -> Unit,
+    onMore: (Track) -> Unit,
+) {
+    Column {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(section.titleRes),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = VotifyColors.TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    pluralTracks(section.tracks.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = VotifyColors.TextMuted,
+                )
+            }
+            IconButton(onClick = onPlaySection) {
+                Icon(Icons.Filled.PlayArrow, stringResource(R.string.action_play_all), tint = VotifyColors.TextPrimary)
+            }
+        }
+        VotifyCard(Modifier.fillMaxWidth()) {
+            Column {
+                section.tracks.forEachIndexed { index, track ->
+                    TrackRow(
+                        track = track,
+                        isCurrent = track.id == currentTrackId,
+                        onClick = { onPlayAt(index) },
+                        onMore = { onMore(track) },
+                    )
+                    if (index != section.tracks.lastIndex) {
+                        HorizontalDivider(color = VotifyColors.BorderSubtle, thickness = 1.dp)
                     }
                 }
             }

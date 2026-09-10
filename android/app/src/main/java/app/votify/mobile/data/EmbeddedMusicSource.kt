@@ -7,6 +7,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -75,8 +76,6 @@ object EmbeddedMusicSource {
     /** Мелкие файлы нарезать бессмысленно — только лишние запросы. */
     private const val CHUNK_MIN_SIZE = 320L * 1024L
 
-    /** Живой чарт Apple Music (Россия): что слушают прямо сейчас, без ключа и регистрации. */
-    private const val CHART_URL = "https://rss.marketingtools.apple.com/api/v2/ru/music/most-played/50/songs.json"
 
     /** Tracks shorter/longer than this are noise: intros, livestreams, hour-long mixes. */
     private const val MIN_TRACK_SECONDS = 30L
@@ -88,11 +87,6 @@ object EmbeddedMusicSource {
     private const val MAX_IMPORT_ITEMS = 500
 
     private val streamCache = ConcurrentHashMap<String, CachedUrl>()
-
-@Volatile
-private var trendingCache: Pair<Long, List<Track>>? = null
-
-private const val TRENDING_TTL_MS = 30 * 60 * 1000L
 
     private data class CachedUrl(val url: String, val at: Long)
 
@@ -131,6 +125,23 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
     fun artistTracks(artist: String, limit: Int = 50): List<Track> {
         ensureInit()
         return runCatching { rawSearch(artist, music = true, limit) }.getOrDefault(emptyList())
+    }
+
+    /**
+     * Chart-entry resolution: the single best YouTube Music match for an
+     * «artist — title» pair from an external chart (Apple/Deezer/iTunes),
+     * or null when nothing playable turned up.
+     */
+    fun searchFirst(query: String): Track? {
+        ensureInit()
+        if (query.isBlank()) return null
+        return runCatching { rawSearch(query, music = true, 3).firstOrNull() }.getOrNull()
+    }
+
+    /** Keyless metadata GET (charts, artist tops) parsed as JSON, or null. */
+    fun httpGetJson(url: String): JsonElement? {
+        val body = runCatching { httpGetString(url) }.getOrNull() ?: return null
+        return runCatching { json.parseToJsonElement(body) }.getOrNull()
     }
 
     private fun rawSearch(query: String, music: Boolean, limit: Int): List<Track> {
@@ -317,72 +328,6 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
                 .distinctBy { it.id }
                 .distinctBy { "${it.artist}|${it.title}".lowercase() }
                 .take(limit)
-        }.getOrDefault(emptyList())
-    }
-
-    /**
-     * «В тренде»: живой чарт Apple Music (Россия) — то, что действительно слушают прямо
-     * сейчас. Позиции чарта ищем на YouTube Music параллельно и сохраняем порядок:
-     * первая строчка чарта остаётся первой в списке. Кэш 30 минут.
-     *
-     * Если чарт недоступен — запасной путь: свежие запросы и хиты актуальных артистов.
-     */
-    fun trendingCis(limit: Int = 50): List<Track> {
-        ensureInit()
-        val cached = trendingCache
-        if (cached != null && System.currentTimeMillis() - cached.first < TRENDING_TTL_MS) {
-            return cached.second.take(limit)
-        }
-
-        // 1. Чарт: сверху вниз по реальной популярности.
-        val chart = chartEntries(60)
-        val chartTracks = fanOut(chart, limit = 6) { (artist, title) ->
-            rawSearch(if (artist.isBlank()) title else "$artist $title", music = true, 1)
-        }
-            .distinctBy { it.id }
-            .distinctBy { dedupeKey(it) }
-            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
-            .take(limit)
-
-        if (chartTracks.size >= 10) {
-            trendingCache = System.currentTimeMillis() to chartTracks
-            return chartTracks
-        }
-
-        // 2. Запасной путь: свежие запросы + хиты артистов, которые сейчас в ротации
-        //    (round-robin, чтобы один артист не забивал весь верх списка).
-        val artists = listOf(
-            "ONDA ANDAR", "XOLIDAYBOY", "Nasty Babe", "Jakone", "ICEGERGERT", "Kamazz",
-            "Три дня дождя", "ANNA ASTI", "Zivert", "Artik & Asti", "VERBEE", "Клава Кока",
-            "JONY", "Ay Yola", "Баста", "Мари Краймбрери",
-        )
-        val freshQueries = listOf("хиты 2026", "популярное сейчас 2026", "новинки музыки 2026", "тренды музыки 2026")
-        val fresh = fanOut(freshQueries, limit = 4) { q -> rawSearch(q, music = true, 12) }
-        val perArtist = mapParallel(artists, limit = 4) { artist -> rawSearch(artist, music = true, 5).take(4) }
-        val interleaved = mutableListOf<Track>()
-        (0 until 4).forEach { i -> perArtist.forEach { page -> page.getOrNull(i)?.let { interleaved += it } } }
-        val result = (chartTracks + fresh + interleaved)
-            .distinctBy { it.id }
-            .distinctBy { dedupeKey(it) }
-            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
-        if (result.isNotEmpty()) trendingCache = System.currentTimeMillis() to result
-        return if (result.size >= 6) result.take(limit) else result + recommendations(limit)
-    }
-
-    /** Позиции живого чарта Apple Music: (артист, название). Без ключа и без регистрации. */
-    private fun chartEntries(limit: Int): List<Pair<String, String>> {
-        val body = runCatching { httpGetString(CHART_URL) }.getOrNull() ?: return emptyList()
-        return runCatching {
-            val results = json.parseToJsonElement(body)
-                .jsonObject["feed"]?.jsonObject
-                ?.get("results")?.jsonArray
-                .orEmpty()
-            results.mapNotNull { item ->
-                val obj = runCatching { item.jsonObject }.getOrNull() ?: return@mapNotNull null
-                val title = obj["name"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                val artist = obj["artistName"]?.jsonPrimitive?.content.orEmpty()
-                artist to title
-            }.take(limit)
         }.getOrDefault(emptyList())
     }
 

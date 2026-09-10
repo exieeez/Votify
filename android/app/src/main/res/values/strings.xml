@@ -17,7 +17,7 @@
     <string name="home_tracks_count">%1$d треков</string>
     <string name="home_favorites">Любимое</string>
     <string name="home_playlist">Плейлист</string>
-    <string name="home_trending">В тренде</string>
+    <string name="home_trending">Чарты</string>
     <string name="home_weekly_chart">Чарт недели</string>
     <string name="home_listen_now">Слушайте прямо сейчас</string>
     <string name="home_recommended">Рекомендовано вам</string>
@@ -460,8 +460,15 @@
     <string name="account_google_failed">Вход через Google не удался: %1$s</string>
 
 
-    <string name="trending_title">В тренде</string>
+    <string name="trending_title">Чарты</string>
     <string name="trending_live">популярное сейчас</string>
+    <string name="chart_fresh">Новинки недели</string>
+    <string name="chart_ua">Чарт Украины</string>
+    <string name="chart_ru">Чарт России</string>
+    <string name="chart_world">Мировые хиты</string>
+    <string name="genre_pop">Поп</string>
+    <string name="genre_hiphop">Хип-хоп</string>
+    <string name="section_chart">Чарт</string>
 
     <string name="workshop_title">Мастерская тем</string>
     <string name="workshop_my_theme">Своя тема</string>
