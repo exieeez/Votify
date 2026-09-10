@@ -460,6 +460,14 @@ class SettingsViewModel(
 
     fun removeBackground(url: String) = updatePrefs { cur -> cur.copy(backgrounds = cur.backgrounds - url) }
 
+    /** Remove a saved background from the gallery — and clear it if it is the active one. */
+    fun deleteBackground(url: String) {
+        updatePrefs { cur -> cur.copy(backgrounds = cur.backgrounds - url) }
+        viewModelScope.launch {
+            if (settingsRepo.settings.first().backgroundUrl == url) applyBackground("")
+        }
+    }
+
     /** Затемнение фоновой картинки, % (0..92). */
     fun setBackgroundDim(v: Int) = updatePrefs { cur -> cur.copy(bgDim = v.coerceIn(0, 92)) }
 

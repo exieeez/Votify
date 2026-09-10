@@ -299,11 +299,27 @@
     <string name="toast_download_track_failed">Не удалось скачать «%1$s»</string>
     <string name="toast_download_removed">Офлайн-копия удалена</string>
     <string name="toast_download_server">Офлайн-скачивание доступно в автономном режиме (без сервера)</string>
+
+    <!-- Уведомление о загрузке (прогресс в процентах) -->
+    <string name="notif_channel_downloads">Загрузки</string>
+    <string name="notif_channel_downloads_desc">Прогресс скачивания музыки для офлайна</string>
+    <string name="notif_download_title">Скачивание музыки</string>
+    <string name="notif_download_track">«%1$s» — %2$d%%</string>
+    <string name="notif_download_queue">Трек %1$d из %2$d — %3$d%%</string>
+    <string name="notif_download_queue_preparing">Трек %1$d из %2$d — подготовка…</string>
+    <string name="notif_download_preparing">Подготовка…</string>
+    <string name="notif_download_done">Скачано: %1$d из %2$d</string>
+    <string name="notif_download_done_one">Трек скачан и доступен офлайн</string>
+    <string name="notif_download_failed">Скачано %1$d из %2$d (не удалось: %3$d)</string>
+    <string name="notif_download_cancelled">Загрузка остановлена</string>
+    <string name="notif_download_cancel">Отмена</string>
     <string name="track_badge_downloaded">Скачано</string>
     <string name="settings_bg_tune">Настройки фона</string>
     <string name="settings_bg_dim">Затемнение фона</string>
     <string name="settings_bg_blur">Размытие фона</string>
     <string name="settings_bg_tune_hint">Применяется к фоновой картинке сразу. Затемнение помогает тексту оставаться читаемым на ярких обоях.</string>
+    <string name="backgrounds_delete">Удалить фон</string>
+    <string name="backgrounds_applied">Фон применён</string>
     <string name="storage_texts">Тексты</string>
     <string name="storage_clear_all">Очистить всё</string>
     <string name="storage_clear_confirm">Удалить избранные треки, историю и плейлисты? Это нельзя отменить.</string>

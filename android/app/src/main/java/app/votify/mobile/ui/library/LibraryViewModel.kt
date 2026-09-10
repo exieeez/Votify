@@ -4,7 +4,9 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.votify.mobile.R
+import app.votify.mobile.VotifyApp
 import app.votify.mobile.data.DownloadProgress
+import app.votify.mobile.data.DownloadService
 import app.votify.mobile.data.LibraryRepository
 import app.votify.mobile.data.Track
 import app.votify.mobile.data.local.PlaylistEntity
@@ -139,24 +141,18 @@ class LibraryViewModel(
         }
     }
 
-    /** Download a whole playlist sequentially, reporting progress every few tracks. */
+    /**
+     * Download a whole playlist sequentially in [DownloadService]: one notification shows
+     * «трек N из M — P%», and every row still gets its own progress bar from [downloadProgress].
+     */
     fun downloadPlaylist(tracks: List<Track>) {
         if (tracks.isEmpty()) return
-        viewModelScope.launch(Dispatchers.IO) {
-            if (music.isServerMode) {
-                _messages.tryEmit(UiMessage(R.string.toast_download_server))
-                return@launch
-            }
-            _messages.tryEmit(UiMessage(R.string.toast_download_started))
-            var ok = 0
-            tracks.forEachIndexed { i, t ->
-                if (music.downloadTrackTracked(t.id)) ok++
-                if ((i + 1) % 10 == 0 || i == tracks.lastIndex) {
-                    _messages.tryEmit(UiMessage(R.string.toast_download_progress, listOf(i + 1, tracks.size)))
-                }
-            }
-            _messages.tryEmit(UiMessage(R.string.toast_download_done, listOf(ok, tracks.size)))
+        if (music.isServerMode) {
+            _messages.tryEmit(UiMessage(R.string.toast_download_server))
+            return
         }
+        DownloadService.start(VotifyApp.instance, tracks.map { it.id }, tracks.map { it.title })
+        _messages.tryEmit(UiMessage(R.string.toast_download_started))
     }
 
     fun openPlaylistPicker(track: Track) {

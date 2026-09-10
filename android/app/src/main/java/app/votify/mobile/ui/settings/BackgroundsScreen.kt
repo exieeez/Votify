@@ -1,6 +1,7 @@
 package app.votify.mobile.ui.settings
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,8 +17,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -27,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Upload
@@ -64,115 +68,92 @@ fun BackgroundsScreen(
 ) {
     val prefs by viewModel.prefs.collectAsStateWithLifecycle()
     var urlDialog by remember { mutableStateOf(false) }
+    // Тап по плитке: фон применяется сразу и открывается окно его настройки (как в Мастерской).
+    var tuneBackground by rememberSaveable { mutableStateOf<String?>(null) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         uri?.let(viewModel::importBackgroundFile)
     }
 
-    SettingsScaffold(stringResource(R.string.settings_backgrounds), contentPadding, onBack) {
-        Column(Modifier.fillMaxSize()) {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                if (prefs.backgrounds.isEmpty()) {
-                    Box(Modifier.fillMaxWidth().padding(top = 80.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Outlined.Link, null,
-                                tint = VotifyColors.TextMuted,
-                                modifier = Modifier.size(44.dp),
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                stringResource(R.string.backgrounds_empty),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = VotifyColors.TextPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                stringResource(R.string.backgrounds_empty_sub),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = VotifyColors.TextMuted,
-                            )
+    Box(Modifier.fillMaxSize()) {
+        SettingsScaffold(stringResource(R.string.settings_backgrounds), contentPadding, onBack) {
+            Column(Modifier.fillMaxSize()) {
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    if (prefs.backgrounds.isEmpty()) {
+                        Box(Modifier.fillMaxWidth().padding(top = 80.dp), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Outlined.Link, null,
+                                    tint = VotifyColors.TextMuted,
+                                    modifier = Modifier.size(44.dp),
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    stringResource(R.string.backgrounds_empty),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = VotifyColors.TextPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    stringResource(R.string.backgrounds_empty_sub),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = VotifyColors.TextMuted,
+                                )
+                            }
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.fillMaxWidth().height((((prefs.backgrounds.size + 1) / 2) * 190).dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            userScrollEnabled = false,
+                        ) {
+                            items(prefs.backgrounds) { bg ->
+                                BackgroundTile(
+                                    url = bg,
+                                    // Tap = apply it right away and open the tuning window.
+                                    onClick = {
+                                        viewModel.applyBackground(bg)
+                                        tuneBackground = bg
+                                    },
+                                    onDelete = { viewModel.removeBackground(bg) },
+                                )
+                            }
                         }
                     }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.fillMaxWidth().height((((prefs.backgrounds.size + 1) / 2) * 190).dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        userScrollEnabled = false,
-                    ) {
-                        items(prefs.backgrounds) { bg ->
-                            BackgroundTile(
-                                url = bg,
-                                onClick = { viewModel.applyBackground(bg) },
-                                onDelete = { viewModel.removeBackground(bg) },
-                            )
-                        }
+                }
+
+                // Bottom fixed buttons per the spec
+                Surface(
+                    onClick = { urlDialog = true },
+                    shape = RoundedCornerShape(18.dp),
+                    color = VotifyColors.SurfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                ) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Link, null, tint = VotifyColors.TextPrimary)
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(R.string.backgrounds_add_url), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
                     }
                 }
-            }
-
-            // ---- Настройки фона: затемнение / размытие ----
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.settings_bg_tune),
-                style = MaterialTheme.typography.titleSmall,
-                color = VotifyColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-            )
-            BgTuneSlider(
-                label = stringResource(R.string.settings_bg_dim),
-                value = prefs.bgDim,
-                range = 0f..92f,
-                suffix = '%',
-                onApply = { viewModel.setBackgroundDim(it) },
-            )
-            BgTuneSlider(
-                label = stringResource(R.string.settings_bg_blur),
-                value = prefs.bgBlur,
-                range = 0f..60f,
-                suffix = 'd',
-                onApply = { viewModel.setBackgroundBlur(it) },
-            )
-            Text(
-                stringResource(R.string.settings_bg_tune_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = VotifyColors.TextMuted,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            Spacer(Modifier.height(8.dp))
-
-            // Bottom fixed buttons per the spec
-            Surface(
-                onClick = { urlDialog = true },
-                shape = RoundedCornerShape(18.dp),
-                color = VotifyColors.SurfaceContainerHigh,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            ) {
-                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Link, null, tint = VotifyColors.TextPrimary)
-                    Spacer(Modifier.width(12.dp))
-                    Text(stringResource(R.string.backgrounds_add_url), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                Surface(
+                    onClick = {
+                        picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    shape = RoundedCornerShape(18.dp),
+                    color = VotifyColors.SurfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                ) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Upload, null, tint = VotifyColors.TextPrimary)
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(R.string.backgrounds_upload), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                    }
                 }
+                Spacer(Modifier.height(12.dp))
             }
-            Surface(
-                onClick = {
-                    picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                },
-                shape = RoundedCornerShape(18.dp),
-                color = VotifyColors.SurfaceContainerHigh,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            ) {
-                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Upload, null, tint = VotifyColors.TextPrimary)
-                    Spacer(Modifier.width(12.dp))
-                    Text(stringResource(R.string.backgrounds_upload), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
-                }
-            }
-            Spacer(Modifier.height(12.dp))
         }
     }
 
@@ -215,6 +196,13 @@ fun BackgroundsScreen(
         )
     }
 
+    if (tuneBackground != null) {
+        BackgroundTuneScreen(
+            url = tuneBackground!!,
+            viewModel = viewModel,
+            onClose = { tuneBackground = null },
+        )
+    }
 }
 
 @Composable
@@ -247,34 +235,184 @@ private fun BackgroundTile(url: String, onClick: () -> Unit, onDelete: () -> Uni
     }
 }
 
-/** Label + value row and a slider that commits on release (same feel as the workshop sliders). */
+/**
+ * Окно настройки фона — открывается по тапу на плитку (фон к этому моменту уже применён).
+ * Сделано по образцу Мастерской: размытый фон окна, превью с живым затемнением/размытием,
+ * секция «Тонкая подгонка» с ползунками и красная «Удалить фон» внизу.
+ */
 @Composable
-private fun BgTuneSlider(
-    label: String,
-    value: Int,
-    range: ClosedFloatingPointRange<Float>,
-    suffix: Char,
-    onApply: (Int) -> Unit,
+fun BackgroundTuneScreen(
+    url: String,
+    viewModel: SettingsViewModel,
+    onClose: () -> Unit,
 ) {
-    var current by remember(value) { mutableFloatStateOf(value.coerceIn(range.start.toInt(), range.endInclusive.toInt()).toFloat()) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = VotifyColors.TextPrimary, modifier = Modifier.weight(1f))
+    val prefs by viewModel.prefs.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    // Локальные файлы хранятся путём («/data/…»), остальное — URL.
+    val model = remember(url) {
+        coil.request.ImageRequest.Builder(context)
+            .data(if (url.startsWith("/")) File(url) else url)
+            .crossfade(true)
+            .build()
+    }
+
+    BackHandler { onClose() }
+
+    Box(Modifier.fillMaxSize().background(VotifyColors.SurfaceBase)) {
+        // Подложка окна — та же картинка, размытая.
+        coil.compose.AsyncImage(
+            model = model,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().blur(24.dp),
+        )
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)))
+
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CircleIconButton(onClick = onClose, size = 40.dp) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.ArrowBack,
+                        stringResource(R.string.nav_back),
+                        tint = VotifyColors.TextPrimary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    stringResource(R.string.settings_bg_tune),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            // Превью: затемнение и размытие видны на нём сразу.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(190.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(VotifyColors.SurfaceContainerHigh),
+            ) {
+                coil.compose.AsyncImage(
+                    model = model,
+                    contentDescription = stringResource(R.string.settings_bg_tune),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().blur(prefs.bgBlur.coerceIn(0, 60).dp),
+                )
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = prefs.bgDim.coerceIn(0, 92) / 100f)),
+                )
+            }
+
+            TuneSection(stringResource(R.string.workshop_adjust)) {
+                TuneSliderRow(
+                    label = stringResource(R.string.settings_bg_dim),
+                    value = prefs.bgDim.toFloat(),
+                    range = 0f..92f,
+                    onApply = { v -> viewModel.setBackgroundDim(v.toInt()) },
+                )
+                TuneSliderRow(
+                    label = stringResource(R.string.settings_bg_blur),
+                    value = prefs.bgBlur.toFloat(),
+                    range = 0f..60f,
+                    onApply = { v -> viewModel.setBackgroundBlur(v.toInt()) },
+                )
+            }
             Text(
-                current.toInt().toString() + if (suffix == '%') "%" else " dp",
+                stringResource(R.string.settings_bg_tune_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = VotifyColors.TextMuted,
+                modifier = Modifier.padding(horizontal = 4.dp, top = 8.dp),
             )
+
+            // Удаление фона из галереи — как красная «Удалить» в Мастерской.
+            Surface(
+                onClick = {
+                    viewModel.deleteBackground(url)
+                    onClose()
+                },
+                shape = RoundedCornerShape(18.dp),
+                color = Color.White.copy(alpha = 0.06f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE4574C).copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 24.dp),
+            ) {
+                Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        stringResource(R.string.backgrounds_delete),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color(0xFFE4574C),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TuneSection(title: String, content: @Composable () -> Unit) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleSmall,
+        color = Color.White,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(start = 4.dp, top = 18.dp, bottom = 8.dp),
+    )
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xE61A1A1A))
+            .padding(horizontal = 14.dp, vertical = 4.dp),
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun TuneSliderRow(
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    onApply: (Float) -> Unit,
+) {
+    var current by remember(value) { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+            )
+            Text(current.toInt().toString(), style = MaterialTheme.typography.bodySmall, color = VotifyColors.TextMuted)
         }
         Slider(
             value = current,
             onValueChange = { current = it },
-            onValueChangeFinished = { onApply(current.toInt()) },
+            onValueChangeFinished = { onApply(current) },
             valueRange = range,
             colors = androidx.compose.material3.SliderDefaults.colors(
-                thumbColor = VotifyColors.Primary,
-                activeTrackColor = VotifyColors.Primary,
-                inactiveTrackColor = VotifyColors.SurfaceContainerHigh,
+                thumbColor = Color.White,
+                activeTrackColor = Color.White,
+                inactiveTrackColor = Color(0xFF3A3A3C),
             ),
         )
     }
