@@ -1,5 +1,7 @@
 package app.votify.mobile.ui
 
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -38,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -143,6 +146,17 @@ private object Routes {
 }
 
 @Composable
+/** Сайт проекта — открывается по логотипу в шапке главной. */
+private const val VOTIFY_SITE = "https://votify-gamma.vercel.app/"
+
+private fun openSite(context: Context) {
+    runCatching {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(VOTIFY_SITE)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
+}
+
 fun VotifyRoot() {
     val app = VotifyApp.instance
     val settings by app.settings.settings.collectAsStateWithLifecycle(initialValue = Settings())
@@ -340,7 +354,15 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 model = workshopBgUrl,
                 contentDescription = null,
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().blur(bgBlurDp.dp),
+                // Кадрирование: широкий ПК-фон можно сдвинуть и приблизить под экран телефона.
+                alignment = androidx.compose.ui.BiasAlignment(
+                    bgPrefs.bgOffsetX.coerceIn(-1f, 1f),
+                    bgPrefs.bgOffsetY.coerceIn(-1f, 1f),
+                ),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(bgPrefs.bgScale.coerceIn(1f, 3f))
+                    .blur(bgBlurDp.dp),
             )
             // Dim the background so text on cards stays readable (Настройки → Фон → Затемнение).
             Box(
@@ -420,6 +442,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
                         onOpenAccount = { navController.navigate(Routes.ACCOUNT) { launchSingleTop = true } },
                         onOpenTrending = { navController.navigate(Routes.TRENDING) { launchSingleTop = true } },
+                        onOpenSite = { openSite(context) },
                     )
                 }
                 composable(Tab.Search.route) {

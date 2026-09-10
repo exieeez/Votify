@@ -41,8 +41,23 @@ class HomeViewModel(
     val favoriteCount: StateFlow<Int> =
         library.favoriteCount.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    /** Текст текущей песни — одна строка под «Моей волной». */
+    private val _lyrics = MutableStateFlow<app.votify.mobile.data.Lyrics?>(null)
+    val lyrics: StateFlow<app.votify.mobile.data.Lyrics?> = _lyrics
+
     init {
         refresh()
+    }
+
+    /** Грузим текст песни для строки на главной; неудача — просто пустая строка. */
+    fun loadLyrics(track: Track?) {
+        viewModelScope.launch {
+            _lyrics.value = null
+            if (track == null) return@launch
+            _lyrics.value = runCatching { music.lyrics(track.title, track.artist) }
+                .getOrNull()
+                ?.let { app.votify.mobile.data.Lyrics.from(it) }
+        }
     }
 
     /**

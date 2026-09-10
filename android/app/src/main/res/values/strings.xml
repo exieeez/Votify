@@ -317,6 +317,11 @@
     <string name="settings_bg_tune">Настройки фона</string>
     <string name="settings_bg_dim">Затемнение фона</string>
     <string name="settings_bg_blur">Размытие фона</string>
+    <string name="settings_bg_crop">Кадрирование</string>
+    <string name="settings_bg_scale">Масштаб</string>
+    <string name="settings_bg_offset_x">Смещение по горизонтали</string>
+    <string name="settings_bg_offset_y">Смещение по вертикали</string>
+    <string name="settings_bg_crop_hint">Приблизьте и сдвиньте кадр — так широкий фон с ПК ложится на экран телефона.</string>
     <string name="settings_bg_tune_hint">Применяется к фоновой картинке сразу. Затемнение помогает тексту оставаться читаемым на ярких обоях.</string>
     <string name="backgrounds_delete">Удалить фон</string>
     <string name="backgrounds_applied">Фон применён</string>

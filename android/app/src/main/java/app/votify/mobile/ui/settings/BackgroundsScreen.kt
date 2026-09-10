@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -319,7 +320,11 @@ fun BackgroundTuneScreen(
                     model = model,
                     contentDescription = stringResource(R.string.settings_bg_tune),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().blur(prefs.bgBlur.coerceIn(0, 60).dp),
+                    alignment = androidx.compose.ui.BiasAlignment(prefs.bgOffsetX.coerceIn(-1f, 1f), prefs.bgOffsetY.coerceIn(-1f, 1f)),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .scale(prefs.bgScale.coerceIn(1f, 3f))
+                        .blur(prefs.bgBlur.coerceIn(0, 60).dp),
                 )
                 Box(
                     Modifier
@@ -327,6 +332,33 @@ fun BackgroundTuneScreen(
                         .background(Color.Black.copy(alpha = prefs.bgDim.coerceIn(0, 92) / 100f)),
                 )
             }
+
+            TuneSection(stringResource(R.string.settings_bg_crop)) {
+                TuneSliderRow(
+                    label = stringResource(R.string.settings_bg_scale),
+                    value = prefs.bgScale,
+                    range = 1f..3f,
+                    onApply = { v -> viewModel.setBackgroundScale(v) },
+                )
+                TuneSliderRow(
+                    label = stringResource(R.string.settings_bg_offset_x),
+                    value = prefs.bgOffsetX,
+                    range = -1f..1f,
+                    onApply = { v -> viewModel.setBackgroundOffsetX(v) },
+                )
+                TuneSliderRow(
+                    label = stringResource(R.string.settings_bg_offset_y),
+                    value = prefs.bgOffsetY,
+                    range = -1f..1f,
+                    onApply = { v -> viewModel.setBackgroundOffsetY(v) },
+                )
+            }
+            Text(
+                stringResource(R.string.settings_bg_crop_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = VotifyColors.TextMuted,
+                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+            )
 
             TuneSection(stringResource(R.string.workshop_adjust)) {
                 TuneSliderRow(

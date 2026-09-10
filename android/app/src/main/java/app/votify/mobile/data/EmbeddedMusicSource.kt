@@ -139,22 +139,49 @@ private const val TRENDING_TTL_MS = 10 * 60 * 1000L
     fun wave(artistSeeds: List<String>, trackSeeds: List<String>, exclude: Set<String>, limit: Int): List<Track> {
         ensureInit()
         val excludeSet = exclude.toSet()
-        val collected = mutableListOf<Track>()
-        // «Максимально похожие треки» = songs of the artists the user actually plays,
-        // collects and playlists. Deep seeds, a handful of tracks per artist.
-        artistSeeds.take(6).filter { it.isNotBlank() && !it.equals("Unknown", true) }.forEach { artist ->
-            runCatching { rawSearch(artist, music = true, 6) }.getOrNull()?.let { collected += it }
-        }
+        // 1. Похожее: для треков-якорей берём related-блок YouTube — это и есть «похожие треки».
+        val related = mutableListOf<Track>()
         trackSeeds.take(3).filter { it.isNotBlank() }.forEach { seed ->
-            runCatching { rawSearch(seed, music = true, 3) }.getOrNull()?.let { collected += it }
+            val anchor = runCatching { rawSearch(seed, music = true, 1).firstOrNull() }.getOrNull() ?: return@forEach
+            related += relatedTracks(anchor.id)
         }
-        if (collected.isEmpty()) return recommendations(limit)
-        return collected
+        // 2. Опорное: свежие треки тех же артистов, что пользователь реально слушает.
+        val collected = mutableListOf<Track>()
+        artistSeeds.take(5).filter { it.isNotBlank() && !it.equals("Unknown", true) }.forEach { artist ->
+            runCatching { rawSearch(artist, music = true, 5) }.getOrNull()?.let { collected += it }
+        }
+        // Похожее идёт первым, дальше — подмешиваем артистов из истории.
+        val pooled = related.shuffled() + collected.shuffled()
+        if (pooled.isEmpty()) return recommendations(limit)
+        return pooled
             .distinctBy { it.id }
             .distinctBy { "${it.artist}|${it.title}".lowercase() }
             .filter { it.id !in excludeSet && it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
             .shuffled()
             .take(limit)
+    }
+
+    /**
+     * По-настоящему похожие треки: блок «Далее» у видео-якоря (YouTube related).
+     * Поиск по имени артиста даёт случайную популярщину, а related — близкую по звуку музыку.
+     * Пусто, если related-блок недоступен (тогда волна работает по-старому).
+     */
+    fun relatedTracks(trackId: String, limit: Int = 6): List<Track> {
+        if (trackId.isBlank() || trackId.startsWith("sc_") || trackId.startsWith("http")) return emptyList()
+        ensureInit()
+        return runCatching {
+            val pageUrl = "https://www.youtube.com/watch?v=$trackId"
+            val extractor = NewPipe.getServiceByUrl(pageUrl).getStreamExtractor(pageUrl)
+            extractor.fetchPage()
+            extractor.getRelatedItems()?.items
+                ?.filterIsInstance<StreamInfoItem>()
+                .orEmpty()
+                .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
+                .mapNotNull { it.toTrack() }
+                .distinctBy { it.id }
+                .distinctBy { "${it.artist}|${it.title}".lowercase() }
+                .take(limit)
+        }.getOrDefault(emptyList())
     }
 
     /**
@@ -168,19 +195,24 @@ private const val TRENDING_TTL_MS = 10 * 60 * 1000L
         if (cached != null && System.currentTimeMillis() - cached.first < TRENDING_TTL_MS) {
             return cached.second.take(limit)
         }
+        // Список живых артистов (обновлён под 2026) + свежие запросы «что слушают сейчас»:
+        // сама подборка устаревает, а запросы дают то, что в тренде прямо сейчас.
         val artists = listOf(
-            "INSTASAMKA", "ANNA ASTI", "Мари Краймбрери", "Тима Белорусских",
-            "Miyagi & Andy Panda", "Скриптонит", "GONE.Fludd", "Мот",
-            "JONY", "NILE", "Люся Чеботина", "A.V.G",
-            "ЛСП", "Дора", "Элджей", "Пошлая Молли",
+            "ONDA ANDAR", "XOLIDAYBOY", "Nasty Babe", "Jakone", "ICEGERGERT", "Kamazz",
+            "Три дня дождя", "ANNA ASTI", "Zivert", "Artik & Asti", "VERBEE", "Клава Кока",
+            "JONY", "Ay Yola", "Баста", "Мари Краймбрери",
         )
+        val freshQueries = listOf("хиты 2026", "популярное сейчас 2026", "новинки музыки 2026", "тренды музыки 2026")
+        val fresh = freshQueries.flatMap { q ->
+            runCatching { rawSearch(q, music = true, 12) }.getOrDefault(emptyList())
+        }
         val perArtist = artists.map { artist ->
             runCatching { rawSearch(artist, music = true, 5).take(4) }.getOrDefault(emptyList())
         }
         // Round-robin interleave: no artist hogs the top of the chart.
         val interleaved = mutableListOf<Track>()
         (0 until 4).forEach { i -> perArtist.forEach { page -> page.getOrNull(i)?.let { interleaved += it } } }
-        val result = interleaved
+        val result = (fresh + interleaved)
             .distinctBy { it.id }
             .distinctBy { "${it.artist}|${it.title}".lowercase() }
             .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }

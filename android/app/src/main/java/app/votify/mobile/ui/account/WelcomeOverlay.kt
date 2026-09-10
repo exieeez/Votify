@@ -55,7 +55,7 @@ fun WelcomeOverlay(onSignIn: () -> Unit, onGuest: () -> Unit) {
             ) {
                 Box(Modifier.padding(18.dp), contentAlignment = Alignment.Center) {
                     Icon(
-                        painterResource(R.drawable.ic_votify_mark),
+                        painterResource(R.drawable.ic_votify_logo),
                         null,
                         tint = VotifyColors.TextPrimary,
                         modifier = Modifier.size(40.dp),

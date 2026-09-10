@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +83,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenAccount: () -> Unit,
     onOpenTrending: () -> Unit,
+    onOpenSite: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val recent by viewModel.recent.collectAsStateWithLifecycle()
@@ -93,7 +95,12 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
             .padding(top = contentPadding.calculateTopPadding(), bottom = contentPadding.calculateBottomPadding() + 16.dp),
     ) {
-        HomeHeader(onOpenSearch = onOpenSearch, onOpenSettings = onOpenSettings, onOpenAccount = onOpenAccount)
+        HomeHeader(
+            onOpenSearch = onOpenSearch,
+            onOpenSettings = onOpenSettings,
+            onOpenAccount = onOpenAccount,
+            onOpenSite = onOpenSite,
+        )
 
         // --- "Моя волна": big white Play with an orbit of artwork bubbles ---
         Box(
@@ -122,16 +129,18 @@ fun HomeScreen(
             }
         }
 
-        // While a wave track plays, a seek slider rides right under the hero.
-        if (playerState.current != null) {
-            Box(Modifier.padding(horizontal = 20.dp)) {
-                app.votify.mobile.ui.player.Scrubber(
-                    state = playerState,
-                    onSeek = onSeek,
-                    accent = VotifyColors.Primary,
-                    ios = iosSlider,
-                )
-            }
+        // Под «Моей волной» — одна строка текста текущей песни (как в Spotify под обложкой).
+        val lyricLine = homeLyricLine(viewModel, playerState)
+        if (!lyricLine.isNullOrBlank()) {
+            Text(
+                lyricLine,
+                style = MaterialTheme.typography.bodyMedium,
+                color = VotifyColors.TextSecondary,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+            )
         }
 
         if (!state.isLoading && state.error == null) {
@@ -237,7 +246,12 @@ fun HomeScreen(
 
 /** Header: "Votify" brand pill on the left, account / search / settings on the right. */
 @Composable
-private fun HomeHeader(onOpenSearch: () -> Unit, onOpenSettings: () -> Unit, onOpenAccount: () -> Unit) {
+private fun HomeHeader(
+    onOpenSearch: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenAccount: () -> Unit,
+    onOpenSite: () -> Unit,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -245,12 +259,13 @@ private fun HomeHeader(onOpenSearch: () -> Unit, onOpenSettings: () -> Unit, onO
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
+            onClick = onOpenSite,
             shape = CircleShape,
             color = VotifyColors.SurfaceContainer,
             border = BorderStroke(1.dp, VotifyColors.BorderSubtle),
         ) {
             Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(painterResource(R.drawable.ic_votify_mark), null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(18.dp))
+                Icon(painterResource(R.drawable.ic_votify_logo), null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Votify", style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
             }
@@ -268,6 +283,22 @@ private fun HomeHeader(onOpenSearch: () -> Unit, onOpenSettings: () -> Unit, onO
             Icon(Icons.Outlined.Settings, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(18.dp))
         }
     }
+}
+
+/** Строка текста песни для главной: синхронизированная — по позиции, иначе первая строка. */
+@Composable
+private fun homeLyricLine(
+    viewModel: HomeViewModel,
+    playerState: app.votify.mobile.player.PlayerUiState,
+): String? {
+    val track = playerState.current ?: return null
+    LaunchedEffect(track.id) { viewModel.loadLyrics(track) }
+    val lyrics by viewModel.lyrics.collectAsStateWithLifecycle()
+    val parsed = lyrics ?: return null
+    val index = parsed.activeIndex(playerState.positionMs)
+    return (parsed.lines.getOrNull(index)?.text ?: parsed.lines.firstOrNull()?.text)
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
 }
 
 /**
