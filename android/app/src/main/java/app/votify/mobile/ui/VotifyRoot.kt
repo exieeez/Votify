@@ -56,6 +56,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.launch
 import android.content.Intent
 import app.votify.mobile.R
 import app.votify.mobile.VotifyApp
@@ -124,6 +125,8 @@ private object Routes {
     const val HISTORY = "history"
     const val SETTINGS = "settings"
     const val ACCOUNT = "account"
+    const val PROFILE_EDIT = "account/edit"
+    const val USER = "user/{id}"
     const val IMPORT = "import"
     const val PLAYLIST = "playlist/{id}"
     const val ARTIST = "artist/{name}"
@@ -596,10 +599,51 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                     )
                 }
                 composable(Routes.ACCOUNT) {
-                    AccountScreen(
-                        viewModel = accountVm,
+                    // Logged out: sign-in form; logged in: the full profile page.
+                    val account by app.settings.account.collectAsStateWithLifecycle(initialValue = null)
+                    if (account == null) {
+                        AccountScreen(
+                            viewModel = accountVm,
+                            contentPadding = contentPadding,
+                            onBack = { navController.popBackStack() },
+                        )
+                    } else {
+                        val profileVm: ProfileViewModel = viewModel(factory = factory)
+                        ProfileScreen(
+                            viewModel = profileVm,
+                            targetId = null,
+                            contentPadding = contentPadding,
+                            onBack = { navController.popBackStack() },
+                            onEdit = { navController.navigate(Routes.PROFILE_EDIT) { launchSingleTop = true } },
+                            onOpenUser = { id -> navController.navigate(Routes.user(id)) { launchSingleTop = true } },
+                            onOpenPlaylist = { id -> navController.navigate(Routes.playlist(id)) { launchSingleTop = true } },
+                            onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
+                            onMessage = showMsg,
+                        )
+                    }
+                }
+                composable(Routes.PROFILE_EDIT) {
+                    val profileVm: ProfileViewModel = viewModel(factory = factory)
+                    EditProfileScreen(
+                        viewModel = profileVm,
                         contentPadding = contentPadding,
                         onBack = { navController.popBackStack() },
+                        onMessage = showMsg,
+                    )
+                }
+                composable(Routes.USER, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+                    val id = entry.arguments?.getString("id").orEmpty()
+                    val profileVm: ProfileViewModel = viewModel(factory = factory)
+                    ProfileScreen(
+                        viewModel = profileVm,
+                        targetId = id,
+                        contentPadding = contentPadding,
+                        onBack = { navController.popBackStack() },
+                        onEdit = { navController.navigate(Routes.PROFILE_EDIT) { launchSingleTop = true } },
+                        onOpenUser = { other -> navController.navigate(Routes.user(other)) { launchSingleTop = true } },
+                        onOpenPlaylist = { pid -> navController.navigate(Routes.playlist(pid)) { launchSingleTop = true } },
+                        onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
+                        onMessage = showMsg,
                     )
                 }
                 composable(Routes.IMPORT) {
@@ -777,6 +821,7 @@ private class AppViewModelFactory(private val app: VotifyApp) : ViewModelProvide
         modelClass.isAssignableFrom(ArtistViewModel::class.java) -> ArtistViewModel(app.music) as T
         modelClass.isAssignableFrom(SettingsViewModel::class.java) -> SettingsViewModel(app.api, app.settings, app.library, app) as T
         modelClass.isAssignableFrom(AccountViewModel::class.java) -> AccountViewModel(app.api, app.settings, app.music) as T
+        modelClass.isAssignableFrom(ProfileViewModel::class.java) -> ProfileViewModel(app.api, app.settings, app.library) as T
         modelClass.isAssignableFrom(ImportViewModel::class.java) -> ImportViewModel(app.music, app.library) as T
         modelClass.isAssignableFrom(TrendingViewModel::class.java) -> TrendingViewModel(app.music) as T
         modelClass.isAssignableFrom(WorkshopViewModel::class.java) -> WorkshopViewModel(app.settings, app.api, app.music) as T

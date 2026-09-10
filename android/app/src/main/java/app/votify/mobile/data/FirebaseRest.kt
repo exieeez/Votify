@@ -308,9 +308,13 @@ class FirebaseRest(private val config: FirebaseConfig) {
     /**
      * Per-user cloud sync: a private Firestore document users/{uid} (writable only by its
      * owner per firestore.rules). Holds the whole library + settings as one JSON blob.
+     *
+     * Masked merge: the same document also carries the social profile fields written
+     * by saveAccountProfile (and the desktop app) — an unmasked PATCH would wipe them.
      */
     suspend fun pushUserSync(idToken: String, uid: String, blob: String): Unit = withContext(Dispatchers.IO) {
-        val url = "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/users/$uid"
+        val url = "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/users/$uid" +
+            "?updateMask.fieldPaths=sync&updateMask.fieldPaths=updatedAt"
         val body = buildJsonObject {
             put("fields", buildJsonObject {
                 put("sync", buildJsonObject { put("stringValue", blob) })
@@ -355,6 +359,95 @@ class FirebaseRest(private val config: FirebaseConfig) {
             }.getOrNull()
         }
     }
+
+    // ------------------------------------------------------------ firestore documents
+
+    val firestoreProject: String get() = config.projectId
+
+    private fun docBase() =
+        "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents"
+
+    /** Authed document GET; null when the document does not exist (404). */
+    suspend fun firestoreGet(path: String, idToken: String): JsonObject? = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url("${docBase()}/$path")
+            .header("Authorization", "Bearer $idToken").get().build()
+        http.newCall(request).execute().use { resp ->
+            if (resp.code == 404) return@withContext null
+            val text = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+            json.parseToJsonElement(text).jsonObject
+        }
+    }
+
+    /**
+     * Authed document PATCH. Empty [masks] replaces the whole document
+     * (create-or-replace); with masks only the listed fields are written
+     * (upsert, every other field is preserved).
+     */
+    suspend fun firestorePatch(
+        path: String,
+        fields: JsonObject,
+        idToken: String,
+        masks: List<String> = emptyList(),
+    ): JsonObject = withContext(Dispatchers.IO) {
+        var url = "${docBase()}/$path"
+        if (masks.isNotEmpty()) url += masks.joinToString("&", prefix = "?") { "updateMask.fieldPaths=$it" }
+        val body = buildJsonObject { put("fields", fields) }
+        val request = Request.Builder().url(url)
+            .header("Authorization", "Bearer $idToken")
+            .patch(body.toString().toRequestBody(JSON)).build()
+        http.newCall(request).execute().use { resp ->
+            val text = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+            json.parseToJsonElement(text).jsonObject
+        }
+    }
+
+    /** Authed document DELETE; a missing document is a silent success. */
+    suspend fun firestoreDelete(path: String, idToken: String): Unit = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url("${docBase()}/$path")
+            .header("Authorization", "Bearer $idToken").delete().build()
+        http.newCall(request).execute().use { resp ->
+            if (resp.code == 404) return@withContext
+            if (!resp.isSuccessful) {
+                val text = resp.body?.string().orEmpty()
+                throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+            }
+        }
+    }
+
+    /** Authed documents:commit for atomic multi-write batches (follows, username claims). */
+    suspend fun firestoreCommit(writes: kotlinx.serialization.json.JsonArray, idToken: String): JsonObject =
+        withContext(Dispatchers.IO) {
+            val body = buildJsonObject { put("writes", writes) }
+            val request = Request.Builder().url("${docBase()}:commit")
+                .header("Authorization", "Bearer $idToken")
+                .post(body.toString().toRequestBody(JSON)).build()
+            http.newCall(request).execute().use { resp ->
+                val text = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+                json.parseToJsonElement(text).jsonObject
+            }
+        }
+
+    /**
+     * Authed documents:runQuery. Returns the matched documents (envelope rows
+     * without a document are skipped).
+     */
+    suspend fun firestoreRunQuery(structuredQuery: JsonObject, idToken: String): List<JsonObject> =
+        withContext(Dispatchers.IO) {
+            val body = buildJsonObject { put("structuredQuery", structuredQuery) }
+            val request = Request.Builder().url("${docBase()}:runQuery")
+                .header("Authorization", "Bearer $idToken")
+                .post(body.toString().toRequestBody(JSON)).build()
+            http.newCall(request).execute().use { resp ->
+                val text = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+                json.parseToJsonElement(text).jsonArray.mapNotNull { row ->
+                    row.jsonObject["document"]?.jsonObject
+                }
+            }
+        }
 
     /** Secure-token refresh: Firebase idTokens expire hourly; swap the refresh token for a fresh one. */
     suspend fun refreshIdToken(refreshToken: String): String? = withContext(Dispatchers.IO) {

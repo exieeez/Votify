@@ -97,58 +97,7 @@ fun AccountScreen(
             )
         }
 
-        // Signed in: profile card instead of the login form.
-        val account by viewModel.account.collectAsStateWithLifecycle()
-        if (account != null) {
-            val acct = account!!
-            VotifyCard(Modifier.padding(horizontal = 16.dp).fillMaxWidth(), contentPadding = PaddingValues(20.dp)) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Surface(
-                        shape = CircleShape,
-                        color = VotifyColors.SurfaceContainer,
-                        modifier = Modifier.size(72.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                (acct.username.ifBlank { acct.email }).firstOrNull()?.uppercase() ?: "?",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = VotifyColors.TextPrimary,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        acct.username.ifBlank { acct.email },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = VotifyColors.TextPrimary,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        acct.email,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = VotifyColors.TextMuted,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(20.dp))
-                    PrimaryButton(
-                        text = stringResource(R.string.settings_account_logout),
-                        loading = false,
-                        enabled = true,
-                    ) { viewModel.logout() }
-                }
-            }
-            Text(
-                stringResource(R.string.account_logged_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = VotifyColors.TextMuted,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-            )
-            return@Column
-        }
+        // Signed-in users never see this form: VotifyRoot renders ProfileScreen instead.
 
         // Login / register tabs (hidden inside the recovery wizard)
         if (state.mode == AccountMode.Login || state.mode == AccountMode.Register) {
@@ -520,7 +469,7 @@ private fun ModeTab(text: String, selected: Boolean, modifier: Modifier = Modifi
 
 /** Full-width pill CTA; swaps its label for a spinner while the request is in flight. */
 @Composable
-private fun PrimaryButton(text: String, loading: Boolean, enabled: Boolean, onClick: () -> Unit) {
+internal fun PrimaryButton(text: String, loading: Boolean, enabled: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         enabled = enabled && !loading,
