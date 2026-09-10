@@ -35,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +69,9 @@ import app.votify.mobile.ui.account.AccountEvent
 import app.votify.mobile.ui.account.WelcomeOverlay
 import app.votify.mobile.ui.account.AccountScreen
 import app.votify.mobile.ui.account.AccountViewModel
+import app.votify.mobile.ui.account.EditProfileScreen
+import app.votify.mobile.ui.account.ProfileScreen
+import app.votify.mobile.ui.account.ProfileViewModel
 import app.votify.mobile.ui.artist.ArtistScreen
 import app.votify.mobile.ui.artist.ArtistViewModel
 import app.votify.mobile.ui.components.MiniPlayer
@@ -145,6 +149,7 @@ private object Routes {
 
     fun playlist(id: Long) = "playlist/$id"
     fun artist(name: String) = "artist/${Uri.encode(name)}"
+    fun user(id: String) = "user/${Uri.encode(id)}"
 }
 
 /** Сайт проекта — открывается по логотипу в шапке главной. */
@@ -333,6 +338,10 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
         navController.navigate(Routes.artist(name)) { launchSingleTop = true }
     }
     val openMenu: (Track) -> Unit = { libraryVm.openMenu(it) }
+
+    // Profile screens resolve their own messages and hand plain text to the shared snackbar.
+    val uiScope = rememberCoroutineScope()
+    val showMsg: (String) -> Unit = { m -> uiScope.launch { snackbar.showSnackbar(m) } }
 
     // App background: any image URL (incl. animated GIF/WebP) behind the whole app.
     // Independent of the theme — changing any setting must never wipe the background.

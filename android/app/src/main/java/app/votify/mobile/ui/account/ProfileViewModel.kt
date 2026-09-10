@@ -164,14 +164,27 @@ class ProfileViewModel(
         viewModelScope.launch { loadInternal(targetId) }
     }
 
-    private suspend fun loadInternal(target: String?) {
-        val repo = social
+    /** Reload without the fullscreen spinner (used when returning to the screen). */
+    fun refreshQuiet() {
+        if (_state.value.loading) return
+        viewModelScope.launch { loadInternal(targetId, quiet = true) }
+    }
+
+    private suspend fun loadInternal(target: String?, quiet: Boolean = false) {
         val acc = settings.account.first()
+        val repo = runCatching { repoOrThrow() }.getOrNull()
         if (repo == null || acc == null || !acc.isFirebase || acc.uid.isBlank()) {
             _state.update { it.copy(loading = false, noBackend = true) }
             return
         }
-        _state.update { it.copy(loading = true, notFound = false, noBackend = false, myUid = acc.uid) }
+        _state.update {
+            it.copy(
+                loading = if (quiet) it.loading else true,
+                notFound = false,
+                noBackend = false,
+                myUid = acc.uid,
+            )
+        }
         try {
             val clean = target.orEmpty()
             val profile: PublicProfile? = when {
