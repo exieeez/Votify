@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: ['arena/01a07e3f-votify', 'arena/01a0816e-votify']
+    branches: ['android', 'main']
     paths: ['android/**', '.github/workflows/android.yml']
   workflow_dispatch:
 

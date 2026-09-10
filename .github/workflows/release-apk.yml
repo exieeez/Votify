@@ -4,7 +4,7 @@ name: Release APK
 # download link stays the same — https://github.com/exieeez/Votify/releases/download/android-debug/Votify-debug.apk
 on:
   push:
-    branches: ['arena/01a0816e-votify']
+    branches: ['android', 'main']
     paths: ['android/**', '.github/workflows/release-apk.yml']
   workflow_dispatch:
 
