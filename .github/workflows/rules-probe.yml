@@ -1,0 +1,50 @@
+name: Rules Probe
+# TEMPORARY diagnosis: checks which Firestore rules are live on votify-f461a.
+on:
+  push:
+    branches: [arena/01a08c8e-votify]
+    paths: [.github/workflows/rules-probe.yml]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe live rules
+        run: |
+          APIKEY="AIzaSyBSRslJWfFlpgX3Sm3_RbXEILtj2PL0A-k"
+          FS="https://firestore.googleapis.com/v1/projects/votify-f461a/databases/(default)/documents"
+
+          # 1) World-readable collection: 200 = rules deployed, 403 = default-deny.
+          C1=$(curl -s --max-time 20 -o /tmp/ws.json -w "%{http_code}" "$FS/workshopThemes?pageSize=1")
+          B1=$(head -c 200 /tmp/ws.json | tr '\n' ' ')
+          echo "::notice::PROBE1 workshopThemes-list code=$C1 body=$B1"
+
+          # 2) Authenticated read as a fresh anonymous user:
+          #    404/200 = social rules live, 403 = social rules missing.
+          SIGNUP=$(curl -s --max-time 20 "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$APIKEY" \
+            -H 'Content-Type: application/json' -d '{"returnSecureToken":true}')
+          TOKEN=$(echo "$SIGNUP" | jq -r '.idToken // empty')
+          UID=$(echo "$SIGNUP" | jq -r '.localId // empty')
+          if [ -z "$TOKEN" ]; then
+            ERR=$(echo "$SIGNUP" | jq -r '.error.message // empty' | head -c 120)
+            echo "::notice::PROBE2 anon-signup unavailable: $ERR"
+            # Fallback: one throwaway password account (deleted right after via Auth API).
+            RND="probe$RANDOM$RANDOM@example.com"
+            SIGNUP=$(curl -s --max-time 20 "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$APIKEY" \
+              -H 'Content-Type: application/json' -d "{\"email\":\"$RND\",\"password\":\"Probe12345678!\",\"returnSecureToken\":true}")
+            TOKEN=$(echo "$SIGNUP" | jq -r '.idToken // empty')
+            UID=$(echo "$SIGNUP" | jq -r '.localId // empty')
+            echo "::notice::PROBE2b password-signup uid=${UID:-none}"
+          else
+            echo "::notice::PROBE2 anon-signup ok uid=$UID"
+          fi
+          if [ -n "$TOKEN" ]; then
+            C2=$(curl -s --max-time 20 -o /tmp/prof.json -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$FS/profiles/$UID")
+            B2=$(head -c 200 /tmp/prof.json | tr '\n' ' ')
+            echo "::notice::PROBE3 own-profile-read code=$C2 body=$B2"
+            C3=$(curl -s --max-time 20 -o /tmp/un.json -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$FS/usernames/probeuser123")
+            echo "::notice::PROBE4 username-read code=$C3"
+            # Cleanup: delete the throwaway account (best effort).
+            curl -s --max-time 20 "https://identitytoolkit.googleapis.com/v1/accounts:delete?key=$APIKEY" \
+              -H 'Content-Type: application/json' -d "{\"idToken\":\"$TOKEN\"}" -o /dev/null || true
+          fi
