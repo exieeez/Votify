@@ -45,16 +45,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.votify.mobile.R
+import app.votify.mobile.ui.components.CircleIconButton
 import app.votify.mobile.ui.components.VotifyTextField
 import app.votify.mobile.ui.theme.VotifyColors
 import java.io.File
@@ -196,9 +202,11 @@ fun BackgroundsScreen(
         )
     }
 
-    if (tuneBackground != null) {
+    // Локальная копия: delegated property нельзя умно привести к String.
+    val tuneTarget = tuneBackground
+    if (tuneTarget != null) {
         BackgroundTuneScreen(
-            url = tuneBackground!!,
+            url = tuneTarget,
             viewModel = viewModel,
             onClose = { tuneBackground = null },
         )
@@ -338,7 +346,7 @@ fun BackgroundTuneScreen(
                 stringResource(R.string.settings_bg_tune_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = VotifyColors.TextMuted,
-                modifier = Modifier.padding(horizontal = 4.dp, top = 8.dp),
+                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
             )
 
             // Удаление фона из галереи — как красная «Удалить» в Мастерской.
