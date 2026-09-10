@@ -11,6 +11,7 @@ jobs:
     steps:
       - name: Probe live rules
         run: |
+          set +e
           APIKEY="AIzaSyBSRslJWfFlpgX3Sm3_RbXEILtj2PL0A-k"
           FS="https://firestore.googleapis.com/v1/projects/votify-f461a/databases/(default)/documents"
 
