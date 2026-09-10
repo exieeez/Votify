@@ -73,6 +73,7 @@ class ProfileViewModel(
         val vk: String = "",
         val isPrivate: Boolean = false,
         val avatar: String = "",
+        val frame: String = "",
         val email: String = "",
         val saving: Boolean = false,
         val noBackend: Boolean = false,
@@ -476,6 +477,7 @@ class ProfileViewModel(
                             vk = data.links.vk,
                             isPrivate = data.isPrivate,
                             avatar = data.avatar,
+                            frame = data.frame,
                             email = data.email.ifEmpty { acc.email },
                         ),
                     )
@@ -499,6 +501,7 @@ class ProfileViewModel(
         vk: String? = null,
         isPrivate: Boolean? = null,
         avatar: String? = null,
+        frame: String? = null,
     ) {
         _state.update { st ->
             val e = st.edit ?: return@update st
@@ -526,6 +529,7 @@ class ProfileViewModel(
             vk?.let { next = next.copy(vk = it.take(SocialValidate.LINK_MAX)) }
             isPrivate?.let { next = next.copy(isPrivate = it) }
             avatar?.let { next = next.copy(avatar = it) }
+            frame?.let { next = next.copy(frame = it) }
             st.copy(edit = next)
         }
         if (username != null) debounceUsernameCheck()
@@ -628,6 +632,7 @@ class ProfileViewModel(
                     about = SocialValidate.sanitizeBio(e.about),
                     links = SocialValidate.sanitizeLinks(e.telegram, e.soundcloud, e.vk),
                     isPrivate = e.isPrivate,
+                    frame = e.frame,
                     email = e.email.ifEmpty { acc.email },
                 )
                 val saved = repo.saveAccountProfile(acc.uid, data)

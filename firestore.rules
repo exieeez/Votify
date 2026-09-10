@@ -50,7 +50,8 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'displayName', 'username', 'avatar', 'about', 'links',
-          'isPrivate', 'followersCount', 'followingCount', 'showcase', 'updatedAt'
+          'isPrivate', 'followersCount', 'followingCount', 'showcase', 'updatedAt',
+          'frame'
         ])
         && data.displayName is string
         && data.displayName.size() >= 1
@@ -67,7 +68,10 @@ service cloud.firestore {
         && data.isPrivate is bool
         && data.followersCount is int && data.followersCount >= 0
         && data.followingCount is int && data.followingCount >= 0
-        && data.showcase is list && data.showcase.size() <= 20;
+        && data.showcase is list && data.showcase.size() <= 20
+        // Optional avatar frame id (Discord-like decorations, set from clients
+        // that support them; older clients simply never write it).
+        && (!('frame' in data.keys()) || (data.frame is string && data.frame.size() <= 24));
     }
 
     // Follow/unfollow batches nudge counters by exactly +-1.

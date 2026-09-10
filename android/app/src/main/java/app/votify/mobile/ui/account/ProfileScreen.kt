@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MusicNote
@@ -63,7 +65,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -111,28 +112,46 @@ internal fun SecondaryButton(text: String, loading: Boolean, enabled: Boolean, o
     }
 }
 
-/** Avatar circle: Firestore data-URL photo or an initial-letter fallback. */
+/** Avatar circle: Firestore data-URL photo or an initial-letter fallback, plus the optional frame ring. */
 @Composable
-fun ProfileAvatar(avatar: String, name: String, size: Dp, modifier: Modifier = Modifier) {
+fun ProfileAvatar(
+    avatar: String,
+    name: String,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    frame: String = "",
+) {
     val bitmap = remember(avatar) { decodeAvatarDataUrl(avatar) }
-    if (bitmap != null) {
-        Image(
-            bitmap,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = modifier.size(size).clip(CircleShape),
-        )
-    } else {
+    val brush = remember(frame) { frameBrush(frame) }
+    // Ring scales with avatar size, 2..4 dp.
+    val ring = (size.value / 22f).dp.coerceIn(2.dp, 4.dp)
+    Box(modifier.size(size), contentAlignment = Alignment.Center) {
         Box(
-            modifier.size(size).clip(CircleShape).background(VotifyColors.PrimaryContainer),
+            Modifier
+                .fillMaxSize()
+                .padding(if (brush != null) ring else 0.dp)
+                .clip(CircleShape)
+                .background(VotifyColors.PrimaryContainer),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                name.firstOrNull()?.uppercase() ?: "?",
-                style = if (size >= 64.dp) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = VotifyColors.OnPrimaryContainer,
-            )
+            if (bitmap != null) {
+                Image(
+                    bitmap,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Text(
+                    name.firstOrNull()?.uppercase() ?: "?",
+                    style = if (size >= 64.dp) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = VotifyColors.OnPrimaryContainer,
+                )
+            }
+        }
+        if (brush != null) {
+            Box(Modifier.fillMaxSize().border(ring, brush, CircleShape))
         }
     }
 }
@@ -278,15 +297,6 @@ fun ProfileScreen(
                         onFollow = viewModel::follow,
                         onUnfollow = viewModel::unfollow,
                         onCancelRequest = viewModel::cancelOutgoing,
-                    )
-                }
-                item(key = "stats") {
-                    StatsRow(
-                        profile = profile,
-                        locked = locked,
-                        playlistCount = if (state.isOwn) state.myPlaylists.size else profile.showcase.size,
-                        onFollowers = viewModel::openFollowers,
-                        onFollowing = viewModel::openFollowing,
                     )
                 }
                 if (state.isOwn) {
@@ -499,7 +509,34 @@ private fun ProfileHeader(
 ) {
     VotifyCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(20.dp)) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            ProfileAvatar(profile.avatar, profile.displayName.ifEmpty { "?" }, 84.dp)
+            // Own avatar is tappable (opens the editor) and carries an edit badge.
+            if (isOwn) {
+                Box {
+                    Box(
+                        Modifier.clip(CircleShape).clickable(onClick = onEdit),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        ProfileAvatar(profile.avatar, profile.displayName.ifEmpty { "?" }, 84.dp, frame = profile.frame)
+                    }
+                    Box(
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(VotifyColors.Primary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            stringResource(R.string.edit_avatar_pick),
+                            tint = VotifyColors.OnPrimary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
+            } else {
+                ProfileAvatar(profile.avatar, profile.displayName.ifEmpty { "?" }, 84.dp, frame = profile.frame)
+            }
             Spacer(Modifier.height(12.dp))
             Text(
                 profile.displayName.ifEmpty { "?" },
@@ -595,65 +632,6 @@ private fun LinksRow(links: SocialLinks) {
 }
 
 @Composable
-private fun StatsRow(
-    profile: PublicProfile,
-    locked: Boolean,
-    playlistCount: Int,
-    onFollowers: () -> Unit,
-    onFollowing: () -> Unit,
-) {
-    VotifyCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = 14.dp)) {
-        Row(Modifier.fillMaxWidth()) {
-            StatCell(
-                countText = if (locked) null else pluralStringResource(R.plurals.followers_count, profile.followersCount, profile.followersCount),
-                label = stringResource(R.string.profile_followers),
-                locked = locked,
-                onClick = if (locked) null else onFollowers,
-                modifier = Modifier.weight(1f),
-            )
-            StatCell(
-                countText = if (locked) null else pluralStringResource(R.plurals.following_count, profile.followingCount, profile.followingCount),
-                label = stringResource(R.string.profile_following),
-                locked = locked,
-                onClick = if (locked) null else onFollowing,
-                modifier = Modifier.weight(1f),
-            )
-            StatCell(
-                countText = if (locked) null else pluralTracks(playlistCount),
-                label = stringResource(R.string.profile_playlists),
-                locked = locked,
-                onClick = null,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatCell(countText: String?, label: String, locked: Boolean, onClick: (() -> Unit)?, modifier: Modifier = Modifier) {
-    Column(
-        modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (locked || countText == null) {
-            Icon(Icons.Filled.Lock, null, tint = VotifyColors.TextMuted, modifier = Modifier.size(20.dp))
-        } else {
-            Text(
-                countText,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = VotifyColors.TextPrimary,
-                maxLines = 1,
-            )
-        }
-        Text(label, style = MaterialTheme.typography.bodySmall, color = VotifyColors.TextMuted)
-    }
-}
-
-@Composable
 private fun FindFriendsCard(
     query: String,
     searching: Boolean,
@@ -726,7 +704,7 @@ private fun UserRow(user: SocialUser, onClick: () -> Unit, trailing: (@Composabl
             .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ProfileAvatar(user.avatar, user.displayName.ifEmpty { "?" }, 44.dp)
+        ProfileAvatar(user.avatar, user.displayName.ifEmpty { "?" }, 44.dp, frame = user.frame)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
@@ -826,7 +804,7 @@ private fun FriendsRow(users: List<SocialUser>, onOpenUser: (String) -> Unit) {
                         modifier = Modifier.width(64.dp).clip(RoundedCornerShape(12.dp))
                             .clickable { onOpenUser(user.uid) },
                     ) {
-                        ProfileAvatar(user.avatar, user.displayName.ifEmpty { "?" }, 52.dp)
+                        ProfileAvatar(user.avatar, user.displayName.ifEmpty { "?" }, 52.dp, frame = user.frame)
                         Spacer(Modifier.height(4.dp))
                         Text(
                             user.displayName.ifEmpty { "?" },
@@ -947,7 +925,7 @@ private fun SheetUserRow(user: SocialUser, trailing: Pair<String, () -> Unit>?, 
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ProfileAvatar(user.avatar, user.displayName.ifEmpty { "?" }, 44.dp)
+        ProfileAvatar(user.avatar, user.displayName.ifEmpty { "?" }, 44.dp, frame = user.frame)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(

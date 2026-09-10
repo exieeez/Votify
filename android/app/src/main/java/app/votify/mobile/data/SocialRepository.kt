@@ -137,6 +137,7 @@ class SocialRepository(
                 ShowcaseItem(im.s("name"), im.l("count").toInt().coerceAtLeast(0), im.s("cover"))
             },
             updatedAt = f.l("updatedAt"),
+            frame = f.s("frame"),
         )
     }
 
@@ -160,6 +161,7 @@ class SocialRepository(
             ),
             isPrivate = if (priv?.containsKey("isPrivate") == true) priv.b("isPrivate") else pub.b("isPrivate"),
             email = priv.s("email").ifEmpty { acc?.email.orEmpty() },
+            frame = pick(priv.s("frame"), pub.s("frame")),
         )
     }
 
@@ -245,6 +247,7 @@ class SocialRepository(
                 put("about", str(data.about))
                 put("links", mapVal(linksObj))
                 put("isPrivate", flag(data.isPrivate))
+                put("frame", str(data.frame))
                 put("email", str(data.email))
                 put("isAnonymous", flag(false))
                 put("updatedAt", num(now))
@@ -252,7 +255,7 @@ class SocialRepository(
             a.token,
             masks = listOf(
                 "displayName", "username", "avatar", "about", "links",
-                "isPrivate", "email", "isAnonymous", "updatedAt",
+                "isPrivate", "frame", "email", "isAnonymous", "updatedAt",
             ),
         )
         // 2) Public snapshot — full replace with live counters echoed.
@@ -277,6 +280,7 @@ class SocialRepository(
                         put("about", str(data.about))
                         put("links", mapVal(linksObj))
                         put("isPrivate", flag(data.isPrivate))
+                        put("frame", str(data.frame))
                         put("followersCount", num(followers))
                         put("followingCount", num(following))
                         put("showcase", showcaseVal)

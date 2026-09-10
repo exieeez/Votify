@@ -25,6 +25,8 @@ test('public profiles are owner-writable with counter nudges for follows', () =>
   assert.match(rules, /followersCount == resource\.data\.followersCount \+ 1/);
   assert.match(rules, /data\.avatar\.size\(\) <= 153600/);
   assert.match(rules, /data\.showcase is list && data\.showcase\.size\(\) <= 20/);
+  assert.match(rules, /'frame'\n        \]\)/);
+  assert.match(rules, /\('frame' in data\.keys\(\)\)/);
 });
 
 test('follow edges are self-only creates with deterministic ids', () => {

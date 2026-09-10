@@ -3,6 +3,9 @@ package app.votify.mobile.ui.account
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -112,7 +116,7 @@ fun EditProfileScreen(
             ) {
                 // Avatar
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    ProfileAvatar(edit.avatar, edit.name.ifEmpty { "?" }, 84.dp)
+                    ProfileAvatar(edit.avatar, edit.name.ifEmpty { "?" }, 84.dp, frame = edit.frame)
                     Spacer(Modifier.width(16.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
@@ -136,6 +140,20 @@ fun EditProfileScreen(
                         }
                     }
                 }
+
+                // Avatar frame (Discord-like ring, visible to friends)
+                Text(
+                    stringResource(R.string.edit_frame_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = VotifyColors.TextPrimary,
+                )
+                FramePickerRow(
+                    avatar = edit.avatar,
+                    name = edit.name,
+                    selected = edit.frame,
+                    onSelect = { viewModel.editField(frame = it) },
+                )
 
                 // Display name
                 VotifyTextField(
@@ -265,4 +283,42 @@ private fun UsernameStatusLine(edit: ProfileViewModel.EditState, viewModel: Prof
         color = color,
         modifier = Modifier.padding(horizontal = 4.dp),
     )
+}
+
+/** Horizontal avatar-frame picker: live ring previews over the current photo. */
+@Composable
+private fun FramePickerRow(avatar: String, name: String, selected: String, onSelect: (String) -> Unit) {
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        AVATAR_FRAMES.forEach { frame ->
+            val isSelected = frame.id == selected
+            Column(
+                Modifier
+                    .clickable { onSelect(frame.id) }
+                    .padding(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(
+                    Modifier
+                        .border(
+                            width = if (isSelected) 2.dp else 0.dp,
+                            color = VotifyColors.Primary,
+                            shape = CircleShape,
+                        )
+                        .padding(3.dp),
+                ) {
+                    ProfileAvatar(avatar, name.ifEmpty { "?" }, 52.dp, frame = frame.id)
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(frame.label),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isSelected) VotifyColors.Primary else VotifyColors.TextMuted,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
 }

@@ -594,6 +594,16 @@
     <string name="profile_followers">Подписчики</string>
     <string name="profile_following">Подписки</string>
     <string name="profile_playlists">Плейлисты</string>
+    <string name="edit_frame_title">Рамка</string>
+    <string name="frame_none">Без рамки</string>
+    <string name="frame_gold">Золото</string>
+    <string name="frame_neon">Неон</string>
+    <string name="frame_ocean">Океан</string>
+    <string name="frame_sunset">Закат</string>
+    <string name="frame_forest">Лес</string>
+    <string name="frame_royal">Королевская</string>
+    <string name="frame_crimson">Багровая</string>
+    <string name="frame_mono">Монохром</string>
     <string name="profile_friends">Друзья</string>
     <string name="profile_followers_title">Подписчики</string>
     <string name="profile_following_title">Подписки</string>

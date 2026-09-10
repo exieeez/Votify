@@ -3,6 +3,7 @@ package app.votify.mobile.data
 /**
  * Public profile document: profiles/{uid} — the exact shape enforced by
  * firestore.rules isValidPublicProfile (desktop and Android share it).
+ * `frame` is the optional avatar-frame id (Discord-like decorations).
  */
 data class PublicProfile(
     val uid: String = "",
@@ -16,6 +17,7 @@ data class PublicProfile(
     val followingCount: Int = 0,
     val showcase: List<ShowcaseItem> = emptyList(),
     val updatedAt: Long = 0,
+    val frame: String = "",
 )
 
 /** Social handles stored as plain names; URLs are derived per network. */
@@ -44,9 +46,10 @@ data class SocialUser(
     val displayName: String,
     val username: String,
     val avatar: String,
+    val frame: String = "",
 )
 
-fun PublicProfile.toSocialUser() = SocialUser(uid, displayName, username, avatar)
+fun PublicProfile.toSocialUser() = SocialUser(uid, displayName, username, avatar, frame)
 
 /** Private editable fields, merged from users/{uid} over profiles/{uid}. */
 data class OwnSocialData(
@@ -57,6 +60,7 @@ data class OwnSocialData(
     val links: SocialLinks = SocialLinks(),
     val isPrivate: Boolean = false,
     val email: String = "",
+    val frame: String = "",
 )
 
 enum class FollowState { NONE, FOLLOWING, REQUESTED }
