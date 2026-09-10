@@ -49,7 +49,7 @@ fun processAvatarImage(context: Context, uri: Uri): String? {
     }.getOrNull()
 }
 
-/** Decodes a data:image/* avatar URL into an [ImageBitmap], or null. */
+/** Decodes a data-URL avatar ("data:image/...") into an [ImageBitmap], or null. */
 fun decodeAvatarDataUrl(dataUrl: String): ImageBitmap? {
     if (!dataUrl.startsWith("data:image/")) return null
     val payload = dataUrl.substringAfter(",", "")
