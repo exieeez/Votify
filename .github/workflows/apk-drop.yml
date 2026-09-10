@@ -23,4 +23,5 @@ jobs:
           cp /tmp/drop/Votify-debug.apk ./Votify-debug.apk
           git add Votify-debug.apk
           git commit -qm "apk drop"
-          git push -f origin arena/apk-drop
+          git push -f origin arena/apk-drop 2>&1 | tee push.log
+          test ${PIPESTATUS[0]} -eq 0 || echo "::error::PUSH-FAILED $(tr '\n' ' ' < push.log | head -c 600)"
