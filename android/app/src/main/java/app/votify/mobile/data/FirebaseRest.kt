@@ -475,16 +475,22 @@ class FirebaseRest(private val config: FirebaseConfig) {
     }
 
     private fun firebaseError(body: String, code: Int): String {
-        val msg = runCatching {
-            json.parseToJsonElement(body).jsonObject["error"]!!.jsonObject["message"]!!.jsonPrimitive.content
-        }.getOrNull() ?: "HTTP $code"
+        // Firestore REST puts the machine-readable code in error.status and the
+        // human sentence in error.message — check both ("Missing or insufficient
+        // permissions." never contains the PERMISSION_DENIED status string).
+        val err = runCatching {
+            json.parseToJsonElement(body).jsonObject["error"]?.jsonObject
+        }.getOrNull()
+        val msg = err?.get("message")?.jsonPrimitive?.content ?: "HTTP $code"
+        val status = err?.get("status")?.jsonPrimitive?.content.orEmpty()
         return when {
             msg.contains("EMAIL_EXISTS") -> "Аккаунт с таким email уже существует"
             msg.contains("INVALID_LOGIN_CREDENTIALS") || msg.contains("INVALID_PASSWORD") -> "Неверный email или пароль"
             msg.contains("EMAIL_NOT_FOUND") -> "Аккаунт не найден"
             msg.contains("WEAK_PASSWORD") -> "Пароль слишком короткий (минимум 6 символов)"
             msg.contains("TOO_MANY_ATTEMPTS") -> "Слишком много попыток — попробуйте позже"
-            msg.contains("PERMISSION_DENIED") -> "Нет доступа (проверьте правила Firestore)"
+            msg.contains("PERMISSION_DENIED") || status.contains("PERMISSION_DENIED") ->
+                "Нет доступа: опубликуйте firestore.rules в Firebase"
             else -> msg
         }
     }

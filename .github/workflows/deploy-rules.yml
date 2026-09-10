@@ -1,0 +1,30 @@
+name: Deploy Firestore Rules
+
+# Auto-publishes firestore.rules to votify-f461a so clients never 403 on missing
+# collections again. One-time setup by the Firebase project owner:
+#   1) run `npx firebase-tools login:ci`, copy the token it prints;
+#   2) paste it as the FIREBASE_TOKEN repo secret (Settings → Secrets → Actions).
+# After that, every push touching firestore.rules redeploys it automatically.
+on:
+  push:
+    branches: ['main', 'arena/**']
+    paths: ['firestore.rules', '.github/workflows/deploy-rules.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Deploy firestore.rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "::error::FIREBASE_TOKEN secret is missing — see the setup note at the top of deploy-rules.yml"
+            exit 1
+          fi
+          npx -y firebase-tools@15.26.0 deploy --only firestore:rules --project votify-f461a --token "$FIREBASE_TOKEN" --non-interactive
