@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: ['android', 'main']
+    branches: ['android', 'main', 'arena/**']
     paths: ['android/**', '.github/workflows/android.yml']
   workflow_dispatch:
 
