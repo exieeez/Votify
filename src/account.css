@@ -1,0 +1,1147 @@
+/* ==========================================
+   Votify — Account page (profile + friends)
+   Design: design/stitch_user_account_profile_page.zip
+   ========================================== */
+
+.acc-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 8px 4px 40px;
+  display: flex;
+  flex-direction: column;
+  animation: acc-fade-in 0.25s ease;
+}
+
+@keyframes acc-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Profile header (Stitch: exieeez_1) ---------- */
+
+.acc-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-top: 12px;
+}
+
+.acc-avatar-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.acc-avatar-wrap {
+  position: relative;
+  width: 116px;
+  height: 116px;
+  flex-shrink: 0;
+}
+
+.acc-avatar {
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  font-weight: 800;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.acc-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.acc-avatar-fallback {
+  background: linear-gradient(135deg, var(--bg-highlight), var(--bg-elevated));
+}
+
+.acc-avatar-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-highlight);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+
+.acc-avatar-badge:hover {
+  background: var(--bg-highlight);
+}
+
+.acc-avatar-badge:active {
+  transform: scale(0.92);
+}
+
+.acc-avatar-badge .material-icons {
+  font-size: 18px;
+}
+
+.acc-header-side {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.acc-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--bg-highlight);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.acc-icon-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.acc-icon-btn:active {
+  transform: scale(0.93);
+}
+
+.acc-icon-btn .material-icons {
+  font-size: 19px;
+}
+
+.acc-icon-btn.danger:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.acc-name {
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+  word-break: break-word;
+}
+
+.acc-username {
+  font-size: 17px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.acc-username button {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+}
+
+.acc-username button:hover {
+  color: var(--text-primary);
+}
+
+.acc-username .material-icons {
+  font-size: 16px;
+}
+
+.acc-private-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-highlight);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.acc-private-chip .material-icons {
+  font-size: 13px;
+}
+
+.acc-bio {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 2px 0 12px;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.acc-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.acc-link-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-highlight);
+  border-radius: 999px;
+  padding: 7px 14px 7px 9px;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.acc-link-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--text-tertiary);
+  background: var(--bg-elevated);
+}
+
+.acc-link-chip .material-icons {
+  font-size: 16px;
+}
+
+/* ---------- Action buttons ---------- */
+
+.acc-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.acc-primary-btn {
+  width: 100%;
+  background: var(--accent);
+  color: var(--accent-contrast, #000);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.acc-primary-btn:hover {
+  background: var(--accent-hover);
+}
+
+.acc-primary-btn:active {
+  transform: scale(0.99);
+}
+
+.acc-primary-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
+.acc-primary-btn.is-following {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--bg-highlight);
+}
+
+.acc-primary-btn.is-following:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.acc-stats {
+  display: flex;
+  gap: 28px;
+  margin-top: 18px;
+  font-size: 15px;
+}
+
+.acc-stat {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.acc-stat b {
+  font-weight: 700;
+}
+
+.acc-stat span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.acc-stat:hover span {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+/* ---------- Sections & cards ---------- */
+
+.acc-section {
+  margin-top: 40px;
+  width: 100%;
+}
+
+.acc-section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-primary);
+  width: fit-content;
+}
+
+.acc-section-head h2 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin: 0;
+}
+
+.acc-section-head:hover h2 {
+  text-decoration: underline;
+}
+
+.acc-section-head .material-icons {
+  font-size: 20px;
+}
+
+.acc-section-head.static {
+  cursor: default;
+}
+
+.acc-section-head.static:hover h2 {
+  text-decoration: none;
+}
+
+.acc-section-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-highlight);
+  border-radius: 999px;
+  padding: 2px 9px;
+  margin-left: 2px;
+}
+
+.acc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.acc-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-highlight);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  width: 100%;
+}
+
+.acc-search-row {
+  display: flex;
+  gap: 10px;
+}
+
+.acc-search-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0 18px;
+  height: 46px;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.acc-search-field:focus-within {
+  border-color: var(--text-tertiary);
+  background: var(--bg-highlight);
+}
+
+.acc-search-field .material-icons {
+  color: var(--text-tertiary);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.acc-search-field .at {
+  color: var(--text-tertiary);
+  font-size: 16px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.acc-search-field input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.acc-search-field input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.acc-search-results {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+}
+
+.acc-search-hint {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  padding: 12px 4px 4px;
+}
+
+/* ---------- User rows ---------- */
+
+.acc-user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.acc-user-row:hover {
+  background: var(--bg-elevated);
+}
+
+.acc-user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-highlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.acc-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.acc-user-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.acc-user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acc-user-name .material-icons {
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+.acc-user-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acc-mini-btn {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--bg-highlight);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.acc-mini-btn:hover {
+  border-color: var(--text-primary);
+}
+
+.acc-mini-btn.solid {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--bg-base);
+}
+
+.acc-mini-btn.solid:hover {
+  opacity: 0.85;
+}
+
+.acc-mini-btn.subscribed {
+  background: var(--bg-elevated);
+}
+
+.acc-mini-btn.subscribed:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.acc-mini-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.acc-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.acc-accept-btn,
+.acc-decline-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--bg-highlight);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    border-color 0.15s ease;
+}
+
+.acc-accept-btn .material-icons,
+.acc-decline-btn .material-icons {
+  font-size: 18px;
+}
+
+.acc-accept-btn:hover {
+  border-color: #1db954;
+  color: #1db954;
+}
+
+.acc-decline-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.acc-accept-btn:active,
+.acc-decline-btn:active {
+  transform: scale(0.9);
+}
+
+/* ---------- Notices / empty states ---------- */
+
+.acc-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-highlight);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-top: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.acc-notice .material-icons {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.acc-notice b {
+  color: var(--text-primary);
+}
+
+.acc-notice .acc-mini-btn {
+  margin-top: 10px;
+}
+
+.acc-empty {
+  color: var(--text-tertiary);
+  font-size: 14px;
+  padding: 18px 4px;
+  text-align: center;
+}
+
+.acc-private-lock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 16px;
+  color: var(--text-tertiary);
+  text-align: center;
+  background: var(--bg-surface);
+  border: 1px dashed var(--bg-highlight);
+  border-radius: var(--radius-lg);
+}
+
+.acc-private-lock .material-icons {
+  font-size: 32px;
+}
+
+.acc-private-lock p {
+  margin: 0;
+  font-size: 14px;
+  max-width: 340px;
+  line-height: 1.5;
+}
+
+/* ---------- Edit profile (Stitch: _2) ---------- */
+
+.acc-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-base);
+}
+
+.acc-topbar-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px 4px;
+}
+
+.acc-topbar-btn:hover {
+  color: var(--text-primary);
+}
+
+.acc-topbar-btn.save {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.acc-topbar-btn.save:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.acc-topbar-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.acc-edit-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 24px;
+}
+
+.acc-edit-avatar .acc-avatar-wrap,
+.acc-edit-avatar .acc-avatar {
+  width: 112px;
+  height: 112px;
+}
+
+.acc-camera-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-highlight);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.12s ease;
+}
+
+.acc-camera-badge:hover {
+  transform: scale(1.06);
+}
+
+.acc-camera-badge .material-icons {
+  font-size: 19px;
+}
+
+.acc-change-photo {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: #1db954;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.acc-change-photo:hover {
+  text-decoration: underline;
+}
+
+.acc-remove-photo {
+  margin-top: 4px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.acc-remove-photo:hover {
+  color: var(--danger);
+}
+
+.acc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 40px;
+}
+
+.acc-field label,
+.acc-field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+  padding-left: 4px;
+}
+
+.acc-char-count {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-tertiary);
+}
+
+.acc-input-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--bg-elevated);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 0 16px;
+  min-height: 52px;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.acc-input-wrap:focus-within {
+  background: var(--bg-highlight);
+  border-color: var(--text-tertiary);
+}
+
+.acc-input-wrap input,
+.acc-input-wrap textarea {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+  padding: 14px 0;
+}
+
+.acc-input-wrap textarea {
+  resize: none;
+  line-height: 1.5;
+}
+
+.acc-input-wrap input::placeholder,
+.acc-input-wrap textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.acc-input-wrap .at {
+  color: var(--text-tertiary);
+  font-size: 16px;
+  font-weight: 600;
+  margin-right: 4px;
+  user-select: none;
+}
+
+.acc-input-clear {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.acc-input-clear:hover {
+  color: var(--text-primary);
+}
+
+.acc-input-clear .material-icons {
+  font-size: 18px;
+}
+
+.acc-username-status {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.acc-username-status .material-icons {
+  font-size: 22px;
+}
+
+.acc-username-status.ok {
+  color: #1db954;
+}
+
+.acc-username-status.bad {
+  color: var(--danger);
+}
+
+.acc-username-status.checking {
+  color: var(--text-tertiary);
+}
+
+.acc-username-status.checking .material-icons {
+  animation: acc-spin 0.9s linear infinite;
+}
+
+@keyframes acc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.acc-username-hint {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin: 7px 0 0 4px;
+}
+
+.acc-username-hint.error {
+  color: var(--danger);
+}
+
+.acc-links-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.acc-link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px 6px 12px;
+  transition: background 0.15s ease;
+}
+
+.acc-link-row + .acc-link-row {
+  border-top: 1px solid var(--bg-highlight);
+}
+
+.acc-link-row:focus-within {
+  background: var(--bg-highlight);
+}
+
+.acc-link-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.acc-link-icon .material-icons {
+  font-size: 17px;
+}
+
+.acc-link-row .acc-link-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  width: 104px;
+  flex-shrink: 0;
+}
+
+.acc-link-row input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  padding: 12px 0;
+  text-align: right;
+}
+
+.acc-link-row input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.acc-privacy-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.acc-privacy-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acc-privacy-text b {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.acc-privacy-text span {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.acc-toggle {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  background: var(--bg-highlight);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+  padding: 0;
+}
+
+.acc-toggle .acc-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.acc-toggle[aria-checked='true'] {
+  background: #1db954;
+}
+
+.acc-toggle[aria-checked='true'] .acc-toggle-thumb {
+  transform: translateX(22px);
+}
+
+/* ---------- Followers modal ---------- */
+
+.acc-list-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: acc-fade-in 0.18s ease;
+}
+
+.acc-list-modal {
+  width: 100%;
+  max-width: 440px;
+  max-height: 70vh;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-highlight);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.acc-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 12px 20px;
+  border-bottom: 1px solid var(--bg-highlight);
+}
+
+.acc-list-head h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.acc-list-body {
+  overflow-y: auto;
+  padding: 8px 12px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.acc-list-body .acc-user-row {
+  padding: 10px 8px;
+}
+
+.acc-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.acc-loading .material-icons {
+  animation: acc-spin 0.9s linear infinite;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 560px) {
+  .acc-name {
+    font-size: 30px;
+  }
+
+  .acc-avatar-wrap,
+  .acc-avatar {
+    width: 96px;
+    height: 96px;
+  }
+
+  .acc-avatar {
+    font-size: 36px;
+  }
+
+  .acc-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .acc-link-row .acc-link-name {
+    width: 86px;
+  }
+}

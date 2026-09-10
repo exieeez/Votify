@@ -1,3 +1,4 @@
+/* eslint-env browser */
 (() => {
   const state = {
     initialized: false,
@@ -33,6 +34,39 @@
 
   const PROFILE_FRAMES = ['none', 'glow', 'neon', 'rainbow', 'pixel', 'double', 'heart'];
 
+  // Shared social validators (social-validate.js). Loaded before this file.
+  function socialValidators() {
+    const validators = typeof window !== 'undefined' ? window.VotifySocialValidate : null;
+    if (!validators) throw new Error('Социальные функции недоступны: обновите приложение');
+    return validators;
+  }
+
+  function cleanAvatarValue(value) {
+    const raw = String(value || '');
+    return raw.startsWith('data:image/') ? raw.slice(0, 150000) : '';
+  }
+
+  function cleanUsernameValue(value) {
+    const normalized = String(value || '')
+      .trim()
+      .replace(/^@+/, '')
+      .toLowerCase()
+      .slice(0, 32);
+    return /^[a-z][a-z0-9_]{2,31}$/.test(normalized) ? normalized : '';
+  }
+
+  function cleanLinksValue(raw = {}) {
+    const clean = value =>
+      String(value || '')
+        .trim()
+        .slice(0, 120);
+    return {
+      telegram: clean(raw.telegram),
+      soundcloud: clean(raw.soundcloud),
+      vk: clean(raw.vk),
+    };
+  }
+
   function cleanProfile(profile = {}) {
     const bannerRaw = String(profile.banner || '').trim();
     const cursorRaw = String(profile.cursor || '').trim();
@@ -40,18 +74,63 @@
       displayName: String(profile.displayName || '')
         .trim()
         .slice(0, 40),
-      avatar: String(profile.avatar || '').startsWith('data:image/')
-        ? String(profile.avatar).slice(0, 150000)
-        : '',
-      about: String(profile.about || '').trim().slice(0, 300),
+      avatar: cleanAvatarValue(profile.avatar),
+      about: String(profile.about || '')
+        .trim()
+        .slice(0, 300),
       banner: bannerRaw.startsWith('data:image/')
         ? bannerRaw.slice(0, 200000)
         : /^https:\/\/[^\s]{1,300}$/.test(bannerRaw)
           ? bannerRaw
-          : oneOf(bannerRaw, ['grad-1','grad-2','grad-3','grad-4','grad-5','grad-6','grad-7','grad-8','grad-9',''], ''),
+          : oneOf(
+              bannerRaw,
+              [
+                'grad-1',
+                'grad-2',
+                'grad-3',
+                'grad-4',
+                'grad-5',
+                'grad-6',
+                'grad-7',
+                'grad-8',
+                'grad-9',
+                '',
+              ],
+              ''
+            ),
       frame: oneOf(profile.frame, PROFILE_FRAMES, 'none'),
       cursor: cursorRaw.startsWith('data:image/') ? cursorRaw.slice(0, 80000) : '',
+      username: cleanUsernameValue(profile.username),
+      links: cleanLinksValue(profile.links),
+      isPrivate: !!profile.isPrivate,
     };
+  }
+
+  // Same as cleanProfile, but only returns keys that were actually provided,
+  // so partial saves never wipe fields like username/links/isPrivate.
+  function cleanProfilePatch(profile = {}) {
+    const patch = {};
+    if ('displayName' in profile) {
+      patch.displayName = String(profile.displayName || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 40);
+    }
+    if ('avatar' in profile) patch.avatar = cleanAvatarValue(profile.avatar);
+    if ('about' in profile)
+      patch.about = String(profile.about || '')
+        .trim()
+        .slice(0, 300);
+    if ('banner' in profile || 'frame' in profile || 'cursor' in profile) {
+      const full = cleanProfile(profile);
+      if ('banner' in profile) patch.banner = full.banner;
+      if ('frame' in profile) patch.frame = full.frame;
+      if ('cursor' in profile) patch.cursor = full.cursor;
+    }
+    if ('username' in profile) patch.username = cleanUsernameValue(profile.username);
+    if ('links' in profile) patch.links = cleanLinksValue(profile.links);
+    if ('isPrivate' in profile) patch.isPrivate = !!profile.isPrivate;
+    return patch;
   }
 
   function oneOf(value, allowed, fallback) {
@@ -205,6 +284,23 @@
     return profileRef(uid).collection('sync').doc(name);
   }
 
+  // --- Social refs (usernames / public profiles / follows) ---
+  function usernameRef(name) {
+    return state.db.collection('usernames').doc(name);
+  }
+
+  function publicProfileRef(uid) {
+    return state.db.collection('profiles').doc(uid);
+  }
+
+  function followRef(followerUid, followingUid) {
+    return state.db.collection('follows').doc(`${followerUid}_${followingUid}`);
+  }
+
+  function followRequestRef(followerUid, followingUid) {
+    return state.db.collection('followRequests').doc(`${followerUid}_${followingUid}`);
+  }
+
   async function ensureProfile(user) {
     const reference = profileRef(user.uid);
     const snapshot = await reference.get();
@@ -218,6 +314,9 @@
         banner: '',
         frame: 'none',
         cursor: '',
+        username: '',
+        links: { telegram: '', soundcloud: '', vk: '' },
+        isPrivate: false,
         createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
       };
@@ -317,9 +416,9 @@
 
   async function saveProfile(profile) {
     const user = await requireUser();
-    const safe = cleanProfile(profile);
+    const safe = cleanProfilePatch(profile);
     if (safe.displayName && safe.displayName !== user.displayName) {
-      await user.updateProfile({ displayName: safe.displayName });
+      await user.updateProfile({ displayName: safe.displayName }).catch(() => {});
     }
     await profileRef(user.uid).set(
       {
@@ -331,6 +430,14 @@
       { merge: true }
     );
     state.profile = { ...(state.profile || {}), ...safe };
+    // Keep the public snapshot fresh; never break legacy saves when the
+    // social collections are unavailable (e.g. old Firestore rules).
+    // Guests stay device-local and never get a public profile.
+    if (!user.isAnonymous) {
+      writePublicSnapshot(user, state.profile).catch(error => {
+        console.warn('[Firebase] public profile sync skipped:', error?.message || error);
+      });
+    }
     dispatchAuthState();
     return state.profile;
   }
@@ -352,6 +459,8 @@
 
   async function pushState({ settings, playlists, history }) {
     const user = await requireUser();
+    // Public playlist showcase follows the library automatically.
+    void syncShowcase(playlists);
     const updatedAt = window.firebase.firestore.FieldValue.serverTimestamp();
     const batch = state.db.batch();
     batch.set(syncRef(user.uid, 'settings'), { value: settings || {}, updatedAt }, { merge: true });
@@ -425,6 +534,581 @@
     await reference.delete();
   }
 
+  // ==========================================
+  // SOCIAL: usernames, public profiles, friends
+  // ==========================================
+
+  function serverTimestamp() {
+    return window.firebase.firestore.FieldValue.serverTimestamp();
+  }
+
+  function sanitizeShowcase(items) {
+    if (!Array.isArray(items)) return [];
+    return items.slice(0, 20).map(item => {
+      const cover = String(item?.cover || '');
+      return {
+        name: String(item?.name || 'Плейлист').slice(0, 60),
+        count: Math.max(0, Math.min(100000, Number(item?.count) || 0)),
+        cover:
+          cover.length <= 2048 && (cover === '' || /^https:\/\/[^/\s@]+[^@\s]*$/.test(cover))
+            ? cover
+            : '',
+      };
+    });
+  }
+
+  function publicDisplayName(user, profile) {
+    const candidates = [
+      profile?.displayName,
+      user?.displayName,
+      (user?.email || '').split('@')[0],
+      profile?.username,
+    ];
+    for (const candidate of candidates) {
+      const name = String(candidate || '')
+        .trim()
+        .slice(0, 40);
+      if (name) return name;
+    }
+    return 'Пользователь';
+  }
+
+  // Writes profiles/{uid} (public snapshot). Preserves follower counters,
+  // initializes them with 0 on first creation. Private profiles never
+  // expose their playlist showcase.
+  async function writePublicSnapshot(user, profile, showcaseInput) {
+    await requireCloud();
+    const validators = socialValidators();
+    const current = profile || {};
+    const reference = publicProfileRef(user.uid);
+    const snapshot = await reference.get();
+    const isNew = !snapshot.exists;
+    const isPrivate = !!current.isPrivate;
+    let showcase = [];
+    if (!isPrivate) {
+      if (Array.isArray(showcaseInput)) showcase = sanitizeShowcase(showcaseInput);
+      else if (Array.isArray(snapshot.data()?.showcase)) {
+        showcase = sanitizeShowcase(snapshot.data().showcase);
+      }
+    }
+    const links = current.links || {};
+    await reference.set(
+      {
+        ...(isNew ? { followersCount: 0, followingCount: 0 } : {}),
+        displayName: publicDisplayName(user, current),
+        username: cleanUsernameValue(current.username),
+        avatar: cleanAvatarValue(current.avatar),
+        about: String(current.about || '').slice(0, 300),
+        links: validators.sanitizeLinks ? validators.sanitizeLinks(links) : cleanLinksValue(links),
+        isPrivate,
+        showcase,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    state.publicSnapshotKnown = true;
+  }
+
+  async function ensurePublicSnapshot() {
+    const user = await requireUser();
+    if (user.isAnonymous) return null;
+    if (state.publicSnapshotKnown) return true;
+    const snapshot = await publicProfileRef(user.uid).get();
+    if (snapshot.exists) {
+      state.publicSnapshotKnown = true;
+      return true;
+    }
+    await writePublicSnapshot(user, state.profile || {}, []);
+    return true;
+  }
+
+  // Keeps the public playlist showcase in sync with the local/cloud library.
+  // Best-effort: never throws, never blocks cloud sync.
+  async function syncShowcase(playlists) {
+    try {
+      const user = state.auth?.currentUser;
+      if (!user || user.isAnonymous) return;
+      await requireCloud();
+      const validators = socialValidators();
+      const showcase = state.profile?.isPrivate ? [] : validators.buildShowcase(playlists);
+      if (state.publicSnapshotKnown && !state.profile?.isPrivate) {
+        await publicProfileRef(user.uid).set(
+          { showcase, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+        return;
+      }
+      const snapshot = await publicProfileRef(user.uid).get();
+      if (!snapshot.exists) {
+        await writePublicSnapshot(user, state.profile || {}, showcase);
+        return;
+      }
+      state.publicSnapshotKnown = true;
+      await publicProfileRef(user.uid).set(
+        {
+          showcase: snapshot.data()?.isPrivate ? [] : showcase,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    } catch (error) {
+      console.warn('[Firebase] showcase sync skipped:', error?.message || error);
+    }
+  }
+
+  function normalizeUsername(raw) {
+    return socialValidators().normalizeUsername(raw);
+  }
+
+  // Live availability check for the edit-profile form.
+  async function checkUsername(raw) {
+    const validators = socialValidators();
+    const { ok, value, error } = validators.validateUsername(raw);
+    if (!ok) return { ok: false, value, error, available: false, mine: false };
+    await requireCloud();
+    const me = state.auth.currentUser;
+    const snapshot = await usernameRef(value).get();
+    if (!snapshot.exists) return { ok: true, value, error: '', available: true, mine: false };
+    if (me && snapshot.data()?.uid === me.uid) {
+      return { ok: true, value, error: '', available: true, mine: true };
+    }
+    return { ok: true, value, error: 'taken', available: false, mine: false };
+  }
+
+  // Atomic claim inside a transaction: whoever creates usernames/{name}
+  // first owns it. Releases the previous handle on rename.
+  async function claimUsernameTx(uid, value, previous) {
+    await state.db.runTransaction(async transaction => {
+      const snapshot = await transaction.get(usernameRef(value));
+      if (snapshot.exists && snapshot.data()?.uid !== uid) {
+        const error = new Error('Этот юзернейм уже занят');
+        error.code = 'username-taken';
+        throw error;
+      }
+      transaction.set(usernameRef(value), { uid, updatedAt: serverTimestamp() });
+      if (previous && previous !== value) transaction.delete(usernameRef(previous));
+    });
+  }
+
+  // Full account save from the Edit Profile screen. Username changes go
+  // through the atomic claim; everything else is a plain profile merge.
+  async function saveAccountProfile(input = {}) {
+    const validators = socialValidators();
+    const user = await requireUser();
+    const current = state.profile || {};
+    const patch = {};
+
+    if ('displayName' in input) {
+      const name = validators.sanitizeDisplayName(input.displayName);
+      patch.displayName =
+        name ||
+        current.displayName ||
+        user.displayName ||
+        (user.email || '').split('@')[0] ||
+        'Пользователь';
+    }
+    if ('about' in input) patch.about = validators.sanitizeBio(input.about);
+    if ('avatar' in input) patch.avatar = cleanAvatarValue(input.avatar);
+    if ('links' in input) patch.links = validators.sanitizeLinks(input.links || {});
+    if ('isPrivate' in input) patch.isPrivate = !!input.isPrivate;
+
+    if ('username' in input) {
+      const wanted = validators.normalizeUsername(input.username);
+      if (wanted !== (current.username || '')) {
+        if (user.isAnonymous) {
+          throw new Error('Гостям недоступны юзернеймы: создайте постоянный аккаунт');
+        }
+        if (!wanted) {
+          // Clearing is not allowed once claimed: the handle stays reserved
+          // to the owner instead of being released to strangers.
+          patch.username = current.username || '';
+        } else {
+          const { ok, value, error } = validators.validateUsername(wanted);
+          if (!ok) {
+            const validationError = new Error(validators.usernameErrorText(error));
+            validationError.code = 'username-invalid';
+            throw validationError;
+          }
+          await claimUsernameTx(user.uid, value, current.username || '');
+          patch.username = value;
+        }
+      }
+    }
+
+    if (patch.displayName && patch.displayName !== user.displayName) {
+      await user.updateProfile({ displayName: patch.displayName }).catch(() => {});
+    }
+    await profileRef(user.uid).set(
+      {
+        ...patch,
+        email: user.email || '',
+        isAnonymous: !!user.isAnonymous,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    state.profile = { ...(state.profile || {}), ...patch };
+    if (!user.isAnonymous) {
+      await writePublicSnapshot(
+        user,
+        state.profile,
+        Array.isArray(input.showcase) ? input.showcase : undefined
+      );
+    }
+    dispatchAuthState();
+    return getProfile();
+  }
+
+  function sanitizePublicProfile(data = {}) {
+    const links = data.links || {};
+    return {
+      displayName: String(data.displayName || 'Пользователь').slice(0, 40),
+      username: cleanUsernameValue(data.username),
+      avatar: cleanAvatarValue(data.avatar),
+      about: String(data.about || '').slice(0, 300),
+      links: {
+        telegram: String(links.telegram || '').slice(0, 120),
+        soundcloud: String(links.soundcloud || '').slice(0, 120),
+        vk: String(links.vk || '').slice(0, 120),
+      },
+      isPrivate: !!data.isPrivate,
+      followersCount: Math.max(0, Number(data.followersCount) || 0),
+      followingCount: Math.max(0, Number(data.followingCount) || 0),
+      showcase: sanitizeShowcase(data.showcase),
+    };
+  }
+
+  async function fetchPublicProfile(uid) {
+    await requireCloud();
+    const id = String(uid || '').trim();
+    if (!id) return null;
+    const snapshot = await publicProfileRef(id).get();
+    if (!snapshot.exists) return null;
+    return { uid: id, ...sanitizePublicProfile(snapshot.data()) };
+  }
+
+  async function fetchProfileByUsername(username) {
+    const validators = socialValidators();
+    const { ok, value } = validators.validateUsername(username);
+    if (!ok) return null;
+    await requireCloud();
+    const snapshot = await usernameRef(value).get();
+    if (!snapshot.exists || !snapshot.data()?.uid) return null;
+    return fetchPublicProfile(snapshot.data().uid);
+  }
+
+  // Prefix search over the username registry ("du" -> durov, duncan, ...).
+  async function searchUsers(query, limit = 8) {
+    const validators = socialValidators();
+    const prefix = validators
+      .normalizeUsername(query)
+      .replace(/[^a-z0-9_]/g, '')
+      .slice(0, 32);
+    if (prefix.length < 2) return [];
+    await requireCloud();
+    const snapshot = await state.db
+      .collection('usernames')
+      .orderBy(window.firebase.firestore.FieldPath.documentId())
+      .startAt(prefix)
+      .endAt(prefix + '\uf8ff')
+      .limit(Math.max(1, Math.min(15, Number(limit) || 8)))
+      .get();
+    const entries = snapshot.docs
+      .map(doc => ({ username: doc.id, uid: doc.data()?.uid }))
+      .filter(entry => entry.uid);
+    const profiles = await Promise.all(
+      entries.map(entry => fetchPublicProfile(entry.uid).catch(() => null))
+    );
+    return entries
+      .map((entry, index) => {
+        const profile = profiles[index];
+        if (!profile) return null;
+        return { ...profile, uid: entry.uid, username: entry.username };
+      })
+      .filter(Boolean);
+  }
+
+  // 'self' | 'following' | 'requested' | 'none'
+  async function getFollowState(targetUid) {
+    const me = await requireUser();
+    const target = String(targetUid || '').trim();
+    if (!target || target === me.uid) return { state: 'self' };
+    const [followSnap, requestSnap] = await Promise.all([
+      followRef(me.uid, target).get(),
+      followRequestRef(me.uid, target).get(),
+    ]);
+    if (followSnap.exists) return { state: 'following' };
+    if (requestSnap.exists) return { state: 'requested' };
+    return { state: 'none' };
+  }
+
+  function requireSocialUser() {
+    return requireUser().then(user => {
+      if (user.isAnonymous) {
+        throw new Error('Войдите или создайте аккаунт, чтобы добавлять друзей');
+      }
+      return user;
+    });
+  }
+
+  async function followUid(targetUid) {
+    const me = await requireSocialUser();
+    const target = String(targetUid || '').trim();
+    if (!target) throw new Error('Пользователь не найден');
+    if (target === me.uid) throw new Error('Нельзя подписаться на себя');
+    const targetProfile = await fetchPublicProfile(target);
+    if (!targetProfile) throw new Error('Пользователь не найден');
+    await ensurePublicSnapshot();
+    const [followSnap, requestSnap] = await Promise.all([
+      followRef(me.uid, target).get(),
+      followRequestRef(me.uid, target).get(),
+    ]);
+    if (followSnap.exists) return { state: 'following', profile: targetProfile };
+    if (requestSnap.exists) return { state: 'requested', profile: targetProfile };
+    if (targetProfile.isPrivate) {
+      await followRequestRef(me.uid, target).set({
+        follower: me.uid,
+        following: target,
+        createdAt: serverTimestamp(),
+      });
+      return { state: 'requested', profile: targetProfile };
+    }
+    const batch = state.db.batch();
+    batch.set(followRef(me.uid, target), {
+      follower: me.uid,
+      following: target,
+      createdAt: serverTimestamp(),
+    });
+    batch.set(
+      publicProfileRef(me.uid),
+      {
+        followingCount: window.firebase.firestore.FieldValue.increment(1),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    batch.set(
+      publicProfileRef(target),
+      {
+        followersCount: window.firebase.firestore.FieldValue.increment(1),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    await batch.commit();
+    return { state: 'following', profile: targetProfile };
+  }
+
+  async function followByUsername(username) {
+    const validators = socialValidators();
+    const { ok, value } = validators.validateUsername(username);
+    if (!ok) throw new Error(validators.usernameErrorText('empty'));
+    const profile = await fetchProfileByUsername(value);
+    if (!profile) throw new Error('Пользователь с таким юзернеймом не найден');
+    return followUid(profile.uid);
+  }
+
+  async function unfollowUid(targetUid) {
+    const me = await requireSocialUser();
+    const target = String(targetUid || '').trim();
+    if (!target || target === me.uid) return { state: 'self' };
+    const [followSnap, requestSnap] = await Promise.all([
+      followRef(me.uid, target).get(),
+      followRequestRef(me.uid, target).get(),
+    ]);
+    if (!followSnap.exists && !requestSnap.exists) return { state: 'none' };
+    const batch = state.db.batch();
+    if (followSnap.exists) {
+      batch.delete(followRef(me.uid, target));
+      batch.set(
+        publicProfileRef(me.uid),
+        {
+          followingCount: window.firebase.firestore.FieldValue.increment(-1),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      batch.set(
+        publicProfileRef(target),
+        {
+          followersCount: window.firebase.firestore.FieldValue.increment(-1),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+    if (requestSnap.exists) batch.delete(followRequestRef(me.uid, target));
+    await batch.commit();
+    return { state: 'none' };
+  }
+
+  // Removes one of my followers (they stay un-notified, like a block-lite).
+  async function removeFollower(followerUid) {
+    const me = await requireSocialUser();
+    const follower = String(followerUid || '').trim();
+    if (!follower || follower === me.uid) return false;
+    const snapshot = await followRef(follower, me.uid).get();
+    if (!snapshot.exists) return false;
+    const batch = state.db.batch();
+    batch.delete(followRef(follower, me.uid));
+    batch.set(
+      publicProfileRef(me.uid),
+      {
+        followersCount: window.firebase.firestore.FieldValue.increment(-1),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    batch.set(
+      publicProfileRef(follower),
+      {
+        followingCount: window.firebase.firestore.FieldValue.increment(-1),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    await batch.commit();
+    return true;
+  }
+
+  async function listFollowEdges(field, uid, limit = 50) {
+    await requireCloud();
+    const id = String(uid || '').trim();
+    if (!id) return [];
+    const snapshot = await state.db
+      .collection('follows')
+      .where(field, '==', id)
+      .limit(Math.max(1, Math.min(100, Number(limit) || 50)))
+      .get();
+    const items = snapshot.docs
+      .map(doc => {
+        const edge = doc.data() || {};
+        return {
+          uid: field === 'following' ? edge.follower : edge.following,
+          createdAt: edge.createdAt?.toMillis?.() || 0,
+        };
+      })
+      .filter(item => item.uid)
+      .sort((a, b) => b.createdAt - a.createdAt);
+    const profiles = await Promise.all(
+      items.map(item => fetchPublicProfile(item.uid).catch(() => null))
+    );
+    return items
+      .map((item, index) => {
+        const profile = profiles[index];
+        if (!profile) return null;
+        return { ...profile, uid: item.uid, followedAt: item.createdAt };
+      })
+      .filter(Boolean);
+  }
+
+  async function listFollowers(uid, limit) {
+    return listFollowEdges('following', uid, limit);
+  }
+
+  async function listFollowing(uid, limit) {
+    return listFollowEdges('follower', uid, limit);
+  }
+
+  // Mutual follows = friends.
+  async function listFriends(uid, limit = 50) {
+    const [followers, following] = await Promise.all([
+      listFollowers(uid, 100),
+      listFollowing(uid, 100),
+    ]);
+    const followerIds = new Set(followers.map(user => user.uid));
+    return following
+      .filter(user => followerIds.has(user.uid))
+      .slice(0, Math.max(1, Math.min(100, Number(limit) || 50)));
+  }
+
+  async function listFollowRequests(direction = 'incoming', limit = 50) {
+    const me = await requireUser();
+    const field = direction === 'outgoing' ? 'follower' : 'following';
+    const snapshot = await state.db
+      .collection('followRequests')
+      .where(field, '==', me.uid)
+      .limit(Math.max(1, Math.min(100, Number(limit) || 50)))
+      .get();
+    const items = snapshot.docs
+      .map(doc => {
+        const edge = doc.data() || {};
+        return {
+          uid: direction === 'outgoing' ? edge.following : edge.follower,
+          createdAt: edge.createdAt?.toMillis?.() || 0,
+        };
+      })
+      .filter(item => item.uid);
+    const profiles = await Promise.all(
+      items.map(item => fetchPublicProfile(item.uid).catch(() => null))
+    );
+    return items
+      .map((item, index) => {
+        const profile = profiles[index];
+        if (!profile) return null;
+        return { ...profile, uid: item.uid, requestedAt: item.createdAt };
+      })
+      .filter(Boolean);
+  }
+
+  function listIncomingRequests(limit) {
+    return listFollowRequests('incoming', limit);
+  }
+
+  function listOutgoingRequests(limit) {
+    return listFollowRequests('outgoing', limit);
+  }
+
+  async function acceptRequest(followerUid) {
+    const me = await requireSocialUser();
+    const follower = String(followerUid || '').trim();
+    if (!follower) throw new Error('Заявка не найдена');
+    const requestSnap = await followRequestRef(follower, me.uid).get();
+    if (!requestSnap.exists) throw new Error('Заявка не найдена');
+    await ensurePublicSnapshot();
+    const batch = state.db.batch();
+    batch.delete(followRequestRef(follower, me.uid));
+    batch.set(followRef(follower, me.uid), {
+      follower,
+      following: me.uid,
+      createdAt: serverTimestamp(),
+    });
+    batch.set(
+      publicProfileRef(me.uid),
+      {
+        followersCount: window.firebase.firestore.FieldValue.increment(1),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    batch.set(
+      publicProfileRef(follower),
+      {
+        followingCount: window.firebase.firestore.FieldValue.increment(1),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    await batch.commit();
+    return true;
+  }
+
+  async function declineRequest(followerUid) {
+    const me = await requireUser();
+    const follower = String(followerUid || '').trim();
+    if (!follower) return false;
+    await followRequestRef(follower, me.uid).delete();
+    return true;
+  }
+
+  async function cancelRequest(targetUid) {
+    const me = await requireUser();
+    const target = String(targetUid || '').trim();
+    if (!target) return false;
+    await followRequestRef(me.uid, target).delete();
+    return true;
+  }
+
   function onAuthChanged(listener) {
     authListeners.add(listener);
     if (state.initialized) listener({ user: publicUser(state.user), profile: state.profile });
@@ -456,6 +1140,8 @@
         'Аккаунт с этим email уже использует другой способ входа',
       'auth/popup-closed-by-user': 'Вход через Google отменён',
       'auth/requires-recent-login': 'Войдите в аккаунт повторно',
+      'username-taken': 'Этот юзернейм уже занят',
+      'username-invalid': 'Некорректный юзернейм',
       'permission-denied':
         'Нет доступа Firestore. Опубликуйте актуальные правила из firestore.rules',
       'firestore/permission-denied':
@@ -506,6 +1192,13 @@
       return;
     }
     updateAccountUi();
+    // Full account page (profile + friends). Falls back to the legacy
+    // overlay only if the account screen is unavailable.
+    if (typeof window.switchScreen === 'function' && document.getElementById('account-screen')) {
+      window.switchScreen('account-screen', 'nav-profile-btn');
+      if (window.VotifyAccount?.render) window.VotifyAccount.render();
+      return;
+    }
     const overlay = document.getElementById('profile-overlay');
     if (overlay) overlay.style.display = 'flex';
   }
@@ -773,8 +1466,30 @@
     sendPasswordReset,
     signOut,
     saveProfile,
+    saveAccountProfile,
+    checkUsername,
+    normalizeUsername,
+    fetchPublicProfile,
+    fetchProfileByUsername,
+    searchUsers,
+    getFollowState,
+    followUid,
+    followByUsername,
+    unfollowUid,
+    removeFollower,
+    listFollowers,
+    listFollowing,
+    listFriends,
+    listIncomingRequests,
+    listOutgoingRequests,
+    acceptRequest,
+    declineRequest,
+    cancelRequest,
+    syncShowcase,
+    ensurePublicSnapshot,
     pullState,
     pushState,
+    avatarFromFile: fileToAvatar,
     listWorkshopThemes,
     publishWorkshopTheme,
     deleteWorkshopTheme,

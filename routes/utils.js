@@ -178,6 +178,77 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+const STATIC_MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+};
+
+function getStaticRoot() {
+  // Electron sets VOTIFY_SRC_DIR (unpacked asar); plain `node server.js` uses ./src.
+  const configured = process.env.VOTIFY_SRC_DIR;
+  if (configured && fs.existsSync(configured)) return configured;
+  return path.join(appRoot, 'src');
+}
+
+// Serves the frontend (src/). HTML is never cached so previews and the
+// desktop app always boot the latest markup; hashed/versioned assets below
+// carry their own ?v= query and are safe to cache briefly.
+async function serveStatic(pathname, res) {
+  const root = getStaticRoot();
+  let decoded = '/index.html';
+  try {
+    decoded = decodeURIComponent(pathname || '/') || '/';
+  } catch {
+    sendJson(res, 400, { error: 'Bad request path' });
+    return;
+  }
+  if (decoded === '/') decoded = '/index.html';
+  const resolved = path.normalize(path.join(root, decoded));
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) {
+    sendJson(res, 403, { error: 'Forbidden' });
+    return;
+  }
+  let filePath = resolved;
+  try {
+    const stat = fs.statSync(filePath);
+    if (stat.isDirectory()) filePath = path.join(filePath, 'index.html');
+  } catch {
+    sendJson(res, 404, { error: 'Not found' });
+    return;
+  }
+  const ext = path.extname(filePath).toLowerCase();
+  const mime = STATIC_MIME[ext] || 'application/octet-stream';
+  try {
+    const data = await fs.promises.readFile(filePath);
+    res.writeHead(200, {
+      'Content-Type': mime,
+      'Content-Length': data.length,
+      'Cache-Control':
+        ext === '.html' ? 'no-store, no-cache, must-revalidate' : 'public, max-age=3600',
+    });
+    res.end(data);
+  } catch {
+    sendJson(res, 404, { error: 'Not found' });
+  }
+}
+
 function isBlockedTitle(title) {
   const lower = String(title || '').toLowerCase();
   return BLOCKED_KEYWORDS.some(k => lower.includes(k));
@@ -938,6 +1009,7 @@ async function scImportPlaylist(playlistUrl) {
 module.exports = {
   // http helpers
   sendJson,
+  serveStatic,
   parseBody,
   httpGet,
   httpPostJSON,

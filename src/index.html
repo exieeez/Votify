@@ -29,9 +29,10 @@
     <link rel="stylesheet" href="fonts.css" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=0.7.8" />
-    <link rel="stylesheet" href="custom-theme.css?v=0.7.8" />
-    <link rel="stylesheet" href="home-personalization.css?v=0.7.8" />
+    <link rel="stylesheet" href="styles.css?v=0.8.0" />
+    <link rel="stylesheet" href="custom-theme.css?v=0.8.0" />
+    <link rel="stylesheet" href="home-personalization.css?v=0.8.0" />
+    <link rel="stylesheet" href="account.css?v=0.8.0" />
     <link rel="stylesheet" href="obsidian.css" />
     <link rel="icon" type="image/png" href="icon.png" />
     <meta name="theme-color" content="#000000" />
@@ -783,7 +784,118 @@
             <div id="album-screen-tracks" class="results-list"></div>
           </div>
         </section>
+
+        <!-- ACCOUNT / PROFILE -->
+        <section id="account-screen" class="screen hidden" style="display:none">
+          <div class="acc-wrap" id="acc-wrap">
+            <div class="acc-loading" id="acc-loading">
+              <i class="material-icons">sync</i><span data-i18n="account-loading">Загружаем профиль…</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- EDIT PROFILE -->
+        <section id="account-edit-screen" class="screen hidden" style="display:none">
+          <div class="acc-wrap">
+            <div class="acc-topbar">
+              <button class="acc-topbar-btn" id="acc-edit-cancel" data-i18n="account-cancel">Отмена</button>
+              <span class="acc-topbar-title" data-i18n="account-edit-title">Редактировать профиль</span>
+              <button class="acc-topbar-btn save" id="acc-edit-save" data-i18n="account-save">Сохранить</button>
+            </div>
+
+            <div class="acc-edit-avatar">
+              <div class="acc-avatar-wrap">
+                <div class="acc-avatar" id="acc-edit-avatar-preview">V</div>
+                <button class="acc-camera-badge" id="acc-edit-avatar-btn" title="Сменить фото">
+                  <i class="material-icons">photo_camera</i>
+                </button>
+                <input type="file" id="acc-edit-avatar-input" accept="image/*" hidden />
+              </div>
+              <button class="acc-change-photo" id="acc-edit-change-photo" data-i18n="account-change-photo">Изменить фото</button>
+              <button class="acc-remove-photo" id="acc-edit-remove-photo" data-i18n="account-remove-photo">Удалить фото профиля</button>
+            </div>
+
+            <div class="acc-form">
+              <div class="acc-field">
+                <label for="acc-edit-name" data-i18n="account-name">Имя</label>
+                <div class="acc-input-wrap">
+                  <input type="text" id="acc-edit-name" maxlength="40" data-i18n-placeholder="account-name-ph" placeholder="Ваше имя" autocomplete="off" />
+                  <button class="acc-input-clear" id="acc-edit-name-clear" title="Очистить">
+                    <i class="material-icons">cancel</i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="acc-field">
+                <label for="acc-edit-username" data-i18n="account-username">Имя пользователя</label>
+                <div class="acc-input-wrap">
+                  <span class="at">@</span>
+                  <input type="text" id="acc-edit-username" maxlength="32" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false" />
+                  <span class="acc-username-status" id="acc-username-status"></span>
+                </div>
+                <p class="acc-username-hint" id="acc-username-hint">votify.app/username</p>
+              </div>
+
+              <div class="acc-field">
+                <label for="acc-edit-bio">
+                  <span data-i18n="account-bio">О себе</span>
+                  <span class="acc-char-count" id="acc-bio-count">0/150</span>
+                </label>
+                <div class="acc-input-wrap">
+                  <textarea id="acc-edit-bio" rows="3" maxlength="150" data-i18n-placeholder="account-bio-ph" placeholder="Расскажите о своём музыкальном вкусе…"></textarea>
+                </div>
+              </div>
+
+              <div class="acc-field">
+                <span class="acc-field-label" data-i18n="account-links">Ссылки</span>
+                <div class="acc-links-card">
+                  <div class="acc-link-row">
+                    <span class="acc-link-icon"><i class="material-icons">send</i></span>
+                    <span class="acc-link-name">Telegram</span>
+                    <input type="text" id="acc-edit-link-telegram" maxlength="120" placeholder="t.me/username" autocomplete="off" autocapitalize="off" spellcheck="false" />
+                  </div>
+                  <div class="acc-link-row">
+                    <span class="acc-link-icon"><i class="material-icons">graphic_eq</i></span>
+                    <span class="acc-link-name">SoundCloud</span>
+                    <input type="text" id="acc-edit-link-soundcloud" maxlength="120" data-i18n-placeholder="account-link-connect" placeholder="Подключить" autocomplete="off" autocapitalize="off" spellcheck="false" />
+                  </div>
+                  <div class="acc-link-row">
+                    <span class="acc-link-icon"><i class="material-icons">link</i></span>
+                    <span class="acc-link-name">ВКонтакте</span>
+                    <input type="text" id="acc-edit-link-vk" maxlength="120" placeholder="vk.com/username" autocomplete="off" autocapitalize="off" spellcheck="false" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="acc-field">
+                <span class="acc-field-label" data-i18n="account-privacy">Приватность</span>
+                <div class="acc-privacy-card">
+                  <div class="acc-privacy-text">
+                    <b data-i18n="account-private-title">Приватный профиль</b>
+                    <span data-i18n="account-private-desc">Ваши публичные плейлисты и статистика будут скрыты от посторонних</span>
+                  </div>
+                  <button class="acc-toggle" id="acc-edit-privacy-toggle" role="switch" aria-checked="false" type="button">
+                    <span class="acc-toggle-thumb"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
+
+      <!-- FOLLOWERS / FOLLOWING MODAL -->
+      <div class="acc-list-overlay" id="acc-list-overlay" style="display:none">
+        <div class="acc-list-modal">
+          <div class="acc-list-head">
+            <h3 id="acc-list-title">Подписчики</h3>
+            <button class="acc-icon-btn" id="acc-list-close" aria-label="Закрыть">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="acc-list-body" id="acc-list-body"></div>
+        </div>
+      </div>
 
       <!-- OLD PLAYER BAR (hidden, keeps IDs alive for existing JS) -->
       <footer class="player-bar" id="player-bar" style="display:none!important">
@@ -1699,9 +1811,11 @@
     <script src="/vendor/firebase-app-compat.js"></script>
     <script src="/vendor/firebase-auth-compat.js"></script>
     <script src="/vendor/firebase-firestore-compat.js"></script>
-    <script src="firebase-client.js?v=0.7.8"></script>
-    <script src="color-schemes.js?v=0.7.8"></script>
-    <script src="main.js?v=0.7.8"></script>
-    <script src="workshop.js?v=0.7.8"></script>
+    <script src="social-validate.js?v=0.8.0"></script>
+    <script src="firebase-client.js?v=0.8.0"></script>
+    <script src="color-schemes.js?v=0.8.0"></script>
+    <script src="main.js?v=0.8.0"></script>
+    <script src="workshop.js?v=0.8.0"></script>
+    <script src="account.js?v=0.8.0"></script>
   </body>
 </html>

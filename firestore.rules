@@ -10,6 +10,107 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email is string;
     }
 
+    // Telegram-like handles: lowercase latin, digits, underscores,
+    // must start with a letter, 3-32 chars, globally unique.
+    function isUsername(value) {
+      return value is string && value.matches('^[a-z][a-z0-9_]{2,31}$');
+    }
+
+    function isReservedUsername(name) {
+      return name in [
+        'admin', 'administrator', 'api', 'app', 'account', 'album', 'albums',
+        'android', 'apple', 'artist', 'artists', 'blog', 'bot', 'bots',
+        'chart', 'charts', 'client', 'desktop', 'dev', 'developer', 'donate',
+        'email', 'favorites', 'favourites', 'gift', 'gifts', 'guest', 'help',
+        'history', 'home', 'invite', 'ios', 'library', 'liked', 'linux',
+        'login', 'macos', 'mail', 'mobile', 'mod', 'moderator', 'music',
+        'news', 'now', 'official', 'player', 'playing', 'playlist',
+        'playlists', 'plus', 'premium', 'pro', 'profile', 'promo', 'root',
+        'search', 'server', 'settings', 'shop', 'soundcloud', 'spotify',
+        'staff', 'status', 'store', 'support', 'system', 'telegram', 'test',
+        'track', 'tracks', 'update', 'updates', 'user', 'users', 'verified',
+        'vk', 'votify', 'web', 'windows', 'youtube'
+      ];
+    }
+
+    function isValidSocialLinks(links) {
+      return links is map
+        && links.keys().hasAll(['telegram', 'soundcloud', 'vk'])
+        && links.keys().hasOnly(['telegram', 'soundcloud', 'vk'])
+        && links.telegram is string && links.telegram.size() <= 120
+        && links.soundcloud is string && links.soundcloud.size() <= 120
+        && links.vk is string && links.vk.size() <= 120;
+    }
+
+    function isValidPublicProfile(data) {
+      return data.keys().hasAll([
+          'displayName', 'username', 'avatar', 'about', 'links',
+          'isPrivate', 'followersCount', 'followingCount', 'showcase', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'displayName', 'username', 'avatar', 'about', 'links',
+          'isPrivate', 'followersCount', 'followingCount', 'showcase', 'updatedAt'
+        ])
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 40
+        && data.username is string
+        && data.username.size() <= 32
+        && (data.username == '' || isUsername(data.username))
+        && data.avatar is string
+        && data.avatar.size() <= 153600
+        && (data.avatar == '' || data.avatar.matches('^data:image/.+$'))
+        && data.about is string
+        && data.about.size() <= 300
+        && isValidSocialLinks(data.links)
+        && data.isPrivate is bool
+        && data.followersCount is int && data.followersCount >= 0
+        && data.followingCount is int && data.followingCount >= 0
+        && data.showcase is list && data.showcase.size() <= 20;
+    }
+
+    // Follow/unfollow batches nudge counters by exactly +-1.
+    // Only counters (and updatedAt) may change through this path.
+    function isCounterNudge() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['followersCount', 'followingCount', 'updatedAt'])
+        && request.resource.data.followersCount is int
+        && request.resource.data.followingCount is int
+        && request.resource.data.followersCount >= 0
+        && request.resource.data.followingCount >= 0
+        && (
+          request.resource.data.followersCount == resource.data.followersCount
+          || request.resource.data.followersCount == resource.data.followersCount + 1
+          || request.resource.data.followersCount == resource.data.followersCount - 1
+        )
+        && (
+          request.resource.data.followingCount == resource.data.followingCount
+          || request.resource.data.followingCount == resource.data.followingCount + 1
+          || request.resource.data.followingCount == resource.data.followingCount - 1
+        );
+    }
+
+    function isValidFollowEdge(edgeId) {
+      return request.resource.data.keys().hasOnly(['follower', 'following', 'createdAt'])
+        && request.resource.data.follower == request.auth.uid
+        && request.resource.data.following is string
+        && request.resource.data.following != request.auth.uid
+        && edgeId == request.auth.uid + '_' + request.resource.data.following
+        && request.resource.data.createdAt == request.time;
+    }
+
+    // Accepting a request creates the same edge, but from the recipient side:
+    // allowed only while the matching follow request still exists.
+    function isValidAcceptEdge(edgeId) {
+      return request.resource.data.keys().hasOnly(['follower', 'following', 'createdAt'])
+        && request.resource.data.following == request.auth.uid
+        && request.resource.data.follower is string
+        && request.resource.data.follower != request.auth.uid
+        && edgeId == request.resource.data.follower + '_' + request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/followRequests/$(edgeId));
+    }
+
     function isColor(value) {
       return value is string && value.matches('^#[0-9a-fA-F]{6}$');
     }
@@ -134,6 +235,67 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if isPermanentAccount()
         && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Global username registry: usernames/{username} -> { uid, updatedAt }.
+    // Doc id IS the username, so claiming is an atomic create.
+    match /usernames/{name} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isUsername(name)
+        && !isReservedUsername(name)
+        && request.resource.data.keys().hasOnly(['uid', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn()
+        && isUsername(name)
+        && !isReservedUsername(name)
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Public profiles, searchable by friends. Counters may be nudged +-1
+    // by any signed-in user (follow/unfollow batches); everything else is owner-only.
+    match /profiles/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && isValidPublicProfile(request.resource.data)
+        && request.resource.data.followersCount == 0
+        && request.resource.data.followingCount == 0;
+      allow update: if isSignedIn() && (
+        (
+          request.auth.uid == uid
+          && isValidPublicProfile(request.resource.data)
+          && request.resource.data.followersCount == resource.data.followersCount
+          && request.resource.data.followingCount == resource.data.followingCount
+        ) || isCounterNudge()
+      );
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Follow edges: follows/{followerUid}_{followingUid}.
+    match /follows/{edgeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && (isValidFollowEdge(edgeId) || isValidAcceptEdge(edgeId));
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && (resource.data.follower == request.auth.uid
+          || resource.data.following == request.auth.uid);
+    }
+
+    // Pending follow requests for private profiles, same id scheme.
+    match /followRequests/{edgeId} {
+      allow read: if isSignedIn()
+        && (resource.data.follower == request.auth.uid
+          || resource.data.following == request.auth.uid);
+      allow create: if isSignedIn() && isValidFollowEdge(edgeId);
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && (resource.data.follower == request.auth.uid
+          || resource.data.following == request.auth.uid);
     }
   }
 }
