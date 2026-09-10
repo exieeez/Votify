@@ -145,6 +145,25 @@ val LightPalette = VotifyPalette(
 
 val LocalVotifyPalette = staticCompositionLocalOf { OledBlackPalette }
 
+// ---------------------------------------------------------------------------
+// Акцентные заливки
+// ---------------------------------------------------------------------------
+
+private fun channelMix(a: Float, b: Float, t: Float): Float = a + (b - a) * t
+
+/** Простая примесь в sRGB: для приглушённых подложек точность цветопередачи не важна. */
+private fun mixOf(a: Color, b: Color, t: Float): Color = Color(
+    red = channelMix(a.red, b.red, t),
+    green = channelMix(a.green, b.green, t),
+    blue = channelMix(a.blue, b.blue, t),
+    alpha = 1f,
+)
+
+/** Насыщенность: 0 для белого/серого/чёрного, заметно больше 0 для цветного акцента. */
+private val Color.chroma: Float get() = maxOf(red, green, blue) - minOf(red, green, blue)
+
+private fun Color.brightness(): Float = red * 0.299f + green * 0.587f + blue * 0.114f
+
 /**
  * Theme-aware color accessors. Keeps the `VotifyColors.TextMuted` call-sites that were written
  * against the original static palette, but now resolves against the active theme.
@@ -168,6 +187,25 @@ object VotifyColors {
     val TextMuted: Color @Composable @ReadOnlyComposable get() = p.textMuted
     val Primary: Color @Composable @ReadOnlyComposable get() = p.primary
     val OnPrimary: Color @Composable @ReadOnlyComposable get() = p.onPrimary
+
+    /**
+     * Заливка крупной круглой кнопки-акцента. Монохромные темы (OLED/графит/светлая) дают
+     * белый или тёмный диск, как в исходном дизайне; цветной акцент — приглушённую подложку
+     * вместо плашки чистым цветом, которая на OLED выглядит инородным пятном.
+     */
+    val AccentFill: Color
+        @Composable @ReadOnlyComposable get() {
+            val primary = p.primary
+            return if (primary.chroma < 0.06f) p.textPrimary else mixOf(p.surfaceBase, primary, 0.30f)
+        }
+
+    /** Иконка внутри [AccentFill]: сам акцент, осветлённый, если он слишком тёмный. */
+    val AccentContent: Color
+        @Composable @ReadOnlyComposable get() {
+            val primary = p.primary
+            if (primary.chroma < 0.06f) return p.surfaceBase
+            return if (primary.brightness() < 0.35f) mixOf(primary, Color.White, 0.45f) else primary
+        }
     val PrimaryContainer: Color @Composable @ReadOnlyComposable get() = p.primaryContainer
     val OnPrimaryContainer: Color @Composable @ReadOnlyComposable get() = p.onPrimaryContainer
     val Secondary: Color @Composable @ReadOnlyComposable get() = p.secondary

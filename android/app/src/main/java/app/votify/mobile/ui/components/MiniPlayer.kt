@@ -148,6 +148,9 @@ fun MiniPlayer(
                 onClick = onPlayPause,
                 size = 36.dp,
                 filled = style.filledPlay,
+                // Та же приглушённая акцентная пара, что у большой кнопки «Плей» на главной.
+                fillColor = if (style.filledPlay) VotifyColors.AccentFill else null,
+                tintColor = if (style.filledPlay) VotifyColors.AccentContent else null,
                 contentDescription = stringResource(if (state.isPlaying) R.string.player_pause else R.string.player_play),
             ) {
                 if (state.isBuffering && !state.isPlaying) {

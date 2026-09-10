@@ -1,5 +1,6 @@
 package app.votify.mobile.ui.home
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -308,12 +309,16 @@ private fun WaveOrbit(
             }
         }
 
+        // При смене акцента кнопка перекрашивается плавно, а не «щёлкает» цветом.
+        val heroFill by animateColorAsState(VotifyColors.AccentFill, tween(260), label = "heroFill")
+        val heroContent by animateColorAsState(VotifyColors.AccentContent, tween(260), label = "heroContent")
+
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(
                 onClick = onPlayWave,
                 shape = CircleShape,
-                color = VotifyColors.Primary,
-                contentColor = VotifyColors.OnPrimary,
+                color = heroFill,
+                contentColor = heroContent,
                 shadowElevation = 0.dp,
                 modifier = Modifier.size(72.dp),
             ) {

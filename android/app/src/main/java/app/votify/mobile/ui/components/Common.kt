@@ -248,13 +248,17 @@ fun CircleIconButton(
     size: Dp = 40.dp,
     filled: Boolean = false,
     contentDescription: String? = null,
+    /** Переопределить цвет диска (например приглушённым акцентом вместо чистого). */
+    fillColor: Color? = null,
+    /** Переопределить цвет содержимого диска. */
+    tintColor: Color? = null,
     icon: @Composable () -> Unit,
 ) {
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = if (filled) VotifyColors.Primary else VotifyColors.SurfaceContainer,
-        contentColor = if (filled) VotifyColors.OnPrimary else VotifyColors.TextPrimary,
+        color = fillColor ?: if (filled) VotifyColors.Primary else VotifyColors.SurfaceContainer,
+        contentColor = tintColor ?: if (filled) VotifyColors.OnPrimary else VotifyColors.TextPrimary,
         modifier = modifier.size(size),
     ) {
         Box(contentAlignment = Alignment.Center) { icon() }
