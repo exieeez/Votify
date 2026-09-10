@@ -181,17 +181,18 @@ fun FavoritesScreen(
         onMore = { viewModel.openMenu(it) },
         downloadedIds = downloadedIds,
         downloadProgress = downloadProgress,
-    ) {
-        CollectionHeader(
-            title = stringResource(R.string.library_favorites),
-            subtitle = pluralTracks(favorites.size),
-            cover = favorites.firstOrNull()?.cover,
-            icon = Icons.Filled.Favorite,
-            tracks = favorites,
-            onBack = onBack,
-            onPlay = onPlay,
-        )
-    }
+        header = {
+            CollectionHeader(
+                title = stringResource(R.string.library_favorites),
+                subtitle = pluralTracks(favorites.size),
+                cover = favorites.firstOrNull()?.cover,
+                icon = Icons.Filled.Favorite,
+                tracks = favorites,
+                onBack = onBack,
+                onPlay = onPlay,
+            )
+        },
+    )
 }
 
 @Composable
@@ -216,24 +217,25 @@ fun HistoryScreen(
         onMore = { viewModel.openMenu(it) },
         downloadedIds = downloadedIds,
         downloadProgress = downloadProgress,
-    ) {
-        CollectionHeader(
-            title = stringResource(R.string.library_history),
-            subtitle = pluralTracks(recent.size),
-            cover = recent.firstOrNull()?.cover,
-            icon = Icons.Outlined.History,
-            tracks = recent,
-            onBack = onBack,
-            onPlay = onPlay,
-            trailing = {
-                if (recent.isNotEmpty()) {
-                    IconButton(onClick = { confirmClear = true }) {
-                        Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.library_history_clear), tint = VotifyColors.TextSecondary)
+        header = {
+            CollectionHeader(
+                title = stringResource(R.string.library_history),
+                subtitle = pluralTracks(recent.size),
+                cover = recent.firstOrNull()?.cover,
+                icon = Icons.Outlined.History,
+                tracks = recent,
+                onBack = onBack,
+                onPlay = onPlay,
+                trailing = {
+                    if (recent.isNotEmpty()) {
+                        IconButton(onClick = { confirmClear = true }) {
+                            Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.library_history_clear), tint = VotifyColors.TextSecondary)
+                        }
                     }
-                }
-            },
-        )
-    }
+                },
+            )
+        },
+    )
 
     if (confirmClear) {
         ConfirmDialog(
@@ -277,28 +279,29 @@ fun PlaylistScreen(
         onMore = { viewModel.openMenu(it, playlistId = playlistId) },
         downloadedIds = downloadedIds,
         downloadProgress = downloadProgress,
-    ) {
-        CollectionHeader(
-            title = name,
-            subtitle = pluralTracks(tracks.size),
-            cover = tracks.firstOrNull()?.cover,
-            icon = Icons.Outlined.QueueMusic,
-            tracks = tracks,
-            onBack = onBack,
-            onPlay = onPlay,
-            trailing = {
-                IconButton(onClick = { viewModel.downloadPlaylist(tracks) }) {
-                    Icon(Icons.Outlined.Download, stringResource(R.string.action_download_playlist), tint = VotifyColors.TextSecondary)
-                }
-                IconButton(onClick = { renaming = true }) {
-                    Icon(Icons.Outlined.Edit, stringResource(R.string.action_rename), tint = VotifyColors.TextSecondary)
-                }
-                IconButton(onClick = { confirmDelete = true }) {
-                    Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), tint = VotifyColors.TextSecondary)
-                }
-            },
-        )
-    }
+        header = {
+            CollectionHeader(
+                title = name,
+                subtitle = pluralTracks(tracks.size),
+                cover = tracks.firstOrNull()?.cover,
+                icon = Icons.Outlined.QueueMusic,
+                tracks = tracks,
+                onBack = onBack,
+                onPlay = onPlay,
+                trailing = {
+                    IconButton(onClick = { viewModel.downloadPlaylist(tracks) }) {
+                        Icon(Icons.Outlined.Download, stringResource(R.string.action_download_playlist), tint = VotifyColors.TextSecondary)
+                    }
+                    IconButton(onClick = { renaming = true }) {
+                        Icon(Icons.Outlined.Edit, stringResource(R.string.action_rename), tint = VotifyColors.TextSecondary)
+                    }
+                    IconButton(onClick = { confirmDelete = true }) {
+                        Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), tint = VotifyColors.TextSecondary)
+                    }
+                },
+            )
+        },
+    )
 
     if (renaming) {
         PlaylistNameDialog(

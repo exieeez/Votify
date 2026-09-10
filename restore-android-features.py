@@ -40,6 +40,35 @@ def replace(rel, old, new, label=''):
     write(rel, s)
     print(f'  + {rel}: {label or "patched"}')
 
+def inline_trailing_header(rel):
+    """Kotlin запрещает смешивать именованные аргументы с trailing-lambda:
+    `TrackList(..., downloadedIds = ...) { ... }` не компилируется. Превращаем
+    хвостовую лямбду в именованный аргумент `header = { ... }` (и переотступаем тело).
+    Идемпотентно: тело уже с отступом в 12 пробелов — значит правка применена.
+    """
+    lines = read(rel).split('\n')
+    out, i, changed = [], 0, 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        if line == '        header = {':
+            j = i + 1
+            body = []
+            while j < len(lines) and lines[j] != '    }':
+                body.append(lines[j]); j += 1
+            already = i + 1 < len(lines) and lines[i + 1].startswith('            ')
+            if j < len(lines) and not already:
+                out.extend(('    ' + l if l.strip() else l) for l in body)
+                out.append('        },')
+                out.append('    )')
+                i = j + 1
+                changed += 1
+                continue
+        i += 1
+    if changed:
+        write(rel, '\n'.join(out))
+    print(f'  + {rel}: {changed} вызов(ов) TrackList → header = {{')
+
 # ---------------------------------------------------------------------------
 print('1/9 Downloads.kt (новый файл — трекер прогресса)')
 DL = 'android/app/src/main/java/app/votify/mobile/data/Downloads.kt'
@@ -533,7 +562,7 @@ replace(TLS,
         onMore = { viewModel.openMenu(it) },
         downloadedIds = downloadedIds,
         downloadProgress = downloadProgress,
-    ) {""",
+        header = {""",
     'Favorites wiring')
 replace(TLS,
     """    val recent by viewModel.recent.collectAsStateWithLifecycle()
@@ -561,7 +590,7 @@ replace(TLS,
         onMore = { viewModel.openMenu(it) },
         downloadedIds = downloadedIds,
         downloadProgress = downloadProgress,
-    ) {""",
+        header = {""",
     'History wiring')
 replace(TLS,
     """    val playlist by viewModel.openedPlaylist.collectAsStateWithLifecycle()
@@ -597,8 +626,10 @@ replace(TLS,
         onMore = { viewModel.openMenu(it, playlistId = playlistId) },
         downloadedIds = downloadedIds,
         downloadProgress = downloadProgress,
-    ) {""",
+        header = {""",
     'Playlist wiring')
+
+inline_trailing_header(TLS)
 
 LS = 'android/app/src/main/java/app/votify/mobile/ui/library/LibraryScreen.kt'
 replace(LS,
@@ -635,6 +666,7 @@ replace(LS,
                     )
                 }""",
     'строки истории')
+
 
 # ---------------------------------------------------------------------------
 print('8/9 Настройки фона: VM + экран «Фон» + VotifyRoot')
