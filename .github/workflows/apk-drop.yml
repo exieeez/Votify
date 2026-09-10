@@ -1,0 +1,26 @@
+name: APK Drop
+# TEMPORARY fetcher: drops the release APK onto a throwaway branch.
+on:
+  push:
+    branches: [arena/01a08c8e-votify]
+    paths: [.github/workflows/apk-drop.yml]
+
+jobs:
+  drop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download release APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download android-debug -p Votify-debug.apk -D /tmp/drop --clobber
+      - name: Push to drop branch
+        run: |
+          git config user.name "arena-agent"
+          git config user.email "arena-agent@users.noreply.github.com"
+          git checkout --orphan arena/apk-drop
+          git rm -rf -q . || true
+          cp /tmp/drop/Votify-debug.apk ./Votify-debug.apk
+          git add Votify-debug.apk
+          git commit -qm "apk drop"
+          git push -f origin arena/apk-drop
