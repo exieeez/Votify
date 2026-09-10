@@ -1,7 +1,6 @@
 package app.votify.mobile.ui
 
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -145,7 +144,6 @@ private object Routes {
     fun artist(name: String) = "artist/${Uri.encode(name)}"
 }
 
-@Composable
 /** Сайт проекта — открывается по логотипу в шапке главной. */
 private const val VOTIFY_SITE = "https://votify-gamma.vercel.app/"
 
@@ -157,6 +155,7 @@ private fun openSite(context: Context) {
     }
 }
 
+@Composable
 fun VotifyRoot() {
     val app = VotifyApp.instance
     val settings by app.settings.settings.collectAsStateWithLifecycle(initialValue = Settings())
