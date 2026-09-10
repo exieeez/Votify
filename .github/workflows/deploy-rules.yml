@@ -47,7 +47,13 @@ jobs:
             UID=$(echo "$SIGNUP" | jq -r '.localId // empty')
           fi
           if [ -z "$TOKEN" ]; then echo "signup failed"; exit 1; fi
-          CODE=$(curl -s --max-time 20 -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$FS/profiles/$UID")
+          # Rules propagate within seconds — poll instead of failing on a stale read.
+          CODE="000"
+          for i in 1 2 3 4 5 6 7 8 9; do
+            CODE=$(curl -s --max-time 20 -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$FS/profiles/$UID")
+            echo "attempt $i: own-profile-read code=$CODE (want 404)"
+            if [ "$CODE" = "404" ] || [ "$CODE" = "200" ]; then break; fi
+            sleep 20
+          done
           curl -s --max-time 20 "https://identitytoolkit.googleapis.com/v1/accounts:delete?key=$APIKEY" -H 'Content-Type: application/json' -d "{\"idToken\":\"$TOKEN\"}" -o /dev/null || true
-          echo "own-profile-read code=$CODE (want 404: rules live, doc absent)"
           [ "$CODE" = "404" ] || [ "$CODE" = "200" ]
