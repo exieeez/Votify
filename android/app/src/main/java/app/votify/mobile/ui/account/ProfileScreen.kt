@@ -528,7 +528,7 @@ private fun ProfileHeader(
                     ) {
                         Icon(
                             Icons.Filled.Edit,
-                            stringResource(R.string.edit_avatar_pick),
+                            stringResource(R.string.edit_avatar_change),
                             tint = VotifyColors.OnPrimary,
                             modifier = Modifier.size(14.dp),
                         )
