@@ -16,6 +16,7 @@ import app.votify.mobile.data.SocialRepository
 import app.votify.mobile.data.SocialUser
 import app.votify.mobile.data.SocialValidate
 import app.votify.mobile.data.ShowcaseItem
+import app.votify.mobile.data.ShowcaseTrack
 import app.votify.mobile.data.VotifyApi
 import app.votify.mobile.data.local.PlaylistSummary
 import kotlinx.coroutines.CancellationException
@@ -99,6 +100,7 @@ class ProfileViewModel(
         val requestsLoading: Boolean = false,
         val friends: List<SocialUser> = emptyList(),
         val sheet: SheetData? = null,
+        val playlistSheet: ShowcaseItem? = null,
         val myPlaylists: List<PlaylistSummary> = emptyList(),
         val showcaseDirty: Boolean = false,
         val publishing: Boolean = false,
@@ -433,16 +435,34 @@ class ProfileViewModel(
         }
     }
 
-    private fun showcaseFromPlaylists(lists: List<PlaylistSummary>): List<ShowcaseItem> =
+    private suspend fun showcaseFromPlaylists(lists: List<PlaylistSummary>): List<ShowcaseItem> =
         lists.take(SocialValidate.SHOWCASE_LIMIT).map { p ->
+            val tracks = runCatching { library.playlistTracks(p.id) }.getOrDefault(emptyList())
             ShowcaseItem(
                 name = p.name.take(60),
                 count = p.trackCount.coerceAtLeast(0),
                 cover = p.cover?.takeIf { SocialValidate.isSafeHttpUrl(it) }?.take(2048).orEmpty(),
+                tracks = tracks.take(SocialValidate.SHOWCASE_TRACK_LIMIT).map { t ->
+                    ShowcaseTrack(
+                        id = t.id.take(128),
+                        title = t.title.take(120),
+                        artist = t.artist.take(120),
+                        cover = if (SocialValidate.isSafeHttpUrl(t.cover)) t.cover.take(512) else "",
+                        duration = t.duration.coerceIn(0, 86400),
+                    )
+                },
             )
         }
 
-    private fun recomputeShowcaseDirty() {
+    fun openPlaylistSheet(item: ShowcaseItem) {
+        _state.update { it.copy(playlistSheet = item) }
+    }
+
+    fun closePlaylistSheet() {
+        _state.update { it.copy(playlistSheet = null) }
+    }
+
+    private suspend fun recomputeShowcaseDirty() {
         val st = _state.value
         val mine = showcaseFromPlaylists(st.myPlaylists)
         val pub = st.profile?.showcase ?: emptyList()

@@ -134,7 +134,17 @@ class SocialRepository(
             followingCount = f.l("followingCount").toInt().coerceAtLeast(0),
             showcase = f.arr("showcase").map { wrapper ->
                 val im = wrapper["mapValue"]?.jsonObject?.get("fields")?.jsonObject
-                ShowcaseItem(im.s("name"), im.l("count").toInt().coerceAtLeast(0), im.s("cover"))
+                ShowcaseItem(
+                    im.s("name"),
+                    im.l("count").toInt().coerceAtLeast(0),
+                    im.s("cover"),
+                    im.arr("tracks").mapNotNull { tw ->
+                        val tm = tw["mapValue"]?.jsonObject?.get("fields")?.jsonObject
+                        val id = tm.s("id")
+                        if (id.isEmpty()) null
+                        else ShowcaseTrack(id, tm.s("title"), tm.s("artist"), tm.s("cover"), tm.l("duration").toInt().coerceAtLeast(0))
+                    },
+                )
             },
             updatedAt = f.l("updatedAt"),
             frame = f.s("frame"),
@@ -617,6 +627,44 @@ class SocialRepository(
                                 put("name", str(item.name.take(60)))
                                 put("count", num(item.count.coerceIn(0, 999999).toLong()))
                                 put("cover", str(item.cover.take(2048)))
+                                put(
+                                    "tracks",
+                                    buildJsonObject {
+                                        put(
+                                            "arrayValue",
+                                            buildJsonObject {
+                                                put(
+                                                    "values",
+                                                    buildJsonArray {
+                                                        item.tracks.take(SocialValidate.SHOWCASE_TRACK_LIMIT).forEach { t ->
+                                                            if (t.id.isNotBlank()) {
+                                                                add(
+                                                                    buildJsonObject {
+                                                                        put(
+                                                                            "mapValue",
+                                                                            buildJsonObject {
+                                                                                put(
+                                                                                    "fields",
+                                                                                    buildJsonObject {
+                                                                                        put("id", str(t.id.take(128)))
+                                                                                        put("title", str(t.title.take(120)))
+                                                                                        put("artist", str(t.artist.take(120)))
+                                                                                        put("cover", str(t.cover.take(512)))
+                                                                                        put("duration", num(t.duration.coerceIn(0, 86400).toLong()))
+                                                                                    },
+                                                                                )
+                                                                            },
+                                                                        )
+                                                                    },
+                                                                )
+                                                            }
+                                                        }
+                                                    },
+                                                )
+                                            },
+                                        )
+                                    },
+                                )
                             },
                         )
                     },

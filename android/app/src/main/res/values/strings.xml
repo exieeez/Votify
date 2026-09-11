@@ -631,6 +631,7 @@
     <string name="profile_showcase">Плейлисты</string>
     <string name="profile_showcase_publish">Опубликовать</string>
     <string name="profile_showcase_published">Витрина обновлена</string>
+    <string name="profile_no_tracks">Владелец ещё не опубликовал треки — попроси его обновить витрину</string>
     <string name="profile_showcase_dirty">Есть неопубликованные изменения</string>
     <string name="profile_showcase_empty_own">Создайте плейлист в коллекции — и опубликуйте его здесь</string>
     <string name="profile_showcase_empty">Пользователь пока ничего не опубликовал</string>

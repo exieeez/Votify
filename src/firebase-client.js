@@ -547,6 +547,7 @@
     if (!Array.isArray(items)) return [];
     return items.slice(0, 20).map(item => {
       const cover = String(item?.cover || '');
+      const rawTracks = Array.isArray(item?.tracks) ? item.tracks : [];
       return {
         name: String(item?.name || 'Плейлист').slice(0, 60),
         count: Math.max(0, Math.min(100000, Number(item?.count) || 0)),
@@ -554,8 +555,26 @@
           cover.length <= 2048 && (cover === '' || /^https:\/\/[^/\s@]+[^@\s]*$/.test(cover))
             ? cover
             : '',
+        tracks: rawTracks.slice(0, 100).map(sanitizeShowcaseTrack).filter(Boolean),
       };
     });
+  }
+
+  function sanitizeShowcaseTrack(t) {
+    if (!t || typeof t !== 'object') return null;
+    const id = String(t.id || '').slice(0, 128);
+    if (!id) return null;
+    const cover = String(t.cover || '');
+    return {
+      id,
+      title: String(t.title || '').slice(0, 120),
+      artist: String(t.artist || '').slice(0, 120),
+      cover:
+        cover !== '' && cover.length <= 512 && /^https:\/\/[^/\s@]+[^@\s]*$/.test(cover)
+          ? cover
+          : '',
+      duration: Math.max(0, Math.min(86400, Number(t.duration) || 0)),
+    };
   }
 
   function publicDisplayName(user, profile) {

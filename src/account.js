@@ -141,6 +141,8 @@
     editPrivate: false,
     editBusy: false,
     modal: null, // { kind, uid, title }
+    lastShowcase: [], // foreign showcase items of the currently viewed profile
+    tracksBackfilled: false, // own showcase track backfill runs once per session
   };
 
   // ---------- shared row builders ----------
@@ -558,6 +560,7 @@
       playlistsHtml(t('account-my-playlists'), ownPlaylistCards());
     wireStatic(wrap);
     wireSearch(wrap);
+    void backfillShowcaseTracks(api, context.publicProfile);
   }
 
   async function renderForeign(wrap, token, user, uid, usernameHint) {
@@ -610,11 +613,10 @@
       followers: profile.followersCount || 0,
       following: profile.followingCount || 0,
     };
-    const cards = canSee
-      ? (profile.showcase || []).map(item =>
-          playlistCardHtml(item.name, item.count, item.cover, false)
-        )
-      : [];
+    S.lastShowcase = canSee ? profile.showcase || [] : [];
+    const cards = S.lastShowcase.map(item =>
+      playlistCardHtml(item.name, item.count, item.cover, false)
+    );
     wrap.innerHTML =
       headerHtml({ profile, user, foreign: true, followState }) +
       statsHtml(counts, !canSee) +
@@ -780,6 +782,55 @@
     S.modal = null;
   }
 
+  // ---------- friend playlist modal (read-only track list) ----------
+
+  function trackRowHtml(track, index) {
+    const cover = track.cover
+      ? `<img src="${esc(track.cover)}" alt="" loading="lazy" />`
+      : '<i class="material-icons">music_note</i>';
+    return `
+      <div class="acc-track-row" data-acc-track="${index}" role="button" tabindex="0">
+        <div class="acc-track-cover">${cover}</div>
+        <div class="acc-user-meta">
+          <div class="acc-user-name">${esc(track.title || '—')}</div>
+          <div class="acc-user-sub">${esc(track.artist || '')}</div>
+        </div>
+        <i class="material-icons acc-track-play">play_arrow</i>
+      </div>`;
+  }
+
+  function openPlaylistModal(item) {
+    const overlay = $('acc-list-overlay');
+    const body = $('acc-list-body');
+    const title = $('acc-list-title');
+    if (!overlay || !body || !title) return;
+    S.modal = { kind: 'playlist', uid: null };
+    title.textContent = item.name || t('account-public-playlists');
+    const tracks = Array.isArray(item.tracks) ? item.tracks : [];
+    if (!tracks.length) {
+      body.innerHTML = `<div class="acc-empty">${esc(t('account-no-tracks'))}</div>`;
+    } else {
+      body.innerHTML = tracks.map((track, index) => trackRowHtml(track, index)).join('');
+      body.querySelectorAll('[data-acc-track]').forEach(row => {
+        row.onclick = () => {
+          const track = tracks[Number(row.getAttribute('data-acc-track'))];
+          if (!track?.id) return;
+          if (typeof window.playTrack === 'function') {
+            window.playTrack({
+              id: track.id,
+              title: track.title || '',
+              artist: track.artist || '',
+              cover: track.cover || '',
+            });
+          } else {
+            toast(t('account-opened-playlist'));
+          }
+        };
+      });
+    }
+    overlay.style.display = 'flex';
+  }
+
   // ---------- actions ----------
 
   async function withBusy(button, job) {
@@ -798,7 +849,7 @@
   }
 
   async function refreshAfterSocialChange() {
-    if (S.modal) {
+    if (S.modal && S.modal.kind !== 'playlist') {
       const { kind } = S.modal;
       await openListModal(kind);
     }
@@ -1020,7 +1071,8 @@
     const isOwner = card.getAttribute('data-acc-owner') === '1';
     if (!name) return;
     if (!isOwner) {
-      toast(t('account-friend-playlist'));
+      const item = S.lastShowcase.find(entry => entry.name === name);
+      openPlaylistModal(item || { name, count: 0, cover: '', tracks: [] });
       return;
     }
     go('folders-screen', 'nav-folders-btn');

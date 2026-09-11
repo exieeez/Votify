@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -82,7 +83,9 @@ import app.votify.mobile.data.FollowState
 import app.votify.mobile.data.PublicProfile
 import app.votify.mobile.data.SocialLinks
 import app.votify.mobile.data.SocialUser
+import app.votify.mobile.data.ShowcaseTrack
 import app.votify.mobile.data.SocialValidate
+import app.votify.mobile.data.Track
 import app.votify.mobile.ui.components.VotifyCard
 import app.votify.mobile.ui.components.pluralTracks
 import app.votify.mobile.ui.theme.VotifyColors
@@ -189,6 +192,7 @@ fun ProfileScreen(
     onEdit: () -> Unit,
     onOpenUser: (String) -> Unit,
     onOpenPlaylist: (Long) -> Unit,
+    onPlayTracks: (List<Track>, Int) -> Unit,
     onOpenSettings: () -> Unit,
     onMessage: (String) -> Unit,
 ) {
@@ -366,7 +370,7 @@ fun ProfileScreen(
                                         modifier = Modifier.weight(1f),
                                     )
                                 }
-                                if (row.size == 1) Spacer(Modifier.weight(1f))
+                                if (row.size == 1) Spacerweight(1f))
                             }
                         }
                     }
@@ -403,6 +407,7 @@ fun ProfileScreen(
                                             count = item.count,
                                             cover = item.cover,
                                             modifier = Modifier.weight(1f),
+                                            onClick = { viewModel.openPlaylistSheet(item) },
                                         )
                                     }
                                     if (row.size == 1) Spacer(Modifier.weight(1f))
@@ -467,6 +472,82 @@ fun ProfileScreen(
             }
             Spacer(Modifier.height(16.dp))
         }
+    }
+
+    state.playlistSheet?.let { item ->
+        ModalBottomSheet(
+            onDismissRequest = viewModel::closePlaylistSheet,
+            sheetState = rememberModalBottomSheetState(),
+            containerColor = VotifyColors.SurfaceContainerLow,
+            contentColor = VotifyColors.TextPrimary,
+        ) {
+            Text(
+                item.name.ifEmpty { "?" },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = VotifyColors.TextPrimary,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+            )
+            Text(
+                pluralTracks(item.count),
+                style = MaterialTheme.typography.bodySmall,
+                color = VotifyColors.TextMuted,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
+            if (item.tracks.isEmpty()) {
+                Text(
+                    stringResource(R.string.profile_no_tracks),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = VotifyColors.TextMuted,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                ) {
+                    itemsIndexed(item.tracks, key = { index, track -> "${track.id}_$index" }) { index, track ->
+                        PlaylistSheetTrackRow(
+                            track = track,
+                            onPlay = { onPlayTracks(item.tracks.map { it.toTrack() }, index) },
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun PlaylistSheetTrackRow(track: ShowcaseTrack, onPlay: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onPlay)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CoverArt(track.cover, Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)))
+        Column(Modifier.weight(1f)) {
+            Text(
+                track.title.ifEmpty { "?" },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = VotifyColors.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                track.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = VotifyColors.TextMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Icon(Icons.Filled.PlayArrow, null, tint = VotifyColors.TextMuted)
     }
 }
 
@@ -894,8 +975,14 @@ private fun OwnPlaylistCard(name: String, count: Int, cover: String, onClick: ()
 }
 
 @Composable
-private fun ForeignShowcaseCard(name: String, count: Int, cover: String, modifier: Modifier = Modifier) {
-    VotifyCard(modifier, contentPadding = PaddingValues(10.dp)) {
+private fun ForeignShowcaseCard(
+    name: String,
+    count: Int,
+    cover: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    VotifyCard(modifier, onClick = onClick, contentPadding = PaddingValues(10.dp)) {
         Column {
             CoverArt(cover, Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp)))
             Spacer(Modifier.height(8.dp))
@@ -969,5 +1056,8 @@ private fun SheetUserRow(user: SocialUser, trailing: Pair<String, () -> Unit>?, 
                 Text(trailing.first, color = VotifyColors.TextSecondary)
             }
         }
+    }
+}
+}
     }
 }

@@ -535,6 +535,48 @@
   text-overflow: ellipsis;
 }
 
+.acc-track-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.acc-track-row:hover {
+  background: var(--bg-elevated);
+}
+
+.acc-track-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-highlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.acc-track-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.acc-track-play {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.acc-track-row:hover .acc-track-play {
+  color: var(--text-primary);
+}
+
 .acc-mini-btn {
   flex-shrink: 0;
   font-size: 13px;

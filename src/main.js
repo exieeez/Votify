@@ -844,6 +844,7 @@ const translations = {
     'account-my-playlists': 'Мои плейлисты',
     'account-public-playlists': 'Публичные плейлисты',
     'account-no-playlists': 'Плейлистов пока нет',
+    'account-no-tracks': 'Владелец ещё не опубликовал треки — попроси его обновить витрину',
     'account-private-lock':
       'Это приватный профиль. Подпишитесь, чтобы увидеть плейлисты и статистику.',
     'account-private-lock-short': 'Приватный профиль',
@@ -964,6 +965,7 @@ const translations = {
     'account-my-playlists': 'My playlists',
     'account-public-playlists': 'Public playlists',
     'account-no-playlists': 'No playlists yet',
+    'account-no-tracks': 'The owner has not published tracks yet — ask them to refresh the showcase',
     'account-private-lock': 'This is a private profile. Follow it to see playlists and stats.',
     'account-private-lock-short': 'Private profile',
     'account-play': 'Play',

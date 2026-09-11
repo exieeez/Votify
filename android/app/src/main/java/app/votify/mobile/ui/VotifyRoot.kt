@@ -627,6 +627,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                             onEdit = { navController.navigate(Routes.PROFILE_EDIT) { launchSingleTop = true } },
                             onOpenUser = { id -> navController.navigate(Routes.user(id)) { launchSingleTop = true } },
                             onOpenPlaylist = { id -> navController.navigate(Routes.playlist(id)) { launchSingleTop = true } },
+                            onPlayTracks = play,
                             onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
                             onMessage = showMsg,
                         )
@@ -652,6 +653,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         onEdit = { navController.navigate(Routes.PROFILE_EDIT) { launchSingleTop = true } },
                         onOpenUser = { other -> navController.navigate(Routes.user(other)) { launchSingleTop = true } },
                         onOpenPlaylist = { pid -> navController.navigate(Routes.playlist(pid)) { launchSingleTop = true } },
+                        onPlayTracks = play,
                         onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
                         onMessage = showMsg,
                     )

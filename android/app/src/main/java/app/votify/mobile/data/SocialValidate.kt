@@ -14,6 +14,7 @@ object SocialValidate {
     const val BIO_MAX = 150
     const val LINK_MAX = 120
     const val SHOWCASE_LIMIT = 20
+    const val SHOWCASE_TRACK_LIMIT = 100
 
     /** Reserved handles that can never be claimed (services, impersonation, routes). */
     val RESERVED_USERNAMES = setOf(

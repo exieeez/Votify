@@ -38,7 +38,20 @@ data class ShowcaseItem(
     val name: String = "",
     val count: Int = 0,
     val cover: String = "",
+    /** First N tracks (shared shape with desktop) — empty for cards published by older clients. */
+    val tracks: List<ShowcaseTrack> = emptyList(),
 )
+
+/** Compact shareable track row inside a ShowcaseItem. */
+data class ShowcaseTrack(
+    val id: String = "",
+    val title: String = "",
+    val artist: String = "",
+    val cover: String = "",
+    val duration: Int = 0,
+) {
+    fun toTrack() = Track(id = id, title = title, artist = artist, cover = cover, duration = duration)
+}
 
 /** Compact row for follower / search / request lists. */
 data class SocialUser(

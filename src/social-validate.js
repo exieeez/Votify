@@ -235,8 +235,24 @@
           name: String(name).slice(0, 60),
           count: list.length,
           cover: firstWithCover ? String(firstWithCover.cover).slice(0, 2048) : '',
+          tracks: list.slice(0, SHOWCASE_TRACK_LIMIT).map(showcaseTrack).filter(Boolean),
         };
       });
+  }
+
+  /** Compact shareable track row for the showcase (friend playlists open from it). */
+  function showcaseTrack(t) {
+    if (!t || typeof t !== 'object') return null;
+    const id = String(t.id || t.videoId || '').slice(0, 128);
+    if (!id) return null;
+    const cover = String(t.cover || '');
+    return {
+      id,
+      title: String(t.title || t.name || '').slice(0, 120),
+      artist: String(t.artist || t.author || '').slice(0, 120),
+      cover: isSafeHttpUrl(cover) ? cover.slice(0, 512) : '',
+      duration: Math.max(0, Math.min(86400, Number(t.duration) || 0)),
+    };
   }
 
   return {
@@ -247,6 +263,7 @@
     BIO_MAX,
     LINK_MAX,
     SHOWCASE_LIMIT,
+    SHOWCASE_TRACK_LIMIT,
     RESERVED_USERNAMES,
     LINK_KINDS,
     normalizeUsername,
