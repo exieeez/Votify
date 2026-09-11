@@ -343,6 +343,9 @@ class SocialRepository(
                         "values",
                         buildJsonArray { add(buildJsonObject { put("referenceValue", "$base/$clean") }) },
                     )
+                    // Inclusive start: without before=true Firestore excludes the exact
+                    // match, so searching a full username returns nothing.
+                    put("before", true)
                 },
             )
             put(
