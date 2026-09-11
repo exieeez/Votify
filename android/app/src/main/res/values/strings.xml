@@ -330,6 +330,16 @@
     <string name="backgrounds_delete">Удалить фон</string>
     <string name="backgrounds_applied">Фон применён</string>
     <string name="storage_texts">Тексты</string>
+    <string name="storage_favorites">Избранное</string>
+    <string name="storage_history">История</string>
+    <string name="storage_playlists">Плейлисты</string>
+    <string name="storage_clear_history">Очистить историю</string>
+    <string name="storage_clear_history_confirm">Удалить всю историю прослушиваний?</string>
+    <string name="storage_history_cleared">История очищена</string>
+    <string name="storage_no_downloads">Нет офлайн-треков</string>
+    <string name="storage_texts_info">Сохранено текстов: %1$d. Кэш ускоряет открытие текстов песен без сети.</string>
+    <string name="storage_clear_texts">Очистить кэш текстов</string>
+    <string name="storage_texts_cleared">Кэш текстов очищен</string>
     <string name="storage_clear_all">Очистить всё</string>
     <string name="storage_clear_confirm">Удалить избранные треки, историю и плейлисты? Это нельзя отменить.</string>
     <string name="storage_cleared">Данные очищены</string>

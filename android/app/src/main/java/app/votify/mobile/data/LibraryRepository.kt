@@ -48,6 +48,8 @@ class LibraryRepository(private val db: VotifyDatabase) {
 
     suspend fun topArtists(limit: Int = 6): List<String> = db.history().topArtists(limit)
 
+    suspend fun trackById(id: String): Track? = db.tracks().byId(id)?.toTrack()
+
     /** Artists across ALL playlists, weighted by track count — wave seeds for collectors. */
     suspend fun playlistArtists(limit: Int = 8): List<String> {
         val counts = LinkedHashMap<String, Int>()

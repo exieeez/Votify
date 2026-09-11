@@ -68,7 +68,7 @@ class VotifyApp : Application(), coil.ImageLoaderFactory {
 
         database = VotifyDatabase.create(this)
         library = LibraryRepository(database)
-        music = MusicRepository(api, settings, appScope)
+        music = MusicRepository(api, settings, appScope, java.io.File(filesDir, "lyrics"))
         // Automatic account cloud backup: every change (favorites, playlists, settings)
         // is pushed to the signed-in user's private Firestore document a few seconds later.
         CloudSyncAuto.start(this)

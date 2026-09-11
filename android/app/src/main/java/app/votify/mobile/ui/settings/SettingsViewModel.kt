@@ -260,7 +260,12 @@ class SettingsViewModel(
         val percent: Int = 0,
         val offline: Int = 0,
         val texts: Int = 0,
+        val fav: Int = 0,
+        val hist: Int = 0,
+        val pls: Int = 0,
     )
+
+    data class DownloadItem(val file: String, val title: String, val artist: String, val bytes: Long)
 
     fun refreshStorage() {
         viewModelScope.launch {
@@ -270,10 +275,15 @@ class SettingsViewModel(
             val bytes = withContext(Dispatchers.IO) { dirSize(appContext.cacheDir) }
             val (dlCount, dlBytes) = app.votify.mobile.VotifyApp.instance.music.downloadStats()
             val files = fav + hist + pls
+            val texts = app.votify.mobile.VotifyApp.instance.music.lyricsCacheCount()
             _storage.value = StorageStats(
                 files = files,
                 bytes = bytes + dlBytes,
                 offline = dlCount,
+                texts = texts,
+                fav = fav,
+                hist = hist,
+                pls = pls,
                 percent = if (files == 0 && bytes == 0L) 0 else maxOf(1, (bytes / 524_288L).toInt().coerceAtMost(100)),
             )
         }
@@ -290,6 +300,45 @@ class SettingsViewModel(
         }
     }
 
+    /** Offline copies with best-effort titles (for the storage sheet). */
+    suspend fun downloads(): List<DownloadItem> = withContext(Dispatchers.IO) {
+        val dir = java.io.File(appContext.filesDir, "downloads")
+        val files = dir.listFiles { f -> f.isFile && f.name.endsWith(".audio") }
+            ?.sortedByDescending { it.length() } ?: return@withContext emptyList()
+        files.map { f ->
+            val id = f.name.removeSuffix(".audio")
+            val meta = runCatching { library.trackById(id) }.getOrNull()
+            DownloadItem(f.name, meta?.title ?: id, meta?.artist.orEmpty(), f.length())
+        }
+    }
+
+    /** Remove one offline copy (validated file name — no path traversal). */
+    fun deleteDownload(file: String) {
+        viewModelScope.launch {
+            if ("/" in file || "\\" in file || ".." in file || !file.endsWith(".audio")) return@launch
+            withContext(Dispatchers.IO) {
+                runCatching { java.io.File(java.io.File(appContext.filesDir, "downloads"), file).delete() }
+            }
+            refreshStorage()
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            library.clearHistory()
+            _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.storage_history_cleared)))
+            refreshStorage()
+        }
+    }
+
+    fun clearLyricsCache() {
+        viewModelScope.launch {
+            app.votify.mobile.VotifyApp.instance.music.clearLyricsCache()
+            _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.storage_texts_cleared)))
+            refreshStorage()
+        }
+    }
+
     fun clearAllData() {
         viewModelScope.launch {
             library.clearAllData()
@@ -298,6 +347,7 @@ class SettingsViewModel(
                 coil.Coil.imageLoader(appContext).diskCache?.clear()
                 java.io.File(appContext.filesDir, "backgrounds").deleteRecursively()
                 java.io.File(appContext.filesDir, "downloads").deleteRecursively()
+                java.io.File(appContext.filesDir, "lyrics").deleteRecursively()
             }
             _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.storage_cleared)))
             refreshStorage()

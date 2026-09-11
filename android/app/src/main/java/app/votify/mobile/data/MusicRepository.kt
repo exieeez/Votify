@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.Json
 
 /** Where music comes from right now. */
 enum class SourceMode { Embedded, Server }
@@ -27,7 +28,9 @@ class MusicRepository(
     private val api: VotifyApi,
     settingsRepo: SettingsRepository,
     private val scope: CoroutineScope,
+    private val lyricsDir: java.io.File? = null,
 ) {
+    private val lyricsJson = Json { ignoreUnknownKeys = true }
 
     @Volatile
     var mode: SourceMode = SourceMode.Embedded
@@ -112,9 +115,50 @@ class MusicRepository(
         }
     }
 
-    suspend fun lyrics(track: String, artist: String): LyricsResponse =
-        if (isServerMode) api.lyrics(track, artist)
+    suspend fun lyrics(track: String, artist: String): LyricsResponse {
+        cachedLyrics(track, artist)?.let { return it }
+        val fresh = if (isServerMode) api.lyrics(track, artist)
         else io { EmbeddedMusicSource.lyrics(track, artist) }
+        cacheLyrics(track, artist, fresh)
+        return fresh
+    }
+
+    /** Cached lyric sheets (counted on the storage screen). */
+    suspend fun lyricsCacheCount(): Int = withContext(Dispatchers.IO) {
+        lyricsDir?.listFiles { f -> f.isFile && f.name.endsWith(".json") }?.size ?: 0
+    }
+
+    suspend fun clearLyricsCache() = withContext(Dispatchers.IO) {
+        lyricsDir?.listFiles { f -> f.isFile && f.name.endsWith(".json") }
+            ?.forEach { runCatching { it.delete() } }
+    }
+
+    private suspend fun cachedLyrics(track: String, artist: String): LyricsResponse? =
+        withContext(Dispatchers.IO) {
+            val dir = lyricsDir ?: return@withContext null
+            val file = java.io.File(dir, lyricsKey(track, artist) + ".json")
+            if (!file.isFile) return@withContext null
+            runCatching { lyricsJson.decodeFromString(LyricsResponse.serializer(), file.readText()) }
+                .getOrNull()?.takeIf { !it.syncedLyrics.isNullOrBlank() || !it.plainLyrics.isNullOrBlank() }
+        }
+
+    private suspend fun cacheLyrics(track: String, artist: String, response: LyricsResponse) {
+        val dir = lyricsDir ?: return
+        if (response.syncedLyrics.isNullOrBlank() && response.plainLyrics.isNullOrBlank()) return
+        withContext(Dispatchers.IO) {
+            runCatching {
+                dir.mkdirs()
+                java.io.File(dir, lyricsKey(track, artist) + ".json")
+                    .writeText(lyricsJson.encodeToString(LyricsResponse.serializer(), response))
+            }
+        }
+    }
+
+    private fun lyricsKey(track: String, artist: String): String {
+        val raw = "${artist.trim().lowercase()}\n${track.trim().lowercase()}".toByteArray(Charsets.UTF_8)
+        return java.security.MessageDigest.getInstance("SHA-1").digest(raw)
+            .joinToString("") { "%02x".format(it) }
+    }
 
     // ---- playlist import ----
 
