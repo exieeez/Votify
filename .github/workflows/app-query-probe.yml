@@ -1,0 +1,48 @@
+name: App-query probe (temporary)
+
+# One-shot: replicates the Android app's exact prefix search query
+# (orderBy __name__ + startAt/endAt referenceValue cursors) for "dod"/"dodik".
+on:
+  push:
+    branches: ['arena/01a08c8e-votify']
+    paths: ['.github/workflows/app-query-probe.yml']
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    env:
+      CFG: ${{ secrets.VOTIFY_FIREBASE_CONFIG }}
+    steps:
+      - name: Probe app-shaped prefix query
+        run: |
+          set +e
+          API_KEY="$(echo "$CFG" | jq -r .apiKey)"
+          TOKEN="$(curl -s --max-time 20 -X POST \
+            "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$API_KEY" \
+            -H 'Content-Type: application/json' -d '{}' | jq -r .idToken)"
+          BASE_DOC="projects/votify-f461a/databases/(default)/documents"
+          BASE_URL="https://firestore.googleapis.com/v1/$BASE_DOC"
+          prefix_query() {
+            P="$1"
+            BODY="$(jq -n --arg base "$BASE_DOC/usernames" --arg p "$P" '{
+              structuredQuery: {
+                from: [{collectionId: "usernames"}],
+                orderBy: [{field: {fieldPath: "__name__"}, direction: "ASCENDING"}],
+                startAt: {values: [{referenceValue: ($base + "/" + $p)}]},
+                endAt: {values: [{referenceValue: ($base + "/" + $p + "\uf8ff")}]},
+                limit: 8
+              }
+            }')"
+            OUT="$(curl -s --max-time 25 -w '\n%{http_code}' \
+              -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+              -d "$BODY" "$BASE_URL:runQuery")"
+            CODE="$(echo "$OUT" | tail -n 1)"
+            PAYLOAD="$(echo "$OUT" | head -n -1)"
+            IDS="$(echo "$PAYLOAD" | jq -r '[.[].document.name | select(. != null) | split("/") | last] | join(",")' 2>/dev/null)"
+            ERR="$(echo "$PAYLOAD" | jq -c '{error: .error.message, status: .error.status}' 2>/dev/null)"
+            echo "prefix=$P code=$CODE ids=[$IDS] err=$ERR"
+          }
+          echo "::notice::APPQ-DOD $(prefix_query dod)"
+          echo "::notice::APPQ-DODIK $(prefix_query dodik)"
+          echo done
