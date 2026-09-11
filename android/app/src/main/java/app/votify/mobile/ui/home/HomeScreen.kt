@@ -55,6 +55,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -120,7 +122,7 @@ fun HomeScreen(
                 onPlayTrack = { index -> onPlay(state.wave, index) },
                 onRetry = viewModel::refresh,
             )
-            WaveStyle.Sun -> SunOrb(
+            WaveStyle.Sun -> GlassOrb(
                 state = state,
                 onPlayWave = { onPlay(state.wave, 0) },
                 onRetry = viewModel::refresh,
@@ -463,17 +465,17 @@ private fun WaveOrbit(
 }
 
 /**
- * Стиль «Солнце» (дизайн из Stitch): огромный огненный шар с белым заголовком,
- * таблетка на шаре переключает «Для вас / Популярные».
+ * Стиль «Шар»: стеклянный шар под цвет фона — полупрозрачный, сквозь него
+ * виден фон и обои. Таблетка на шаре переключает «Для вас / Популярные».
  */
 @Composable
-private fun SunOrb(
+private fun GlassOrb(
     state: HomeUiState,
     onPlayWave: () -> Unit,
     onRetry: () -> Unit,
     onToggleMode: () -> Unit,
 ) {
-    val motion = rememberInfiniteTransition(label = "sun")
+    val motion = rememberInfiniteTransition(label = "glass")
     val pulse by motion.animateFloat(
         initialValue = 0.97f,
         targetValue = 1.03f,
@@ -487,6 +489,8 @@ private fun SunOrb(
         label = "spin",
     )
     val hasMusic = !state.isLoading && state.error == null && state.wave.isNotEmpty()
+    // Текст читается на любых обоях: цвет темы + мягкая тень.
+    val textShadow = Shadow(Color.Black.copy(alpha = 0.45f), Offset(0f, 2f), 6f)
 
     Box(
         Modifier
@@ -498,7 +502,7 @@ private fun SunOrb(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        // Окружающее зарево.
+        // Лёгкое свечение вокруг.
         Box(
             Modifier
                 .size(360.dp)
@@ -506,13 +510,13 @@ private fun SunOrb(
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        0.0f to Color(0xFFFF8A3C).copy(alpha = 0.30f),
-                        0.55f to Color(0xFFE5484D).copy(alpha = 0.14f),
+                        0.0f to VotifyColors.TextPrimary.copy(alpha = 0.10f),
+                        0.55f to VotifyColors.TextPrimary.copy(alpha = 0.05f),
                         1.0f to Color.Transparent,
                     ),
                 ),
         )
-        // Тело солнца.
+        // Тело шара — стекло: фон просвечивает, обод даёт форму.
         Box(
             Modifier
                 .size(280.dp)
@@ -520,13 +524,13 @@ private fun SunOrb(
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        0.0f to Color(0xFFFFE9A8),
-                        0.35f to Color(0xFFFFC53D),
-                        0.65f to Color(0xFFFF7A29),
-                        0.85f to Color(0xFFF04438),
-                        1.0f to Color(0xFFD92D20),
+                        0.0f to VotifyColors.TextPrimary.copy(alpha = 0.14f),
+                        0.55f to VotifyColors.TextPrimary.copy(alpha = 0.07f),
+                        0.85f to VotifyColors.TextPrimary.copy(alpha = 0.03f),
+                        1.0f to Color.Transparent,
                     ),
-                ),
+                )
+                .border(1.5.dp, VotifyColors.TextPrimary.copy(alpha = 0.28f), CircleShape),
         )
         // Медленный блик, ползущий по шару.
         Box(
@@ -542,7 +546,7 @@ private fun SunOrb(
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
-                            0.0f to Color.White.copy(alpha = 0.35f),
+                            0.0f to VotifyColors.TextPrimary.copy(alpha = 0.16f),
                             1.0f to Color.Transparent,
                         ),
                     ),
@@ -552,28 +556,28 @@ private fun SunOrb(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             when {
                 state.isLoading -> CircularProgressIndicator(
-                    color = Color.White,
+                    color = VotifyColors.TextPrimary,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(52.dp),
                 )
                 state.error != null -> Icon(
                     Icons.Filled.Refresh,
                     contentDescription = stringResource(R.string.search_retry),
-                    tint = Color.White,
+                    tint = VotifyColors.TextPrimary,
                     modifier = Modifier.size(52.dp),
                 )
                 else -> Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Filled.PlayArrow,
                         contentDescription = stringResource(R.string.home_play_wave),
-                        tint = Color.White,
+                        tint = VotifyColors.TextPrimary,
                         modifier = Modifier.size(34.dp),
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         stringResource(R.string.home_my_wave),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = Color.White,
+                        style = MaterialTheme.typography.headlineMedium.copy(shadow = textShadow),
+                        color = VotifyColors.TextPrimary,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -582,9 +586,9 @@ private fun SunOrb(
             Surface(
                 onClick = onToggleMode,
                 shape = CircleShape,
-                color = Color.White.copy(alpha = 0.28f),
-                contentColor = Color.White,
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
+                color = VotifyColors.TextPrimary.copy(alpha = 0.16f),
+                contentColor = VotifyColors.TextPrimary,
+                border = BorderStroke(1.dp, VotifyColors.TextPrimary.copy(alpha = 0.4f)),
             ) {
                 Row(
                     Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
@@ -610,8 +614,8 @@ private fun SunOrb(
                         stringResource(R.string.home_wave_personal, state.seeds.take(3).joinToString(", "))
                     else -> stringResource(R.string.home_wave_generic)
                 },
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.75f),
+                style = MaterialTheme.typography.bodySmall.copy(shadow = textShadow),
+                color = VotifyColors.TextPrimary.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

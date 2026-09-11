@@ -483,7 +483,7 @@
     <string name="wave_popular_empty">Не получилось загрузить хиты — попробуйте ещё раз</string>
     <string name="wave_style_title">Стиль волны</string>
     <string name="wave_style_orbit">Орбита</string>
-    <string name="wave_style_sun">Солнце</string>
+    <string name="wave_style_sun">Шар</string>
     <string name="wave_loading">Подбираем волну…</string>
     <string name="section_chart">Чарт</string>
 

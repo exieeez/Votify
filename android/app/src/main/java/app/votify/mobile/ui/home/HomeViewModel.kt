@@ -31,7 +31,7 @@ data class HomeUiState(
     /** Wave language from «Настроить» (default = Ukrainian). */
     val waveLang: WaveLang = WaveLang.Ukrainian,
     /** Wave hero style from Settings → Interface (pure UI, no reload). */
-    val waveStyle: WaveStyle = WaveStyle.Sun,
+    val waveStyle: WaveStyle = WaveStyle.Orbit,
     val isLoading: Boolean = true,
     val error: String? = null,
 )

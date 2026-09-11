@@ -93,7 +93,7 @@ enum class WaveStyle(val key: String) {
     Sun("sun");
 
     companion object {
-        fun fromKey(k: String?) = entries.firstOrNull { it.key == k } ?: Sun
+        fun fromKey(k: String?) = entries.firstOrNull { it.key == k } ?: Orbit
     }
 }
 
@@ -140,7 +140,7 @@ data class Settings(
     /** Wave skips tracks already in the listening history. */
     val waveExcludeListened: Boolean = true,
     /** Wave hero style: covers orbit or the sun orb. */
-    val waveStyle: WaveStyle = WaveStyle.Sun,
+    val waveStyle: WaveStyle = WaveStyle.Orbit,
 )
 
 class SettingsRepository(context: Context) {
@@ -162,7 +162,7 @@ class SettingsRepository(context: Context) {
         val waveLang = stringPreferencesKey("wave_lang")
         val waveMode = stringPreferencesKey("wave_mode")
         val waveExcludeListened = booleanPreferencesKey("wave_exclude_listened")
-        val waveStyle = stringPreferencesKey("wave_style")
+        val waveStyle = stringPreferencesKey("wave_style_v2")
         val accountUid = stringPreferencesKey("account_uid")
         val accountRefresh = stringPreferencesKey("account_refresh_token")
         val accountEmail = stringPreferencesKey("account_email")
