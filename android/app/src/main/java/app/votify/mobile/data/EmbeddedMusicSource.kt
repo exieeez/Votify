@@ -211,11 +211,18 @@ object EmbeddedMusicSource {
         WaveLang.Any -> WAVE_SEEDS_UK.take(8) + WAVE_SEEDS_RU.take(4) + WAVE_SEEDS_EN.take(4)
     }
 
-    /** Мировые топ-артисты для «Популярных»: только проверенные оригиналы. */
+    /**
+     * Мировые топ-артисты для «Популярных»: только проверенные оригиналы,
+     * только западный мейнстрим — без чартов (в мировом чарте одни индусы),
+     * без slowed/cover/караоке (режет passesQuality).
+     */
     private val POPULAR_SEEDS = listOf(
-        "The Weeknd", "Billie Eilish", "Taylor Swift", "Ariana Grande", "Drake",
-        "SZA", "Doja Cat", "Ed Sheeran", "Dua Lipa", "Post Malone",
-        "Rihanna", "Eminem", "Coldplay", "Sabrina Carpenter",
+        "Taylor Swift", "Billie Eilish", "Ariana Grande", "Sabrina Carpenter", "Dua Lipa",
+        "Olivia Rodrigo", "Tate McRae", "Gracie Abrams", "Ed Sheeran", "Adele",
+        "Drake", "The Weeknd", "SZA", "Doja Cat", "Post Malone", "Travis Scott",
+        "Kendrick Lamar", "Rihanna", "Eminem", "Beyoncé",
+        "David Guetta", "Calvin Harris", "Coldplay", "Imagine Dragons",
+        "Bad Bunny", "Shakira", "Lady Gaga",
     )
 
     // ------------------------------------------------------------------ wave / recommendations
@@ -459,12 +466,11 @@ object EmbeddedMusicSource {
      */
     fun recommendations(limit: Int, lang: WaveLang = WaveLang.Ukrainian): List<Track> {
         ensureInit()
-        val seeds = seedPool(lang).shuffled().take(5)
+        val seeds = seedPool(lang).shuffled().take(5) + POPULAR_SEEDS.shuffled().take(3)
         val found = fanOut(seeds, limit = 6) { seed ->
             rawSearch(seed, music = true, 5).filter { matchesArtist(it, seed) }
         }
-        val chart = if (limit >= 10) InnertubeCharts.topTracks("ZZ", 5) else emptyList()
-        val ranked = (chart + found).asSequence()
+        val ranked = found.asSequence()
             .distinctBy { it.id }
             .distinctBy { dedupeKey(it) }
             .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS && passesQuality(it) }
@@ -477,32 +483,23 @@ object EmbeddedMusicSource {
     }
 
     /**
-     * Таблетка «Популярные»: мировые хиты (чарты InnerTube: мир + США) +
-     * проверенные оригиналы мировых топ-артистов. Никаких slowed/cover/
-     * караоке/тикток-нарезок — только адекватные треки, как в топах
-     * SoundCloud и Dotify.
+     * Таблетка «Популярные»: западный мейнстрим от мировых топ-артистов.
+     * БЕЗ чартов: мировой чарт YouTube забит индийскими треками, а нам нужны
+     * адекватные хиты, как в топах SoundCloud и Dotify. Только проверенные
+     * оригиналы (matchesArtist) + фильтр шлака (passesQuality).
      */
     fun popular(limit: Int = 20): List<Track> {
         ensureInit()
-        val charts = (InnertubeCharts.topTracks("ZZ", 15) + InnertubeCharts.topTracks("US", 10))
-            .asSequence()
-            .distinctBy { it.id }
-            .distinctBy { dedupeKey(it) }
-            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS && passesQuality(it) }
-            .toList()
-        val seeds = POPULAR_SEEDS.shuffled().take(4)
-        val discovery = fanOut(seeds, limit = 4) { seed ->
-            rawSearch(seed, music = true, 6).filter { matchesArtist(it, seed) }
+        val seeds = POPULAR_SEEDS.shuffled().take(8)
+        val found = fanOut(seeds, limit = 4) { seed ->
+            rawSearch(seed, music = true, 5).filter { matchesArtist(it, seed) }
         }.asSequence()
             .distinctBy { it.id }
             .distinctBy { dedupeKey(it) }
             .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS && passesQuality(it) }
             .toList()
             .shuffled()
-        return (charts + discovery)
-            .distinctBy { it.id }
-            .distinctBy { dedupeKey(it) }
-            .take(limit)
+        return spreadByArtist(found).take(limit)
     }
 
     // ------------------------------------------------------------------ offline downloads

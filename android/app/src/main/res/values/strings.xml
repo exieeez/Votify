@@ -480,6 +480,7 @@
     <string name="wave_for_you">Для вас</string>
     <string name="wave_popular">Популярные</string>
     <string name="wave_popular_sub">Мировые хиты и топ-артисты</string>
+    <string name="wave_popular_empty">Не получилось загрузить хиты — попробуйте ещё раз</string>
     <string name="wave_loading">Подбираем волну…</string>
     <string name="section_chart">Чарт</string>
 

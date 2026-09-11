@@ -101,9 +101,9 @@ class MusicRepository(
         else io { EmbeddedMusicSource.recommendations(limit, lang) }
 
     /**
-     * Таблетка «Популярные»: на телефоне — мировые хиты + проверенные
-     * оригиналы топ-артистов (EmbeddedMusicSource.popular); на сервере —
-     * его живой /api/charts (чарт США).
+     * Таблетка «Популярные»: на телефоне — западный мейнстрим без чартов
+     * (EmbeddedMusicSource.popular); на сервере — его живой /api/charts
+     * (чарт США, без индийского мусора мирового топа).
      */
     suspend fun popular(limit: Int = 20): List<Track> =
         if (isServerMode) {

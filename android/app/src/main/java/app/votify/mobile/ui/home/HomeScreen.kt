@@ -148,6 +148,10 @@ fun HomeScreen(
             tracks = state.wave,
             isLoading = state.isLoading,
             error = state.error,
+            emptyText = stringResource(
+                if (state.waveMode == WaveMode.Popular) R.string.wave_popular_empty
+                else R.string.home_wave_empty,
+            ),
             onPlayTrack = { index -> onPlay(state.wave, index) },
             onRetry = viewModel::refresh,
         )
@@ -377,7 +381,7 @@ private fun WaveCard(
 
 private val YmYellow = Color(0xFFFFCC00)
 
-/** Светящийся шар: пульсирующее ядро + вращающиеся дуги-лучи + кнопка в центре. */
+/** Большой шар-плазма как в ЯМ: синее тело, сгустки света, лучи в обе стороны, блик на ободе. */
 @Composable
 private fun OrbPlay(
     isLoading: Boolean,
@@ -389,8 +393,14 @@ private fun OrbPlay(
     val spin by motion.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(14_000, easing = LinearEasing), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(tween(16_000, easing = LinearEasing), RepeatMode.Restart),
         label = "spin",
+    )
+    val spinBack by motion.animateFloat(
+        initialValue = 360f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(tween(11_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "spinBack",
     )
     val pulse by motion.animateFloat(
         initialValue = 0.95f,
@@ -398,53 +408,121 @@ private fun OrbPlay(
         animationSpec = infiniteRepeatable(tween(2_600, easing = LinearEasing), RepeatMode.Reverse),
         label = "pulse",
     )
-    Box(Modifier.size(204.dp), contentAlignment = Alignment.Center) {
-        // Внешнее свечение.
+    val shimmer by motion.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(3_100, easing = LinearEasing), RepeatMode.Reverse),
+        label = "shimmer",
+    )
+    Box(Modifier.size(248.dp), contentAlignment = Alignment.Center) {
+        // Окружающее свечение на всю карточку.
         Box(
             Modifier
-                .size(204.dp)
-                .graphicsLayer { scaleX = pulse; scaleY = pulse }
+                .size(300.dp)
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        0.0f to Color(0xFF9CC8FF).copy(alpha = 0.5f),
-                        0.6f to Color(0xFF4E7CD6).copy(alpha = 0.22f),
+                        0.0f to Color(0xFF6FA5FF).copy(alpha = 0.35f),
+                        0.55f to Color(0xFF3B63C9).copy(alpha = 0.18f),
                         1.0f to Color.Transparent,
                     ),
                 ),
         )
-        // Вращающиеся дуги-лучи.
-        Canvas(
-            Modifier
-                .size(176.dp)
-                .graphicsLayer { rotationZ = spin },
-        ) {
-            val w = size.minDimension * 0.05f
-            val inset = w / 2 + 2f
-            val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
-            val style = Stroke(width = w, cap = StrokeCap.Round)
-            drawArc(Color.White.copy(alpha = 0.9f), -50f, 75f, false, Offset(inset, inset), arcSize, style = style)
-            drawArc(Color(0xFFD9E8FF).copy(alpha = 0.55f), 130f, 100f, false, Offset(inset, inset), arcSize, style = style)
-        }
-        // Ядро шара.
+        // Тело шара — синяя плазма, а не белый мяч.
         Box(
             Modifier
-                .size(130.dp)
+                .size(196.dp)
                 .graphicsLayer { scaleX = pulse; scaleY = pulse }
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        0.0f to Color.White,
-                        0.45f to Color(0xFFC9DEFF),
-                        0.75f to Color(0xFF7AA5EC),
-                        1.0f to Color(0xFF3D63B8),
+                        0.0f to Color(0xFF9CC4FF),
+                        0.45f to Color(0xFF5B8DEF),
+                        0.78f to Color(0xFF2E4FA3),
+                        1.0f to Color(0xFF1B2F66),
                     ),
+                ),
+        )
+        // Яркие сгустки света внутри шара.
+        Box(
+            Modifier
+                .size(196.dp)
+                .graphicsLayer { scaleX = pulse; scaleY = pulse; alpha = shimmer },
+        ) {
+            Box(
+                Modifier
+                    .size(110.dp)
+                    .align(Alignment.Center)
+                    .offset(x = (-34).dp, y = (-40).dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            0.0f to Color.White.copy(alpha = 0.85f),
+                            1.0f to Color.Transparent,
+                        ),
+                    ),
+            )
+            Box(
+                Modifier
+                    .size(84.dp)
+                    .align(Alignment.Center)
+                    .offset(x = 44.dp, y = 48.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            0.0f to Color(0xFFE4EFFF).copy(alpha = 0.7f),
+                            1.0f to Color.Transparent,
+                        ),
+                    ),
+            )
+        }
+        // Внешний слой лучей.
+        Canvas(
+            Modifier
+                .size(216.dp)
+                .graphicsLayer { rotationZ = spin },
+        ) {
+            val w = size.minDimension * 0.035f
+            val inset = w / 2 + 2f
+            val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
+            val style = Stroke(width = w, cap = StrokeCap.Round)
+            drawArc(Color.White.copy(alpha = 0.95f), -60f, 80f, false, Offset(inset, inset), arcSize, style = style)
+            drawArc(Color(0xFFCFE3FF).copy(alpha = 0.6f), 110f, 110f, false, Offset(inset, inset), arcSize, style = style)
+            drawArc(Color.White.copy(alpha = 0.5f), 230f, 60f, false, Offset(inset, inset), arcSize, style = style)
+        }
+        // Внутренний слой лучей — крутится в другую сторону.
+        Canvas(
+            Modifier
+                .size(184.dp)
+                .graphicsLayer { rotationZ = spinBack },
+        ) {
+            val w = size.minDimension * 0.04f
+            val inset = w / 2 + 2f
+            val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
+            val style = Stroke(width = w, cap = StrokeCap.Round)
+            drawArc(Color.White.copy(alpha = 0.8f), 20f, 70f, false, Offset(inset, inset), arcSize, style = style)
+            drawArc(Color(0xFFD9E8FF).copy(alpha = 0.5f), 190f, 90f, false, Offset(inset, inset), arcSize, style = style)
+        }
+        // Блик, бегущий по ободу.
+        Box(
+            Modifier
+                .size(196.dp)
+                .graphicsLayer { rotationZ = spin; scaleX = pulse; scaleY = pulse }
+                .border(
+                    3.dp,
+                    Brush.sweepGradient(
+                        0.0f to Color.White.copy(alpha = 0.9f),
+                        0.25f to Color.Transparent,
+                        0.6f to Color.White.copy(alpha = 0.35f),
+                        1.0f to Color.Transparent,
+                    ),
+                    CircleShape,
                 ),
         )
         // Кнопка в центре шара.
         when {
             isLoading -> CircularProgressIndicator(
-                color = Color(0xFF1A1A1A),
+                color = Color.White,
                 strokeWidth = 3.dp,
                 modifier = Modifier.size(60.dp),
             )
@@ -490,6 +568,7 @@ private fun WaveStrip(
     tracks: List<Track>,
     isLoading: Boolean,
     error: String?,
+    emptyText: String,
     onPlayTrack: (Int) -> Unit,
     onRetry: () -> Unit,
 ) {
@@ -506,13 +585,19 @@ private fun WaveStrip(
         ) {
             PillChip(text = stringResource(R.string.search_retry), selected = true, onClick = onRetry)
         }
-        tracks.isEmpty() -> Text(
-            stringResource(R.string.home_wave_empty),
-            color = VotifyColors.TextSecondary,
-            style = MaterialTheme.typography.titleSmall,
-            textAlign = TextAlign.Center,
+        tracks.isEmpty() -> Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
-        )
+        ) {
+            Text(
+                emptyText,
+                color = VotifyColors.TextSecondary,
+                style = MaterialTheme.typography.titleSmall,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(12.dp))
+            PillChip(text = stringResource(R.string.search_retry), selected = true, onClick = onRetry)
+        }
         else -> LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp),
