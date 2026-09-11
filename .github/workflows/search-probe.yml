@@ -1,0 +1,36 @@
+name: Search probe (temporary)
+
+# One-shot: dumps username registry doc ids (list-all + "kent" + "ke" ranges)
+# to see what the phone query should match.
+on:
+  push:
+    branches: ['arena/01a08c8e-votify']
+    paths: ['.github/workflows/search-probe.yml']
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    env:
+      CFG: ${{ secrets.VOTIFY_FIREBASE_CONFIG }}
+    steps:
+      - name: Probe username registry
+        run: |
+          set +e
+          API_KEY="$(echo "$CFG" | jq -r .apiKey)"
+          TOKEN="$(curl -s --max-time 20 -X POST \
+            "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$API_KEY" \
+            -H 'Content-Type: application/json' -d '{}' | jq -r .idToken)"
+          BASE_DOC="projects/votify-f461a/databases/(default)/documents"
+          BASE_URL="https://firestore.googleapis.com/v1/$BASE_DOC"
+          q() {
+            PREFIX="$1"
+            curl -s --max-time 25 \
+              -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+              -d "{\"structuredQuery\":{\"from\":[{\"collectionId\":\"usernames\"}],\"orderBy\":[{\"field\":{\"fieldPath\":\"__name__\"},\"direction\":\"ASCENDING\"}],\"startAt\":{\"values\":[{\"referenceValue\":\"$BASE_DOC/usernames/$PREFIX\"}]},\"endAt\":{\"values\":[{\"referenceValue\":\"$BASE_DOC/usernames/$PREFIX\\uf8ff\"}]},\"limit\":15}}" \
+              "$BASE_URL:runQuery" | jq -r '[.[].document.name | select(. != null) | split("/") | last] | join(",")'
+          }
+          echo "::notice::PROBE-ALL all-usernames=[$(q '')]"
+          echo "::notice::PROBE-KENT kent-range=[$(q 'kent')]"
+          echo "::notice::PROBE-KE ke-range=[$(q 'ke')]"
+          echo done
