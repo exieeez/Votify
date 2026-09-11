@@ -49,7 +49,7 @@ data class ChartArtist(
 object InnertubeCharts {
 
     /** Display order of sections on the charts screen. */
-    val SECTION_ORDER = listOf("chart_ua", "chart_world", "chart_ru", "top_artists")
+    val SECTION_ORDER = listOf("chart_ua", "chart_world", "top_artists")
 
     private const val BROWSE_URL =
         "https://music.youtube.com/youtubei/v1/browse?alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30"
@@ -73,7 +73,6 @@ object InnertubeCharts {
     suspend fun loadAll(onSection: suspend (ChartSection) -> Unit) = coroutineScope {
         launch { trackSection("chart_ua", R.string.chart_ua, "UA", 15)?.let { onSection(it) } }
         launch { trackSection("chart_world", R.string.chart_world, "ZZ", 15)?.let { onSection(it) } }
-        launch { trackSection("chart_ru", R.string.chart_ru, "RU", 15)?.let { onSection(it) } }
         launch { artistsSection()?.let { onSection(it) } }
     }
 
