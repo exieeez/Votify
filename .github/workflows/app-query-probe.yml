@@ -1,6 +1,6 @@
 name: App-query probe (temporary)
 
-# One-shot: dump raw doc ids of `usernames` (repr codepoints) + direct GETs.
+# One-shot: verify startAt.before=true includes the exact doc for full "dodik".
 on:
   push:
     branches: ['arena/01a08c8e-votify']
@@ -13,7 +13,7 @@ jobs:
     env:
       CFG: ${{ secrets.VOTIFY_FIREBASE_CONFIG }}
     steps:
-      - name: Dump raw username doc ids
+      - name: Verify inclusive startAt
         run: |
           set +e
           API_KEY="$(echo "$CFG" | jq -r .apiKey)"
@@ -22,10 +22,9 @@ jobs:
             -H 'Content-Type: application/json' -d '{}' | jq -r .idToken)"
           BASE_DOC="projects/votify-f461a/databases/(default)/documents"
           BASE_URL="https://firestore.googleapis.com/v1/$BASE_DOC"
-          LIST="$(curl -s --max-time 25 -H "Authorization: Bearer $TOKEN" "$BASE_URL/usernames?pageSize=50")"
-          echo "$LIST" | python3 -c "import json,sys;[print('::notice::DOC-REPR:',ascii(d['name'].split('/')[-1]),'uid=',d.get('fields',{}).get('uid',{}).get('stringValue')) for d in json.load(sys.stdin).get('documents',[])]"
-          for N in dodik god; do
-            CODE="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$BASE_URL/usernames/$N")"
-            echo "::notice::GET $N code=$CODE"
-          done
+          BODY="$(jq -n --arg base "$BASE_DOC/usernames" '{structuredQuery:{from:[{collectionId:"usernames"}],orderBy:[{field:{fieldPath:"__name__"},direction:"ASCENDING"}],startAt:{values:[{referenceValue:($base+"/dodik")}],before:true},endAt:{values:[{referenceValue:($base+"/dodik\uf8ff")}],before:false},limit:8}}')"
+          OUT="$(curl -s --max-time 25 -w '\n%{http_code}' -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d "$BODY" "$BASE_URL:runQuery")"
+          CODE="$(echo "$OUT" | tail -n 1)"
+          IDS="$(echo "$OUT" | head -n -1 | jq -r '[.[].document.name | select(. != null) | split("/") | last] | join(",")' 2>/dev/null)"
+          echo "::notice::FIXQ-DODIK code=$CODE ids=[$IDS]"
           echo done
