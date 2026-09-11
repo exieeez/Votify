@@ -306,6 +306,7 @@ fun ProfileScreen(
                             searching = state.searching,
                             results = state.searchResults,
                             searchDone = state.searchDone,
+                            latinHint = state.searchLatinHint,
                             onQuery = viewModel::onSearchQuery,
                             onOpenUser = onOpenUser,
                         )
@@ -637,6 +638,7 @@ private fun FindFriendsCard(
     searching: Boolean,
     results: List<SocialUser>,
     searchDone: Boolean,
+    latinHint: Boolean,
     onQuery: (String) -> Unit,
     onOpenUser: (String) -> Unit,
 ) {
@@ -680,7 +682,14 @@ private fun FindFriendsCard(
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (searchDone && results.isEmpty() && query.trim().length >= 2) {
+            if (latinHint) {
+                Text(
+                    stringResource(R.string.profile_search_latin),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = VotifyColors.TextMuted,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            } else if (searchDone && results.isEmpty() && query.trim().length >= 2) {
                 Text(
                     stringResource(R.string.profile_search_empty),
                     style = MaterialTheme.typography.bodySmall,

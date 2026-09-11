@@ -36,6 +36,13 @@ test('follow edges are self-only creates with deterministic ids', () => {
   assert.match(rules, /request\.resource\.data\.following != request\.auth\.uid/);
 });
 
+test('follow-request existence checks 404 instead of 403 on missing docs', () => {
+  // getFollowState() reads followRequests/{edge} that usually doesn't exist yet:
+  // single-doc gets must not dereference resource.data (rule error = 403).
+  assert.match(rules, /allow get: if isSignedIn\(\);/);
+  assert.match(rules, /allow list: if isSignedIn\(\)/);
+});
+
 test('accepting a request can create the edge from the recipient side', () => {
   assert.match(rules, /function isValidAcceptEdge\(edgeId\)/);
   assert.match(rules, /isValidFollowEdge\(edgeId\) \|\| isValidAcceptEdge\(edgeId\)/);

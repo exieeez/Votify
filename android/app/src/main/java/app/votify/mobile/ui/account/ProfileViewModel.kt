@@ -92,6 +92,7 @@ class ProfileViewModel(
         val searching: Boolean = false,
         val searchResults: List<SocialUser> = emptyList(),
         val searchDone: Boolean = false,
+        val searchLatinHint: Boolean = false,
         val incoming: List<SocialUser> = emptyList(),
         val outgoing: List<SocialUser> = emptyList(),
         val requestsLoading: Boolean = false,
@@ -216,21 +217,23 @@ class ProfileViewModel(
     fun onSearchQuery(q: String) {
         _state.update { it.copy(searchQuery = q, searchDone = false) }
         searchJob?.cancel()
-        val clean = SocialValidate.normalizeUsername(q)
+        val clean = SocialValidate.searchPrefix(q)
+        // Typed 2+ chars but nothing searchable (e.g. Cyrillic): hint at latin-only.
+        val latinHint = SocialValidate.normalizeUsername(q).length >= 2 && clean.length < 2
         if (clean.length < 2) {
-            _state.update { it.copy(searching = false, searchResults = emptyList()) }
+            _state.update { it.copy(searching = false, searchResults = emptyList(), searchLatinHint = latinHint) }
             return
         }
         searchJob = viewModelScope.launch {
             delay(450)
-            _state.update { it.copy(searching = true) }
+            _state.update { it.copy(searching = true, searchLatinHint = false) }
             try {
                 val repo = repoOrThrow()
                 val users = repo.searchUsers(clean)
-                _state.update { it.copy(searching = false, searchResults = users, searchDone = true) }
+                _state.update { it.copy(searching = false, searchResults = users, searchDone = true, searchLatinHint = false) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                _state.update { it.copy(searching = false, searchDone = true) }
+                _state.update { it.copy(searching = false, searchDone = true, searchLatinHint = false) }
             }
         }
     }

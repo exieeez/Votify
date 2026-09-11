@@ -42,6 +42,14 @@ object SocialValidate {
     fun normalizeUsername(raw: String?): String =
         (raw ?: "").trim().replace(Regex("^@+"), "").lowercase()
 
+    /**
+     * Search prefix: normalized, non-latin stripped (usernames are latin-only),
+     * capped at 32 chars. Mirrors the desktop client's searchUsers exactly so
+     * both apps find the same people for the same input.
+     */
+    fun searchPrefix(raw: String?): String =
+        normalizeUsername(raw).filter { it in 'a'..'z' || it in '0'..'9' || it == '_' }.take(32)
+
     enum class UsernameError { EMPTY, TOO_SHORT, TOO_LONG, BAD_CHARS, RESERVED }
 
     data class UsernameCheck(val ok: Boolean, val value: String, val error: UsernameError? = null)

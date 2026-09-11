@@ -320,7 +320,7 @@ class SocialRepository(
 
     /** Prefix search over the username registry (orderBy __name__ range — no index needed). */
     suspend fun searchUsers(prefix: String, limit: Int = 8): List<SocialUser> = authed { a ->
-        val clean = SocialValidate.normalizeUsername(prefix)
+        val clean = SocialValidate.searchPrefix(prefix)
         if (clean.isEmpty()) return@authed emptyList()
         val base = docName("usernames")
         val query = buildJsonObject {

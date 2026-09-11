@@ -617,6 +617,7 @@
     <string name="profile_search_hint">Юзернейм или @юзернейм</string>
     <string name="profile_search_empty">Никого не найдено</string>
     <string name="profile_search_short">Введите хотя бы 2 символа</string>
+    <string name="profile_search_latin">Юзернеймы пишут латиницей: a–z, 0–9, _</string>
     <string name="profile_requests_in">Заявки в друзья</string>
     <string name="profile_requests_out">Отправленные заявки</string>
     <string name="profile_accept">Принять</string>

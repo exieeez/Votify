@@ -292,8 +292,13 @@ service cloud.firestore {
     }
 
     // Pending follow requests for private profiles, same id scheme.
+    // NOTE: existence checks (getFollowState) read docs that usually DON'T exist
+    // yet. A `read` rule dereferencing resource.data would 403 on those instead
+    // of 404 (accessing .data of a missing doc is a rule error) — so single-doc
+    // gets are open like /follows, while listings stay participant-only.
     match /followRequests/{edgeId} {
-      allow read: if isSignedIn()
+      allow get: if isSignedIn();
+      allow list: if isSignedIn()
         && (resource.data.follower == request.auth.uid
           || resource.data.following == request.auth.uid);
       allow create: if isSignedIn() && isValidFollowEdge(edgeId);
