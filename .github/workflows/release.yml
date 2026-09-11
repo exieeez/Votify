@@ -16,10 +16,10 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            args: '--win nsis --x64'
+            script: 'build:win'
             artifacts: 'dist/*.exe'
           - os: ubuntu-latest
-            args: '--linux AppImage'
+            script: 'build:appimage'
             artifacts: 'dist/*.AppImage'
     runs-on: ${{ matrix.os }}
     steps:
@@ -35,9 +35,22 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Build
-        run: npx electron-builder ${{ matrix.args }} --publish never
+        # NOTE: must go through the npm scripts (not bare electron-builder) so the
+        # prebuild hooks bake firebase-config.json into the package — otherwise the
+        # app ships without cloud accounts ("Firebase не настроен").
+        run: npm run ${{ matrix.script }} -- --publish never
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
+          VOTIFY_FIREBASE_CONFIG: ${{ secrets.VOTIFY_FIREBASE_CONFIG }}
+
+      - name: Verify Firebase config was packaged
+        shell: bash
+        run: |
+          if [ ! -s firebase-config.json ]; then
+            echo "::error::firebase-config.json missing — the app would ship without cloud accounts"
+            exit 1
+          fi
+          echo "::notice::firebase-config.json packed into the app"
 
       - name: Publish assets to GitHub Release
         uses: softprops/action-gh-release@v2
