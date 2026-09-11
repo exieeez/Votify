@@ -23,6 +23,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -437,7 +438,12 @@ class ProfileViewModel(
 
     private suspend fun showcaseFromPlaylists(lists: List<PlaylistSummary>): List<ShowcaseItem> =
         lists.take(SocialValidate.SHOWCASE_LIMIT).map { p ->
-            val tracks = runCatching { library.playlistTracks(p.id) }.getOrDefault(emptyList())
+            val tracks = try {
+                library.playlistTracks(p.id).first()
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                emptyList()
+            }
             ShowcaseItem(
                 name = p.name.take(60),
                 count = p.trackCount.coerceAtLeast(0),

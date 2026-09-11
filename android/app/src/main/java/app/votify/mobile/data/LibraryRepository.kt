@@ -79,9 +79,6 @@ class LibraryRepository(private val db: VotifyDatabase) {
 
     fun playlist(id: Long): Flow<PlaylistEntity?> = db.playlists().observe(id)
 
-    suspend fun playlistTracks(id: Long): List<Track> =
-        db.playlists().tracksOf(id).map(TrackEntity::toTrack)
-
     fun playlistTracks(id: Long): Flow<List<Track>> =
         db.playlists().observeTracks(id).map { it.map(TrackEntity::toTrack) }
 
