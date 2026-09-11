@@ -476,6 +476,22 @@
     <string name="chart_ua">Чарт Украины</string>
     <string name="chart_world">Мировые хиты</string>
     <string name="chart_artists">Топ артистов</string>
+    <string name="chart_ru">Чарт России</string>
+    <string name="wave_for_you">Для вас</string>
+    <string name="wave_popular">Популярные</string>
+    <string name="wave_popular_sub">Чарт региона и тренды TikTok</string>
+    <string name="wave_tune">Настроить</string>
+    <string name="wave_loading">Подбираем волну…</string>
+    <string name="wave_settings_title">Настройка волны</string>
+    <string name="wave_language">Язык волны</string>
+    <string name="wave_lang_uk">Українська</string>
+    <string name="wave_lang_ru">Русский</string>
+    <string name="wave_lang_en">English</string>
+    <string name="wave_lang_any">Любой</string>
+    <string name="wave_exclude_listened">Не предлагать прослушанное</string>
+    <string name="wave_exclude_listened_desc">Волна не будет повторять песни из вашей истории</string>
+    <string name="wave_hint">«Для вас» — волна по вашим вкусам. «Популярные» — чарт региона и тренды TikTok.</string>
+    <string name="settings_wave">Моя волна</string>
     <string name="section_chart">Чарт</string>
 
     <string name="workshop_title">Мастерская тем</string>

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.DesktopWindows
 import androidx.compose.material.icons.outlined.Image
@@ -54,6 +55,7 @@ fun SettingsScreen(
     onOpenPresets: () -> Unit,
     onOpenWorkshop: () -> Unit,
     onOpenProxy: () -> Unit,
+    onOpenWave: () -> Unit,
 ) {
     Column(
         Modifier
@@ -78,6 +80,7 @@ fun SettingsScreen(
             SettingsNavRow(Icons.Outlined.Settings, stringResource(R.string.settings_general), null, onOpenGeneral)
             SettingsDivider()
             SettingsNavRow(Icons.Outlined.MusicNote, stringResource(R.string.settings_audio), null, onOpenAudio)
+            SettingsNavRow(Icons.Outlined.Tune, stringResource(R.string.settings_wave), null, onOpenWave)
             SettingsDivider()
             SettingsNavRow(Icons.Outlined.Storage, stringResource(R.string.settings_storage), null, onOpenStorage)
             SettingsDivider()

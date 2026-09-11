@@ -65,6 +65,36 @@ enum class AudioQuality(val key: String) {
     }
 }
 
+/** «Моя волна»: на каком языке подбирать музыку. */
+enum class WaveLang(val key: String) {
+    Ukrainian("uk"),
+    Russian("ru"),
+    English("en"),
+    Any("any");
+
+    companion object {
+        fun fromKey(k: String?) = entries.firstOrNull { it.key == k } ?: Ukrainian
+    }
+}
+
+/** Режим волны с главного экрана: персональная или чарт+тренды. */
+enum class WaveMode(val key: String) {
+    ForYou("foryou"),
+    Popular("popular");
+
+    companion object {
+        fun fromKey(k: String?) = entries.firstOrNull { it.key == k } ?: ForYou
+    }
+}
+
+/** InnerTube/Apple-charts region code for the wave language. */
+fun WaveLang.chartRegion(): String = when (this) {
+    WaveLang.Ukrainian -> "UA"
+    WaveLang.Russian -> "RU"
+    WaveLang.English -> "ZZ"
+    WaveLang.Any -> "UA"
+}
+
 /** Signed-in account: Firebase (idToken + refreshToken) or the local server (JWT). */
 data class Account(
     val email: String,
@@ -93,6 +123,12 @@ data class Settings(
     val customPrefs: String = "",
     /** Cached Firebase Web Config (JSON) — powers accounts and the community Workshop. */
     val firebaseConfig: String = "",
+    /** Wave language (default = Ukrainian youth taste). */
+    val waveLang: WaveLang = WaveLang.Ukrainian,
+    /** Last wave pill on the home screen. */
+    val waveMode: WaveMode = WaveMode.ForYou,
+    /** Wave skips tracks already in the listening history. */
+    val waveExcludeListened: Boolean = true,
 )
 
 class SettingsRepository(context: Context) {
@@ -111,6 +147,9 @@ class SettingsRepository(context: Context) {
     val customTheme = stringPreferencesKey("custom_theme")
         val backgroundUrl = stringPreferencesKey("background_url")
         val firebaseConfig = stringPreferencesKey("firebase_config")
+        val waveLang = stringPreferencesKey("wave_lang")
+        val waveMode = stringPreferencesKey("wave_mode")
+        val waveExcludeListened = booleanPreferencesKey("wave_exclude_listened")
         val accountUid = stringPreferencesKey("account_uid")
         val accountRefresh = stringPreferencesKey("account_refresh_token")
         val accountEmail = stringPreferencesKey("account_email")
@@ -132,6 +171,9 @@ class SettingsRepository(context: Context) {
             backgroundUrl = p[Keys.backgroundUrl] ?: "",
             customPrefs = p[Keys.customPrefs] ?: "",
             firebaseConfig = p[Keys.firebaseConfig] ?: "",
+            waveLang = WaveLang.fromKey(p[Keys.waveLang]),
+            waveMode = WaveMode.fromKey(p[Keys.waveMode]),
+            waveExcludeListened = p[Keys.waveExcludeListened] ?: true,
         )
     }
 
@@ -159,6 +201,9 @@ class SettingsRepository(context: Context) {
     suspend fun setBackgroundUrl(url: String) = store.edit { it[Keys.backgroundUrl] = url.trim() }
     suspend fun setCustomPrefs(json: String) = store.edit { it[Keys.customPrefs] = json.trim() }
     suspend fun setFirebaseConfig(json: String) = store.edit { it[Keys.firebaseConfig] = json.trim() }
+    suspend fun setWaveLang(v: WaveLang) = store.edit { it[Keys.waveLang] = v.key }
+    suspend fun setWaveMode(v: WaveMode) = store.edit { it[Keys.waveMode] = v.key }
+    suspend fun setWaveExcludeListened(v: Boolean) = store.edit { it[Keys.waveExcludeListened] = v }
 
     suspend fun setAccount(
         email: String,

@@ -6,8 +6,9 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonArray
@@ -48,8 +49,12 @@ data class ChartArtist(
  */
 object InnertubeCharts {
 
-    /** Display order of sections on the charts screen. */
-    val SECTION_ORDER = listOf("chart_ua", "chart_world", "top_artists")
+    /** Display order of sections on the charts screen: the wave region first. */
+    fun sectionOrder(region: String): List<String> {
+        val id = "chart_" + region.lowercase()
+        return if (region.uppercase() == "ZZ") listOf(id, "top_artists")
+        else listOf(id, "chart_world", "top_artists")
+    }
 
     private const val BROWSE_URL =
         "https://music.youtube.com/youtubei/v1/browse?alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30"
@@ -70,11 +75,29 @@ object InnertubeCharts {
      * it finishes. Returns after all sections were attempted (failed/empty ones
      * are skipped — the screen shows whatever loaded).
      */
-    suspend fun loadAll(onSection: suspend (ChartSection) -> Unit) = coroutineScope {
-        launch { trackSection("chart_ua", R.string.chart_ua, "UA", 15)?.let { onSection(it) } }
-        launch { trackSection("chart_world", R.string.chart_world, "ZZ", 15)?.let { onSection(it) } }
-        launch { artistsSection()?.let { onSection(it) } }
+    suspend fun loadAll(region: String = "UA", onSection: suspend (ChartSection) -> Unit) = coroutineScope {
+        val r = region.uppercase()
+        // Fetch concurrently, but always emit region-first so the screen order is stable.
+        val jobs = listOf(
+            async { trackSection("chart_" + r.lowercase(), titleResFor(r), r, 15) },
+            async { if (r != "ZZ") trackSection("chart_world", R.string.chart_world, "ZZ", 15) else null },
+            async { artistsSection(r) },
+        )
+        jobs.awaitAll().filterNotNull().forEach { onSection(it) }
     }
+
+    private fun titleResFor(region: String): Int = when (region.uppercase()) {
+        "UA" -> R.string.chart_ua
+        "RU" -> R.string.chart_ru
+        else -> R.string.chart_world
+    }
+
+    /**
+     * Public chart reader for the «Популярные» wave: top tracks of a country,
+     * cached like the charts screen (directly playable videoIds).
+     */
+    fun topTracks(country: String, limit: Int): List<Track> =
+        runCatching { countryTop(country.uppercase(), limit) }.getOrDefault(emptyList())
 
     private suspend fun trackSection(id: String, titleRes: Int, country: String, limit: Int): ChartSection? {
         val tracks = withTimeoutOrNull(SECTION_TIMEOUT_MS) {
@@ -83,10 +106,10 @@ object InnertubeCharts {
         return if (tracks.isEmpty()) null else ChartSection(id, titleRes, tracks)
     }
 
-    private suspend fun artistsSection(): ChartSection? {
+    private suspend fun artistsSection(country: String): ChartSection? {
         val artists = withTimeoutOrNull(SECTION_TIMEOUT_MS) {
             withContext(Dispatchers.IO) {
-                runCatching { chartsPage("UA")?.artists.orEmpty().take(10) }.getOrDefault(emptyList())
+                runCatching { chartsPage(country)?.artists.orEmpty().take(10) }.getOrDefault(emptyList())
             }
         }.orEmpty()
         return if (artists.isEmpty()) null else ChartSection("top_artists", R.string.chart_artists, artists = artists)

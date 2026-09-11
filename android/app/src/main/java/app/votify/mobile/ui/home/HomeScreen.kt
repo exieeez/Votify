@@ -1,12 +1,5 @@
 package app.votify.mobile.ui.home
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +19,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -49,16 +45,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.votify.mobile.R
 import app.votify.mobile.data.Track
+import app.votify.mobile.data.WaveMode
 import app.votify.mobile.ui.components.Artwork
 import app.votify.mobile.ui.components.CircleIconButton
 import app.votify.mobile.ui.components.PillChip
@@ -68,8 +65,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import app.votify.mobile.ui.components.pluralTracks
 import app.votify.mobile.ui.theme.VotifyColors
-import kotlin.math.cos
-import kotlin.math.sin
 
 @Composable
 fun HomeScreen(
@@ -86,6 +81,7 @@ fun HomeScreen(
     onOpenAccount: () -> Unit,
     onOpenTrending: () -> Unit,
     onOpenSite: () -> Unit,
+    onOpenWaveSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val recent by viewModel.recent.collectAsStateWithLifecycle()
@@ -104,32 +100,47 @@ fun HomeScreen(
             onOpenSite = onOpenSite,
         )
 
-        // --- "Моя волна": big white Play with an orbit of artwork bubbles ---
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(300.dp),
-            contentAlignment = Alignment.Center,
+        // --- «Моя волна» в стиле Яндекс Музыки: карточка + таблеточки + лента ---
+        WaveCard(
+            state = state,
+            onPlayWave = { onPlay(state.wave, 0) },
+            onRetry = viewModel::refresh,
+            onOpenWaveSettings = onOpenWaveSettings,
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        // Таблеточки режимов под карточкой.
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            when {
-                state.isLoading -> CircularProgressIndicator(color = VotifyColors.TextMuted, strokeWidth = 2.dp)
-                state.error != null -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.search_error), color = VotifyColors.TextSecondary, style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.height(4.dp))
-                    Text(state.error ?: "", color = VotifyColors.TextMuted, style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(12.dp))
-                    PillChip(text = stringResource(R.string.search_retry), selected = true, onClick = viewModel::refresh)
-                }
-                state.wave.isEmpty() -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.home_wave_empty), color = VotifyColors.TextSecondary, style = MaterialTheme.typography.titleSmall)
-                }
-                else -> WaveOrbit(
-                    tracks = state.wave,
-                    onPlayWave = { onPlay(state.wave, 0) },
-                    onPlayTrack = { index -> onPlay(state.wave, index) },
+            item {
+                PillChip(
+                    text = stringResource(R.string.wave_for_you),
+                    selected = state.waveMode == WaveMode.ForYou,
+                    onClick = { viewModel.setMode(WaveMode.ForYou) },
+                )
+            }
+            item {
+                PillChip(
+                    text = stringResource(R.string.wave_popular),
+                    selected = state.waveMode == WaveMode.Popular,
+                    onClick = { viewModel.setMode(WaveMode.Popular) },
                 )
             }
         }
+
+        Spacer(Modifier.height(12.dp))
+
+        WaveStrip(
+            tracks = state.wave,
+            isLoading = state.isLoading,
+            error = state.error,
+            onPlayTrack = { index -> onPlay(state.wave, index) },
+            onRetry = viewModel::refresh,
+        )
 
         // Под «Моей волной» — одна строка текста текущей песни (как в Spotify под обложкой).
         val lyricLine = homeLyricLine(viewModel, playerState)
@@ -148,23 +159,6 @@ fun HomeScreen(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
-            )
-        }
-
-        if (!state.isLoading && state.error == null) {
-            Text(
-                text = when (state.waveSource) {
-                    WaveSource.Personal -> stringResource(R.string.home_wave_personal, state.seeds.take(3).joinToString(", "))
-                    WaveSource.Generic -> stringResource(R.string.home_wave_generic)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = VotifyColors.TextMuted,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
             )
         }
 
@@ -314,75 +308,182 @@ private fun homeLyricLine(
 }
 
 /**
- * The hero of the home screen: a 72dp white Play disc in the centre with up to 8 artwork
- * bubbles scattered on an orbit around it. The orbit slowly drifts; tapping a bubble plays
- * that track, tapping Play starts the whole wave.
+ * Карточка «Моей волны» в духе Яндекс Музыки: градиент, кнопка плей,
+ * подпись вкуса и «Настроить» справа вверху.
  */
 @Composable
-private fun WaveOrbit(
-    tracks: List<Track>,
+private fun WaveCard(
+    state: HomeUiState,
     onPlayWave: () -> Unit,
-    onPlayTrack: (Int) -> Unit,
+    onRetry: () -> Unit,
+    onOpenWaveSettings: () -> Unit,
 ) {
-    val bubbles = tracks.take(8)
-    val drift by rememberInfiniteTransition(label = "orbit").animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(90_000, easing = LinearEasing), RepeatMode.Restart),
-        label = "drift",
-    )
-
-    Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
-        bubbles.forEachIndexed { i, track ->
-            // One round orbit for every bubble (user request); sizes still vary a little.
-            val radius: Dp = 118.dp
-            val size: Dp = if (i % 2 == 0) 56.dp else 48.dp
-            val angle = Math.toRadians((i * (360.0 / bubbles.size)) - 90 + drift)
-            val dx = (radius.value * cos(angle)).toFloat().dp
-            val dy = (radius.value * sin(angle)).toFloat().dp
-            Box(
-                Modifier
-                    .offset(x = dx, y = dy)
-                    .size(size)
-                    .clip(CircleShape)
-                    .border(1.dp, VotifyColors.BorderProminent.copy(alpha = 0.6f), CircleShape)
-                    .clickable { onPlayTrack(i) },
-            ) {
-                Artwork(track.cover, size = size, shape = RoundedCornerShape(50), contentDescription = track.title)
-            }
-        }
-
-        // При смене акцента кнопка перекрашивается плавно, а не «щёлкает» цветом.
-        val heroFill by animateColorAsState(VotifyColors.AccentFill, tween(260), label = "heroFill")
-        val heroContent by animateColorAsState(VotifyColors.AccentContent, tween(260), label = "heroContent")
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Surface(
-                onClick = onPlayWave,
-                shape = CircleShape,
-                color = heroFill,
-                contentColor = heroContent,
-                shadowElevation = 0.dp,
-                modifier = Modifier.size(72.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Filled.PlayArrow,
-                        contentDescription = stringResource(R.string.home_play_wave),
-                        modifier = Modifier.size(34.dp).offset(x = 2.dp),
-                    )
+    val hasMusic = !state.isLoading && state.error == null && state.wave.isNotEmpty()
+    Box(
+        Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(VotifyColors.AccentFill, VotifyColors.AccentFill.copy(alpha = 0.55f)),
+                ),
+            )
+            .clickable(enabled = hasMusic, onClick = onPlayWave)
+            .padding(16.dp),
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.home_my_wave),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = VotifyColors.AccentContent,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.weight(1f))
+                Surface(
+                    onClick = onOpenWaveSettings,
+                    shape = CircleShape,
+                    color = VotifyColors.AccentContent.copy(alpha = 0.22f),
+                    contentColor = VotifyColors.AccentContent,
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Outlined.Settings, null, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            stringResource(R.string.wave_tune),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                stringResource(R.string.home_my_wave),
-                style = MaterialTheme.typography.titleMedium,
-                color = VotifyColors.TextSecondary,
-                fontWeight = FontWeight.Medium,
-            )
+            Spacer(Modifier.height(14.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                when {
+                    state.isLoading -> CircularProgressIndicator(
+                        color = VotifyColors.AccentContent,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(52.dp).padding(10.dp),
+                    )
+                    state.error != null -> Surface(
+                        onClick = onRetry,
+                        shape = CircleShape,
+                        color = VotifyColors.AccentContent,
+                        contentColor = VotifyColors.AccentFill,
+                        modifier = Modifier.size(52.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Filled.Refresh,
+                                contentDescription = stringResource(R.string.search_retry),
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    }
+                    else -> Surface(
+                        onClick = onPlayWave,
+                        shape = CircleShape,
+                        color = VotifyColors.AccentContent,
+                        contentColor = VotifyColors.AccentFill,
+                        modifier = Modifier.size(52.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Filled.PlayArrow,
+                                contentDescription = stringResource(R.string.home_play_wave),
+                                modifier = Modifier.size(28.dp).offset(x = 2.dp),
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    text = when {
+                        state.isLoading -> stringResource(R.string.wave_loading)
+                        state.error != null -> stringResource(R.string.search_error)
+                        state.waveSource == WaveSource.Popular -> stringResource(R.string.wave_popular_sub)
+                        state.waveSource == WaveSource.Personal ->
+                            stringResource(R.string.home_wave_personal, state.seeds.take(3).joinToString(", "))
+                        else -> stringResource(R.string.home_wave_generic)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = VotifyColors.AccentContent.copy(alpha = 0.92f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
+
+/** Лента очереди волны: обложки под таблеточками, тап — играть с этого места. */
+@Composable
+private fun WaveStrip(
+    tracks: List<Track>,
+    isLoading: Boolean,
+    error: String?,
+    onPlayTrack: (Int) -> Unit,
+    onRetry: () -> Unit,
+) {
+    when {
+        isLoading -> Box(
+            Modifier.fillMaxWidth().height(148.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(color = VotifyColors.TextMuted, strokeWidth = 2.dp)
+        }
+        error != null -> Box(
+            Modifier.fillMaxWidth().height(148.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            PillChip(text = stringResource(R.string.search_retry), selected = true, onClick = onRetry)
+        }
+        tracks.isEmpty() -> Text(
+            stringResource(R.string.home_wave_empty),
+            color = VotifyColors.TextSecondary,
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+        )
+        else -> LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            itemsIndexed(tracks.take(12)) { index, track ->
+                Column(Modifier.width(104.dp).clickable { onPlayTrack(index) }) {
+                    Artwork(
+                        track.cover,
+                        size = 104.dp,
+                        shape = RoundedCornerShape(12.dp),
+                        contentDescription = track.title,
+                    )
+                    Spacer(Modifier.height(5.dp))
+                    Text(
+                        track.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = VotifyColors.TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        track.artist,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = VotifyColors.TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 private fun QuickTile(

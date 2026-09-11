@@ -91,27 +91,42 @@ class MusicRepository(
         trackSeeds: List<String> = emptyList(),
         exclude: List<String> = emptyList(),
         limit: Int = 20,
+        lang: WaveLang = WaveLang.Ukrainian,
     ): List<Track> =
         if (isServerMode) api.customWave(artistSeeds, trackSeeds, exclude, limit)
-        else io { EmbeddedMusicSource.wave(artistSeeds, trackSeeds, exclude.toSet(), limit) }
+        else io { EmbeddedMusicSource.wave(artistSeeds, trackSeeds, exclude.toSet(), limit, lang) }
 
-    suspend fun recommendations(limit: Int = 16): List<Track> =
+    suspend fun recommendations(limit: Int = 16, lang: WaveLang = WaveLang.Ukrainian): List<Track> =
         if (isServerMode) api.recommendations(limit)
-        else io { EmbeddedMusicSource.recommendations(limit) }
+        else io { EmbeddedMusicSource.recommendations(limit, lang) }
+
+    /**
+     * Таблетка «Популярные»: на телефоне — чарт региона волны + тикток-тренды
+     * (EmbeddedMusicSource.popular); на сервере — его живой /api/charts
+     * с регионом языка волны.
+     */
+    suspend fun popular(lang: WaveLang = WaveLang.Ukrainian, limit: Int = 20): List<Track> =
+        if (isServerMode) {
+            runCatching { api.charts(limit, lang.chartRegion().lowercase()) }
+                .getOrNull()?.takeIf { it.isNotEmpty() }
+                ?: api.recommendations(limit)
+        } else io {
+            EmbeddedMusicSource.popular(lang, limit)
+        }
 
     /**
      * «Чарты»: на телефоне — чарты YouTube Music по странам + топ артистов
      * (InnertubeCharts, подход ytmusicapi), прилетают по мере готовности;
      * на сервере — один блок /api/charts.
      */
-    suspend fun chartSections(onSection: suspend (ChartSection) -> Unit) {
+    suspend fun chartSections(region: String = "UA", onSection: suspend (ChartSection) -> Unit) {
         if (isServerMode) {
             // Сервер может быть старой версии без /api/charts — тогда берём рекомендации.
-            val chart = runCatching { api.charts(30) }.getOrNull()
+            val chart = runCatching { api.charts(30, region.lowercase()) }.getOrNull()
             val tracks = if (!chart.isNullOrEmpty()) chart else api.recommendations(30)
             if (tracks.isNotEmpty()) onSection(ChartSection("chart", app.votify.mobile.R.string.section_chart, tracks))
         } else {
-            InnertubeCharts.loadAll(onSection)
+            InnertubeCharts.loadAll(region, onSection)
         }
     }
 

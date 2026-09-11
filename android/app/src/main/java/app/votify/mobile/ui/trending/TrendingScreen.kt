@@ -49,6 +49,8 @@ import app.votify.mobile.R
 import app.votify.mobile.data.ChartSection
 import app.votify.mobile.data.InnertubeCharts
 import app.votify.mobile.data.MusicRepository
+import app.votify.mobile.data.SettingsRepository
+import app.votify.mobile.data.chartRegion
 import app.votify.mobile.data.Track
 import app.votify.mobile.ui.components.PillChip
 import app.votify.mobile.ui.components.TrackRow
@@ -57,6 +59,7 @@ import app.votify.mobile.ui.components.pluralTracks
 import app.votify.mobile.ui.theme.VotifyColors
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -70,7 +73,10 @@ data class TrendingUiState(
 )
 
 /** «Чарты»: sections arrive progressively as each source finishes. */
-class TrendingViewModel(private val music: MusicRepository) : ViewModel() {
+class TrendingViewModel(
+    private val music: MusicRepository,
+    private val settingsRepo: SettingsRepository,
+) : ViewModel() {
 
     private val _state = MutableStateFlow(TrendingUiState())
     val state: StateFlow<TrendingUiState> = _state
@@ -82,12 +88,14 @@ class TrendingViewModel(private val music: MusicRepository) : ViewModel() {
     fun refresh() {
         viewModelScope.launch {
             _state.update { it.copy(sections = emptyList(), isLoading = true, loadFailed = false, error = null) }
+            // Чарт региона следует за языком волны («Настроить» на главном экране).
+            val region = runCatching { settingsRepo.settings.first().waveLang.chartRegion() }.getOrDefault("UA")
             runCatching {
-                music.chartSections { section ->
+                music.chartSections(region) { section ->
                     _state.update { st ->
                         val merged = (st.sections.filterNot { it.id == section.id } + section)
                             .sortedBy { s ->
-                                InnertubeCharts.SECTION_ORDER.indexOf(s.id).let { i -> if (i < 0) Int.MAX_VALUE else i }
+                                InnertubeCharts.sectionOrder(region).indexOf(s.id).let { i -> if (i < 0) Int.MAX_VALUE else i }
                             }
                         st.copy(sections = merged)
                     }

@@ -26,6 +26,8 @@ import app.votify.mobile.data.LibraryRepository
 import app.votify.mobile.data.PlayerBackground
 import app.votify.mobile.data.Settings
 import app.votify.mobile.data.SettingsRepository
+import app.votify.mobile.data.WaveLang
+import app.votify.mobile.data.WaveMode
 import app.votify.mobile.data.CloudSync
 import app.votify.mobile.data.FirebaseRest
 import app.votify.mobile.data.VotifyApi
@@ -229,6 +231,9 @@ class SettingsViewModel(
     fun setArtworkStyle(v: ArtworkStyle) = launchSave { settingsRepo.setArtworkStyle(v) }
     fun setPlayerBackground(v: PlayerBackground) = launchSave { settingsRepo.setPlayerBackground(v) }
     fun setShowLyricsOverArtwork(v: Boolean) = launchSave { settingsRepo.setShowLyricsOverArtwork(v) }
+    fun setWaveLang(v: WaveLang) = launchSave { settingsRepo.setWaveLang(v) }
+    fun setWaveMode(v: WaveMode) = launchSave { settingsRepo.setWaveMode(v) }
+    fun setWaveExcludeListened(v: Boolean) = launchSave { settingsRepo.setWaveExcludeListened(v) }
     fun setMiniPlayerSwipeChangesTrack(v: Boolean) = launchSave { settingsRepo.setMiniPlayerSwipeChangesTrack(v) }
     fun setVolumeButtonsSkip(v: Boolean) = launchSave { settingsRepo.setVolumeButtonsSkip(v) }
 

@@ -183,13 +183,55 @@ object EmbeddedMusicSource {
             .take(limit)
     }
 
+    // ------------------------------------------------------------------ taste pools
+    //
+    // Курируемые артисты для волны: украинская молодёжь (тикток-хиты) — вкусы
+    // по умолчанию, плюс аналоги для русского и английского языков волны.
+
+    /** Украинская молодёжь: ONDA/MADKIT-подобные + тикток-популярные. */
+    private val WAVE_SEEDS_UK = listOf(
+        "ONDA ANDAR", "MADKIT", "YAKTAK", "KOLA", "SHUMEI", "Parfeniuk", "Domiy",
+        "Wellboy", "Jerry Heil", "alyona alyona", "SadSvit", "Структура Щастя",
+        "100лиця", "Tember Blanche", "SKYLERR", "Demchuk", "KAZKA", "TVORCHI",
+        "DOROFEEVA", "MÉLOVIN",
+    )
+    private val WAVE_SEEDS_RU = listOf(
+        "XOLIDAYBOY", "Toxi$", "Jakone", "ICEGERGERT", "Zivert", "Дора",
+        "MIA BOYKA", "VILLIAN", "MONA", "ANNA ASTI", "NILETTO", "Клава Кока",
+    )
+    private val WAVE_SEEDS_EN = listOf(
+        "Billie Eilish", "Sabrina Carpenter", "Chappell Roan", "Olivia Rodrigo",
+        "Tate McRae", "Gracie Abrams", "SZA", "Doja Cat", "The Weeknd", "Ariana Grande",
+    )
+
+    private fun seedPool(lang: WaveLang): List<String> = when (lang) {
+        WaveLang.Ukrainian -> WAVE_SEEDS_UK
+        WaveLang.Russian -> WAVE_SEEDS_RU
+        WaveLang.English -> WAVE_SEEDS_EN
+        WaveLang.Any -> WAVE_SEEDS_UK.take(8) + WAVE_SEEDS_RU.take(4) + WAVE_SEEDS_EN.take(4)
+    }
+
+    /** Что молодёжь ищет в TikTok: добивка волны свежими трендами. */
+    private fun tiktokQueries(lang: WaveLang): List<String> = when (lang) {
+        WaveLang.Ukrainian -> listOf("українські хіти тікток", "тренди тікток україна пісні", "tiktok ukraine hits")
+        WaveLang.Russian -> listOf("тренды тикток песни", "русские хиты тикток", "tiktok russia hits")
+        WaveLang.English -> listOf("tiktok viral hits", "viral tiktok songs 2026")
+        WaveLang.Any -> listOf("tiktok viral hits", "українські хіти тікток", "тренды тикток песни")
+    }
+
     // ------------------------------------------------------------------ wave / recommendations
 
     /**
      * «Моя волна» without a server: search a few songs of every seed artist, anchor with
      * track seeds, drop everything the user heard recently.
      */
-    fun wave(artistSeeds: List<String>, trackSeeds: List<String>, exclude: Set<String>, limit: Int): List<Track> {
+    fun wave(
+        artistSeeds: List<String>,
+        trackSeeds: List<String>,
+        exclude: Set<String>,
+        limit: Int,
+        lang: WaveLang = WaveLang.Ukrainian,
+    ): List<Track> {
         ensureInit()
         val blocked = exclude.toMutableSet()
 
@@ -220,7 +262,7 @@ object EmbeddedMusicSource {
             limit = 4,
         ) { artist -> rawSearch(artist, music = true, 6) }
 
-        if (related.isEmpty() && fromArtists.isEmpty()) return recommendations(limit)
+        if (related.isEmpty() && fromArtists.isEmpty()) return recommendations(limit, lang)
 
         val seedArtists = artistSeeds.map { normalizeArtist(it) }.filter { it.isNotBlank() }.toSet()
         val anchorArtists = anchors.map { normalizeArtist(it.artist) }.filter { it.isNotBlank() }.toSet()
@@ -231,13 +273,13 @@ object EmbeddedMusicSource {
             .distinctBy { it.id }
             .distinctBy { dedupeKey(it) }
             .filter { it.id !in blocked && it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
-            .map { track -> track to relevance(track, anchorArtists, seedArtists, anchorWords, hits[track.id] ?: 0) }
+            .map { track -> track to relevance(track, anchorArtists, seedArtists, anchorWords, hits[track.id] ?: 0, lang) }
             .sortedByDescending { it.second }
             .map { it.first }
             .toList()
             .take(limit)
 
-        if (ranked.isEmpty()) return recommendations(limit)
+        if (ranked.isEmpty()) return recommendations(limit, lang)
         // Подряд идущие треки одного артиста разводим, порядок по похожести сохраняем.
         return spreadByArtist(ranked)
     }
@@ -249,6 +291,7 @@ object EmbeddedMusicSource {
         seedArtists: Set<String>,
         anchorWords: Set<String>,
         hits: Int,
+        lang: WaveLang,
     ): Double {
         val artist = normalizeArtist(track.artist)
         var score = 0.0
@@ -258,8 +301,37 @@ object EmbeddedMusicSource {
         else if (seedArtists.any { artist.contains(it) || it.contains(artist) }) score += 1.5
         if (significantWords(track.title).any { it in anchorWords }) score += 0.75
         score += hits * 1.5
+        score += languageScore(track, lang)
         // Немного случайности, чтобы волна не залипала на одном и том же наборе.
         return score + Math.random()
+    }
+
+    /**
+     * Бонус за язык волны: курируемые артисты + буквы, которых нет в других
+     * языках (і/ї/є/ґ — украинский; ы/ъ/э/ё — русский). Только бонусы, без
+     * штрафов: личные вкусы важнее эвристик.
+     */
+    private fun languageScore(track: Track, lang: WaveLang): Double {
+        if (lang == WaveLang.Any) return 0.0
+        val artist = normalizeArtist(track.artist)
+        val text = "${track.artist} ${track.title}".lowercase()
+        var score = 0.0
+        val pool = seedPool(lang).map { normalizeArtist(it) }.toSet()
+        if (artist in pool) score += 3.0
+        else if (pool.any { artist.contains(it) || it.contains(artist) }) score += 1.5
+        when (lang) {
+            WaveLang.Ukrainian -> {
+                if (text.any { it == '\u0456' || it == '\u0457' || it == '\u0454' || it == '\u0491' }) score += 2.0
+            }
+            WaveLang.Russian -> {
+                if (text.any { it == '\u044b' || it == '\u044a' || it == '\u044d' || it == '\u0451' }) score += 2.0
+            }
+            WaveLang.English -> {
+                if (text.none { it in '\u0430'..'\u044f' || it == '\u0451' || it == '\u0456' || it == '\u0457' || it == '\u0454' || it == '\u0491' }) score += 1.5
+            }
+            WaveLang.Any -> {}
+        }
+        return score
     }
 
     /** Round-robin по артистам: подряд не идут пять треков одного исполнителя. */
@@ -352,17 +424,58 @@ object EmbeddedMusicSource {
         }.getOrDefault(emptyList())
     }
 
-    fun recommendations(limit: Int): List<Track> {
+    /**
+     * Холодный старт и запасной вариант волны: курируемые артисты языка волны
+     * + свежие тикток-запросы. Раньше тут были три generic US-запроса
+     * («top hits»…) — для украинской молодёжи это и была «дичь».
+     */
+    fun recommendations(limit: Int, lang: WaveLang = WaveLang.Ukrainian): List<Track> {
         ensureInit()
-        val queries = listOf("top hits", "pop hits 2026", "best songs")
-        return queries.asSequence()
-            .map { q -> runCatching { rawSearch(q, music = true, limit + 6) }.getOrDefault(emptyList()) }
-            .flatten()
+        val queries = seedPool(lang).shuffled().take(5) + tiktokQueries(lang).shuffled().take(2)
+        val found = fanOut(queries, limit = 6) { q ->
+            runCatching { rawSearch(q, music = true, 5) }.getOrDefault(emptyList())
+        }
+        val ranked = found.asSequence()
             .distinctBy { it.id }
-            .distinctBy { "${it.artist}|${it.title}".lowercase() }
-            .shuffled()
-            .take(limit)
+            .distinctBy { dedupeKey(it) }
+            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
+            .map { track -> track to (languageScore(track, lang) + Math.random()) }
+            .sortedByDescending { it.second }
+            .map { it.first }
             .toList()
+        val out = spreadByArtist(ranked).take(limit)
+        return if (out.isEmpty()) popular(lang, limit) else out
+    }
+
+    /**
+     * Таблетка «Популярные»: чарт региона волны (прямые videoId из InnerTube,
+     * как на экране чартов) + мировые хиты + свежие тикток-тренды языка.
+     * Порядок чарта сохраняем — это и есть хит-парад.
+     */
+    fun popular(lang: WaveLang, limit: Int = 20): List<Track> {
+        ensureInit()
+        val region = lang.chartRegion()
+        val chart = InnertubeCharts.topTracks(region, 15)
+        val world = if (region != "ZZ") InnertubeCharts.topTracks("ZZ", 8) else emptyList()
+        val queries = seedPool(lang).shuffled().take(3) + tiktokQueries(lang).shuffled().take(2)
+        val discovery = fanOut(queries, limit = 5) { q ->
+            runCatching { rawSearch(q, music = true, 4) }.getOrDefault(emptyList())
+        }.asSequence()
+            .distinctBy { it.id }
+            .distinctBy { dedupeKey(it) }
+            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
+            .map { track -> track to (languageScore(track, lang) + Math.random()) }
+            .sortedByDescending { it.second }
+            .map { it.first }
+            .toList()
+        return ((chart + world).asSequence()
+            .distinctBy { it.id }
+            .distinctBy { dedupeKey(it) }
+            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
+            .toList() + discovery)
+            .distinctBy { it.id }
+            .distinctBy { dedupeKey(it) }
+            .take(limit)
     }
 
     // ------------------------------------------------------------------ offline downloads
