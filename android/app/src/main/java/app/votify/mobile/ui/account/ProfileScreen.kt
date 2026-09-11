@@ -1059,6 +1059,3 @@ private fun SheetUserRow(user: SocialUser, trailing: Pair<String, () -> Unit>?, 
         }
     }
 }
-}
-    }
-}
