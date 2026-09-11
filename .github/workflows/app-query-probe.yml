@@ -23,13 +23,7 @@ jobs:
           BASE_DOC="projects/votify-f461a/databases/(default)/documents"
           BASE_URL="https://firestore.googleapis.com/v1/$BASE_DOC"
           LIST="$(curl -s --max-time 25 -H "Authorization: Bearer $TOKEN" "$BASE_URL/usernames?pageSize=50")"
-          echo "$LIST" | python3 -c "
-import json,sys
-d = json.load(sys.stdin)
-for doc in d.get('documents', []):
-    name = doc['name'].split('/')[-1]
-    print('::notice::DOC-REPR:', ascii(name), 'uid=', doc.get('fields', {}).get('uid', {}).get('stringValue'))
-"
+          echo "$LIST" | python3 -c "import json,sys;[print('::notice::DOC-REPR:',ascii(d['name'].split('/')[-1]),'uid=',d.get('fields',{}).get('uid',{}).get('stringValue')) for d in json.load(sys.stdin).get('documents',[])]"
           for N in dodik god; do
             CODE="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$BASE_URL/usernames/$N")"
             echo "::notice::GET $N code=$CODE"
