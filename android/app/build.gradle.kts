@@ -22,8 +22,8 @@ android {
         applicationId = islandPackage.ifBlank { "app.votify.mobile" }
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.1.4"
+        versionCode = 6
+        versionName = "0.1.5"
 
         // Backend base URL. 10.0.2.2 = host machine from the Android emulator.
         // Override for a real device: -PvotifyApiBase=http://192.168.1.10:17217

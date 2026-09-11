@@ -1,5 +1,8 @@
 package app.votify.mobile.ui.trending
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +14,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
@@ -28,15 +35,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.votify.mobile.R
 import app.votify.mobile.data.ChartSection
-import app.votify.mobile.data.DiscoverySource
+import app.votify.mobile.data.InnertubeCharts
 import app.votify.mobile.data.MusicRepository
 import app.votify.mobile.data.Track
 import app.votify.mobile.ui.components.PillChip
@@ -76,7 +87,7 @@ class TrendingViewModel(private val music: MusicRepository) : ViewModel() {
                     _state.update { st ->
                         val merged = (st.sections.filterNot { it.id == section.id } + section)
                             .sortedBy { s ->
-                                DiscoverySource.SECTION_ORDER.indexOf(s.id).let { i -> if (i < 0) Int.MAX_VALUE else i }
+                                InnertubeCharts.SECTION_ORDER.indexOf(s.id).let { i -> if (i < 0) Int.MAX_VALUE else i }
                             }
                         st.copy(sections = merged)
                     }
@@ -104,6 +115,7 @@ fun TrendingScreen(
     onBack: () -> Unit,
     onPlay: (List<Track>, Int) -> Unit,
     onMore: (Track) -> Unit,
+    onOpenArtist: (String) -> Unit,
 ) {
     LaunchedEffect(Unit) { viewModel.refresh() }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -187,6 +199,7 @@ fun TrendingScreen(
                         onPlaySection = { onPlay(section.tracks, 0) },
                         onPlayAt = { index -> onPlay(section.tracks, index) },
                         onMore = onMore,
+                        onOpenArtist = onOpenArtist,
                     )
                     Spacer(Modifier.height(16.dp))
                 }
@@ -209,6 +222,7 @@ private fun ChartSectionBlock(
     onPlaySection: () -> Unit,
     onPlayAt: (Int) -> Unit,
     onMore: (Track) -> Unit,
+    onOpenArtist: (String) -> Unit,
 ) {
     Column {
         Row(
@@ -222,27 +236,79 @@ private fun ChartSectionBlock(
                     color = VotifyColors.TextPrimary,
                     fontWeight = FontWeight.Bold,
                 )
-                Text(
-                    pluralTracks(section.tracks.size),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = VotifyColors.TextMuted,
-                )
+                if (section.tracks.isNotEmpty()) {
+                    Text(
+                        pluralTracks(section.tracks.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = VotifyColors.TextMuted,
+                    )
+                }
             }
-            IconButton(onClick = onPlaySection) {
-                Icon(Icons.Filled.PlayArrow, stringResource(R.string.action_play_all), tint = VotifyColors.TextPrimary)
+            if (section.tracks.isNotEmpty()) {
+                IconButton(onClick = onPlaySection) {
+                    Icon(Icons.Filled.PlayArrow, stringResource(R.string.action_play_all), tint = VotifyColors.TextPrimary)
+                }
             }
         }
-        VotifyCard(Modifier.fillMaxWidth()) {
-            Column {
-                section.tracks.forEachIndexed { index, track ->
-                    TrackRow(
-                        track = track,
-                        isCurrent = track.id == currentTrackId,
-                        onClick = { onPlayAt(index) },
-                        onMore = { onMore(track) },
-                    )
-                    if (index != section.tracks.lastIndex) {
-                        HorizontalDivider(color = VotifyColors.BorderSubtle, thickness = 1.dp)
+        if (section.tracks.isNotEmpty()) {
+            VotifyCard(Modifier.fillMaxWidth()) {
+                Column {
+                    section.tracks.forEachIndexed { index, track ->
+                        TrackRow(
+                            track = track,
+                            isCurrent = track.id == currentTrackId,
+                            onClick = { onPlayAt(index) },
+                            onMore = { onMore(track) },
+                        )
+                        if (index != section.tracks.lastIndex) {
+                            HorizontalDivider(color = VotifyColors.BorderSubtle, thickness = 1.dp)
+                        }
+                    }
+                }
+            }
+        } else if (section.artists.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                section.artists.forEach { artist ->
+                    Column(
+                        Modifier
+                            .width(76.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onOpenArtist(artist.name) }
+                            .padding(vertical = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        if (artist.cover.isNotEmpty()) {
+                            coil.compose.AsyncImage(
+                                model = artist.cover,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(56.dp).clip(CircleShape),
+                            )
+                        } else {
+                            Box(
+                                Modifier.size(56.dp).clip(CircleShape).background(VotifyColors.PrimaryContainer),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    artist.name.firstOrNull()?.uppercase() ?: "?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = VotifyColors.OnPrimaryContainer,
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            artist.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = VotifyColors.TextPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                        )
                     }
                 }
             }

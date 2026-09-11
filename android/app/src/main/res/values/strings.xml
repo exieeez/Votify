@@ -462,12 +462,10 @@
 
     <string name="trending_title">Чарты</string>
     <string name="trending_live">популярное сейчас</string>
-    <string name="chart_fresh">Новинки недели</string>
     <string name="chart_ua">Чарт Украины</string>
     <string name="chart_ru">Чарт России</string>
     <string name="chart_world">Мировые хиты</string>
-    <string name="genre_pop">Поп</string>
-    <string name="genre_hiphop">Хип-хоп</string>
+    <string name="chart_artists">Топ артистов</string>
     <string name="section_chart">Чарт</string>
 
     <string name="workshop_title">Мастерская тем</string>

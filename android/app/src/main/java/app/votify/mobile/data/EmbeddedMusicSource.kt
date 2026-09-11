@@ -13,6 +13,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request as OkHttpRequest
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -142,6 +143,26 @@ object EmbeddedMusicSource {
     fun httpGetJson(url: String): JsonElement? {
         val body = runCatching { httpGetString(url) }.getOrNull() ?: return null
         return runCatching { json.parseToJsonElement(body) }.getOrNull()
+    }
+
+    /**
+     * InnerTube POST with a JSON body, parsed or null. Same request shape every
+     * YouTube Music client uses (WEB_REMIX context + public API key).
+     */
+    fun httpPostJson(url: String, body: String): JsonElement? {
+        val request = OkHttpRequest.Builder()
+            .url(url)
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0")
+            .header("Content-Type", "application/json")
+            .header("Origin", "https://music.youtube.com")
+            .post(body.toRequestBody("application/json".toMediaType()))
+            .build()
+        val text = runCatching {
+            http.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) null else resp.body?.string()
+            }
+        }.getOrNull() ?: return null
+        return runCatching { json.parseToJsonElement(text) }.getOrNull()
     }
 
     private fun rawSearch(query: String, music: Boolean, limit: Int): List<Track> {

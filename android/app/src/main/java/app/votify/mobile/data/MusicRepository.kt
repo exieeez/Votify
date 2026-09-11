@@ -97,8 +97,9 @@ class MusicRepository(
         else io { EmbeddedMusicSource.recommendations(limit) }
 
     /**
-     * «Чарты»: на телефоне — секции DiscoverySource (чарты UA/RU/мира, новинки,
-     * топы жанров), прилетают по мере готовности; на сервере — один блок /api/charts.
+     * «Чарты»: на телефоне — чарты YouTube Music по странам + топ артистов
+     * (InnertubeCharts, подход ytmusicapi), прилетают по мере готовности;
+     * на сервере — один блок /api/charts.
      */
     suspend fun chartSections(onSection: suspend (ChartSection) -> Unit) {
         if (isServerMode) {
@@ -107,7 +108,7 @@ class MusicRepository(
             val tracks = if (!chart.isNullOrEmpty()) chart else api.recommendations(30)
             if (tracks.isNotEmpty()) onSection(ChartSection("chart", app.votify.mobile.R.string.section_chart, tracks))
         } else {
-            DiscoverySource.loadAll(onSection)
+            InnertubeCharts.loadAll(onSection)
         }
     }
 

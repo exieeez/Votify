@@ -593,6 +593,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         onBack = { navController.popBackStack() },
                         onPlay = play,
                         onMore = openMenu,
+                        onOpenArtist = openArtist,
                     )
                 }
                 composable(Routes.WORKSHOP) {
