@@ -5650,6 +5650,33 @@ body[data-cover-animation="rotation"] .pp-cover-overlay,
   background: rgba(20, 22, 30, 0.88);
 }
 
+/* ONE-LINE LYRIC SNIPPET UNDER THE COVER */
+.fs-lyrics-line {
+  min-height: 22px;
+  max-width: 100%;
+  margin: 10px 0 2px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-lyrics-line:empty {
+  display: none;
+}
+.fs-lyrics-line.line-swap {
+  animation: fsLyricIn 0.25s ease;
+}
+@keyframes fsLyricIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.fs-lyrics-line .lyrics-word.w-active {
+  color: var(--text-primary);
+}
+
 /* TRACK DETAILS */
 .fs-track-details {
   text-align: center;

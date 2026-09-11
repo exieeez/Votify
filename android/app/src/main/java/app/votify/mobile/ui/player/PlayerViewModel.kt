@@ -58,7 +58,14 @@ class PlayerViewModel(
     fun toggleLyrics() {
         val show = !_lyricsVisible.value
         _lyricsVisible.value = show
-        if (show) loadLyrics(player.state.value.current?.id) else _lyrics.value = LyricsState.Hidden
+        // Closing keeps the cache: the one-line snippet under the artwork reuses it.
+        if (show) loadLyrics(player.state.value.current?.id)
+    }
+
+    /** Preloads lyrics for the snippet under the artwork (without opening the panel). */
+    fun ensureLyrics() {
+        if (_lyricsVisible.value) return
+        loadLyrics(player.state.value.current?.id)
     }
 
     fun toggleFavorite(track: Track) {

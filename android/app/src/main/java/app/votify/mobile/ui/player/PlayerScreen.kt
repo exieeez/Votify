@@ -288,6 +288,11 @@ fun PlayerScreen(
                 }
             }
 
+            // One-line synced lyric under the artwork (Spotify-style snippet).
+            if (!lyricsVisible) {
+                LyricSnippetLine(lyrics = lyrics, positionMs = state.positionMs, onClick = onToggleLyrics)
+            }
+
             // Title / artist with ♥ and ⊕ on the sides
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onToggleFavorite) {
@@ -785,4 +790,34 @@ private fun rememberArtworkPalette(coverUrl: String?, enabled: Boolean, isDark: 
     }
 
     return palette
+}
+
+@Composable
+private fun LyricSnippetLine(lyrics: LyricsState, positionMs: Long, onClick: () -> Unit) {
+    val loaded = lyrics as? LyricsState.Loaded ?: return
+    val model = loaded.lyrics
+    if (!model.synced || model.lines.isEmpty()) return
+    val idx = model.activeIndex(positionMs)
+    // Skip blank (instrumental-gap) lines: fall back to the last sung line.
+    val line = if (idx < 0) "" else (idx downTo 0).asSequence()
+        .map { model.lines[it].text }
+        .firstOrNull { it.isNotBlank() }
+        .orEmpty()
+    if (line.isBlank()) return
+    AnimatedContent(
+        targetState = line,
+        transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) },
+        label = "lyric-snippet",
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 32.dp),
+    ) { text ->
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = VotifyColors.TextMuted,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }

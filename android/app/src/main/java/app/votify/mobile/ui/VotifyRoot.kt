@@ -674,6 +674,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
             exit = slideOutVertically(tween(150)) { it } + fadeOut(tween(110)),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
+            LaunchedEffect(playerState.current?.id) { playerVm.ensureLyrics() }
             val cp = parseCustomPrefs(settings.customPrefs)
             PlayerScreen(
                 state = playerState,

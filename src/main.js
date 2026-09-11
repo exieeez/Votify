@@ -226,6 +226,8 @@ async function loadLyricsForTrack(title, artist) {
   currentLyricIndex = -1;
   const el = document.getElementById('player-track-lyrics');
   if (el) el.textContent = '';
+  const fsLyricEl = document.getElementById('fs-lyrics-line');
+  if (fsLyricEl) fsLyricEl.textContent = '';
   if (!title) return;
   if (appSettings.autoLyrics === false) return;
   try {
@@ -237,6 +239,7 @@ async function loadLyricsForTrack(title, artist) {
       // Static (non-synced) mode: show plain lyrics without line-by-line timing
       const plain = (data.plainLyrics || lrc.replace(/\[[^\]]*\]/g, '')).trim();
       if (el) el.textContent = plain || 'Нет текста';
+      if (fsLyricEl) fsLyricEl.textContent = plain.split('\n').map(s => s.trim()).find(Boolean) || '';
       return;
     }
     currentLyricsLines = lrc
@@ -263,6 +266,7 @@ async function loadLyricsForTrack(title, artist) {
 
 function updateLyricsLine() {
   const el = document.getElementById('player-track-lyrics');
+  const fsEl = document.getElementById('fs-lyrics-line');
   if (!currentLyricsLines.length || !el) return;
   const t = audio.currentTime;
   let idx = -1;
@@ -276,7 +280,14 @@ function updateLyricsLine() {
     currentLyricIndex = idx;
     const text = idx >= 0 ? currentLyricsLines[idx].text : '';
     el.innerHTML = idx >= 0 ? lyricsWordsHtml(currentLyricsLines[idx]) : '';
+    if (fsEl) {
+      fsEl.innerHTML = idx >= 0 ? lyricsWordsHtml(currentLyricsLines[idx]) : '';
+      fsEl.classList.remove('line-swap');
+      void fsEl.offsetWidth;
+      fsEl.classList.add('line-swap');
+    }
     highlightLyricsWords(el, currentLyricsLines[idx], audio.currentTime);
+    if (fsEl) highlightLyricsWords(fsEl, currentLyricsLines[idx], audio.currentTime);
     if (text && appSettings.translateLyrics) {
       translateLyricLine(text).then(translated => {
         if (translated && currentLyricIndex === idx) {
@@ -284,11 +295,18 @@ function updateLyricsLine() {
             'beforeend',
             ` <span class="lyrics-translation">/ ${escapeHtml(translated)}</span>`
           );
+          if (fsEl) {
+            fsEl.insertAdjacentHTML(
+              'beforeend',
+              ` <span class="lyrics-translation">/ ${escapeHtml(translated)}</span>`
+            );
+          }
         }
       });
     }
   } else if (idx >= 0) {
     highlightLyricsWords(el, currentLyricsLines[idx], audio.currentTime);
+    if (fsEl) highlightLyricsWords(fsEl, currentLyricsLines[idx], audio.currentTime);
   }
 }
 
