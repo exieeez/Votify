@@ -1,6 +1,13 @@
 package app.votify.mobile.ui.home
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -46,6 +53,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -81,7 +93,6 @@ fun HomeScreen(
     onOpenAccount: () -> Unit,
     onOpenTrending: () -> Unit,
     onOpenSite: () -> Unit,
-    onOpenWaveSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val recent by viewModel.recent.collectAsStateWithLifecycle()
@@ -105,7 +116,6 @@ fun HomeScreen(
             state = state,
             onPlayWave = { onPlay(state.wave, 0) },
             onRetry = viewModel::refresh,
-            onOpenWaveSettings = onOpenWaveSettings,
         )
 
         Spacer(Modifier.height(12.dp))
@@ -308,15 +318,14 @@ private fun homeLyricLine(
 }
 
 /**
- * Карточка «Моей волны» в духе Яндекс Музыки: градиент, кнопка плей,
- * подпись вкуса и «Настроить» справа вверху.
+ * «Моя волна» как в Яндекс Музыке: тёмная карточка со светящимся шаром-плазмой.
+ * Шар дышит и медленно вращается, в центре — белая кнопка плей.
  */
 @Composable
 private fun WaveCard(
     state: HomeUiState,
     onPlayWave: () -> Unit,
     onRetry: () -> Unit,
-    onOpenWaveSettings: () -> Unit,
 ) {
     val hasMusic = !state.isLoading && state.error == null && state.wave.isNotEmpty()
     Box(
@@ -324,98 +333,152 @@ private fun WaveCard(
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(VotifyColors.AccentFill, VotifyColors.AccentFill.copy(alpha = 0.55f)),
-                ),
-            )
+            .background(Brush.verticalGradient(listOf(Color(0xFF151B29), Color(0xFF05070C))))
             .clickable(enabled = hasMusic, onClick = onPlayWave)
-            .padding(16.dp),
+            .padding(top = 18.dp, bottom = 20.dp),
     ) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(R.string.home_my_wave),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = VotifyColors.AccentContent,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.weight(1f))
-                Surface(
-                    onClick = onOpenWaveSettings,
-                    shape = CircleShape,
-                    color = VotifyColors.AccentContent.copy(alpha = 0.22f),
-                    contentColor = VotifyColors.AccentContent,
-                ) {
-                    Row(
-                        Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Outlined.Settings, null, modifier = Modifier.size(15.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            stringResource(R.string.wave_tune),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                stringResource(R.string.home_my_wave),
+                style = MaterialTheme.typography.titleLarge,
+                color = YmYellow,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = when {
+                    state.isLoading -> stringResource(R.string.wave_loading)
+                    state.error != null -> stringResource(R.string.search_error)
+                    state.waveSource == WaveSource.Popular -> stringResource(R.string.wave_popular_sub)
+                    state.waveSource == WaveSource.Personal ->
+                        stringResource(R.string.home_wave_personal, state.seeds.take(3).joinToString(", "))
+                    else -> stringResource(R.string.home_wave_generic)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
+            Spacer(Modifier.height(10.dp))
+            OrbPlay(
+                isLoading = state.isLoading,
+                isError = state.error != null,
+                onPlayWave = onPlayWave,
+                onRetry = onRetry,
+            )
+        }
+    }
+}
+
+private val YmYellow = Color(0xFFFFCC00)
+
+/** Светящийся шар: пульсирующее ядро + вращающиеся дуги-лучи + кнопка в центре. */
+@Composable
+private fun OrbPlay(
+    isLoading: Boolean,
+    isError: Boolean,
+    onPlayWave: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    val motion = rememberInfiniteTransition(label = "orb")
+    val spin by motion.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(14_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "spin",
+    )
+    val pulse by motion.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(tween(2_600, easing = LinearEasing), RepeatMode.Reverse),
+        label = "pulse",
+    )
+    Box(Modifier.size(204.dp), contentAlignment = Alignment.Center) {
+        // Внешнее свечение.
+        Box(
+            Modifier
+                .size(204.dp)
+                .graphicsLayer { scaleX = pulse; scaleY = pulse }
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        0.0f to Color(0xFF9CC8FF).copy(alpha = 0.5f),
+                        0.6f to Color(0xFF4E7CD6).copy(alpha = 0.22f),
+                        1.0f to Color.Transparent,
+                    ),
+                ),
+        )
+        // Вращающиеся дуги-лучи.
+        Canvas(
+            Modifier
+                .size(176.dp)
+                .graphicsLayer { rotationZ = spin },
+        ) {
+            val w = size.minDimension * 0.05f
+            val inset = w / 2 + 2f
+            val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
+            val style = Stroke(width = w, cap = StrokeCap.Round)
+            drawArc(Color.White.copy(alpha = 0.9f), -50f, 75f, false, Offset(inset, inset), arcSize, style = style)
+            drawArc(Color(0xFFD9E8FF).copy(alpha = 0.55f), 130f, 100f, false, Offset(inset, inset), arcSize, style = style)
+        }
+        // Ядро шара.
+        Box(
+            Modifier
+                .size(130.dp)
+                .graphicsLayer { scaleX = pulse; scaleY = pulse }
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        0.0f to Color.White,
+                        0.45f to Color(0xFFC9DEFF),
+                        0.75f to Color(0xFF7AA5EC),
+                        1.0f to Color(0xFF3D63B8),
+                    ),
+                ),
+        )
+        // Кнопка в центре шара.
+        when {
+            isLoading -> CircularProgressIndicator(
+                color = Color(0xFF1A1A1A),
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(60.dp),
+            )
+            isError -> Surface(
+                onClick = onRetry,
+                shape = CircleShape,
+                color = Color.White,
+                contentColor = Color(0xFF1A1A1A),
+                shadowElevation = 8.dp,
+                modifier = Modifier.size(60.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Filled.Refresh,
+                        contentDescription = stringResource(R.string.search_retry),
+                        modifier = Modifier.size(28.dp),
+                    )
                 }
             }
-            Spacer(Modifier.height(14.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                when {
-                    state.isLoading -> CircularProgressIndicator(
-                        color = VotifyColors.AccentContent,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(52.dp).padding(10.dp),
+            else -> Surface(
+                onClick = onPlayWave,
+                shape = CircleShape,
+                color = Color.White,
+                contentColor = Color(0xFF1A1A1A),
+                shadowElevation = 8.dp,
+                modifier = Modifier.size(60.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Filled.PlayArrow,
+                        contentDescription = stringResource(R.string.home_play_wave),
+                        modifier = Modifier.size(32.dp).offset(x = 2.dp),
                     )
-                    state.error != null -> Surface(
-                        onClick = onRetry,
-                        shape = CircleShape,
-                        color = VotifyColors.AccentContent,
-                        contentColor = VotifyColors.AccentFill,
-                        modifier = Modifier.size(52.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Filled.Refresh,
-                                contentDescription = stringResource(R.string.search_retry),
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
-                    }
-                    else -> Surface(
-                        onClick = onPlayWave,
-                        shape = CircleShape,
-                        color = VotifyColors.AccentContent,
-                        contentColor = VotifyColors.AccentFill,
-                        modifier = Modifier.size(52.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Filled.PlayArrow,
-                                contentDescription = stringResource(R.string.home_play_wave),
-                                modifier = Modifier.size(28.dp).offset(x = 2.dp),
-                            )
-                        }
-                    }
                 }
-                Spacer(Modifier.width(14.dp))
-                Text(
-                    text = when {
-                        state.isLoading -> stringResource(R.string.wave_loading)
-                        state.error != null -> stringResource(R.string.search_error)
-                        state.waveSource == WaveSource.Popular -> stringResource(R.string.wave_popular_sub)
-                        state.waveSource == WaveSource.Personal ->
-                            stringResource(R.string.home_wave_personal, state.seeds.take(3).joinToString(", "))
-                        else -> stringResource(R.string.home_wave_generic)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = VotifyColors.AccentContent.copy(alpha = 0.92f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
             }
         }
     }

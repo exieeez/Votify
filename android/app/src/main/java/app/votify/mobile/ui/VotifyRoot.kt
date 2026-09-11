@@ -110,7 +110,6 @@ import app.votify.mobile.ui.settings.PlayerSettingsScreen
 import app.votify.mobile.ui.settings.PresetsScreen
 import app.votify.mobile.ui.settings.ProxySettingsScreen
 import app.votify.mobile.ui.settings.StorageSettingsScreen
-import app.votify.mobile.ui.settings.WaveSettingsScreen
 import app.votify.mobile.ui.settings.SwipeSettingsScreen
 import app.votify.mobile.ui.settings.SettingsViewModel
 import app.votify.mobile.data.parseCustomPrefs
@@ -147,7 +146,6 @@ private object Routes {
     const val BACKGROUNDS = "settings/backgrounds"
     const val PRESETS = "settings/presets"
     const val PROXY = "settings/proxy"
-    const val WAVE = "settings/wave"
 
     fun playlist(id: Long) = "playlist/$id"
     fun artist(name: String) = "artist/${Uri.encode(name)}"
@@ -463,7 +461,6 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
                         onOpenAccount = { navController.navigate(Routes.ACCOUNT) { launchSingleTop = true } },
                         onOpenTrending = { navController.navigate(Routes.TRENDING) { launchSingleTop = true } },
-                        onOpenWaveSettings = { navController.navigate(Routes.WAVE) { launchSingleTop = true } },
                         onOpenSite = { openSite(context) },
                     )
                 }
@@ -546,7 +543,6 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         onOpenPresets = { navController.navigate(Routes.PRESETS) { launchSingleTop = true } },
                         onOpenWorkshop = { navController.navigate(Routes.WORKSHOP) { launchSingleTop = true } },
                         onOpenProxy = { navController.navigate(Routes.PROXY) { launchSingleTop = true } },
-                        onOpenWave = { navController.navigate(Routes.WAVE) { launchSingleTop = true } },
                     )
                 }
                 composable(Routes.GENERAL) {
@@ -588,9 +584,6 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 }
                 composable(Routes.PROXY) {
                     ProxySettingsScreen(settingsVm, contentPadding, onBack = { navController.popBackStack() })
-                }
-                composable(Routes.WAVE) {
-                    WaveSettingsScreen(settingsVm, contentPadding, onBack = { navController.popBackStack() })
                 }
                 composable(Routes.TRENDING) {
                     TrendingScreen(

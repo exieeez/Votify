@@ -96,16 +96,16 @@ class HomeViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             if (mode == WaveMode.Popular) {
-                loadPopular(lang)
+                loadPopular()
             } else {
                 loadForYou(lang)
             }
         }
     }
 
-    /** «Популярные»: чарт региона волны + тикток-тренды языка. */
-    private suspend fun loadPopular(lang: WaveLang) {
-        val tracks = runCatching { music.popular(lang, limit = 24) }.getOrDefault(emptyList())
+    /** «Популярные»: мировые хиты + проверенные оригиналы топ-артистов. */
+    private suspend fun loadPopular() {
+        val tracks = runCatching { music.popular(limit = 24) }.getOrDefault(emptyList())
         _state.update {
             it.copy(
                 wave = tracks,

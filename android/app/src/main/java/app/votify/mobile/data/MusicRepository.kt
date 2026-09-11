@@ -101,17 +101,17 @@ class MusicRepository(
         else io { EmbeddedMusicSource.recommendations(limit, lang) }
 
     /**
-     * Таблетка «Популярные»: на телефоне — чарт региона волны + тикток-тренды
-     * (EmbeddedMusicSource.popular); на сервере — его живой /api/charts
-     * с регионом языка волны.
+     * Таблетка «Популярные»: на телефоне — мировые хиты + проверенные
+     * оригиналы топ-артистов (EmbeddedMusicSource.popular); на сервере —
+     * его живой /api/charts (чарт США).
      */
-    suspend fun popular(lang: WaveLang = WaveLang.Ukrainian, limit: Int = 20): List<Track> =
+    suspend fun popular(limit: Int = 20): List<Track> =
         if (isServerMode) {
-            runCatching { api.charts(limit, lang.chartRegion().lowercase()) }
+            runCatching { api.charts(limit, "us") }
                 .getOrNull()?.takeIf { it.isNotEmpty() }
                 ?: api.recommendations(limit)
         } else io {
-            EmbeddedMusicSource.popular(lang, limit)
+            EmbeddedMusicSource.popular(limit)
         }
 
     /**

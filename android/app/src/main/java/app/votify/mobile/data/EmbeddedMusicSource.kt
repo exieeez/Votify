@@ -211,13 +211,12 @@ object EmbeddedMusicSource {
         WaveLang.Any -> WAVE_SEEDS_UK.take(8) + WAVE_SEEDS_RU.take(4) + WAVE_SEEDS_EN.take(4)
     }
 
-    /** Что молодёжь ищет в TikTok: добивка волны свежими трендами. */
-    private fun tiktokQueries(lang: WaveLang): List<String> = when (lang) {
-        WaveLang.Ukrainian -> listOf("українські хіти тікток", "тренди тікток україна пісні", "tiktok ukraine hits")
-        WaveLang.Russian -> listOf("тренды тикток песни", "русские хиты тикток", "tiktok russia hits")
-        WaveLang.English -> listOf("tiktok viral hits", "viral tiktok songs 2026")
-        WaveLang.Any -> listOf("tiktok viral hits", "українські хіти тікток", "тренды тикток песни")
-    }
+    /** Мировые топ-артисты для «Популярных»: только проверенные оригиналы. */
+    private val POPULAR_SEEDS = listOf(
+        "The Weeknd", "Billie Eilish", "Taylor Swift", "Ariana Grande", "Drake",
+        "SZA", "Doja Cat", "Ed Sheeran", "Dua Lipa", "Post Malone",
+        "Rihanna", "Eminem", "Coldplay", "Sabrina Carpenter",
+    )
 
     // ------------------------------------------------------------------ wave / recommendations
 
@@ -237,7 +236,12 @@ object EmbeddedMusicSource {
 
         // 1. Якоря — недавние и любимые треки: по одному поиску на трек, параллельно.
         val anchors = fanOut(trackSeeds.take(6).filter { it.isNotBlank() }, limit = 3) { seed ->
-            rawSearch(seed, music = true, 1)
+            val options = rawSearch(seed, music = true, 3)
+            val words = significantWords(seed)
+            val best = options.firstOrNull {
+                passesQuality(it) && significantWords(it.artist + " " + it.title).any { w -> w in words }
+            } ?: options.firstOrNull { passesQuality(it) } ?: options.firstOrNull()
+            listOfNotNull(best)
         }.distinctBy { it.id }
         blocked += anchors.map { it.id }
 
@@ -260,7 +264,7 @@ object EmbeddedMusicSource {
         val fromArtists = fanOut(
             artistSeeds.take(4).filter { it.isNotBlank() && !it.equals("Unknown", true) },
             limit = 4,
-        ) { artist -> rawSearch(artist, music = true, 6) }
+        ) { artist -> rawSearch(artist, music = true, 6).filter { matchesArtist(it, artist) && passesQuality(it) } }
 
         if (related.isEmpty() && fromArtists.isEmpty()) return recommendations(limit, lang)
 
@@ -272,7 +276,7 @@ object EmbeddedMusicSource {
             .asSequence()
             .distinctBy { it.id }
             .distinctBy { dedupeKey(it) }
-            .filter { it.id !in blocked && it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
+            .filter { it.id !in blocked && it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS && passesQuality(it) }
             .map { track -> track to relevance(track, anchorArtists, seedArtists, anchorWords, hits[track.id] ?: 0, lang) }
             .sortedByDescending { it.second }
             .map { it.first }
@@ -371,6 +375,30 @@ object EmbeddedMusicSource {
             .filter { it.length >= 3 }
             .toSet()
 
+    /** Маркеры шлака: slowed/cover/karaoke/remix/часовые сборки/тикток-версии. */
+    private val JUNK_MARKERS = listOf(
+        "slowed", "sped up", "speed up", "nightcore", "8d",
+        "караоке", "karaoke", "кавер", "(cover", "cover)",
+        "remix", "ремикс", "ремікс", "mashup", "минус", "плюсовка",
+        "parody", "пародия", "1 hour", "10 hours", "1 час",
+        "full album", "tiktok", "tik tok",
+    )
+
+    /** Адекватный трек, а не шлак: оригинал с живым артистом. */
+    private fun passesQuality(track: Track): Boolean {
+        if (track.artist.isBlank() || normalizeArtist(track.artist) == "unknown") return false
+        val text = "${track.artist} ${track.title}".lowercase()
+        return JUNK_MARKERS.none { it in text }
+    }
+
+    /** Трек действительно этого артиста (а не сборник/нарезка с его именем). */
+    private fun matchesArtist(track: Track, seed: String): Boolean {
+        val artist = normalizeArtist(track.artist)
+        val s = normalizeArtist(seed)
+        if (artist.isBlank() || s.isBlank()) return false
+        return artist.contains(s) || s.contains(artist)
+    }
+
     /**
      * Выполняет [block] для каждого элемента на пуле IO (не более [limit] одновременно)
      * и склеивает результаты. Ошибки проглатываются: волна и чарт должны жить, даже
@@ -431,48 +459,47 @@ object EmbeddedMusicSource {
      */
     fun recommendations(limit: Int, lang: WaveLang = WaveLang.Ukrainian): List<Track> {
         ensureInit()
-        val queries = seedPool(lang).shuffled().take(5) + tiktokQueries(lang).shuffled().take(2)
-        val found = fanOut(queries, limit = 6) { q ->
-            runCatching { rawSearch(q, music = true, 5) }.getOrDefault(emptyList())
+        val seeds = seedPool(lang).shuffled().take(5)
+        val found = fanOut(seeds, limit = 6) { seed ->
+            rawSearch(seed, music = true, 5).filter { matchesArtist(it, seed) }
         }
-        val ranked = found.asSequence()
+        val chart = if (limit >= 10) InnertubeCharts.topTracks("ZZ", 5) else emptyList()
+        val ranked = (chart + found).asSequence()
             .distinctBy { it.id }
             .distinctBy { dedupeKey(it) }
-            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
+            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS && passesQuality(it) }
             .map { track -> track to (languageScore(track, lang) + Math.random()) }
             .sortedByDescending { it.second }
             .map { it.first }
             .toList()
         val out = spreadByArtist(ranked).take(limit)
-        return if (out.isEmpty()) popular(lang, limit) else out
+        return if (out.isEmpty()) popular(limit) else out
     }
 
     /**
-     * Таблетка «Популярные»: чарт региона волны (прямые videoId из InnerTube,
-     * как на экране чартов) + мировые хиты + свежие тикток-тренды языка.
-     * Порядок чарта сохраняем — это и есть хит-парад.
+     * Таблетка «Популярные»: мировые хиты (чарты InnerTube: мир + США) +
+     * проверенные оригиналы мировых топ-артистов. Никаких slowed/cover/
+     * караоке/тикток-нарезок — только адекватные треки, как в топах
+     * SoundCloud и Dotify.
      */
-    fun popular(lang: WaveLang, limit: Int = 20): List<Track> {
+    fun popular(limit: Int = 20): List<Track> {
         ensureInit()
-        val region = lang.chartRegion()
-        val chart = InnertubeCharts.topTracks(region, 15)
-        val world = if (region != "ZZ") InnertubeCharts.topTracks("ZZ", 8) else emptyList()
-        val queries = seedPool(lang).shuffled().take(3) + tiktokQueries(lang).shuffled().take(2)
-        val discovery = fanOut(queries, limit = 5) { q ->
-            runCatching { rawSearch(q, music = true, 4) }.getOrDefault(emptyList())
+        val charts = (InnertubeCharts.topTracks("ZZ", 15) + InnertubeCharts.topTracks("US", 10))
+            .asSequence()
+            .distinctBy { it.id }
+            .distinctBy { dedupeKey(it) }
+            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS && passesQuality(it) }
+            .toList()
+        val seeds = POPULAR_SEEDS.shuffled().take(4)
+        val discovery = fanOut(seeds, limit = 4) { seed ->
+            rawSearch(seed, music = true, 6).filter { matchesArtist(it, seed) }
         }.asSequence()
             .distinctBy { it.id }
             .distinctBy { dedupeKey(it) }
-            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
-            .map { track -> track to (languageScore(track, lang) + Math.random()) }
-            .sortedByDescending { it.second }
-            .map { it.first }
+            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS && passesQuality(it) }
             .toList()
-        return ((chart + world).asSequence()
-            .distinctBy { it.id }
-            .distinctBy { dedupeKey(it) }
-            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
-            .toList() + discovery)
+            .shuffled()
+        return (charts + discovery)
             .distinctBy { it.id }
             .distinctBy { dedupeKey(it) }
             .take(limit)
