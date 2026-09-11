@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -370,7 +371,7 @@ fun ProfileScreen(
                                         modifier = Modifier.weight(1f),
                                     )
                                 }
-                                if (row.size == 1) Spacerweight(1f))
+                                if (row.size == 1) Spacer(Modifier.weight(1f))
                             }
                         }
                     }
