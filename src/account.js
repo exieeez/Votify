@@ -265,6 +265,9 @@
         : '';
     const bio = profile.about ? `<p class="acc-bio">${esc(profile.about)}</p>` : '';
     const links = linksHtml(profile.links);
+    const projectLine = !foreign
+      ? `<div style="font-size:12px;opacity:.55;margin-bottom:12px">${esc(t('account-project'))}: ${esc(cloud()?.getProjectId?.() || '?')}</div>`
+      : '';
     const followBtn = foreign ? followActionHtml(followState) : '';
     const editBtn =
       !foreign && !isGuest && username
@@ -289,6 +292,7 @@
         </div>
         <h1 class="acc-name">${esc(name)}</h1>
         ${usernameLine}
+        ${projectLine}
         ${privateChip}
         ${bio}
         ${links}

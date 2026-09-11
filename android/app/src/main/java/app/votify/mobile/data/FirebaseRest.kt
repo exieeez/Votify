@@ -514,6 +514,10 @@ class FirebaseRest(private val config: FirebaseConfig) {
                 ?: parseConfig(app.votify.mobile.BuildConfig.FIREBASE_CONFIG)
                 ?: parseConfig(xorDecode(EMBEDDED_CONFIG))
 
+        /** Project id the app actually talks to (shown in Proxy settings for diagnostics). */
+        fun effectiveProjectId(stored: String): String =
+            effectiveConfig(stored)?.projectId.orEmpty()
+
         private fun xorDecode(enc: String): String {
             val key = "votify-workshop-key-v1".encodeToByteArray()
             val raw = java.util.Base64.getDecoder().decode(enc)

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.votify.mobile.R
+import app.votify.mobile.data.FirebaseRest
 import app.votify.mobile.ui.components.VotifyTextField
 import app.votify.mobile.ui.theme.VotifyColors
 
@@ -64,6 +65,14 @@ fun ProxySettingsScreen(
                             ServerStatus.Offline -> stringResource(R.string.settings_server_offline)
                             else -> ""
                         },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = VotifyColors.TextMuted,
+                    )
+                    val project = remember(settings.firebaseConfig) {
+                        FirebaseRest.effectiveProjectId(settings.firebaseConfig)
+                    }
+                    Text(
+                        stringResource(R.string.settings_firebase_project, project.ifEmpty { "?" }),
                         style = MaterialTheme.typography.bodySmall,
                         color = VotifyColors.TextMuted,
                     )

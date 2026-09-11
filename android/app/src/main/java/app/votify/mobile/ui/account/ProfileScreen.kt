@@ -307,6 +307,7 @@ fun ProfileScreen(
                             results = state.searchResults,
                             searchDone = state.searchDone,
                             latinHint = state.searchLatinHint,
+                            searchError = state.searchError,
                             onQuery = viewModel::onSearchQuery,
                             onOpenUser = onOpenUser,
                         )
@@ -639,6 +640,7 @@ private fun FindFriendsCard(
     results: List<SocialUser>,
     searchDone: Boolean,
     latinHint: Boolean,
+    searchError: ProfileViewModel.Msg?,
     onQuery: (String) -> Unit,
     onOpenUser: (String) -> Unit,
 ) {
@@ -682,7 +684,14 @@ private fun FindFriendsCard(
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (latinHint) {
+            if (searchError != null) {
+                Text(
+                    stringResource(searchError.id, *searchError.args.toTypedArray()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            } else if (latinHint) {
                 Text(
                     stringResource(R.string.profile_search_latin),
                     style = MaterialTheme.typography.bodySmall,

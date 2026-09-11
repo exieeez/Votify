@@ -445,6 +445,7 @@
     <string name="settings_server_checking">Проверяю…</string>
     <string name="settings_server_standalone">Автономный режим</string>
     <string name="settings_server_offline">Сервер недоступен</string>
+    <string name="settings_firebase_project">Firebase-проект: %1$s</string>
     <string name="settings_proxy_sub">Проксировать стримы через HTTP-прокси</string>
     <string name="settings_proxy_host">Хост</string>
     <string name="settings_proxy_port">Порт</string>

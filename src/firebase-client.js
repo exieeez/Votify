@@ -227,6 +227,7 @@
         : window.firebase.initializeApp(payload.config);
       state.auth = window.firebase.auth(app);
       state.db = window.firebase.firestore(app);
+      state.config = payload.config || null;
       await state.auth.setPersistence(window.firebase.auth.Auth.Persistence.LOCAL);
       state.available = true;
 
@@ -1119,6 +1120,11 @@
     return publicUser(state.auth?.currentUser || state.user);
   }
 
+  /** Project id this client actually talks to (diagnostics, shown on own profile). */
+  function getProjectId() {
+    return state.config?.projectId || '';
+  }
+
   function getProfile() {
     return state.profile ? { ...state.profile } : null;
   }
@@ -1458,6 +1464,7 @@
     isAvailable: () => state.available,
     getCurrentUser,
     getProfile,
+    getProjectId,
     onAuthChanged,
     register,
     signIn,

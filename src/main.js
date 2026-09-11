@@ -917,6 +917,7 @@ const translations = {
     'account-guest-handle': 'guest mode',
     'account-no-username': 'no username',
     'account-no-username-set': 'No username claimed',
+    'account-project': 'Project',
     'account-claim-username': 'Claim a username',
     'account-edit-profile': 'Edit profile',
     'account-private': 'Private',
@@ -9427,3 +9428,4 @@ function initRedesignedSettings() {
 // Ensure the custom settings loader starts shortly after main initialization
 setTimeout(initRedesignedSettings, 1000);
 initSavedColorSchemes();
+s();

@@ -93,6 +93,7 @@ class ProfileViewModel(
         val searchResults: List<SocialUser> = emptyList(),
         val searchDone: Boolean = false,
         val searchLatinHint: Boolean = false,
+        val searchError: Msg? = null,
         val incoming: List<SocialUser> = emptyList(),
         val outgoing: List<SocialUser> = emptyList(),
         val requestsLoading: Boolean = false,
@@ -215,7 +216,7 @@ class ProfileViewModel(
     // ------------------------------------------------------------ search
 
     fun onSearchQuery(q: String) {
-        _state.update { it.copy(searchQuery = q, searchDone = false) }
+        _state.update { it.copy(searchQuery = q, searchDone = false, searchError = null) }
         searchJob?.cancel()
         val clean = SocialValidate.searchPrefix(q)
         // Typed 2+ chars but nothing searchable (e.g. Cyrillic): hint at latin-only.
@@ -233,7 +234,7 @@ class ProfileViewModel(
                 _state.update { it.copy(searching = false, searchResults = users, searchDone = true, searchLatinHint = false) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                _state.update { it.copy(searching = false, searchDone = true, searchLatinHint = false) }
+                _state.update { it.copy(searching = false, searchDone = true, searchLatinHint = false, searchError = failureMessage(e)) }
             }
         }
     }
