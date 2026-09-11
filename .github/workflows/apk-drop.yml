@@ -1,0 +1,35 @@
+name: APK drop (temporary)
+
+# One-shot: copies the rolling release APK onto the orphan `apk-drop` branch so it
+# can be fetched over git (release CDN is unreachable from some networks).
+on:
+  push:
+    branches: ['arena/01a08c8e-votify']
+    paths: ['.github/workflows/apk-drop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  drop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copy release APK to apk-drop branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          gh release download android-debug --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Votify-debug.apk' --dir /tmp/apk --clobber
+          ls -la /tmp/apk
+          rm -rf /tmp/drop && mkdir -p /tmp/drop && cd /tmp/drop
+          git init -b apk-drop -q
+          git config user.email "arena@local"
+          git config user.name "arena"
+          cp /tmp/apk/Votify-debug.apk .
+          git add Votify-debug.apk
+          git commit -qm "apk drop $GITHUB_SHA"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -f -q origin apk-drop
+          echo "dropped $(stat -c%s Votify-debug.apk) bytes"
