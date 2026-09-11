@@ -232,7 +232,11 @@ class SettingsViewModel(
     fun setMiniPlayerSwipeChangesTrack(v: Boolean) = launchSave { settingsRepo.setMiniPlayerSwipeChangesTrack(v) }
     fun setVolumeButtonsSkip(v: Boolean) = launchSave { settingsRepo.setVolumeButtonsSkip(v) }
 
-    fun clearHistory() = launchSave { library.clearHistory() }
+    fun clearHistory() = launchSave {
+        library.clearHistory()
+        _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.storage_history_cleared)))
+        refreshStorage()
+    }
 
     // ------------------------------------------------------------ Dotify customization
 
@@ -319,14 +323,6 @@ class SettingsViewModel(
             withContext(Dispatchers.IO) {
                 runCatching { java.io.File(java.io.File(appContext.filesDir, "downloads"), file).delete() }
             }
-            refreshStorage()
-        }
-    }
-
-    fun clearHistory() {
-        viewModelScope.launch {
-            library.clearHistory()
-            _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.storage_history_cleared)))
             refreshStorage()
         }
     }
