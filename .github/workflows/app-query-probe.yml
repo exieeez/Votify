@@ -1,7 +1,6 @@
 name: App-query probe (temporary)
 
-# One-shot: replicates the Android app's exact prefix search query
-# (orderBy __name__ + startAt/endAt referenceValue cursors) for "dod"/"dodik".
+# One-shot: dump raw doc ids of `usernames` (repr codepoints) + direct GETs.
 on:
   push:
     branches: ['arena/01a08c8e-votify']
@@ -14,7 +13,7 @@ jobs:
     env:
       CFG: ${{ secrets.VOTIFY_FIREBASE_CONFIG }}
     steps:
-      - name: Probe app-shaped prefix query
+      - name: Dump raw username doc ids
         run: |
           set +e
           API_KEY="$(echo "$CFG" | jq -r .apiKey)"
@@ -23,26 +22,16 @@ jobs:
             -H 'Content-Type: application/json' -d '{}' | jq -r .idToken)"
           BASE_DOC="projects/votify-f461a/databases/(default)/documents"
           BASE_URL="https://firestore.googleapis.com/v1/$BASE_DOC"
-          prefix_query() {
-            P="$1"
-            BODY="$(jq -n --arg base "$BASE_DOC/usernames" --arg p "$P" '{
-              structuredQuery: {
-                from: [{collectionId: "usernames"}],
-                orderBy: [{field: {fieldPath: "__name__"}, direction: "ASCENDING"}],
-                startAt: {values: [{referenceValue: ($base + "/" + $p)}]},
-                endAt: {values: [{referenceValue: ($base + "/" + $p + "\uf8ff")}]},
-                limit: 8
-              }
-            }')"
-            OUT="$(curl -s --max-time 25 -w '\n%{http_code}' \
-              -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-              -d "$BODY" "$BASE_URL:runQuery")"
-            CODE="$(echo "$OUT" | tail -n 1)"
-            PAYLOAD="$(echo "$OUT" | head -n -1)"
-            IDS="$(echo "$PAYLOAD" | jq -r '[.[].document.name | select(. != null) | split("/") | last] | join(",")' 2>/dev/null)"
-            ERR="$(echo "$PAYLOAD" | jq -c '{error: .error.message, status: .error.status}' 2>/dev/null)"
-            echo "prefix=$P code=$CODE ids=[$IDS] err=$ERR"
-          }
-          echo "::notice::APPQ-DOD $(prefix_query dod)"
-          echo "::notice::APPQ-DODIK $(prefix_query dodik)"
+          LIST="$(curl -s --max-time 25 -H "Authorization: Bearer $TOKEN" "$BASE_URL/usernames?pageSize=50")"
+          echo "$LIST" | python3 -c "
+import json,sys
+d = json.load(sys.stdin)
+for doc in d.get('documents', []):
+    name = doc['name'].split('/')[-1]
+    print('::notice::DOC-REPR:', ascii(name), 'uid=', doc.get('fields', {}).get('uid', {}).get('stringValue'))
+"
+          for N in dodik god; do
+            CODE="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$BASE_URL/usernames/$N")"
+            echo "::notice::GET $N code=$CODE"
+          done
           echo done
