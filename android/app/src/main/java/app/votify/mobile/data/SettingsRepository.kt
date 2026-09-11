@@ -87,6 +87,16 @@ enum class WaveMode(val key: String) {
     }
 }
 
+/** Стиль hero-блока «Моей волны»: орбита с обложками или огненный шар. */
+enum class WaveStyle(val key: String) {
+    Orbit("orbit"),
+    Sun("sun");
+
+    companion object {
+        fun fromKey(k: String?) = entries.firstOrNull { it.key == k } ?: Sun
+    }
+}
+
 /** InnerTube/Apple-charts region code for the wave language. */
 fun WaveLang.chartRegion(): String = when (this) {
     WaveLang.Ukrainian -> "UA"
@@ -129,6 +139,8 @@ data class Settings(
     val waveMode: WaveMode = WaveMode.ForYou,
     /** Wave skips tracks already in the listening history. */
     val waveExcludeListened: Boolean = true,
+    /** Wave hero style: covers orbit or the sun orb. */
+    val waveStyle: WaveStyle = WaveStyle.Sun,
 )
 
 class SettingsRepository(context: Context) {
@@ -150,6 +162,7 @@ class SettingsRepository(context: Context) {
         val waveLang = stringPreferencesKey("wave_lang")
         val waveMode = stringPreferencesKey("wave_mode")
         val waveExcludeListened = booleanPreferencesKey("wave_exclude_listened")
+        val waveStyle = stringPreferencesKey("wave_style")
         val accountUid = stringPreferencesKey("account_uid")
         val accountRefresh = stringPreferencesKey("account_refresh_token")
         val accountEmail = stringPreferencesKey("account_email")
@@ -174,6 +187,7 @@ class SettingsRepository(context: Context) {
             waveLang = WaveLang.fromKey(p[Keys.waveLang]),
             waveMode = WaveMode.fromKey(p[Keys.waveMode]),
             waveExcludeListened = p[Keys.waveExcludeListened] ?: true,
+            waveStyle = WaveStyle.fromKey(p[Keys.waveStyle]),
         )
     }
 
@@ -204,6 +218,7 @@ class SettingsRepository(context: Context) {
     suspend fun setWaveLang(v: WaveLang) = store.edit { it[Keys.waveLang] = v.key }
     suspend fun setWaveMode(v: WaveMode) = store.edit { it[Keys.waveMode] = v.key }
     suspend fun setWaveExcludeListened(v: Boolean) = store.edit { it[Keys.waveExcludeListened] = v }
+    suspend fun setWaveStyle(v: WaveStyle) = store.edit { it[Keys.waveStyle] = v.key }
 
     suspend fun setAccount(
         email: String,

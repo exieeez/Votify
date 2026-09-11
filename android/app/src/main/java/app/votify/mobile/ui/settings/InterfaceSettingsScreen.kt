@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.votify.mobile.R
 import app.votify.mobile.data.AppTheme
+import app.votify.mobile.data.WaveStyle
 import app.votify.mobile.ui.theme.AmberPalette
 import app.votify.mobile.ui.theme.AzurePalette
 import app.votify.mobile.ui.theme.EmeraldPalette
@@ -42,6 +43,7 @@ fun InterfaceSettingsScreen(
     onBack: () -> Unit,
 ) {
     val prefs by viewModel.prefs.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     val spec by viewModel.colorSpec.collectAsStateWithLifecycle()
     var colorSlot by remember { mutableStateOf<String?>(null) }
 
@@ -79,6 +81,21 @@ fun InterfaceSettingsScreen(
                         "workshop" to stringResource(R.string.settings_theme_workshop),
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(themeName = v) } },
+                )
+            }
+
+            SettingsSectionLabel(stringResource(R.string.home_my_wave))
+            SettingsCard {
+                SettingsValueRow(
+                    title = stringResource(R.string.wave_style_title),
+                    subtitle = null,
+                    value = if (settings.waveStyle == WaveStyle.Sun) stringResource(R.string.wave_style_sun) else stringResource(R.string.wave_style_orbit),
+                    trailing = Icons.Outlined.GridView,
+                    options = listOf(
+                        WaveStyle.Sun.key to stringResource(R.string.wave_style_sun),
+                        WaveStyle.Orbit.key to stringResource(R.string.wave_style_orbit),
+                    ),
+                    onPick = { v -> viewModel.setWaveStyle(WaveStyle.fromKey(v)) },
                 )
             }
 

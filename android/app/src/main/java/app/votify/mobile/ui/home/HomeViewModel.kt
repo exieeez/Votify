@@ -8,6 +8,7 @@ import app.votify.mobile.data.SettingsRepository
 import app.votify.mobile.data.Track
 import app.votify.mobile.data.WaveLang
 import app.votify.mobile.data.WaveMode
+import app.votify.mobile.data.WaveStyle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,8 @@ data class HomeUiState(
     val waveMode: WaveMode = WaveMode.ForYou,
     /** Wave language from «Настроить» (default = Ukrainian). */
     val waveLang: WaveLang = WaveLang.Ukrainian,
+    /** Wave hero style from Settings → Interface (pure UI, no reload). */
+    val waveStyle: WaveStyle = WaveStyle.Sun,
     val isLoading: Boolean = true,
     val error: String? = null,
 )
@@ -55,15 +58,18 @@ class HomeViewModel(
 
     init {
         // First emission carries the persisted mode/lang (initial load);
-        // later ones mean the user retuned the wave in «Настроить» — reload it.
+        // later mode/lang changes reload the wave, a style change only restyles it.
         viewModelScope.launch {
             var first = true
             settingsRepo.settings.collect { s ->
                 val st = _state.value
-                if (first || s.waveMode != st.waveMode || s.waveLang != st.waveLang) {
-                    first = false
-                    _state.update { it.copy(waveMode = s.waveMode, waveLang = s.waveLang) }
-                    loadWave(s.waveMode, s.waveLang)
+                val tuneChanged = first || s.waveMode != st.waveMode || s.waveLang != st.waveLang
+                if (tuneChanged || s.waveStyle != st.waveStyle) {
+                    _state.update { it.copy(waveMode = s.waveMode, waveLang = s.waveLang, waveStyle = s.waveStyle) }
+                    if (tuneChanged) {
+                        first = false
+                        loadWave(s.waveMode, s.waveLang)
+                    }
                 }
             }
         }

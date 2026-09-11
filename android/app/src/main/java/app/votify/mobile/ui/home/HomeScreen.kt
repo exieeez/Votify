@@ -6,8 +6,8 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -54,10 +55,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -68,15 +65,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.votify.mobile.R
 import app.votify.mobile.data.Track
 import app.votify.mobile.data.WaveMode
+import app.votify.mobile.data.WaveStyle
 import app.votify.mobile.ui.components.Artwork
 import app.votify.mobile.ui.components.CircleIconButton
 import app.votify.mobile.ui.components.PillChip
 import app.votify.mobile.ui.components.VotifyCard
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import app.votify.mobile.ui.components.pluralTracks
 import app.votify.mobile.ui.theme.VotifyColors
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun HomeScreen(
@@ -111,12 +112,23 @@ fun HomeScreen(
             onOpenSite = onOpenSite,
         )
 
-        // --- «Моя волна» в стиле Яндекс Музыки: карточка + таблеточки + лента ---
-        WaveCard(
-            state = state,
-            onPlayWave = { onPlay(state.wave, 0) },
-            onRetry = viewModel::refresh,
-        )
+        // --- «Моя волна»: орбита с обложками или огненный шар (стиль из настроек) ---
+        when (state.waveStyle) {
+            WaveStyle.Orbit -> OrbitHero(
+                state = state,
+                onPlayWave = { onPlay(state.wave, 0) },
+                onPlayTrack = { index -> onPlay(state.wave, index) },
+                onRetry = viewModel::refresh,
+            )
+            WaveStyle.Sun -> SunOrb(
+                state = state,
+                onPlayWave = { onPlay(state.wave, 0) },
+                onRetry = viewModel::refresh,
+                onToggleMode = {
+                    viewModel.setMode(if (state.waveMode == WaveMode.Popular) WaveMode.ForYou else WaveMode.Popular)
+                },
+            )
+        }
 
         Spacer(Modifier.height(12.dp))
 
@@ -321,37 +333,274 @@ private fun homeLyricLine(
         ?.takeIf { it.isNotBlank() }
 }
 
+/** Стиль «Орбита»: вокруг кнопки плея — обложки треков волны (как раньше). */
+@Composable
+private fun OrbitHero(
+    state: HomeUiState,
+    onPlayWave: () -> Unit,
+    onPlayTrack: (Int) -> Unit,
+    onRetry: () -> Unit,
+) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(300.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            state.isLoading -> CircularProgressIndicator(color = VotifyColors.TextMuted, strokeWidth = 2.dp)
+            state.error != null -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(R.string.search_error), color = VotifyColors.TextSecondary, style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(4.dp))
+                Text(state.error ?: "", color = VotifyColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(12.dp))
+                PillChip(text = stringResource(R.string.search_retry), selected = true, onClick = onRetry)
+            }
+            state.wave.isEmpty() -> Text(
+                if (state.waveMode == WaveMode.Popular) stringResource(R.string.wave_popular_empty)
+                else stringResource(R.string.home_wave_empty),
+                color = VotifyColors.TextSecondary,
+                style = MaterialTheme.typography.titleSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp),
+            )
+            else -> WaveOrbit(
+                tracks = state.wave,
+                onPlayWave = onPlayWave,
+                onPlayTrack = onPlayTrack,
+            )
+        }
+    }
+    if (!state.isLoading && state.error == null) {
+        Text(
+            text = when {
+                state.waveSource == WaveSource.Popular -> stringResource(R.string.wave_popular_sub)
+                state.waveSource == WaveSource.Personal ->
+                    stringResource(R.string.home_wave_personal, state.seeds.take(3).joinToString(", "))
+                else -> stringResource(R.string.home_wave_generic)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = VotifyColors.TextMuted,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
+        )
+    }
+}
+
 /**
- * «Моя волна» как в Яндекс Музыке: тёмная карточка со светящимся шаром-плазмой.
- * Шар дышит и медленно вращается, в центре — белая кнопка плей.
+ * The hero of the home screen: a 72dp Play disc in the centre with up to 8 artwork
+ * bubbles scattered on an orbit around it. The orbit slowly drifts; tapping a bubble plays
+ * that track, tapping Play starts the whole wave.
  */
 @Composable
-private fun WaveCard(
+private fun WaveOrbit(
+    tracks: List<Track>,
+    onPlayWave: () -> Unit,
+    onPlayTrack: (Int) -> Unit,
+) {
+    val bubbles = tracks.take(8)
+    val drift by rememberInfiniteTransition(label = "orbit").animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(90_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "drift",
+    )
+
+    Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
+        bubbles.forEachIndexed { i, track ->
+            // One round orbit for every bubble (user request); sizes still vary a little.
+            val radius: Dp = 118.dp
+            val size: Dp = if (i % 2 == 0) 56.dp else 48.dp
+            val angle = Math.toRadians((i * (360.0 / bubbles.size)) - 90 + drift)
+            val dx = (radius.value * cos(angle)).toFloat().dp
+            val dy = (radius.value * sin(angle)).toFloat().dp
+            Box(
+                Modifier
+                    .offset(x = dx, y = dy)
+                    .size(size)
+                    .clip(CircleShape)
+                    .border(1.dp, VotifyColors.BorderProminent.copy(alpha = 0.6f), CircleShape)
+                    .clickable { onPlayTrack(i) },
+            ) {
+                Artwork(track.cover, size = size, shape = RoundedCornerShape(50), contentDescription = track.title)
+            }
+        }
+
+        // При смене акцента кнопка перекрашивается плавно, а не «щёлкает» цветом.
+        val heroFill by animateColorAsState(VotifyColors.AccentFill, tween(260), label = "heroFill")
+        val heroContent by animateColorAsState(VotifyColors.AccentContent, tween(260), label = "heroContent")
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Surface(
+                onClick = onPlayWave,
+                shape = CircleShape,
+                color = heroFill,
+                contentColor = heroContent,
+                shadowElevation = 0.dp,
+                modifier = Modifier.size(72.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Filled.PlayArrow,
+                        contentDescription = stringResource(R.string.home_play_wave),
+                        modifier = Modifier.size(34.dp).offset(x = 2.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                stringResource(R.string.home_my_wave),
+                style = MaterialTheme.typography.titleMedium,
+                color = VotifyColors.TextSecondary,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
+}
+
+/**
+ * Стиль «Солнце» (дизайн из Stitch): огромный огненный шар с белым заголовком,
+ * таблетка на шаре переключает «Для вас / Популярные».
+ */
+@Composable
+private fun SunOrb(
     state: HomeUiState,
     onPlayWave: () -> Unit,
     onRetry: () -> Unit,
+    onToggleMode: () -> Unit,
 ) {
+    val motion = rememberInfiniteTransition(label = "sun")
+    val pulse by motion.animateFloat(
+        initialValue = 0.97f,
+        targetValue = 1.03f,
+        animationSpec = infiniteRepeatable(tween(3_200, easing = LinearEasing), RepeatMode.Reverse),
+        label = "pulse",
+    )
+    val spin by motion.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(26_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "spin",
+    )
     val hasMusic = !state.isLoading && state.error == null && state.wave.isNotEmpty()
+
     Box(
         Modifier
-            .padding(horizontal = 16.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Brush.verticalGradient(listOf(Color(0xFF151B29), Color(0xFF05070C))))
-            .clickable(enabled = hasMusic, onClick = onPlayWave)
-            .padding(top = 18.dp, bottom = 20.dp),
+            .height(340.dp)
+            .clickable(
+                enabled = hasMusic || state.error != null,
+                onClick = { if (state.error != null) onRetry() else onPlayWave() },
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth(),
+        // Окружающее зарево.
+        Box(
+            Modifier
+                .size(360.dp)
+                .graphicsLayer { scaleX = pulse; scaleY = pulse }
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        0.0f to Color(0xFFFF8A3C).copy(alpha = 0.30f),
+                        0.55f to Color(0xFFE5484D).copy(alpha = 0.14f),
+                        1.0f to Color.Transparent,
+                    ),
+                ),
+        )
+        // Тело солнца.
+        Box(
+            Modifier
+                .size(280.dp)
+                .graphicsLayer { scaleX = pulse; scaleY = pulse }
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        0.0f to Color(0xFFFFE9A8),
+                        0.35f to Color(0xFFFFC53D),
+                        0.65f to Color(0xFFFF7A29),
+                        0.85f to Color(0xFFF04438),
+                        1.0f to Color(0xFFD92D20),
+                    ),
+                ),
+        )
+        // Медленный блик, ползущий по шару.
+        Box(
+            Modifier
+                .size(280.dp)
+                .graphicsLayer { rotationZ = spin },
         ) {
-            Text(
-                stringResource(R.string.home_my_wave),
-                style = MaterialTheme.typography.titleLarge,
-                color = YmYellow,
-                fontWeight = FontWeight.Bold,
+            Box(
+                Modifier
+                    .size(150.dp)
+                    .align(Alignment.TopCenter)
+                    .offset(y = 18.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            0.0f to Color.White.copy(alpha = 0.35f),
+                            1.0f to Color.Transparent,
+                        ),
+                    ),
             )
-            Spacer(Modifier.height(4.dp))
+        }
+        // Контент поверх шара.
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            when {
+                state.isLoading -> CircularProgressIndicator(
+                    color = Color.White,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(52.dp),
+                )
+                state.error != null -> Icon(
+                    Icons.Filled.Refresh,
+                    contentDescription = stringResource(R.string.search_retry),
+                    tint = Color.White,
+                    modifier = Modifier.size(52.dp),
+                )
+                else -> Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.PlayArrow,
+                        contentDescription = stringResource(R.string.home_play_wave),
+                        tint = Color.White,
+                        modifier = Modifier.size(34.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(R.string.home_my_wave),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            Surface(
+                onClick = onToggleMode,
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.28f),
+                contentColor = Color.White,
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.SwapHoriz, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (state.waveMode == WaveMode.Popular) stringResource(R.string.wave_popular)
+                        else stringResource(R.string.wave_for_you),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = when {
                     state.isLoading -> stringResource(R.string.wave_loading)
@@ -362,202 +611,12 @@ private fun WaveCard(
                     else -> stringResource(R.string.home_wave_generic)
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.6f),
+                color = Color.White.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 24.dp),
+                modifier = Modifier.padding(horizontal = 48.dp),
             )
-            Spacer(Modifier.height(10.dp))
-            OrbPlay(
-                isLoading = state.isLoading,
-                isError = state.error != null,
-                onPlayWave = onPlayWave,
-                onRetry = onRetry,
-            )
-        }
-    }
-}
-
-private val YmYellow = Color(0xFFFFCC00)
-
-/** Большой шар-плазма как в ЯМ: синее тело, сгустки света, лучи в обе стороны, блик на ободе. */
-@Composable
-private fun OrbPlay(
-    isLoading: Boolean,
-    isError: Boolean,
-    onPlayWave: () -> Unit,
-    onRetry: () -> Unit,
-) {
-    val motion = rememberInfiniteTransition(label = "orb")
-    val spin by motion.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(16_000, easing = LinearEasing), RepeatMode.Restart),
-        label = "spin",
-    )
-    val spinBack by motion.animateFloat(
-        initialValue = 360f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(tween(11_000, easing = LinearEasing), RepeatMode.Restart),
-        label = "spinBack",
-    )
-    val pulse by motion.animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(tween(2_600, easing = LinearEasing), RepeatMode.Reverse),
-        label = "pulse",
-    )
-    val shimmer by motion.animateFloat(
-        initialValue = 0.55f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(3_100, easing = LinearEasing), RepeatMode.Reverse),
-        label = "shimmer",
-    )
-    Box(Modifier.size(248.dp), contentAlignment = Alignment.Center) {
-        // Окружающее свечение на всю карточку.
-        Box(
-            Modifier
-                .size(300.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        0.0f to Color(0xFF6FA5FF).copy(alpha = 0.35f),
-                        0.55f to Color(0xFF3B63C9).copy(alpha = 0.18f),
-                        1.0f to Color.Transparent,
-                    ),
-                ),
-        )
-        // Тело шара — синяя плазма, а не белый мяч.
-        Box(
-            Modifier
-                .size(196.dp)
-                .graphicsLayer { scaleX = pulse; scaleY = pulse }
-                .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        0.0f to Color(0xFF9CC4FF),
-                        0.45f to Color(0xFF5B8DEF),
-                        0.78f to Color(0xFF2E4FA3),
-                        1.0f to Color(0xFF1B2F66),
-                    ),
-                ),
-        )
-        // Яркие сгустки света внутри шара.
-        Box(
-            Modifier
-                .size(196.dp)
-                .graphicsLayer { scaleX = pulse; scaleY = pulse; alpha = shimmer },
-        ) {
-            Box(
-                Modifier
-                    .size(110.dp)
-                    .align(Alignment.Center)
-                    .offset(x = (-34).dp, y = (-40).dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            0.0f to Color.White.copy(alpha = 0.85f),
-                            1.0f to Color.Transparent,
-                        ),
-                    ),
-            )
-            Box(
-                Modifier
-                    .size(84.dp)
-                    .align(Alignment.Center)
-                    .offset(x = 44.dp, y = 48.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            0.0f to Color(0xFFE4EFFF).copy(alpha = 0.7f),
-                            1.0f to Color.Transparent,
-                        ),
-                    ),
-            )
-        }
-        // Внешний слой лучей.
-        Canvas(
-            Modifier
-                .size(216.dp)
-                .graphicsLayer { rotationZ = spin },
-        ) {
-            val w = size.minDimension * 0.035f
-            val inset = w / 2 + 2f
-            val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
-            val style = Stroke(width = w, cap = StrokeCap.Round)
-            drawArc(Color.White.copy(alpha = 0.95f), -60f, 80f, false, Offset(inset, inset), arcSize, style = style)
-            drawArc(Color(0xFFCFE3FF).copy(alpha = 0.6f), 110f, 110f, false, Offset(inset, inset), arcSize, style = style)
-            drawArc(Color.White.copy(alpha = 0.5f), 230f, 60f, false, Offset(inset, inset), arcSize, style = style)
-        }
-        // Внутренний слой лучей — крутится в другую сторону.
-        Canvas(
-            Modifier
-                .size(184.dp)
-                .graphicsLayer { rotationZ = spinBack },
-        ) {
-            val w = size.minDimension * 0.04f
-            val inset = w / 2 + 2f
-            val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
-            val style = Stroke(width = w, cap = StrokeCap.Round)
-            drawArc(Color.White.copy(alpha = 0.8f), 20f, 70f, false, Offset(inset, inset), arcSize, style = style)
-            drawArc(Color(0xFFD9E8FF).copy(alpha = 0.5f), 190f, 90f, false, Offset(inset, inset), arcSize, style = style)
-        }
-        // Блик, бегущий по ободу.
-        Box(
-            Modifier
-                .size(196.dp)
-                .graphicsLayer { rotationZ = spin; scaleX = pulse; scaleY = pulse }
-                .border(
-                    3.dp,
-                    Brush.sweepGradient(
-                        0.0f to Color.White.copy(alpha = 0.9f),
-                        0.25f to Color.Transparent,
-                        0.6f to Color.White.copy(alpha = 0.35f),
-                        1.0f to Color.Transparent,
-                    ),
-                    CircleShape,
-                ),
-        )
-        // Кнопка в центре шара.
-        when {
-            isLoading -> CircularProgressIndicator(
-                color = Color.White,
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(60.dp),
-            )
-            isError -> Surface(
-                onClick = onRetry,
-                shape = CircleShape,
-                color = Color.White,
-                contentColor = Color(0xFF1A1A1A),
-                shadowElevation = 8.dp,
-                modifier = Modifier.size(60.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Filled.Refresh,
-                        contentDescription = stringResource(R.string.search_retry),
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
-            }
-            else -> Surface(
-                onClick = onPlayWave,
-                shape = CircleShape,
-                color = Color.White,
-                contentColor = Color(0xFF1A1A1A),
-                shadowElevation = 8.dp,
-                modifier = Modifier.size(60.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Filled.PlayArrow,
-                        contentDescription = stringResource(R.string.home_play_wave),
-                        modifier = Modifier.size(32.dp).offset(x = 2.dp),
-                    )
-                }
-            }
         }
     }
 }
