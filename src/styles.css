@@ -81,13 +81,22 @@ body[data-theme-mode="midnight"] {
   --text-subdued: #5a5a5a;
 }
 body[data-theme-mode="contrast"] {
-  --bg-base: #121212;
-  --bg-surface: #181818;
-  --bg-elevated: #282828;
-  --bg-highlight: #222222;
+  --bg-base: #000000;
+  --bg-surface: #121212;
+  --bg-elevated: #1E1E1E;
+  --bg-highlight: #2A2A2A;
+  --bg-card: #1E1E1E;
   --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-subdued: #5a5a5a;
+  --text-secondary: #E5E5EA;
+  --text-subdued: #8E8E93;
+  --text-tertiary: #8E8E93;
+  --accent-contrast: #000000;
+  --ob-card: #1E1E1E;
+  --ob-card-hover: #2A2A2A;
+  --ob-card-high: #2A2A2A;
+  --ob-line: #2A2A2A;
+  --ob-line-strong: #48484A;
+  --ob-text-dim: #8E8E93;
 }
 
 /* Appearance: animations / cover-in-player toggles */
@@ -8943,12 +8952,13 @@ html, body { background: var(--bg-base, #121212) !important; }
   background-color: var(--bg-base, #121212) !important;
   border-color: rgba(255,255,255,0.08) !important;
 }
-.card, .home-quick-card, .home-rec-card, .playlist-card, .track-card, .track-item, .history-card, .fav-card, .lib-item, .lib-detail-header-card, .about-card {
-  background: #181818 !important;
-  border-color: rgba(255,255,255,0.06) !important;
+.card, .home-quick-card, .home-rec-card, .track-card, .history-card, .fav-card, .lib-item, .lib-detail-header-card, .about-card {
+  background: #1E1E1E !important;
+  border-color: #2A2A2A !important;
 }
-.track-item:hover, .lib-item:hover, .card:hover { background: #141414 !important; }
-.track-item.playing { background: rgba(255,255,255,0.08) !important; }
+.playlist-card, .track-item { background: transparent !important; border-color: transparent !important; }
+.track-item:hover, .lib-item:hover, .card:hover { background: rgba(255,255,255,0.05) !important; }
+.track-item.playing { background: transparent !important; }
 .track-item.playing .track-title { color: #fff !important; }
 
 /* Lava lamp should be visible — gradient is subtle overlay, not solid */
@@ -10750,43 +10760,13 @@ textarea:focus-visible {
 
 /* ==========================================================
    Phone look — OLED Black mirror (design/screens + Color.kt)
-   Default layer only: explicit body[data-*] customizations,
-   body.light-theme and custom-theme.css still win on top.
+   Palette lives in body[data-theme-mode="contrast"] + the MONO
+   block above; below are component rules that beat their bases.
+   Explicit body[data-*] customizations still win where they
+   apply (except props the MONO block already forces).
    ========================================================== */
-:root {
-  --bg-base: #000000;
-  --bg-surface: #121212;
-  --bg-elevated: #1E1E1E;
-  --bg-highlight: #2A2A2A;
-  --bg-card: #1E1E1E;
-  --text-secondary: #E5E5EA;
-  --text-subdued: #8E8E93;
-  --text-tertiary: #8E8E93;
-  --accent: #FFFFFF;
-  --accent-hover: #E2E2E2;
-  --accent-rgb: 255,255,255;
-  --accent-contrast: #000000;
-  --md-accent: #FFFFFF;
-  --md-surface: #000000;
-  --md-surface-variant: #1E1E1E;
-  --md-on-surface-variant: #8E8E93;
-  --md-outline: #2A2A2A;
-  --md-primary: #FFFFFF;
-  --md-on-primary: #000000;
-  --ob-card: #1E1E1E;
-  --ob-card-hover: #2A2A2A;
-  --ob-card-high: #2A2A2A;
-  --ob-line: #2A2A2A;
-  --ob-line-strong: #48484A;
-  --ob-glass: rgba(0,0,0,0.88);
-  --ob-text-dim: #8E8E93;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-}
-
 /* Track rows → phone TrackRow: 44px art, 15/13px, #E5E5EA/#8E8E93 */
-body .track-item { padding: 6px 12px; }
+body[data-density="comfortable"] .track-item { padding: 6px 12px; }
 body .track-cover, body .track-cover-fallback { width: 44px; height: 44px; border-radius: 8px; }
 body .track-title { font-size: 15px; font-weight: 600; color: #E5E5EA; }
 body .track-item.playing .track-title { color: #FFFFFF; }
@@ -10795,8 +10775,8 @@ body .clickable-artist:hover { color: #E5E5EA; }
 body .m3-icon-btn { color: #8E8E93; }
 
 /* Playlist cards → phone library: bare cover + text, no card chrome */
-body .playlist-card { background: transparent; border: none; padding: 0; box-shadow: none; }
-body .playlist-card:hover { background: transparent; box-shadow: none; }
+body .playlist-card { padding: 0; box-shadow: none; }
+body .playlist-card:hover { box-shadow: none; }
 body .card-cover-wrap { border-radius: 12px; box-shadow: none; background: #1E1E1E; margin-bottom: 8px; }
 body .card-cover-placeholder { background: #1E1E1E; }
 body .card-cover-placeholder .material-icons { font-size: 40px; color: #48484A; }
@@ -10842,3 +10822,9 @@ body .toggle-switch input:checked + .toggle-slider::before { background: #000000
 body .search-bar { background: #1E1E1E; border: 1px solid #2A2A2A; }
 body .search-bar:focus-within { background: #2A2A2A; }
 body .search-icon { color: #8E8E93; }
+
+/* Home -> phone text hierarchy (wave hero artwork untouched) */
+body .home-heading { color: #FFFFFF; }
+body .home-section-header h2 { color: #FFFFFF; }
+body .home-quick-title { color: #E5E5EA; }
+body .home-quick-subtitle { color: #8E8E93; }
