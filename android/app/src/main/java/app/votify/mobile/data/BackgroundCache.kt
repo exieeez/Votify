@@ -128,20 +128,24 @@ object BackgroundCache {
     }
 
     /** Удалить чужие закэшированные фоны, оставив файл текущего URL. */
-    suspend fun prune(context: Context, keepUrl: String): Unit = withContext(Dispatchers.IO) {
-        runCatching {
-            val keep = if (keepUrl.isBlank()) null else fileFor(context, keepUrl).name
-            dir(context).listFiles()
-                ?.filter { it.isFile && it.name.startsWith("bg_") && it.name != keep }
-                ?.forEach { it.delete() }
+    suspend fun prune(context: Context, keepUrl: String) {
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val keep = if (keepUrl.isBlank()) null else fileFor(context, keepUrl).name
+                dir(context).listFiles()
+                    ?.filter { it.isFile && it.name.startsWith("bg_") && it.name != keep }
+                    ?.forEach { it.delete() }
+            }
         }
     }
 
-    suspend fun pruneAll(context: Context): Unit = withContext(Dispatchers.IO) {
-        runCatching {
-            dir(context).listFiles()
-                ?.filter { it.isFile && it.name.startsWith("bg_") }
-                ?.forEach { it.delete() }
+    suspend fun pruneAll(context: Context) {
+        withContext(Dispatchers.IO) {
+            runCatching {
+                dir(context).listFiles()
+                    ?.filter { it.isFile && it.name.startsWith("bg_") }
+                    ?.forEach { it.delete() }
+            }
         }
     }
 
