@@ -1,5 +1,7 @@
 package app.votify.mobile.ui.home
 
+import android.content.Context
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.votify.mobile.data.LibraryRepository
@@ -9,8 +11,13 @@ import app.votify.mobile.data.Track
 import app.votify.mobile.data.WaveLang
 import app.votify.mobile.data.WaveMode
 import app.votify.mobile.data.WaveStyle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -40,6 +47,7 @@ class HomeViewModel(
     private val music: MusicRepository,
     private val library: LibraryRepository,
     private val settingsRepo: SettingsRepository,
+    private val appContext: Context,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -51,6 +59,17 @@ class HomeViewModel(
 
     val favoriteCount: StateFlow<Int> =
         library.favoriteCount.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /**
+     * Цвет шара «Моей волны» в стиле matugen: средний цвет обоев фона,
+     * усиленный до сочного оттенка. null = обоев нет, шар красится
+     * в цвет поверхности темы.
+     */
+    val orbColor: StateFlow<Color?> = settingsRepo.settings
+        .map { it.backgroundUrl.ifBlank { null } }
+        .distinctUntilChanged()
+        .mapLatest { url -> if (url == null) null else sampleBackgroundColor(appContext, url) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Текст текущей песни — одна строка под «Моей волной». */
     private val _lyrics = MutableStateFlow<app.votify.mobile.data.Lyrics?>(null)
@@ -191,3 +210,43 @@ class HomeViewModel(
             }
     }
 }
+
+/**
+ * Matugen-lite: грузим обои через Coil, берём средний цвет 8×8 и делаем его
+ * сочным (насыщенность минимум 0.6, яркость 0.45–0.7 — белый текст читается).
+ * Любая неудача (нет сети, битый файл, GIF) = null, шар красится темой.
+ */
+private suspend fun sampleBackgroundColor(context: Context, url: String): Color? =
+    withContext(Dispatchers.IO) {
+        runCatching {
+            val loader = coil.ImageLoader(context)
+            val req = coil.request.ImageRequest.Builder(context)
+                .data(url)
+                .allowHardware(false)
+                .build()
+            val bmp = (loader.execute(req).drawable as? android.graphics.drawable.BitmapDrawable)
+                ?.bitmap ?: return@runCatching null
+            val small = android.graphics.Bitmap.createScaledBitmap(bmp, 8, 8, true)
+            var r = 0L
+            var g = 0L
+            var b = 0L
+            var n = 0L
+            for (x in 0 until 8) for (y in 0 until 8) {
+                val px = small.getPixel(x, y)
+                if (android.graphics.Color.alpha(px) < 128) continue
+                r += android.graphics.Color.red(px)
+                g += android.graphics.Color.green(px)
+                b += android.graphics.Color.blue(px)
+                n++
+            }
+            if (n == 0L) return@runCatching null
+            val hsv = FloatArray(3)
+            android.graphics.Color.colorToHSV(
+                android.graphics.Color.rgb((r / n).toInt(), (g / n).toInt(), (b / n).toInt()),
+                hsv,
+            )
+            hsv[1] = maxOf(hsv[1], 0.6f)
+            hsv[2] = hsv[2].coerceIn(0.45f, 0.7f)
+            Color(android.graphics.Color.HSVToColor(hsv))
+        }.getOrDefault(null)
+    }

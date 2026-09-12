@@ -22,8 +22,8 @@ android {
         applicationId = islandPackage.ifBlank { "app.votify.mobile" }
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "0.4.1"
+        versionCode = 18
+        versionName = "0.4.2"
 
         // Backend base URL. 10.0.2.2 = host machine from the Android emulator.
         // Override for a real device: -PvotifyApiBase=http://192.168.1.10:17217
@@ -113,6 +113,7 @@ dependencies {
 
     // Images
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("io.coil-kt:coil:2.7.0")
     // Animated GIF / WebP backgrounds (ImageDecoder on API 28+, GifDecoder below).
     implementation("io.coil-kt:coil-gif:2.7.0")
     // Google Sign-In via Android Credential Manager.

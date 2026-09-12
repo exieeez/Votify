@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
@@ -98,6 +99,7 @@ fun HomeScreen(
     onOpenSite: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val orbColor by viewModel.orbColor.collectAsStateWithLifecycle()
     val recent by viewModel.recent.collectAsStateWithLifecycle()
     val favoriteCount by viewModel.favoriteCount.collectAsStateWithLifecycle()
 
@@ -122,8 +124,9 @@ fun HomeScreen(
                 onPlayTrack = { index -> onPlay(state.wave, index) },
                 onRetry = viewModel::refresh,
             )
-            WaveStyle.Sun -> GlassOrb(
+            WaveStyle.Sun -> SolidOrb(
                 state = state,
+                orbBase = orbColor,
                 onPlayWave = { onPlay(state.wave, 0) },
                 onRetry = viewModel::refresh,
                 onToggleMode = {
@@ -465,17 +468,18 @@ private fun WaveOrbit(
 }
 
 /**
- * Стиль «Шар»: стеклянный шар под цвет фона — полупрозрачный, сквозь него
- * виден фон и обои. Таблетка на шаре переключает «Для вас / Популярные».
+ * Стиль «Шар»: сплошной шар в цвете фона (matugen-стиль — средний цвет обоев,
+ * без обоев — цвет поверхности темы). Таблетка переключает «Для вас / Популярные».
  */
 @Composable
-private fun GlassOrb(
+private fun SolidOrb(
     state: HomeUiState,
+    orbBase: Color?,
     onPlayWave: () -> Unit,
     onRetry: () -> Unit,
     onToggleMode: () -> Unit,
 ) {
-    val motion = rememberInfiniteTransition(label = "glass")
+    val motion = rememberInfiniteTransition(label = "orb")
     val pulse by motion.animateFloat(
         initialValue = 0.97f,
         targetValue = 1.03f,
@@ -489,7 +493,11 @@ private fun GlassOrb(
         label = "spin",
     )
     val hasMusic = !state.isLoading && state.error == null && state.wave.isNotEmpty()
-    // Текст читается на любых обоях: цвет темы + мягкая тень.
+    // Сплошной шар: светлый верх → базовый цвет → глубокий низ.
+    val base = orbBase ?: VotifyColors.SurfaceContainer
+    val light = lerp(base, Color.White, 0.45f)
+    val deep = lerp(base, Color.Black, 0.45f)
+    val rim = lerp(base, Color.White, 0.55f)
     val textShadow = Shadow(Color.Black.copy(alpha = 0.45f), Offset(0f, 2f), 6f)
 
     Box(
@@ -502,7 +510,7 @@ private fun GlassOrb(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        // Лёгкое свечение вокруг.
+        // Свечение в цвете шара.
         Box(
             Modifier
                 .size(360.dp)
@@ -510,13 +518,13 @@ private fun GlassOrb(
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        0.0f to VotifyColors.TextPrimary.copy(alpha = 0.10f),
-                        0.55f to VotifyColors.TextPrimary.copy(alpha = 0.05f),
+                        0.0f to base.copy(alpha = 0.30f),
+                        0.55f to base.copy(alpha = 0.12f),
                         1.0f to Color.Transparent,
                     ),
                 ),
         )
-        // Тело шара — стекло: фон просвечивает, обод даёт форму.
+        // Тело шара — сплошное.
         Box(
             Modifier
                 .size(280.dp)
@@ -524,13 +532,12 @@ private fun GlassOrb(
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        0.0f to VotifyColors.TextPrimary.copy(alpha = 0.14f),
-                        0.55f to VotifyColors.TextPrimary.copy(alpha = 0.07f),
-                        0.85f to VotifyColors.TextPrimary.copy(alpha = 0.03f),
-                        1.0f to Color.Transparent,
+                        0.0f to light,
+                        0.55f to base,
+                        1.0f to deep,
                     ),
                 )
-                .border(1.5.dp, VotifyColors.TextPrimary.copy(alpha = 0.28f), CircleShape),
+                .border(1.5.dp, rim.copy(alpha = 0.8f), CircleShape),
         )
         // Медленный блик, ползущий по шару.
         Box(
@@ -546,7 +553,7 @@ private fun GlassOrb(
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
-                            0.0f to VotifyColors.TextPrimary.copy(alpha = 0.16f),
+                            0.0f to Color.White.copy(alpha = 0.22f),
                             1.0f to Color.Transparent,
                         ),
                     ),
@@ -556,28 +563,28 @@ private fun GlassOrb(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             when {
                 state.isLoading -> CircularProgressIndicator(
-                    color = VotifyColors.TextPrimary,
+                    color = Color.White,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(52.dp),
                 )
                 state.error != null -> Icon(
                     Icons.Filled.Refresh,
                     contentDescription = stringResource(R.string.search_retry),
-                    tint = VotifyColors.TextPrimary,
+                    tint = Color.White,
                     modifier = Modifier.size(52.dp),
                 )
                 else -> Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Filled.PlayArrow,
                         contentDescription = stringResource(R.string.home_play_wave),
-                        tint = VotifyColors.TextPrimary,
+                        tint = Color.White,
                         modifier = Modifier.size(34.dp),
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         stringResource(R.string.home_my_wave),
                         style = MaterialTheme.typography.headlineMedium.copy(shadow = textShadow),
-                        color = VotifyColors.TextPrimary,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -586,9 +593,9 @@ private fun GlassOrb(
             Surface(
                 onClick = onToggleMode,
                 shape = CircleShape,
-                color = VotifyColors.TextPrimary.copy(alpha = 0.16f),
-                contentColor = VotifyColors.TextPrimary,
-                border = BorderStroke(1.dp, VotifyColors.TextPrimary.copy(alpha = 0.4f)),
+                color = Color.White.copy(alpha = 0.22f),
+                contentColor = Color.White,
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
             ) {
                 Row(
                     Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
@@ -599,7 +606,7 @@ private fun GlassOrb(
                     Text(
                         if (state.waveMode == WaveMode.Popular) stringResource(R.string.wave_popular)
                         else stringResource(R.string.wave_for_you),
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelLarge.copy(shadow = textShadow),
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -615,7 +622,7 @@ private fun GlassOrb(
                     else -> stringResource(R.string.home_wave_generic)
                 },
                 style = MaterialTheme.typography.bodySmall.copy(shadow = textShadow),
-                color = VotifyColors.TextPrimary.copy(alpha = 0.75f),
+                color = Color.White.copy(alpha = 0.85f),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
