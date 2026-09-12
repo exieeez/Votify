@@ -1,7 +1,7 @@
 package app.votify.mobile.ui.search
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,11 +23,15 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,6 +43,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -76,6 +82,16 @@ fun SearchScreen(
         ),
     ) {
         item {
+            Text(
+                stringResource(R.string.nav_search),
+                style = MaterialTheme.typography.headlineMedium,
+                color = VotifyColors.TextPrimary,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+
+        item {
             SearchBar(
                 query = state.query,
                 onQueryChange = viewModel::onQueryChange,
@@ -89,6 +105,14 @@ fun SearchScreen(
             item {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(32.dp).clip(CircleShape)
+                                .background(VotifyColors.Primary.copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(Icons.Default.History, null, tint = VotifyColors.Primary, modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
                         Text(
                             "Недавние запросы",
                             style = MaterialTheme.typography.titleSmall,
@@ -124,6 +148,7 @@ fun SearchScreen(
             state.error != null || state.offline -> item {
                 when {
                     state.offline && state.serverMode -> StatusBlock(
+                        icon = Icons.Default.CloudOff,
                         title = stringResource(R.string.search_offline_title),
                         subtitle = stringResource(R.string.search_offline_sub),
                         action = stringResource(R.string.search_open_settings),
@@ -132,12 +157,14 @@ fun SearchScreen(
                         onSecondaryAction = viewModel::retry,
                     )
                     state.offline -> StatusBlock(
+                        icon = Icons.Default.CloudOff,
                         title = stringResource(R.string.search_no_internet_title),
                         subtitle = stringResource(R.string.search_no_internet_sub),
                         action = stringResource(R.string.search_retry),
                         onAction = viewModel::retry,
                     )
                     else -> StatusBlock(
+                        icon = Icons.Default.ErrorOutline,
                         title = stringResource(R.string.search_error),
                         subtitle = state.error,
                         action = stringResource(R.string.search_retry),
@@ -147,11 +174,11 @@ fun SearchScreen(
             }
 
             state.searched && state.results.isEmpty() -> item {
-                StatusBlock(title = stringResource(R.string.search_empty), subtitle = "«${state.query}»")
+                StatusBlock(icon = Icons.Default.SearchOff, title = stringResource(R.string.search_empty), subtitle = "«${state.query}»")
             }
 
             !state.searched -> item {
-                StatusBlock(title = stringResource(R.string.search_start))
+                StatusBlock(icon = Icons.Default.Search, title = stringResource(R.string.search_start))
             }
 
             else -> {
@@ -185,7 +212,7 @@ fun SearchScreen(
     }
 }
 
-/** 48dp pill search field: #1E1E1E fill, #2A2A2A border, brightens to white when focused. */
+/** 56dp pill search field: glows with an accent border + shadow when focused. */
 @Composable
 private fun SearchBar(
     query: String,
@@ -195,16 +222,19 @@ private fun SearchBar(
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
+    val active = focused || query.isNotEmpty()
+    Surface(
+        modifier = modifier.fillMaxWidth().height(56.dp),
+        shape = CircleShape,
+        color = VotifyColors.SurfaceContainer,
+        border = BorderStroke(1.dp, if (active) VotifyColors.Primary else VotifyColors.BorderSubtle),
+        shadowElevation = if (focused) 12.dp else 0.dp,
+    ) {
     Row(
-        modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .background(VotifyColors.SurfaceContainer, CircleShape)
-            .border(1.dp, if (focused) VotifyColors.TextPrimary else VotifyColors.BorderSubtle, CircleShape)
-            .padding(start = 16.dp, end = 4.dp),
+        Modifier.padding(start = 18.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Default.Search, null, tint = VotifyColors.TextMuted, modifier = Modifier.size(20.dp))
+        Icon(Icons.Default.Search, null, tint = if (active) VotifyColors.Primary else VotifyColors.TextMuted, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(10.dp))
         Box(Modifier.weight(1f)) {
             if (query.isEmpty()) {
@@ -229,10 +259,12 @@ private fun SearchBar(
             }
         }
     }
+    }
 }
 
 @Composable
 private fun StatusBlock(
+    icon: ImageVector? = null,
     title: String,
     subtitle: String? = null,
     action: String? = null,
@@ -246,6 +278,16 @@ private fun StatusBlock(
             .padding(horizontal = 32.dp, vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (icon != null) {
+            Box(
+                Modifier.size(64.dp).clip(CircleShape)
+                    .background(VotifyColors.Primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, null, tint = VotifyColors.Primary, modifier = Modifier.size(28.dp))
+            }
+            Spacer(Modifier.height(16.dp))
+        }
         Text(title, style = MaterialTheme.typography.titleMedium, color = VotifyColors.TextSecondary, fontWeight = FontWeight.SemiBold)
         if (subtitle != null) {
             Spacer(Modifier.height(4.dp))
