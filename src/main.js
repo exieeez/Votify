@@ -6674,11 +6674,6 @@ safeClick('home-play-wave-btn', async () => {
   setLoadingState(false);
 });
 
-// Sand «Плей» pill — same action as the sun orb
-safeClick('wave-play-btn', () => {
-  document.getElementById('home-play-wave-btn')?.click();
-});
-
 // Skiper25 — Music toggle button (exact port of React component)
 const heroToggle = document.getElementById('home-play-wave-btn');
 const skiper25Bars = document.querySelectorAll('#skiper25-bars .skiper25-bar');
@@ -8006,14 +8001,7 @@ function sanitizeCursorCustom(value) {
   };
 }
 function resolveCursor() {
-  const preset = appSettings.cursorPreset || 'none';
-  if (preset === 'custom') {
-    const safe = sanitizeCursorCustom(findCustomCursor(appSettings.cursorCustomId));
-    if (safe) return { uri: safe.dataUrl, hot: [safe.hotX, safe.hotY] };
-    return null;
-  }
-  const found = CURSOR_PRESETS.find(p => p.id === preset);
-  if (found && found.svg) return { uri: cursorDataUri(found.svg), hot: found.hot || [4, 2] };
+  // Custom cursors were removed from settings — always use the system cursor.
   return null;
 }
 function applyCursor() {
@@ -8670,6 +8658,7 @@ function syncColorPickersFromSettings() {
     'picker-color-cards': colors.cards,
     'picker-color-borders': colors.borders,
     'picker-color-focus': colors.focus,
+    'preset-bg-picker': colors.background,
   };
   Object.entries(map).forEach(([id, value]) => {
     const el = document.getElementById(id);
@@ -8891,6 +8880,20 @@ function bindCustomColorPickers() {
   });
 }
 
+function bindPresetBgPicker() {
+  const picker = document.getElementById('preset-bg-picker');
+  if (!picker || picker._presetBgBound) return;
+  picker._presetBgBound = true;
+  picker.addEventListener('change', () => {
+    appSettings.customColorBg = picker.value;
+    appSettings.activeColorSchemeId = '';
+    applyCustomColors();
+    syncColorPickersFromSettings();
+    renderSavedColorSchemes();
+    saveSettings();
+  });
+}
+
 const THEME_COLOR_PRESETS = {
   neutral: ['#FFFFFF', '#121212', '#181818', '#FFFFFF', '#333333', '#FFFFFF'],
   amoled: ['#FFFFFF', '#000000', '#080808', '#FFFFFF', '#242424', '#1ED760'],
@@ -8953,6 +8956,7 @@ function initSavedColorSchemes() {
   syncColorPickersFromSettings();
   bindCustomColorPickers();
   bindThemeColorPresets();
+  bindPresetBgPicker();
   renderSavedColorSchemes();
   const applyBtn = document.getElementById('btn-custom-theme-apply');
   if (applyBtn && !applyBtn._customThemeBound) {

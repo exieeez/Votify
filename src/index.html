@@ -440,17 +440,25 @@
         <!-- HOME -->
         <section id="home-screen" class="screen">
           <!-- CARD 1: МОЯ ВОЛНА — огненное солнце в духе ЯМ (v0.9.0) -->
-          <div class="my-wave-card wave-sun" id="my-wave-card">
-            <div class="wave-sun-glow"></div>
-            <div class="wave-sun-stage">
-              <button class="wave-sun-orb" id="home-play-wave-btn" title="Слушать волну" aria-label="Слушать волну">
-                <span class="wave-sun-rays"></span>
-                <span class="wave-sun-threads"></span>
+          <div class="my-wave-card wave-sea" id="my-wave-card">
+            <div class="wave-sea-rays"></div>
+            <div class="wave-sea-bubbles" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="wave-sea-body">
+              <div class="wave-sea-kicker">Персональный поток</div>
+              <div class="wave-sea-title">Моя волна</div>
+              <div class="wave-sea-sub">Музыка под ваше настроение — без остановки</div>
+              <button class="wave-sea-play" id="home-play-wave-btn" title="Слушать волну" aria-label="Слушать волну">
+                <i class="material-icons wave-sea-icon-play">play_arrow</i>
+                <i class="material-icons wave-sea-icon-pause">pause</i>
+                <span>Плей</span>
               </button>
-              <div class="wave-sun-ui">
-                <div class="wave-sun-title"><span>Моя волна</span></div>
-                <button class="wave-sun-tune" id="wave-play-btn"><i class="material-icons">play_arrow</i><span>Плей</span></button>
-              </div>
+            </div>
+            <div class="wave-sea-waves" aria-hidden="true">
+              <svg class="wave-sea-layer wave-sea-layer-1" viewBox="0 0 2400 120" preserveAspectRatio="none"><path d="M0,70 q75,-40 150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 V120 H0 Z"/></svg>
+              <svg class="wave-sea-layer wave-sea-layer-2" viewBox="0 0 2400 120" preserveAspectRatio="none"><path d="M0,58 q75,-52 150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 V120 H0 Z"/></svg>
+              <svg class="wave-sea-layer wave-sea-layer-3" viewBox="0 0 2400 120" preserveAspectRatio="none"><path d="M0,80 q75,-30 150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 t150,0 V120 H0 Z"/></svg>
             </div>
           </div>
 
@@ -1535,6 +1543,10 @@
                   <button class="btn-secondary btn-sm" data-preset="slate">Slate</button>
                   <button class="btn-accent btn-sm" data-preset="custom"><i class="material-icons">palette</i> Своя тема</button>
                 </div>
+                <div class="setting-toggle-item preset-bg-row">
+                  <span class="setting-toggle-label">Цвет фона</span>
+                  <input type="color" id="preset-bg-picker" value="#121212" class="theme-color-input" />
+                </div>
               </div>
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">text_fields</i><h3>Шрифты приложения</h3></div>
@@ -1569,17 +1581,6 @@
                   <div class="setting-row"><label>Масштаб интерфейса (UI Scale)</label><span class="setting-value" id="ui-scale-slider-value">100%</span></div>
                   <input type="range" class="settings-range" id="slider-ui-scale" min="75" max="125" value="100" />
                 </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">mouse</i><h3>Курсор</h3></div>
-                <p class="settings-note">Готовый курсор или свой файл (PNG/SVG/ICO до 64 КБ). Выбор сохраняется в теме мастерской.</p>
-                <div class="cursor-preset-grid" id="cursor-preset-grid"></div>
-                <div class="cursor-custom-row">
-                  <label class="auth-btn auth-btn-secondary" for="cursor-file-input"><i class="material-icons">upload_file</i> Добавить свой</label>
-                  <input type="file" id="cursor-file-input" accept="image/png,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" hidden />
-                  <button class="auth-btn auth-btn-secondary" id="cursor-reset-btn">Стандартный</button>
-                </div>
-                <div class="cursor-custom-list" id="cursor-custom-list"></div>
               </div>
             </div>
 
