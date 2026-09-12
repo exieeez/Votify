@@ -6480,45 +6480,6 @@ function updateWaveOrbColors() {
   resetWaveOrbPalette(); // дефолт — огненная палитра из промпта
 }
 
-// --- Настроить: поповер, персист, применение ---
-function wireWaveTune() {
-  const btn = document.getElementById('wave-tune-btn');
-  const pop = document.getElementById('wave-tune-pop');
-  const langSel = document.getElementById('wave-tune-lang');
-  const excludeBox = document.getElementById('wave-tune-exclude');
-  if (!btn || !pop) return;
-  btn.addEventListener('click', ev => {
-    ev.stopPropagation();
-    const tune = getWaveTune();
-    if (langSel) langSel.value = tune.lang;
-    if (excludeBox) excludeBox.checked = tune.exclude;
-    pop.hidden = !pop.hidden;
-  });
-  document.addEventListener('click', e => {
-    if (pop.hidden) return;
-    if (e.target.closest('#wave-tune-pop') || e.target.closest('#wave-tune-btn')) return;
-    pop.hidden = true;
-  });
-  if (langSel)
-    langSel.addEventListener('change', e => {
-      const tune = getWaveTune();
-      tune.lang = e.target.value;
-      saveWaveTune(tune);
-      forYouTracks = [];
-      loadForYouContent(true);
-    });
-  if (excludeBox)
-    excludeBox.addEventListener('change', e => {
-      const tune = getWaveTune();
-      tune.exclude = e.target.checked;
-      saveWaveTune(tune);
-      forYouTracks = [];
-      loadForYouContent(true);
-    });
-  updateWaveTuneSub();
-}
-
-wireWaveTune();
 updateWaveOrbColors();
 
 async function fetchWaveTracks(waveSeeds, limit = 20) {
@@ -6711,6 +6672,11 @@ safeClick('home-play-wave-btn', async () => {
     console.error('Wave error:', e);
   }
   setLoadingState(false);
+});
+
+// Sand «Плей» pill — same action as the sun orb
+safeClick('wave-play-btn', () => {
+  document.getElementById('home-play-wave-btn')?.click();
 });
 
 // Skiper25 — Music toggle button (exact port of React component)

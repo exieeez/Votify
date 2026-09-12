@@ -111,8 +111,15 @@ test('builds a bounded public playlist showcase', () => {
     name: 'main',
     count: 2,
     cover: 'https://example.com/a.jpg',
+    tracks: [
+      { id: '2', title: '', artist: '', cover: 'https://example.com/a.jpg', duration: 0 },
+      { id: '3', title: '', artist: '', cover: '', duration: 0 },
+    ],
   });
-  assert.deepEqual(showcase[1], { name: 'empty', count: 0, cover: '' });
+  assert.deepEqual(showcase[1], { name: 'empty', count: 0, cover: '', tracks: [] });
+
+  const long = { big: Array.from({ length: 15 }, (_, i) => ({ id: `t${i}` })) };
+  assert.equal(buildShowcase(long)[0].tracks.length, 10);
 
   const many = {};
   for (let i = 0; i < 50; i++) many[`pl-${i}`] = [];

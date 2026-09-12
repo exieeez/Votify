@@ -97,6 +97,7 @@
   const state = {
     themes: mergeWithBuiltins(readCache()),
     query: '',
+    filter: 'all',
     loading: false,
     loadedAt: 0,
     publishTheme: null,
@@ -283,15 +284,24 @@
     const query = state.query.trim().toLocaleLowerCase('ru');
     const currentUser = window.VotifyCloud?.getCurrentUser?.();
     const installedId = installedThemeId();
-    const filtered = state.themes.filter(theme => {
-      if (!query) return true;
-      return `${theme.title} ${theme.description} ${theme.authorName}`
-        .toLocaleLowerCase('ru')
-        .includes(query);
-    });
+    const filtered = state.themes
+      .filter(theme => {
+        if (state.filter === 'own') {
+          if (!currentUser || currentUser.isAnonymous || theme.ownerId !== currentUser.uid)
+            return false;
+        }
+        if (!query) return true;
+        return `${theme.title} ${theme.description} ${theme.authorName}`
+          .toLocaleLowerCase('ru')
+          .includes(query);
+      })
+      .sort((a, b) =>
+        state.filter === 'new' ? (b.createdAt || 0) - (a.createdAt || 0) : 0
+      );
+    const isFiltering = !!query || state.filter !== 'all';
 
-    // Default theme card (always first, unless searching)
-    const defaultThemeCard = !query ? `
+    // Default theme card (always first, unless searching/filtering)
+    const defaultThemeCard = !isFiltering ? `
       <article class="workshop-card workshop-card-default" data-theme-id="default">
         <div class="workshop-theme-preview workshop-preview-bg-default" style="--preview-bg:#121212;--preview-card:#181818;--preview-accent:#FFFFFF;--preview-text:#FFFFFF;--preview-border:#282828;--preview-focus:#FFFFFF;--preview-radius:8px">
           <div class="workshop-preview-sidebar"><span></span><span></span><span></span></div>
@@ -310,7 +320,7 @@
           <div class="workshop-card-heading">
             <div>
               <h3>Стандартная тема</h3>
-              <span>от Votify · встроенная</span>
+              <span class="workshop-author-row"><i class="workshop-author-avatar" style="background:#FFFFFF">V</i>от Votify · встроенная</span>
             </div>
             <span class="workshop-own-badge">Дефолт</span>
           </div>
@@ -331,17 +341,17 @@
       </article>
     ` : '';
 
-    if (!filtered.length && query) {
+    if (!filtered.length && isFiltering) {
       grid.innerHTML = `
         <div class="workshop-empty">
           <i class="material-icons">palette</i>
           <h3>Ничего не найдено</h3>
-          <p>Попробуйте изменить поисковый запрос.</p>
+          <p>Попробуйте изменить запрос или фильтр.</p>
         </div>`;
       return;
     }
 
-    if (!filtered.length && !query) {
+    if (!filtered.length && !isFiltering) {
       grid.innerHTML = defaultThemeCard + `
         <div class="workshop-empty">
           <i class="material-icons">palette</i>
@@ -362,7 +372,7 @@
               <div class="workshop-card-heading">
                 <div>
                   <h3>${escapeHtml(theme.title)}</h3>
-                  <span>от ${escapeHtml(theme.authorName)} · ${theme.builtIn ? 'встроенная' : escapeHtml(formatDate(theme.createdAt))}</span>
+                  <span class="workshop-author-row"><i class="workshop-author-avatar" style="background:${escapeHtml(theme.theme.primary || '#FFFFFF')}">${escapeHtml((theme.authorName || '?').trim().charAt(0).toUpperCase())}</i>от ${escapeHtml(theme.authorName)} · ${theme.builtIn ? 'встроенная' : escapeHtml(formatDate(theme.createdAt))}</span>
                 </div>
                 ${theme.builtIn ? '<span class="workshop-own-badge">Официальная</span>' : own ? '<span class="workshop-own-badge">Ваша</span>' : ''}
               </div>
@@ -635,6 +645,15 @@
       ?.addEventListener('click', () => loadThemes(true));
     document.getElementById('workshop-default-btn')?.addEventListener('click', resetToDefaultTheme);
     document.getElementById('workshop-publish-btn')?.addEventListener('click', openPublishModal);
+    document.querySelectorAll('.workshop-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document
+          .querySelectorAll('.workshop-chip')
+          .forEach(c => c.classList.toggle('selected', c === chip));
+        state.filter = chip.dataset.filter || 'all';
+        renderThemes();
+      });
+    });
     document.getElementById('workshop-grid')?.addEventListener('click', handleCardAction);
     document.getElementById('workshop-publish-close')?.addEventListener('click', closePublishModal);
     document

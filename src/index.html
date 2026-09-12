@@ -448,22 +448,9 @@
                 <span class="wave-sun-threads"></span>
               </button>
               <div class="wave-sun-ui">
-                <div class="wave-sun-title"><span class="wave-orb-icon wave-orb-play">▶</span><span class="wave-orb-icon wave-orb-pause">⏸</span><span>Моя волна</span></div>
-                <button class="wave-sun-tune" id="wave-tune-btn"><i class="material-icons">equalizer</i><span>Настроить</span></button>
-                <div class="wave-sun-sub" id="wave-tune-sub"></div>
+                <div class="wave-sun-title"><span>Моя волна</span></div>
+                <button class="wave-sun-tune" id="wave-play-btn"><i class="material-icons">play_arrow</i><span>Плей</span></button>
               </div>
-            </div>
-            <div class="wave-tune-pop" id="wave-tune-pop" hidden>
-              <div class="wave-tune-pop-title">Настройка волны</div>
-              <label class="wave-tune-row"><span>Язык</span>
-                <select id="wave-tune-lang">
-                  <option value="uk">Українська</option>
-                  <option value="ru">Русский</option>
-                  <option value="en">English</option>
-                  <option value="any">Любой</option>
-                </select>
-              </label>
-              <label class="wave-tune-check"><input type="checkbox" id="wave-tune-exclude" checked /><span>Не предлагать прослушанное</span></label>
             </div>
           </div>
 
@@ -708,25 +695,27 @@
         <!-- THEME WORKSHOP -->
         <section id="workshop-screen" class="screen hidden" style="display:none">
           <div class="workshop-shell">
-            <header class="workshop-hero">
-              <div>
-                <span class="workshop-kicker">VOTIFY COMMUNITY</span>
-                <h1>Мастерская тем</h1>
-                <p>Находите оформление от сообщества или публикуйте свою текущую тему.</p>
+            <header class="workshop-hero workshop-topbar">
+              <div class="workshop-title-pill">Мастерская</div>
+              <div class="workshop-topbar-actions">
+                <button class="workshop-circle-btn workshop-refresh-btn" id="workshop-refresh-btn" title="Обновить">
+                  <i class="material-icons">refresh</i>
+                </button>
+                <button class="workshop-publish-circle" id="workshop-publish-btn" title="Опубликовать тему">
+                  <i class="material-icons">upload</i>
+                </button>
               </div>
-              <button class="workshop-primary-btn" id="workshop-publish-btn">
-                <i class="material-icons">add</i>
-                Опубликовать тему
-              </button>
             </header>
             <div class="workshop-toolbar">
               <label class="workshop-search">
                 <i class="material-icons">search</i>
                 <input id="workshop-search-input" type="search" placeholder="Поиск по названию или автору" autocomplete="off" />
               </label>
-              <button class="workshop-refresh-btn" id="workshop-refresh-btn" title="Обновить">
-                <i class="material-icons">refresh</i>
-              </button>
+            </div>
+            <div class="workshop-chips" role="tablist" aria-label="Фильтр тем">
+              <button class="workshop-chip selected" data-filter="all" type="button">▦ Все</button>
+              <button class="workshop-chip" data-filter="new" type="button">✨ Новые</button>
+              <button class="workshop-chip" data-filter="own" type="button">♥ Мои</button>
             </div>
             <div class="workshop-status" id="workshop-status">Откройте мастерскую для загрузки тем</div>
             <div class="workshop-grid" id="workshop-grid"></div>

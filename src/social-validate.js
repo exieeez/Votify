@@ -17,6 +17,7 @@
   const BIO_MAX = 150;
   const LINK_MAX = 120;
   const SHOWCASE_LIMIT = 20;
+  const SHOWCASE_TRACK_LIMIT = 10;
 
   // Reserved handles that can never be claimed (services, impersonation, routes).
   const RESERVED_USERNAMES = [
