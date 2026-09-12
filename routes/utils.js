@@ -359,7 +359,7 @@ function httpGet(url, timeout) {
   });
 }
 
-function httpPostJSON(url, body, timeout) {
+function httpPostJSON(url, body, timeout, extraHeaders) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), timeout);
     const parsed = new URL(url);
@@ -369,13 +369,16 @@ function httpPostJSON(url, body, timeout) {
       parsed,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-          'User-Agent': YT_UA,
-          Origin: 'https://music.youtube.com',
-          Referer: 'https://music.youtube.com/',
-        },
+        headers: Object.fromEntries(
+          Object.entries({
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+            'User-Agent': YT_UA,
+            Origin: 'https://music.youtube.com',
+            Referer: 'https://music.youtube.com/',
+            ...(extraHeaders || {}),
+          }).filter(([, v]) => v !== undefined)
+        ),
       },
       res => {
         let data = '';
@@ -791,6 +794,120 @@ const AUDIO_QUALITY_FORMATS = {
   low: 'worstaudio/bestaudio[abr<=96]/bestaudio/best',
 };
 
+// --- INNERTUBE PLAYER (the phone engine) ------------------------------------
+// Same recipe as NewPipe Extractor on Android (no PO tokens): fetch visitorData,
+// then ask the ANDROID client through reel_item_watch. Returns direct audio URLs
+// with no yt-dlp binary involved.
+const IT_ANDROID_CLIENT_VERSION = '21.03.36';
+const IT_ANDROID_UA = `com.google.android.youtube/${IT_ANDROID_CLIENT_VERSION} (Linux; U; Android 15; UA) gzip`;
+const IT_GAPIS_V1 = 'https://youtubei.googleapis.com/youtubei/v1/';
+const IT_NONCE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+function itNonce(len) {
+  const rand =
+    crypto && typeof crypto.randomInt === 'function'
+      ? n => crypto.randomInt(n)
+      : n => Math.floor(Math.random() * n);
+  let s = '';
+  for (let i = 0; i < len; i++) s += IT_NONCE_ALPHABET[rand(IT_NONCE_ALPHABET.length)];
+  return s;
+}
+
+function itAndroidContext(visitorData) {
+  const client = {
+    clientName: 'ANDROID',
+    clientVersion: IT_ANDROID_CLIENT_VERSION,
+    clientScreen: 'WATCH',
+    platform: 'MOBILE',
+    osName: 'Android',
+    osVersion: '16',
+    androidSdkVersion: 36,
+    hl: 'ru',
+    gl: 'UA',
+    utcOffsetMinutes: 0,
+  };
+  if (visitorData) client.visitorData = visitorData;
+  return {
+    client,
+    request: { internalExperimentFlags: [], useSsl: true },
+    user: { lockedSafetyMode: false },
+  };
+}
+
+const IT_PLAYER_HEADERS = {
+  'User-Agent': IT_ANDROID_UA,
+  'X-Goog-Api-Format-Version': '2',
+  Origin: undefined,
+  Referer: undefined,
+};
+
+let itVisitorData = '';
+let itVisitorDataExpiry = 0;
+
+async function itGetVisitorData() {
+  if (itVisitorData && Date.now() < itVisitorDataExpiry) return itVisitorData;
+  const data = await httpPostJSON(
+    IT_GAPIS_V1 + 'visitor_id?prettyPrint=false',
+    { context: itAndroidContext('') },
+    8000,
+    IT_PLAYER_HEADERS
+  );
+  const vd = data && data.responseContext && data.responseContext.visitorData;
+  if (!vd) throw new Error('no visitorData');
+  itVisitorData = vd;
+  itVisitorDataExpiry = Date.now() + 3600000;
+  return vd;
+}
+
+// Mirror of the phone's pickAudioStream: direct progressive URLs, bitrate by quality.
+function pickAudioFormat(adaptiveFormats, quality) {
+  const list = Array.isArray(adaptiveFormats) ? adaptiveFormats : [];
+  const progressive = list.filter(
+    f =>
+      f &&
+      typeof f.url === 'string' &&
+      f.url.startsWith('http') &&
+      String(f.mimeType || '').startsWith('audio/')
+  );
+  const byBitrate = progressive
+    .slice()
+    .sort((a, b) => (a.bitrate || 0) - (b.bitrate || 0));
+  const known = byBitrate.filter(f => (f.bitrate || 0) > 0);
+  const pool = known.length ? known : byBitrate;
+  if (!pool.length) return null;
+  if (quality === 'low') return pool.find(f => (f.bitrate || 0) >= 48000) || pool[0];
+  if (quality === 'medium')
+    return pool.find(f => (f.bitrate || 0) >= 96000) || pool[pool.length - 1];
+  return pool[pool.length - 1];
+}
+
+async function innertubeStreamUrl(videoId, quality) {
+  const vd = await itGetVisitorData();
+  const cpn = itNonce(16);
+  const body = {
+    context: itAndroidContext(vd),
+    playerRequest: { videoId, cpn, contentCheckOk: true, racyCheckOk: true },
+    disablePlayerResponse: false,
+  };
+  const data = await httpPostJSON(
+    `${IT_GAPIS_V1}reel/reel_item_watch?prettyPrint=false&t=${itNonce(12)}&id=${encodeURIComponent(
+      videoId
+    )}&$fields=playerResponse`,
+    body,
+    12000,
+    IT_PLAYER_HEADERS
+  );
+  const pr = data && data.playerResponse;
+  if (!pr) throw new Error('no playerResponse');
+  const ps = pr.playabilityStatus || {};
+  if (ps.status && ps.status !== 'OK') {
+    throw new Error('playability ' + ps.status + (ps.reason ? ': ' + ps.reason : ''));
+  }
+  const fmt = pickAudioFormat(pr.streamingData && pr.streamingData.adaptiveFormats, quality);
+  if (!fmt || !fmt.url) throw new Error('no audio format');
+  return fmt.url;
+}
+
 async function fetchStreamUrl(videoId) {
   const quality = networkConfig.audioQuality || 'medium';
   const cacheKey = `${videoId}::${quality}`;
@@ -813,7 +930,22 @@ async function fetchStreamUrl(videoId) {
     return null;
   }
 
-  // Resolve YouTube streams with the bundled yt-dlp binary.
+  // Phone engine first: direct InnerTube ANDROID player request (fast, no binary).
+  try {
+    const fastUrl = await innertubeStreamUrl(videoId, quality);
+    if (fastUrl) {
+      streamCache.set(cacheKey, { url: fastUrl, expires: Date.now() + STREAM_CACHE_TTL });
+      return fastUrl;
+    }
+  } catch (e) {
+    // A stale visitorData breaks every call the same way — drop it so the
+    // next track fetches a fresh one.
+    itVisitorData = '';
+    itVisitorDataExpiry = 0;
+    console.log('[innertube] player failed for', videoId, '-', e.message, '- trying yt-dlp');
+  }
+
+  // Fallback: resolve YouTube streams with the bundled yt-dlp binary.
   const fetchYtDlp = async () => {
     const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
     const ytdlpArgs = [
@@ -1043,6 +1175,8 @@ module.exports = {
   fetchStreamUrl,
   streamCache,
   STREAM_CACHE_TTL,
+  pickAudioFormat,
+  innertubeStreamUrl,
   // soundcloud
   scSearch,
   scGetStreamUrl,
