@@ -439,20 +439,31 @@
       <main class="main-content">
         <!-- HOME -->
         <section id="home-screen" class="screen">
-          <!-- CARD 1: МОЯ ВОЛНА -->
-          <div class="my-wave-card" id="my-wave-card">
-            <svg class="my-wave-bg-svg" viewBox="0 0 1000 100" preserveAspectRatio="none">
-              <path d="M0,50 Q250,20 500,50 T1000,50" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
-              <path d="M0,65 Q300,80 600,45 T1000,60" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
-            </svg>
-            <div class="my-wave-left">
-              <button class="my-wave-play-btn" id="home-play-wave-btn" title="Слушать волну">
-                <i class="material-icons">play_arrow</i>
+          <!-- CARD 1: МОЯ ВОЛНА — огненное солнце в духе ЯМ (v0.9.0) -->
+          <div class="my-wave-card wave-sun" id="my-wave-card">
+            <div class="wave-sun-glow"></div>
+            <div class="wave-sun-stage">
+              <button class="wave-sun-orb" id="home-play-wave-btn" title="Слушать волну" aria-label="Слушать волну">
+                <span class="wave-sun-rays"></span>
+                <span class="wave-sun-threads"></span>
               </button>
-              <div class="my-wave-text">
-                <div class="my-wave-title">Моя волна</div>
-                <div class="my-wave-subtitle">Послушайте минимум 5 треков, чтобы погрузиться в волну</div>
+              <div class="wave-sun-ui">
+                <div class="wave-sun-title"><span class="wave-orb-icon wave-orb-play">▶</span><span class="wave-orb-icon wave-orb-pause">⏸</span><span>Моя волна</span></div>
+                <button class="wave-sun-tune" id="wave-tune-btn"><i class="material-icons">equalizer</i><span>Настроить</span></button>
+                <div class="wave-sun-sub" id="wave-tune-sub"></div>
               </div>
+            </div>
+            <div class="wave-tune-pop" id="wave-tune-pop" hidden>
+              <div class="wave-tune-pop-title">Настройка волны</div>
+              <label class="wave-tune-row"><span>Язык</span>
+                <select id="wave-tune-lang">
+                  <option value="uk">Українська</option>
+                  <option value="ru">Русский</option>
+                  <option value="en">English</option>
+                  <option value="any">Любой</option>
+                </select>
+              </label>
+              <label class="wave-tune-check"><input type="checkbox" id="wave-tune-exclude" checked /><span>Не предлагать прослушанное</span></label>
             </div>
           </div>
 

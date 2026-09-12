@@ -5412,6 +5412,7 @@ function applyBackground() {
   if (!bg || bg === 'default') {
     reset();
     if (layer) layer.style.background = '#121212';
+    updateWaveOrbColors();
     return;
   }
   if (bg.startsWith('http') || bg.startsWith('data:')) {
@@ -5430,6 +5431,7 @@ function applyBackground() {
       el.style.backgroundRepeat = 'no-repeat';
       el.style.backgroundAttachment = 'fixed';
     });
+    updateWaveOrbColors();
     return;
   }
   const value = bgGradients[bg] || bg;
@@ -5438,6 +5440,7 @@ function applyBackground() {
     el.style.background = value;
   });
   if (layer && !value) layer.style.background = '#121212';
+  updateWaveOrbColors();
 }
 
 const bgPresetsEl = document.getElementById('bg-presets');
@@ -6281,6 +6284,243 @@ function gatherWaveSeeds() {
   return buildWaveSeeds(pool);
 }
 
+// ================= WAVE SUN: tune + matugen (v0.9.0) =================
+// Настройка волны (кнопка «Настроить» на солнце): язык + фильтр прослушанного.
+const WAVE_TUNE_KEY = 'votify-wave-tune';
+const WAVE_LANG_POOLS = {
+  uk: ['onda', 'madkit', 'yaktak', 'кола', 'kola', 'shumei', 'parfeniuk', 'domiy', 'wellboy', 'jerry heil', 'alyona', 'sadsvit', 'структура щастя', '100лиця', 'tember blanche', 'skylerr', 'demchuk', 'kazka', 'tvorchi', 'dorofeeva', 'melovin', 'меловін'],
+  ru: ['xolidayboy', 'toxi', 'jakone', 'icegergert', 'zivert', 'дора', 'mia boyka', 'villian', 'mona', 'anna asti', 'niletto', 'клава кока'],
+  en: ['billie eilish', 'sabrina carpenter', 'chappell roan', 'olivia rodrigo', 'tate mcrae', 'gracie abrams', 'sza', 'doja cat', 'the weeknd', 'ariana grande', 'taylor swift', 'drake', 'ed sheeran', 'dua lipa'],
+};
+const WAVE_LANG_LABELS = { uk: 'Українська хвиля', ru: 'Русская волна', en: 'English wave', any: 'Волна без границ' };
+
+function getWaveTune() {
+  try {
+    const t = JSON.parse(localStorage.getItem(WAVE_TUNE_KEY) || '{}');
+    return {
+      lang: ['uk', 'ru', 'en', 'any'].includes(t.lang) ? t.lang : 'uk',
+      exclude: t.exclude !== false,
+    };
+  } catch {
+    return { lang: 'uk', exclude: true };
+  }
+}
+
+function saveWaveTune(tune) {
+  try {
+    localStorage.setItem(WAVE_TUNE_KEY, JSON.stringify(tune));
+  } catch {}
+  updateWaveTuneSub();
+}
+
+function updateWaveTuneSub() {
+  const el = document.getElementById('wave-tune-sub');
+  if (!el) return;
+  const tune = getWaveTune();
+  el.textContent = WAVE_LANG_LABELS[tune.lang] + (tune.exclude ? ' • без прослушанного' : '');
+}
+
+function waveLangScore(track, lang) {
+  if (!track || lang === 'any') return 0;
+  const artist = String(track.artist || '').toLowerCase();
+  const text = `${artist} ${String(track.title || '').toLowerCase()}`;
+  let score = 0;
+  const pool = WAVE_LANG_POOLS[lang] || [];
+  if (pool.some(p => artist.includes(p) || (p && artist && p.includes(artist)))) score += 3;
+  if (lang === 'uk' && /[іїєґ]/.test(text)) score += 2;
+  else if (lang === 'ru' && /[ыъэё]/.test(text)) score += 2;
+  else if (lang === 'en' && !/[а-яёіїєґ]/.test(text)) score += 1.5;
+  return score;
+}
+
+function tuneWaveTracks(tracks) {
+  const list = Array.isArray(tracks) ? tracks.slice() : [];
+  if (!list.length) return list;
+  const tune = getWaveTune();
+  let out = list;
+  if (tune.exclude) {
+    try {
+      const hist = JSON.parse(
+        localStorage.getItem('listeningHistory') || localStorage.getItem('votify-history') || '[]',
+      );
+      const heard = new Set((hist || []).map(t => t && t.id).filter(Boolean));
+      if (heard.size) out = out.filter(t => !t || !heard.has(t.id));
+    } catch {}
+    if (!out.length) out = list; // фильтр не должен опустошать волну
+  }
+  if (tune.lang && tune.lang !== 'any') {
+    out = out
+      .map((t, i) => ({ t, i, s: waveLangScore(t, tune.lang) }))
+      .sort((a, b) => b.s - a.s || a.i - b.i)
+      .map(x => x.t);
+  }
+  return out;
+}
+
+// --- Matugen-стиль: тело солнца красится в цвет фона ---
+function waveOrbPalette(hue) {
+  const h = ((Math.round(hue) % 360) + 360) % 360;
+  return {
+    '--orb-1': `hsl(${h}, 95%, 78%)`,
+    '--orb-2': `hsl(${h}, 90%, 60%)`,
+    '--orb-3': `hsl(${h}, 85%, 48%)`,
+    '--orb-4': `hsl(${h}, 80%, 34%)`,
+    '--orb-glow': `hsla(${h}, 90%, 55%, 0.4)`,
+  };
+}
+
+function applyWaveOrbPalette(vars) {
+  const card = document.getElementById('my-wave-card');
+  if (!card || !vars) return;
+  for (const [k, v] of Object.entries(vars)) card.style.setProperty(k, v);
+}
+
+function resetWaveOrbPalette() {
+  const card = document.getElementById('my-wave-card');
+  if (!card) return;
+  ['--orb-1', '--orb-2', '--orb-3', '--orb-4', '--orb-glow'].forEach(k => card.style.removeProperty(k));
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+  else if (max === g) h = ((b - r) / d + 2) * 60;
+  else h = ((r - g) / d + 4) * 60;
+  return { h, s, l };
+}
+
+function hexToHsl(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return rgbToHsl((n >> 16) & 255, (n >> 8) & 255, n & 255);
+}
+
+let waveOrbSampleToken = 0;
+
+function sampleImageHue(url, cb) {
+  const token = ++waveOrbSampleToken;
+  const image = new Image();
+  image.crossOrigin = 'anonymous';
+  image.onload = () => {
+    if (token !== waveOrbSampleToken) return;
+    try {
+      const c = document.createElement('canvas');
+      c.width = 16;
+      c.height = 16;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(image, 0, 0, 16, 16);
+      const d = ctx.getImageData(0, 0, 16, 16).data;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 128) continue;
+        r += d[i];
+        g += d[i + 1];
+        b += d[i + 2];
+        n++;
+      }
+      if (!n) {
+        cb(null);
+        return;
+      }
+      cb(rgbToHsl(r / n, g / n, b / n).h);
+    } catch {
+      cb(null); // CORS-tainted canvas — остаёмся на огненной палитре
+    }
+  };
+  image.onerror = () => cb(null);
+  image.src = url;
+}
+
+function updateWaveOrbColors() {
+  const card = document.getElementById('my-wave-card');
+  if (!card) return;
+  const storedUrl = String(appSettings.bgUrl || '').trim();
+  const img = /^(https?:|data:image\/)/i.test(storedUrl) ? storedUrl : null;
+  if (img) {
+    sampleImageHue(img, h => {
+      if (h == null) resetWaveOrbPalette();
+      else applyWaveOrbPalette(waveOrbPalette(h));
+    });
+    return;
+  }
+  const bg = appSettings.background;
+  if (bg && bg !== 'default' && typeof bgGradients !== 'undefined' && bgGradients[bg]) {
+    const stops = [...bgGradients[bg].matchAll(/#([0-9a-f]{6})/gi)].map(m => `#${m[1]}`);
+    let best = null;
+    for (const hex of stops) {
+      const c = hexToHsl(hex);
+      if (!c || c.l < 0.12) continue; // пропускаем почти-чёрный хвост градиента
+      if (!best || c.s > best.s) best = c;
+    }
+    if (best) {
+      applyWaveOrbPalette(waveOrbPalette(best.h));
+      return;
+    }
+  }
+  if (/^#[0-9a-f]{6}$/i.test(String(bg || ''))) {
+    const c = hexToHsl(bg);
+    if (c && c.s > 0.25 && c.l > 0.15) {
+      applyWaveOrbPalette(waveOrbPalette(c.h));
+      return;
+    }
+  }
+  resetWaveOrbPalette(); // дефолт — огненная палитра из промпта
+}
+
+// --- Настроить: поповер, персист, применение ---
+function wireWaveTune() {
+  const btn = document.getElementById('wave-tune-btn');
+  const pop = document.getElementById('wave-tune-pop');
+  const langSel = document.getElementById('wave-tune-lang');
+  const excludeBox = document.getElementById('wave-tune-exclude');
+  if (!btn || !pop) return;
+  btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const tune = getWaveTune();
+    if (langSel) langSel.value = tune.lang;
+    if (excludeBox) excludeBox.checked = tune.exclude;
+    pop.hidden = !pop.hidden;
+  });
+  document.addEventListener('click', e => {
+    if (pop.hidden) return;
+    if (e.target.closest('#wave-tune-pop') || e.target.closest('#wave-tune-btn')) return;
+    pop.hidden = true;
+  });
+  if (langSel)
+    langSel.addEventListener('change', e => {
+      const tune = getWaveTune();
+      tune.lang = e.target.value;
+      saveWaveTune(tune);
+      forYouTracks = [];
+      loadForYouContent(true);
+    });
+  if (excludeBox)
+    excludeBox.addEventListener('change', e => {
+      const tune = getWaveTune();
+      tune.exclude = e.target.checked;
+      saveWaveTune(tune);
+      forYouTracks = [];
+      loadForYouContent(true);
+    });
+  updateWaveTuneSub();
+}
+
+wireWaveTune();
+updateWaveOrbColors();
+
 async function fetchWaveTracks(waveSeeds, limit = 20) {
   const { artists, trackSeeds, excludeIds } = waveSeeds || {};
   if (!artists?.length && !trackSeeds?.length) return [];
@@ -6325,7 +6565,7 @@ async function loadForYouContent(forceReload = false) {
   try {
     let tracks = await fetchWaveTracks(seeds, 30);
     if (!tracks.length) tracks = await invoke('get_recommendations');
-    forYouTracks = (tracks || []).slice(0, 30);
+    forYouTracks = tuneWaveTracks(tracks).slice(0, 30);
     if (forYouTracks.length) {
       renderRecTiles(results, forYouTracks);
       if (status) status.textContent = `${forYouTracks.length} рекомендаций для вас`;
@@ -6457,6 +6697,7 @@ safeClick('home-play-wave-btn', async () => {
     const seeds = gatherWaveSeeds();
     let tracks = await fetchWaveTracks(seeds, 20);
     if (!tracks.length) tracks = await invoke('get_recommendations');
+    tracks = tuneWaveTracks(tracks);
     if (tracks && tracks.length) {
       currentPlaylist = tracks;
       currentTrackIndex = 0;
