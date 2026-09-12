@@ -10725,3 +10725,25 @@ textarea:focus-visible {
 .m3-icon-btn.dl-btn.is-downloaded .material-icons {
   color: #8be28b;
 }
+
+/* ---------- Offline download visualization (phone mirror) ---------- */
+.track-item { position: relative; }
+.track-cover-wrap { position: relative; flex-shrink: 0; display: flex; }
+.dl-badge {
+  position: absolute; right: -3px; bottom: -3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(0,0,0,0.78);
+  display: flex; align-items: center; justify-content: center;
+}
+.dl-badge .material-icons { font-size: 11px; color: #fff; }
+.dl-progress {
+  position: absolute; left: 12px; right: 12px; bottom: 3px; height: 3px;
+  border-radius: 2px; background: rgba(255,255,255,0.12);
+  overflow: hidden; pointer-events: none;
+}
+.dl-progress-fill {
+  height: 100%; width: 0%; border-radius: 2px;
+  background: var(--accent); transition: width 0.4s linear;
+}
+.dl-progress.indet .dl-progress-fill { width: 30%; animation: dl-indet 1.2s ease-in-out infinite; }
+@keyframes dl-indet { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }

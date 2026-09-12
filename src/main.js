@@ -1410,9 +1410,15 @@ function renderTrackRows(container, tracks, options = {}) {
       const title = escapeHtml(track.title || 'Track');
       const artist = escapeHtml(track.artist || 'Unknown');
       const isFav = isTrackFavorite(track);
-      const coverMarkup = track.cover
-        ? `<img class="track-cover" src="${escapeHtml(track.cover)}" alt="${title}">`
-        : `<div class="track-cover-fallback"><i class="material-icons">music_note</i></div>`;
+      const dlBadge =
+        showDownloadButton && track.id && !track.isLocal && isTrackDownloaded(track.id)
+          ? `<span class="dl-badge"><i class="material-icons">download_done</i></span>`
+          : '';
+      const coverMarkup = `<div class="track-cover-wrap">${
+        track.cover
+          ? `<img class="track-cover" src="${escapeHtml(track.cover)}" alt="${title}">`
+          : `<div class="track-cover-fallback"><i class="material-icons">music_note</i></div>`
+      }${dlBadge}</div>`;
       return `
       <div class="track-item" data-track-id="${escapeHtml(track.id || '')}">
         <div class="track-main">
@@ -1426,7 +1432,6 @@ function renderTrackRows(container, tracks, options = {}) {
           <button class="m3-icon-btn ${playButtonClass}" data-index="${idx}"><i class="material-icons">play_arrow</i></button>
           ${showFavoriteButton ? `<button class="m3-icon-btn fav-btn ${isFav ? 'is-fav' : ''}" data-index="${idx}" title="В избранное"><i class="material-icons">${isFav ? 'favorite' : 'favorite_border'}</i></button>` : ''}
           ${showDownloadButton && track.id && !track.isLocal && !isTrackDownloaded(track.id) ? `<button class="m3-icon-btn dl-btn" data-index="${idx}" title="Скачать"><i class="material-icons">download</i></button>` : ''}
-          ${showDownloadButton && track.id && !track.isLocal && isTrackDownloaded(track.id) ? `<button class="m3-icon-btn dl-btn is-downloaded" data-index="${idx}" title="Скачано"><i class="material-icons">offline_pin</i></button>` : ''}
           ${showAddButton ? `<button class="m3-icon-btn ${addButtonClass}" data-index="${idx}"><i class="material-icons">playlist_add</i></button>` : ''}
           ${showDeleteButton ? `<button class="m3-icon-btn delete-track-btn" data-index="${idx}" title="Удалить из плейлиста"><i class="material-icons">close</i></button>` : ''}
         </div>
@@ -1743,43 +1748,82 @@ async function loadOfflineIndex() {
     isLocal: false,
     downloaded: true,
   }));
-  // Repaint visible download buttons for tracks downloaded earlier.
-  document.querySelectorAll('.track-item .dl-btn:not(.is-downloaded)').forEach(btn => {
-    const row = btn.closest('.track-item');
-    const id = row && row.getAttribute('data-track-id');
-    if (id && isTrackDownloaded(id)) {
-      btn.classList.add('is-downloaded');
-      const icon = btn.querySelector('.material-icons');
-      if (icon) icon.textContent = 'offline_pin';
-    }
+  // Fix rows rendered before the index arrived: mark them downloaded.
+  (state.offlineTracks || []).forEach(t => {
+    if (t && t.id) paintDownloadButtons(t.id, 'done');
   });
   if (typeof renderPlaylists === 'function') renderPlaylists();
 }
 
-function paintDownloadButtons(id, mode) {
-  // mode: downloading | done | error
+function paintDownloadButtons(id, mode, fraction) {
+  // mode: downloading | done | error. Mirrors the phone TrackRow: subtitle
+  // shows " • NN%", a thin bar grows under the row, and a badge lands on
+  // the cover when done. fraction is 0..1 or null/undefined (unknown size).
   document
-    .querySelectorAll(`.track-item[data-track-id="${CSS.escape(String(id))}"] .dl-btn`)
-    .forEach(btn => {
-      const icon = btn.querySelector('.material-icons');
-      btn.classList.remove('is-downloading', 'is-downloaded');
+    .querySelectorAll(`.track-item[data-track-id="${CSS.escape(String(id))}"]`)
+    .forEach(row => {
+      const btn = row.querySelector('.dl-btn');
+      const icon = btn && btn.querySelector('.material-icons');
+      const artistEl = row.querySelector('.track-artist');
+      let bar = row.querySelector('.dl-progress');
       if (mode === 'downloading') {
-        btn.classList.add('is-downloading');
-        if (icon) icon.textContent = 'downloading';
-      } else if (mode === 'done') {
-        btn.classList.add('is-downloaded');
-        if (icon) icon.textContent = 'offline_pin';
+        if (btn) {
+          btn.classList.add('is-downloading');
+          if (icon) icon.textContent = 'downloading';
+        }
+        if (artistEl) {
+          if (artistEl.dataset.orig === undefined) artistEl.dataset.orig = artistEl.textContent;
+          artistEl.textContent =
+            fraction == null
+              ? `${artistEl.dataset.orig} • …`
+              : `${artistEl.dataset.orig} • ${Math.round(fraction * 100)}%`;
+        }
+        if (!bar) {
+          bar = document.createElement('div');
+          bar.className = 'dl-progress';
+          bar.innerHTML = '<div class="dl-progress-fill"></div>';
+          row.appendChild(bar);
+        }
+        const fill = bar.querySelector('.dl-progress-fill');
+        if (fraction == null) {
+          bar.classList.add('indet');
+        } else {
+          bar.classList.remove('indet');
+          if (fill) fill.style.width = `${Math.max(2, Math.min(100, fraction * 100))}%`;
+        }
       } else {
-        if (icon) icon.textContent = 'download';
+        if (bar) bar.remove();
+        if (artistEl && artistEl.dataset.orig !== undefined) {
+          artistEl.textContent = artistEl.dataset.orig;
+          delete artistEl.dataset.orig;
+        }
+        if (mode === 'done') {
+          if (btn) btn.remove();
+          const wrap = row.querySelector('.track-cover-wrap');
+          if (wrap && !wrap.querySelector('.dl-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'dl-badge';
+            badge.innerHTML = '<i class="material-icons">download_done</i>';
+            wrap.appendChild(badge);
+          }
+        } else if (btn) {
+          btn.classList.remove('is-downloading');
+          if (icon) icon.textContent = 'download';
+        }
       }
     });
 }
 
-async function pollOfflineProgress(id) {
-  for (let i = 0; i < 120; i++) {
-    await new Promise(r => setTimeout(r, 1000));
+async function pollOfflineProgress(id, onFraction) {
+  for (let i = 0; i < 170; i++) {
+    await new Promise(r => setTimeout(r, 700));
     const j = await apiFetch(`/api/offline/progress?id=${encodeURIComponent(id)}`);
     if (!j || j.error) continue;
+    if (j.state === 'downloading' && typeof onFraction === 'function') {
+      try {
+        onFraction(j.total > 0 ? Math.min(1, j.received / j.total) : null);
+      } catch {}
+    }
     if (j.state === 'done') return true;
     if (j.state === 'error' || j.state === 'missing') return false;
   }
@@ -1791,7 +1835,8 @@ function pollOfflineUntilDone(ids) {
   (async () => {
     for (const id of ids) {
       if (!offlineDownloading.has(id)) continue;
-      const ok = await pollOfflineProgress(id);
+      paintDownloadButtons(id, 'downloading', 0);
+      const ok = await pollOfflineProgress(id, f => paintDownloadButtons(id, 'downloading', f));
       paintDownloadButtons(id, ok ? 'done' : 'error');
       offlineDownloading.delete(id);
     }
@@ -1803,7 +1848,7 @@ async function startTrackDownload(track) {
   if (!track || !track.id || track.isLocal) return;
   if (isTrackDownloaded(track.id) || offlineDownloading.has(track.id)) return;
   offlineDownloading.add(track.id);
-  paintDownloadButtons(track.id, 'downloading');
+  paintDownloadButtons(track.id, 'downloading', 0);
   try {
     await apiFetch('/api/offline/download', {
       method: 'POST',
@@ -1815,7 +1860,9 @@ async function startTrackDownload(track) {
         duration: track.duration,
       }),
     });
-    const ok = await pollOfflineProgress(track.id);
+    const ok = await pollOfflineProgress(track.id, f =>
+      paintDownloadButtons(track.id, 'downloading', f)
+    );
     paintDownloadButtons(track.id, ok ? 'done' : 'error');
     if (ok) {
       await loadOfflineIndex();
