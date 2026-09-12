@@ -10695,3 +10695,21 @@ textarea:focus-visible {
     font-size: 36px;
   }
 }
+
+/* ===== v0.9.4: transparent banner, matugen core ball ===== */
+/* Banner background around the ball goes transparent — the glow floats on the app bg. */
+.wave-stitch {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* The ball follows the background hue via --orb-* (matugen); fire palette stays as fallback. */
+.wave-stitch-orb-2 {
+  background: radial-gradient(circle, var(--orb-1, #ffaa00) 0%, var(--orb-2, #ff4b00) 45%, var(--orb-3, #e10085) 70%, transparent 85%);
+}
+.wave-stitch-orb-3 {
+  background: radial-gradient(circle, var(--orb-1, #fff176) 0%, var(--orb-2, #ffb300) 40%, var(--orb-3, #ff5722) 80%, transparent 100%);
+}
+.wave-stitch-orb-4 {
+  background: var(--orb-2, #fde047);
+}
