@@ -72,13 +72,22 @@ body[data-theme-mode="light"] {
 
 /* Theme mode variants (Оформление → Тема) */
 body[data-theme-mode="midnight"] {
-  --bg-base: #121212;
-  --bg-surface: #080808;
-  --bg-elevated: #282828;
-  --bg-highlight: #1e1e1e;
+  --bg-base: #000000;
+  --bg-surface: #121212;
+  --bg-elevated: #1E1E1E;
+  --bg-highlight: #2A2A2A;
+  --bg-card: #1E1E1E;
   --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-subdued: #5a5a5a;
+  --text-secondary: #E5E5EA;
+  --text-subdued: #8E8E93;
+  --text-tertiary: #8E8E93;
+  --accent-contrast: #000000;
+  --ob-card: #1E1E1E;
+  --ob-card-hover: #2A2A2A;
+  --ob-card-high: #2A2A2A;
+  --ob-line: #2A2A2A;
+  --ob-line-strong: #48484A;
+  --ob-text-dim: #8E8E93;
 }
 body[data-theme-mode="contrast"] {
   --bg-base: #000000;
@@ -6565,13 +6574,22 @@ body[data-theme-mode="light"] {
 }
 body.dark-theme,
 body[data-theme-mode="dark"] {
-  --bg-base: #121212;
-  --bg-surface: #181818;
-  --bg-elevated: #282828;
-  --bg-highlight: #333333;
+  --bg-base: #000000;
+  --bg-surface: #121212;
+  --bg-elevated: #1E1E1E;
+  --bg-highlight: #2A2A2A;
+  --bg-card: #1E1E1E;
   --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --text-subdued: #6a6a6a;
+  --text-secondary: #E5E5EA;
+  --text-subdued: #8E8E93;
+  --text-tertiary: #8E8E93;
+  --accent-contrast: #000000;
+  --ob-card: #1E1E1E;
+  --ob-card-hover: #2A2A2A;
+  --ob-card-high: #2A2A2A;
+  --ob-line: #2A2A2A;
+  --ob-line-strong: #48484A;
+  --ob-text-dim: #8E8E93;
 }
 
 :root {
