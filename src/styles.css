@@ -10747,3 +10747,98 @@ textarea:focus-visible {
 }
 .dl-progress.indet .dl-progress-fill { width: 30%; animation: dl-indet 1.2s ease-in-out infinite; }
 @keyframes dl-indet { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+
+/* ==========================================================
+   Phone look — OLED Black mirror (design/screens + Color.kt)
+   Default layer only: explicit body[data-*] customizations,
+   body.light-theme and custom-theme.css still win on top.
+   ========================================================== */
+:root {
+  --bg-base: #000000;
+  --bg-surface: #121212;
+  --bg-elevated: #1E1E1E;
+  --bg-highlight: #2A2A2A;
+  --bg-card: #1E1E1E;
+  --text-secondary: #E5E5EA;
+  --text-subdued: #8E8E93;
+  --text-tertiary: #8E8E93;
+  --accent: #FFFFFF;
+  --accent-hover: #E2E2E2;
+  --accent-rgb: 255,255,255;
+  --accent-contrast: #000000;
+  --md-accent: #FFFFFF;
+  --md-surface: #000000;
+  --md-surface-variant: #1E1E1E;
+  --md-on-surface-variant: #8E8E93;
+  --md-outline: #2A2A2A;
+  --md-primary: #FFFFFF;
+  --md-on-primary: #000000;
+  --ob-card: #1E1E1E;
+  --ob-card-hover: #2A2A2A;
+  --ob-card-high: #2A2A2A;
+  --ob-line: #2A2A2A;
+  --ob-line-strong: #48484A;
+  --ob-glass: rgba(0,0,0,0.88);
+  --ob-text-dim: #8E8E93;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+/* Track rows → phone TrackRow: 44px art, 15/13px, #E5E5EA/#8E8E93 */
+body .track-item { padding: 6px 12px; }
+body .track-cover, body .track-cover-fallback { width: 44px; height: 44px; border-radius: 8px; }
+body .track-title { font-size: 15px; font-weight: 600; color: #E5E5EA; }
+body .track-item.playing .track-title { color: #FFFFFF; }
+body .track-artist { font-size: 13px; color: #8E8E93; }
+body .clickable-artist:hover { color: #E5E5EA; }
+body .m3-icon-btn { color: #8E8E93; }
+
+/* Playlist cards → phone library: bare cover + text, no card chrome */
+body .playlist-card { background: transparent; border: none; padding: 0; box-shadow: none; }
+body .playlist-card:hover { background: transparent; box-shadow: none; }
+body .card-cover-wrap { border-radius: 12px; box-shadow: none; background: #1E1E1E; margin-bottom: 8px; }
+body .card-cover-placeholder { background: #1E1E1E; }
+body .card-cover-placeholder .material-icons { font-size: 40px; color: #48484A; }
+body .card-play-btn { background: #FFFFFF; color: #000000; box-shadow: none; }
+body .card-play-btn:hover { background: #E2E2E2; }
+body .card-title { font-size: 15px; color: #E5E5EA; }
+body .card-sub { font-size: 13px; color: #8E8E93; }
+
+/* Pills → phone chips: #1E1E1E + hairline, white when selected */
+body .lib-tab-btn { background: #1E1E1E; border: 1px solid #2A2A2A; color: #E5E5EA; }
+body .lib-tab-btn:hover { background: #2A2A2A; color: #FFFFFF; }
+body .lib-tab-btn.active { box-shadow: none; }
+
+/* Detail header: play-all = white disc, rest = dark circles */
+body #lib-play-all-btn { background: #FFFFFF; color: #000000; border-color: #FFFFFF; }
+body #lib-play-all-btn:hover { background: #E2E2E2; border-color: #E2E2E2; }
+body .lib-action-circle-btn { background: #1E1E1E; border-color: #2A2A2A; }
+
+/* Nav → muted icons, white active, no shadow */
+body .nav-btn { color: #8E8E93; }
+body .nav-btn.active { box-shadow: none; }
+
+/* Player bar (when visible) → flat black, hairline top */
+body .player-bar { background: #000000; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; border-top: 1px solid #2A2A2A; }
+body .player-bar-cover-wrap { box-shadow: none; }
+body .wave-progress { background: #FFFFFF; }
+
+/* Right player → phone text/controls (artwork untouched) */
+body .right-player-artist { color: #8E8E93; }
+body .right-player-controls .control-btn { background: #1E1E1E; border-color: #2A2A2A; color: #E5E5EA; }
+body .right-player-controls .control-btn.play-btn { box-shadow: none; }
+
+/* Settings → phone section rows */
+body .settings-section-header h3 { color: #8E8E93; font-size: 12px; letter-spacing: 1px; }
+body .settings-section-header i { color: #8E8E93; }
+body .setting-toggle-item { border-bottom-color: #2A2A2A; }
+body .setting-toggle-label { font-size: 15px; color: #FFFFFF; }
+body .setting-toggle-desc { font-size: 13px; }
+body .toggle-switch input:checked + .toggle-slider { background: #FFFFFF; }
+body .toggle-switch input:checked + .toggle-slider::before { background: #000000; box-shadow: none; }
+
+/* Search → phone field */
+body .search-bar { background: #1E1E1E; border: 1px solid #2A2A2A; }
+body .search-bar:focus-within { background: #2A2A2A; }
+body .search-icon { color: #8E8E93; }
