@@ -62,6 +62,7 @@ import android.content.Intent
 import app.votify.mobile.R
 import app.votify.mobile.VotifyApp
 import app.votify.mobile.data.AudioQuality
+import app.votify.mobile.data.BackgroundCache
 import app.votify.mobile.data.Settings
 import app.votify.mobile.data.AppTheme
 import app.votify.mobile.data.Track
