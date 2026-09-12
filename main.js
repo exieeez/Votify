@@ -94,21 +94,25 @@ function doRelaunch(extraArgs, reason) {
   const args = process.argv.slice(1).concat(extraArgs.filter(f => !process.argv.includes(f)));
   // AppImage-safe restart: re-executing process.execPath (inside the FUSE
   // mount) dies silently when the parent's mount is torn down — relaunch
-  // through the AppImage file itself so it mounts fresh.
-  const appImage = process.env.APPIMAGE;
+  // through the AppImage file itself so it mounts fresh. Spawned (not
+  // app.relaunch) so the child's console output stays visible and spawn
+  // failures are reported instead of vanishing.
+  const { spawn } = require('child_process');
+  const target = process.env.APPIMAGE || process.execPath;
+  console.log(`[gpu] spawning ${target} ${args.join(' ')}`);
+  let child = null;
   try {
-    if (appImage) {
-      console.log(`[gpu] relaunching via AppImage ${appImage}`);
-      app.relaunch({ execPath: appImage, args });
-    } else {
-      app.relaunch({ args });
-    }
+    child = spawn(target, args, { stdio: 'inherit' });
   } catch (e) {
-    console.warn('[gpu] relaunch failed:', e.message);
-    if (mainWindow && !mainWindow.isVisible()) mainWindow.show();
+    console.warn('[gpu] spawn failed:', e.message);
     return;
   }
-  app.exit(0);
+  child.on('error', err => console.warn('[gpu] child error:', err.message));
+  child.on('spawn', () => console.log(`[gpu] child spawned pid=${child.pid}`));
+  child.once('exit', (code, signal) => console.warn(`[gpu] child exited too early code=${code} signal=${signal}`));
+  child.unref();
+  // Let the child exec before we quit so the handover is observable.
+  setTimeout(() => app.exit(0), 1500);
 }
 
 function relaunchWithSoftwareGpu(reason) {
@@ -253,9 +257,36 @@ function createWindow() {
     backgroundColor: '#0a0a0b',
   });
 
-  // Health tracking: the first painted frame (ready-to-show) or a finished
-  // main-frame load proves the page is alive. If NEITHER arrives, escalate
-  // automatically: native Wayland -> X11 -> software rendering.
+  // True if the window shows anything besides a single flat color.
+  async function pageLooksPainted(timeoutMs = 5000) {
+    try {
+      const img = await Promise.race([
+        mainWindow.capturePage(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('capture timeout')), timeoutMs)),
+      ]);
+      const bmp = img && img.getBitmap ? img.getBitmap() : Buffer.alloc(0);
+      if (!bmp || bmp.length < 4) return false;
+      const totalPx = Math.floor(bmp.length / 4);
+      if (totalPx <= 0) return false;
+      const first = bmp.readUInt32LE(0);
+      const step = Math.max(1, Math.floor(totalPx / 400));
+      let diff = 0;
+      for (let i = 0; i < totalPx; i += step) {
+        if (bmp.readUInt32LE(i * 4) !== first) {
+          diff += 1;
+          if (diff > 4) return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      console.warn('[window] capturePage failed:', e.message);
+      return false;
+    }
+  }
+
+  // Health tracking: the first painted frame proves the page is visible.
+  // Load events are logged for diagnosis but never count as healthy — a
+  // fully loaded page can still paint black (broken presentation).
   let pageHealthy = false;
   const markHealthy = why => {
     if (pageHealthy) return;
@@ -278,25 +309,42 @@ function createWindow() {
   }, 10000);
   if (typeof showFailsafe.unref === 'function') showFailsafe.unref();
 
+  // Escalation: native Wayland -> X11 -> software rendering. The verdict
+  // comes from actual pixels, not from flaky load events.
   const cascadeTimer = setTimeout(() => {
-    if (pageHealthy || !mainWindow) return;
-    if (!x11Requested && !softwareGpuRequested && process.env.DISPLAY) {
-      doRelaunch([X11_FLAG], 'no paint/load signals, trying X11');
-    } else if (!softwareGpuRequested) {
-      doRelaunch([SOFTWARE_GPU_FLAG], 'no paint/load signals, trying software rendering');
-    } else {
-      console.warn('[window] page still not alive in software mode, leaving window as is');
-    }
+    void (async () => {
+      if (pageHealthy || !mainWindow) return;
+      console.log('[window] no paint signal yet, checking pixels...');
+      let painted = false;
+      try {
+        painted = await pageLooksPainted();
+      } catch (e) {
+        console.warn('[window] pixel check error:', e.message);
+      }
+      console.log(`[window] pixel verdict: ${painted ? 'painted' : 'blank'}`);
+      if (painted) {
+        markHealthy('pixels');
+        return;
+      }
+      if (!mainWindow) return;
+      if (!x11Requested && !softwareGpuRequested && process.env.DISPLAY) {
+        doRelaunch([X11_FLAG], 'blank window, trying X11');
+      } else if (!softwareGpuRequested) {
+        doRelaunch([SOFTWARE_GPU_FLAG], 'blank window, trying software rendering');
+      } else {
+        console.warn('[window] window still blank in software mode, leaving it as is');
+      }
+    })();
   }, 12000);
   if (typeof cascadeTimer.unref === 'function') cascadeTimer.unref();
 
   // Load via HTTP to avoid file:// CORS issues
   mainWindow.loadURL(`http://localhost:${PORT}/index.html?v=${Date.now()}`);
 
-  mainWindow.webContents.once('did-finish-load', () => {
-    console.log('[window] did-finish-load');
-    markHealthy('did-finish-load');
-  });
+  // Navigation diagnostics (load events never count as healthy — see above).
+  mainWindow.webContents.once('did-start-loading', () => console.log('[window] did-start-loading'));
+  mainWindow.webContents.once('dom-ready', () => console.log('[window] dom-ready'));
+  mainWindow.webContents.once('did-finish-load', () => console.log('[window] did-finish-load'));
   let loadRetries = 0;
   mainWindow.webContents.on('did-fail-load', (event, code, desc, url, isMainFrame) => {
     if (!isMainFrame) return;
