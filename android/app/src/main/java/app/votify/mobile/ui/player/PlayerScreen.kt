@@ -214,24 +214,44 @@ fun PlayerScreen(
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp),
         ) {
-            // Header
-            Row(
-                Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onCollapse) {
-                    Icon(Icons.Outlined.KeyboardArrowDown, stringResource(R.string.player_collapse), tint = VotifyColors.TextPrimary, modifier = Modifier.size(28.dp))
+            // Header (slim back-to-cover bar in fullscreen lyrics mode)
+            if (!lyricsVisible) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onCollapse) {
+                        Icon(Icons.Outlined.KeyboardArrowDown, stringResource(R.string.player_collapse), tint = VotifyColors.TextPrimary, modifier = Modifier.size(28.dp))
+                    }
+                    Text(
+                        stringResource(R.string.player_now_playing),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = VotifyColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                    )
+                    IconButton(onClick = onShare) { Icon(Icons.Outlined.Share, stringResource(R.string.action_share), tint = VotifyColors.TextSecondary) }
+                    IconButton(onClick = onOpenMenu) { Icon(Icons.Outlined.MoreVert, stringResource(R.string.player_menu), tint = VotifyColors.TextSecondary) }
                 }
-                Text(
-                    stringResource(R.string.player_now_playing),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = VotifyColors.TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                )
-                IconButton(onClick = onShare) { Icon(Icons.Outlined.Share, stringResource(R.string.action_share), tint = VotifyColors.TextSecondary) }
-                IconButton(onClick = onOpenMenu) { Icon(Icons.Outlined.MoreVert, stringResource(R.string.player_menu), tint = VotifyColors.TextSecondary) }
+            } else {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onToggleLyrics) {
+                        Icon(Icons.Outlined.KeyboardArrowDown, stringResource(R.string.lyrics_back_to_cover), tint = VotifyColors.TextPrimary, modifier = Modifier.size(28.dp))
+                    }
+                    Text(
+                        stringResource(R.string.player_lyrics),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = VotifyColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.size(48.dp))
+                }
             }
 
             // Artwork / lyrics area
@@ -293,39 +313,40 @@ fun PlayerScreen(
                 LyricSnippetLine(lyrics = lyrics, positionMs = state.positionMs, onClick = onToggleLyrics)
             }
 
+            if (!lyricsVisible) {
             // Title / artist with ♥ and ⊕ on the sides
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onToggleFavorite) {
-                    Icon(
-                        if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        stringResource(R.string.player_favorite),
-                        tint = VotifyColors.TextPrimary,
-                    )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onToggleFavorite) {
+                        Icon(
+                            if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            stringResource(R.string.player_favorite),
+                            tint = VotifyColors.TextPrimary,
+                        )
+                    }
+                    Column(Modifier.weight(1f), horizontalAlignment = if (visuals.titleLeft) Alignment.Start else Alignment.CenterHorizontally) {
+                        Text(
+                            track?.title ?: "—",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = VotifyColors.TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = if (visuals.titleLeft) TextAlign.Start else TextAlign.Center,
+                            modifier = if (visuals.titleLeft) Modifier.fillMaxWidth() else Modifier,
+                        )
+                        Text(
+                            track?.artist ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = VotifyColors.TextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clickable(enabled = !track?.artist.isNullOrBlank()) { track?.artist?.let(onOpenArtist) },
+                        )
+                    }
+                    IconButton(onClick = onAddToPlaylist) { Icon(Icons.Outlined.PlaylistAdd, stringResource(R.string.action_add_to_playlist), tint = VotifyColors.TextPrimary) }
                 }
-                Column(Modifier.weight(1f), horizontalAlignment = if (visuals.titleLeft) Alignment.Start else Alignment.CenterHorizontally) {
-                    Text(
-                        track?.title ?: "—",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = VotifyColors.TextPrimary,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = if (visuals.titleLeft) TextAlign.Start else TextAlign.Center,
-                        modifier = if (visuals.titleLeft) Modifier.fillMaxWidth() else Modifier,
-                    )
-                    Text(
-                        track?.artist ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = VotifyColors.TextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable(enabled = !track?.artist.isNullOrBlank()) { track?.artist?.let(onOpenArtist) },
-                    )
                 }
-                IconButton(onClick = onAddToPlaylist) { Icon(Icons.Outlined.PlaylistAdd, stringResource(R.string.action_add_to_playlist), tint = VotifyColors.TextPrimary) }
-            }
 
-            Spacer(Modifier.height(4.dp))
 
             Scrubber(
                 state = state,
@@ -389,41 +410,42 @@ fun PlayerScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            if (!lyricsVisible) {
             // Secondary row: lyrics / queue
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = VotifyColors.SurfaceContainer.copy(alpha = 0.7f),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = VotifyColors.SurfaceContainer.copy(alpha = 0.7f),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    IconButton(onClick = onToggleLyrics) {
-                        Icon(Icons.Outlined.Lyrics, stringResource(R.string.player_lyrics), tint = if (lyricsVisible) VotifyColors.TextPrimary else VotifyColors.TextSecondary)
-                    }
-                    Box {
-                        IconButton(onClick = onOpenQueue) { Icon(Icons.Outlined.FormatListBulleted, stringResource(R.string.player_queue), tint = VotifyColors.TextSecondary) }
-                        if (state.queue.size > 1) {
-                            Surface(
-                                shape = CircleShape,
-                                color = VotifyColors.Primary,
-                                contentColor = VotifyColors.OnPrimary,
-                                modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 2.dp),
-                            ) {
-                                Text(
-                                    state.queue.size.toString(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                                )
+                    Row(
+                        Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = onToggleLyrics) {
+                            Icon(Icons.Outlined.Lyrics, stringResource(R.string.player_lyrics), tint = if (lyricsVisible) VotifyColors.TextPrimary else VotifyColors.TextSecondary)
+                        }
+                        Box {
+                            IconButton(onClick = onOpenQueue) { Icon(Icons.Outlined.FormatListBulleted, stringResource(R.string.player_queue), tint = VotifyColors.TextSecondary) }
+                            if (state.queue.size > 1) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = VotifyColors.Primary,
+                                    contentColor = VotifyColors.OnPrimary,
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 2.dp),
+                                ) {
+                                    Text(
+                                        state.queue.size.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
+                }
 
-            Spacer(Modifier.height(12.dp))
         }
     }
 }
@@ -565,8 +587,7 @@ private fun LyricsPanel(state: LyricsState, positionMs: Long, onSeekToMs: (Long)
     Box(
         Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(24.dp))
-            .background(VotifyColors.SurfaceContainerLow.copy(alpha = 0.6f)),
+            .background(VotifyColors.SurfaceBase.copy(alpha = 0.55f)),
     ) {
         when (state) {
             LyricsState.Hidden, LyricsState.Loading -> CircularProgressIndicator(
@@ -808,7 +829,7 @@ private fun LyricSnippetLine(lyrics: LyricsState, positionMs: Long, onClick: () 
         targetState = line,
         transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) },
         label = "lyric-snippet",
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 32.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 32.dp).offset(y = (-10).dp),
     ) { text ->
         Text(
             text,
