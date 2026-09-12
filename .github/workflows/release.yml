@@ -17,10 +17,10 @@ jobs:
         include:
           - os: windows-latest
             script: 'build:win'
-            artifacts: 'dist/*.exe'
+            artifacts: "dist/*.exe\ndist/latest.yml"
           - os: ubuntu-latest
             script: 'build:appimage'
-            artifacts: 'dist/*.AppImage'
+            artifacts: "dist/*.AppImage\ndist/latest-linux.yml"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout

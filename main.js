@@ -83,8 +83,17 @@ function relaunchWithSoftwareGpu(reason) {
   } catch (e) {
     /* ignore */
   }
+  // AppImage-safe restart: re-executing process.execPath (inside the FUSE
+  // mount) dies silently when the parent's mount is torn down — relaunch
+  // through the AppImage file itself so it mounts fresh.
+  const appImage = process.env.APPIMAGE;
   try {
-    app.relaunch({ args: process.argv.slice(1).concat([SOFTWARE_GPU_FLAG]) });
+    if (appImage) {
+      console.log(`[gpu] relaunching via AppImage ${appImage}`);
+      app.relaunch({ execPath: appImage, args: process.argv.slice(1).concat([SOFTWARE_GPU_FLAG]) });
+    } else {
+      app.relaunch({ args: process.argv.slice(1).concat([SOFTWARE_GPU_FLAG]) });
+    }
   } catch (e) {
     console.warn('[gpu] relaunch failed:', e.message);
     if (mainWindow && !mainWindow.isVisible()) mainWindow.show();
@@ -223,32 +232,28 @@ function createWindow() {
       sandbox: false,
     },
     icon: path.join(__dirname, 'src/icon.png'),
-    show: false,
+    // Show immediately: on Wayland a hidden window may never report
+    // ready-to-show (no frame is ever presented for it), leaving the app
+    // invisible. backgroundColor avoids a white flash before first paint.
+    show: true,
+    backgroundColor: '#0a0a0b',
   });
 
   mainWindow.once('ready-to-show', () => {
     console.log('[window] ready-to-show');
     clearTimeout(showFailsafe);
-    mainWindow.show();
   });
   mainWindow.on('show', () => console.log('[window] show event'));
 
-  // Failsafe: never leave the user with an invisible app. If the renderer
-  // never reports ready-to-show (broken GPU driver, failed load), relaunch
-  // once with software rendering — otherwise force the window visible.
-  // The software-mode round gets a shorter timeout to avoid a painful double wait.
-  const FAILSAFE_MS = softwareGpuRequested ? 10000 : 20000;
+  // Safety net: the window is created visible, so this normally no-ops.
+  // If anything keeps it hidden, force it on screen rather than leaving
+  // an invisible app. (No auto-relaunch here: on Wayland ready-to-show
+  // may never fire for a perfectly healthy app.)
   const showFailsafe = setTimeout(() => {
-    console.log(`[window] failsafe fired (visible=${!!mainWindow && mainWindow.isVisible()})`);
     if (!mainWindow || mainWindow.isVisible()) return;
-    if (!softwareGpuRequested && !gpuRelaunchDone) {
-      relaunchWithSoftwareGpu('window never became ready (likely broken GPU driver)');
-      return;
-    }
-    console.warn('[window] ready-to-show never fired, forcing show()');
+    console.warn('[window] window still hidden, forcing show()');
     mainWindow.show();
-    console.log(`[window] forced show() called (visible=${mainWindow.isVisible()})`);
-  }, FAILSAFE_MS);
+  }, 10000);
   if (typeof showFailsafe.unref === 'function') showFailsafe.unref();
 
   // Load via HTTP to avoid file:// CORS issues
