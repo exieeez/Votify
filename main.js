@@ -65,24 +65,33 @@ if (softwareGpuRequested) {
   // Newer Chromium needs this for the SwiftShader software fallback.
   app.commandLine.appendSwitch('enable-unsafe-swiftshader');
 }
+// X11 fallback for broken Wayland presentation (black window with a live
+// page). Auto-selected by the cascade, or forced with --x11.
+const X11_FLAG = '--votify-x11';
+const x11Requested = process.argv.includes('--x11') || process.argv.includes(X11_FLAG);
+if (x11Requested && !process.argv.some(a => a.startsWith('--ozone-platform'))) {
+  console.log('[gpu] Forcing ozone-platform=x11');
+  app.commandLine.appendSwitch('ozone-platform', 'x11');
+}
 console.log(
   `[votify] starting pid=${process.pid} version=${app.getVersion()} ` +
-    `softwareGpu=${softwareGpuRequested} execPath=${process.execPath} ` +
+    `softwareGpu=${softwareGpuRequested} x11=${x11Requested} execPath=${process.execPath} ` +
     `display=${process.env.DISPLAY || '-'} wayland=${process.env.WAYLAND_DISPLAY || '-'} ` +
     `session=${process.env.XDG_SESSION_TYPE || '-'}`,
 );
 
 let gpuRelaunchDone = false;
-function relaunchWithSoftwareGpu(reason) {
-  if (softwareGpuRequested || gpuRelaunchDone) return;
+function doRelaunch(extraArgs, reason) {
+  if (gpuRelaunchDone) return;
   gpuRelaunchDone = true;
-  console.warn(`[gpu] ${reason} — relaunching with software rendering`);
+  console.warn(`[gpu] ${reason} — relaunching`);
   // The forked local server would otherwise stay orphaned and keep the port.
   try {
     if (serverProcess) serverProcess.kill();
   } catch (e) {
     /* ignore */
   }
+  const args = process.argv.slice(1).concat(extraArgs.filter(f => !process.argv.includes(f)));
   // AppImage-safe restart: re-executing process.execPath (inside the FUSE
   // mount) dies silently when the parent's mount is torn down — relaunch
   // through the AppImage file itself so it mounts fresh.
@@ -90,9 +99,9 @@ function relaunchWithSoftwareGpu(reason) {
   try {
     if (appImage) {
       console.log(`[gpu] relaunching via AppImage ${appImage}`);
-      app.relaunch({ execPath: appImage, args: process.argv.slice(1).concat([SOFTWARE_GPU_FLAG]) });
+      app.relaunch({ execPath: appImage, args });
     } else {
-      app.relaunch({ args: process.argv.slice(1).concat([SOFTWARE_GPU_FLAG]) });
+      app.relaunch({ args });
     }
   } catch (e) {
     console.warn('[gpu] relaunch failed:', e.message);
@@ -100,6 +109,11 @@ function relaunchWithSoftwareGpu(reason) {
     return;
   }
   app.exit(0);
+}
+
+function relaunchWithSoftwareGpu(reason) {
+  if (softwareGpuRequested) return;
+  doRelaunch([SOFTWARE_GPU_FLAG], reason);
 }
 
 app.on('gpu-process-crashed', (event, killed) => {
@@ -239,16 +253,24 @@ function createWindow() {
     backgroundColor: '#0a0a0b',
   });
 
+  // Health tracking: the first painted frame (ready-to-show) or a finished
+  // main-frame load proves the page is alive. If NEITHER arrives, escalate
+  // automatically: native Wayland -> X11 -> software rendering.
+  let pageHealthy = false;
+  const markHealthy = why => {
+    if (pageHealthy) return;
+    pageHealthy = true;
+    console.log(`[window] healthy (${why})`);
+    clearTimeout(showFailsafe);
+    clearTimeout(cascadeTimer);
+  };
   mainWindow.once('ready-to-show', () => {
     console.log('[window] ready-to-show');
-    clearTimeout(showFailsafe);
+    markHealthy('ready-to-show');
   });
   mainWindow.on('show', () => console.log('[window] show event'));
 
   // Safety net: the window is created visible, so this normally no-ops.
-  // If anything keeps it hidden, force it on screen rather than leaving
-  // an invisible app. (No auto-relaunch here: on Wayland ready-to-show
-  // may never fire for a perfectly healthy app.)
   const showFailsafe = setTimeout(() => {
     if (!mainWindow || mainWindow.isVisible()) return;
     console.warn('[window] window still hidden, forcing show()');
@@ -256,10 +278,25 @@ function createWindow() {
   }, 10000);
   if (typeof showFailsafe.unref === 'function') showFailsafe.unref();
 
+  const cascadeTimer = setTimeout(() => {
+    if (pageHealthy || !mainWindow) return;
+    if (!x11Requested && !softwareGpuRequested && process.env.DISPLAY) {
+      doRelaunch([X11_FLAG], 'no paint/load signals, trying X11');
+    } else if (!softwareGpuRequested) {
+      doRelaunch([SOFTWARE_GPU_FLAG], 'no paint/load signals, trying software rendering');
+    } else {
+      console.warn('[window] page still not alive in software mode, leaving window as is');
+    }
+  }, 12000);
+  if (typeof cascadeTimer.unref === 'function') cascadeTimer.unref();
+
   // Load via HTTP to avoid file:// CORS issues
   mainWindow.loadURL(`http://localhost:${PORT}/index.html?v=${Date.now()}`);
 
-  mainWindow.webContents.on('did-finish-load', () => console.log('[window] did-finish-load'));
+  mainWindow.webContents.once('did-finish-load', () => {
+    console.log('[window] did-finish-load');
+    markHealthy('did-finish-load');
+  });
   let loadRetries = 0;
   mainWindow.webContents.on('did-fail-load', (event, code, desc, url, isMainFrame) => {
     if (!isMainFrame) return;
