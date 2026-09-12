@@ -350,6 +350,16 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     val workshopBgUrl = settings.backgroundUrl.ifBlank {
         if (settings.theme == AppTheme.Workshop) bgSpec.backgroundUrl else ""
     }
+    // Локальный кэш фона: ссылки из Discord протухают за ~сутки — показываем
+    // сохранённый файл, который переживает и смерть ссылки, и переустановку.
+    var bgCachedFile by remember(workshopBgUrl) { mutableStateOf<java.io.File?>(null) }
+    LaunchedEffect(workshopBgUrl) {
+        bgCachedFile = if (workshopBgUrl.isBlank()) null
+        else app.votify.mobile.data.BackgroundCache.cachedFile(app, workshopBgUrl)
+            ?: app.votify.mobile.data.BackgroundCache.ensureCached(app, workshopBgUrl)
+        app.votify.mobile.data.BackgroundCache.prune(app, workshopBgUrl)
+    }
+    val bgModel: Any? = bgCachedFile ?: workshopBgUrl.ifBlank { null }
     // Fine-tuning: Настройки → Фон («затемнение»/«размытие», prefs.bgDim/bgBlur).
     // Defaults (dim 35, blur 0) match the previous hard-coded look; the workshop
     // spec sliders were the only tuning before and are now overridden here.
@@ -368,9 +378,9 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     // imePadding: with edge-to-edge the keyboard would cover the bottom nav — on the search
     // screen that made it impossible to return to Home without the system back gesture.
     Box(Modifier.fillMaxSize().imePadding().background(VotifyColors.SurfaceBase)) {
-        if (workshopBgUrl.isNotBlank()) {
+        if (bgModel != null) {
             coil.compose.AsyncImage(
-                model = workshopBgUrl,
+                model = bgModel,
                 contentDescription = null,
                 contentScale = bgContentScale,
                 // Кадрирование: широкий ПК-фон можно сдвинуть и приблизить под экран телефона.
@@ -391,7 +401,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
             )
         }
         Scaffold(
-            containerColor = if (workshopBgUrl.isNotBlank()) androidx.compose.ui.graphics.Color.Transparent else VotifyColors.SurfaceBase,
+            containerColor = if (bgModel != null) androidx.compose.ui.graphics.Color.Transparent else VotifyColors.SurfaceBase,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {

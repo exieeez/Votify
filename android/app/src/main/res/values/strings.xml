@@ -512,6 +512,7 @@
     <string name="toast_bg_applied">Фон применён</string>
     <string name="toast_bg_cleared">Фон убран</string>
     <string name="toast_bg_bad_url">Ссылка должна начинаться с http:// или https://</string>
+    <string name="toast_bg_dead_link">Ссылка на фон не открывается — возможно, она протухла (ссылки из Discord живут около суток)</string>
     <string name="workshop_bg_title">Фон по ссылке</string>
     <string name="workshop_bg_hint">Любая картинка или анимированный GIF/WebP — станет фоном всего приложения</string>
     <string name="workshop_bg_hint_field">https://example.com/background.gif</string>

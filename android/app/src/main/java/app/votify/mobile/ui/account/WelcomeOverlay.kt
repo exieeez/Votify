@@ -58,7 +58,7 @@ fun WelcomeOverlay(onSignIn: () -> Unit, onGuest: () -> Unit) {
                     Image(
                         painter = painterResource(R.drawable.ic_votify_logo),
                         contentDescription = null,
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(34.dp),
                     )
                 }
             }

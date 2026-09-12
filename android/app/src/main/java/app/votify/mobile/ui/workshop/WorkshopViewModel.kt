@@ -2,7 +2,11 @@ package app.votify.mobile.ui.workshop
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
+import app.votify.mobile.R
+import app.votify.mobile.VotifyApp
 import app.votify.mobile.data.AppTheme
+import app.votify.mobile.data.BackgroundCache
 import app.votify.mobile.data.FirebaseConfig
 import app.votify.mobile.data.FirebaseRest
 import app.votify.mobile.data.MusicRepository
@@ -192,6 +196,8 @@ class WorkshopViewModel(
         }
     }
 
+    private fun appCtx(): Context = VotifyApp.instance
+
     /** Apply a community theme locally. */
     fun applyTheme(doc: WorkshopThemeDoc) {
         viewModelScope.launch { applyThemeNow(doc) }
@@ -211,8 +217,17 @@ class WorkshopViewModel(
         updatePrefs { it.copy(themeApplyBackground = on) }
         viewModelScope.launch {
             if (on) {
-                settingsRepo.setBackgroundUrl(doc.theme.backgroundUrl)
-                applyThemeNow(doc)
+                val raw = doc.theme.backgroundUrl
+                val direct = if (raw.isBlank()) "" else BackgroundCache.resolveDirect(raw)
+                val ok = direct.isBlank() || BackgroundCache.probeImage(direct)
+                if (!ok) _events.tryEmit(WorkshopEvent.Message(appCtx().getString(R.string.toast_bg_dead_link)))
+                val bg = if (ok) direct else ""
+                settingsRepo.setBackgroundUrl(bg)
+                if (bg.isNotBlank()) BackgroundCache.ensureCached(appCtx(), bg)
+                val spec = doc.theme.toSpec().copy(backgroundUrl = bg)
+                settingsRepo.setCustomTheme(json.encodeToString(WorkshopThemeSpec.serializer(), spec))
+                settingsRepo.setTheme(AppTheme.Workshop)
+                _events.tryEmit(WorkshopEvent.Applied(doc.title))
             } else {
                 settingsRepo.setBackgroundUrl("")
                 settingsRepo.setCustomTheme("")
@@ -251,6 +266,7 @@ class WorkshopViewModel(
                 settingsRepo.setBackgroundUrl("")
                 settingsRepo.setCustomTheme("")
                 settingsRepo.setTheme(AppTheme.OledBlack)
+                BackgroundCache.pruneAll(appCtx())
             }
             val acct = settingsRepo.account.first()
             if (acct != null && acct.isFirebase && acct.uid == doc.ownerId) {
@@ -294,11 +310,28 @@ class WorkshopViewModel(
             return
         }
         viewModelScope.launch {
-            val spec = currentSpecModel().copy(backgroundUrl = clean)
+            if (clean.isBlank()) {
+                val spec = currentSpecModel().copy(backgroundUrl = "")
+                settingsRepo.setCustomTheme(json.encodeToString(WorkshopThemeSpec.serializer(), spec))
+                settingsRepo.setTheme(AppTheme.Workshop)
+                settingsRepo.setBackgroundUrl("")
+                BackgroundCache.pruneAll(appCtx())
+                _state.update { it.copy(appliedBackgroundUrl = "", appliedAccent = spec.primary.uppercase()) }
+                _events.tryEmit(WorkshopEvent.BackgroundCleared)
+                return@launch
+            }
+            val direct = BackgroundCache.resolveDirect(clean)
+            if (!BackgroundCache.probeImage(direct)) {
+                _events.tryEmit(WorkshopEvent.Message(appCtx().getString(R.string.toast_bg_dead_link)))
+                return@launch
+            }
+            val spec = currentSpecModel().copy(backgroundUrl = direct)
             settingsRepo.setCustomTheme(json.encodeToString(WorkshopThemeSpec.serializer(), spec))
             settingsRepo.setTheme(AppTheme.Workshop)
-            _state.update { it.copy(appliedBackgroundUrl = clean, appliedAccent = spec.primary.uppercase()) }
-            _events.tryEmit(if (clean.isBlank()) WorkshopEvent.BackgroundCleared else WorkshopEvent.BackgroundSet)
+            settingsRepo.setBackgroundUrl(direct)
+            BackgroundCache.ensureCached(appCtx(), direct)
+            _state.update { it.copy(appliedBackgroundUrl = direct, appliedAccent = spec.primary.uppercase()) }
+            _events.tryEmit(WorkshopEvent.BackgroundSet)
         }
     }
 
@@ -322,7 +355,8 @@ class WorkshopViewModel(
                 return@launch
             }
             _state.update { it.copy(publishing = true, error = null) }
-            val spec = currentSpec()
+            val baseSpec = currentSpec()
+            val spec = baseSpec.copy(backgroundUrl = BackgroundCache.resolveDirect(baseSpec.backgroundUrl))
             runCatching { client.publishTheme(account.token, account.uid, account.username.ifBlank { account.email }.take(40), cleanTitle, description.trim(), spec) }
                 .onSuccess {
                     _state.update { it.copy(publishing = false) }
