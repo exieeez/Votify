@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,7 +37,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -53,11 +53,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -129,9 +131,6 @@ fun HomeScreen(
                 orbBase = orbColor,
                 onPlayWave = { onPlay(state.wave, 0) },
                 onRetry = viewModel::refresh,
-                onToggleMode = {
-                    viewModel.setMode(if (state.waveMode == WaveMode.Popular) WaveMode.ForYou else WaveMode.Popular)
-                },
             )
         }
 
@@ -468,8 +467,9 @@ private fun WaveOrbit(
 }
 
 /**
- * Стиль «Шар»: сплошной шар в цвете фона (matugen-стиль — средний цвет обоев,
- * без обоев — цвет поверхности темы). Таблетка переключает «Для вас / Популярные».
+ * Стиль «Шар»: огненный баннер «Моя волна» как на ПК (Stitch-дизайн) —
+ * слоистое закатное свечение, световые лучи, стеклянная пилюля Play.
+ * Ядро подкрашивается матугеном под цвет фона, как на ПК.
  */
 @Composable
 private fun SolidOrb(
@@ -477,86 +477,142 @@ private fun SolidOrb(
     orbBase: Color?,
     onPlayWave: () -> Unit,
     onRetry: () -> Unit,
-    onToggleMode: () -> Unit,
 ) {
-    val motion = rememberInfiniteTransition(label = "orb")
-    val pulse by motion.animateFloat(
+    val pulse by rememberInfiniteTransition(label = "orb").animateFloat(
         initialValue = 0.97f,
         targetValue = 1.03f,
-        animationSpec = infiniteRepeatable(tween(3_200, easing = LinearEasing), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(4_000, easing = LinearEasing), RepeatMode.Reverse),
         label = "pulse",
     )
-    val spin by motion.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(26_000, easing = LinearEasing), RepeatMode.Restart),
-        label = "spin",
-    )
     val hasMusic = !state.isLoading && state.error == null && state.wave.isNotEmpty()
-    // Сплошной шар: светлый верх → базовый цвет → глубокий низ.
-    val base = orbBase ?: VotifyColors.SurfaceContainer
-    val light = lerp(base, Color.White, 0.45f)
-    val deep = lerp(base, Color.Black, 0.45f)
-    val rim = lerp(base, Color.White, 0.55f)
-    val textShadow = Shadow(Color.Black.copy(alpha = 0.45f), Offset(0f, 2f), 6f)
+    val textShadow = Shadow(Color.Black.copy(alpha = 0.6f), Offset(0f, 4f), 24f)
+
+    // Матуген-ядро как на ПК: яркие тона оттенка фона; без цвета — огненный дефолт.
+    val hue = orbBase?.let(::colorHue)
+    val coreLight = hue?.let { Color.hsl(it, 0.95f, 0.78f) } ?: Color(0xFFFFF176)
+    val coreMid = hue?.let { Color.hsl(it, 0.9f, 0.6f) } ?: Color(0xFFFFB300)
+    val coreDeep = hue?.let { Color.hsl(it, 0.85f, 0.48f) } ?: Color(0xFFFF5722)
+    val glow1 = hue?.let { coreLight } ?: Color(0xFFFFAA00)
+    val glow2 = hue?.let { coreMid } ?: Color(0xFFFF4B00)
+    val glow3 = hue?.let { coreDeep } ?: Color(0xFFE10085)
 
     Box(
         Modifier
             .fillMaxWidth()
-            .height(340.dp)
+            .padding(horizontal = 16.dp)
+            .height(300.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color(0xFF0B0B0E))
+            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
             .clickable(
                 enabled = hasMusic || state.error != null,
                 onClick = { if (state.error != null) onRetry() else onPlayWave() },
             ),
         contentAlignment = Alignment.Center,
     ) {
-        // Свечение в цвете шара.
+        // Внешняя маджента-вуаль.
         Box(
             Modifier
-                .size(360.dp)
+                .size(400.dp)
                 .graphicsLayer { scaleX = pulse; scaleY = pulse }
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        0.0f to base.copy(alpha = 0.30f),
-                        0.55f to base.copy(alpha = 0.12f),
+                        0.0f to Color(0xFFFF0077).copy(alpha = 0.5f),
+                        0.45f to Color(0xFFA800E0).copy(alpha = 0.35f),
+                        0.75f to Color.Transparent,
+                    ),
+                ),
+        )
+        // Среднее огненное свечение.
+        Box(
+            Modifier
+                .size(320.dp)
+                .graphicsLayer { scaleX = pulse; scaleY = pulse }
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        0.0f to glow1.copy(alpha = 0.9f),
+                        0.45f to glow2.copy(alpha = 0.7f),
+                        0.7f to glow3.copy(alpha = 0.5f),
+                        0.85f to Color.Transparent,
+                    ),
+                ),
+        )
+        // Внутренний жар.
+        Box(
+            Modifier
+                .size(200.dp)
+                .graphicsLayer { scaleX = pulse; scaleY = pulse }
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        0.0f to coreLight.copy(alpha = 0.95f),
+                        0.4f to coreMid.copy(alpha = 0.9f),
+                        0.8f to coreDeep.copy(alpha = 0.8f),
                         1.0f to Color.Transparent,
                     ),
                 ),
         )
-        // Тело шара — сплошное.
+        // Ядро шара — сплошное.
         Box(
             Modifier
-                .size(280.dp)
+                .size(110.dp)
                 .graphicsLayer { scaleX = pulse; scaleY = pulse }
                 .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        0.0f to light,
-                        0.55f to base,
-                        1.0f to deep,
-                    ),
-                )
-                .border(1.5.dp, rim.copy(alpha = 0.8f), CircleShape),
+                .background(coreMid),
         )
-        // Медленный блик, ползущий по шару.
-        Box(
-            Modifier
-                .size(280.dp)
-                .graphicsLayer { rotationZ = spin },
-        ) {
-            Box(
-                Modifier
-                    .size(150.dp)
-                    .align(Alignment.TopCenter)
-                    .offset(y = 18.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            0.0f to Color.White.copy(alpha = 0.22f),
-                            1.0f to Color.Transparent,
-                        ),
-                    ),
+        // Световые лучи и дуга, как на ПК.
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val d1s = Offset(w * 0.12f, -h * 0.07f)
+            val d1e = Offset(w * 0.91f, h * 1.05f)
+            drawLine(
+                brush = Brush.linearGradient(
+                    0.0f to Color.Transparent,
+                    0.5f to Color(0xFFFFF9C4).copy(alpha = 0.8f),
+                    1.0f to Color.Transparent,
+                    start = d1s,
+                    end = d1e,
+                ),
+                start = d1s,
+                end = d1e,
+                strokeWidth = 2.dp.toPx(),
+                alpha = 0.5f,
+                blendMode = BlendMode.Screen,
+            )
+            val d2s = Offset(w * 0.85f, -h * 0.1f)
+            val d2e = Offset(w * 0.15f, h * 1.07f)
+            drawLine(
+                brush = Brush.linearGradient(
+                    0.0f to Color.Transparent,
+                    0.5f to Color(0xFFFFE082).copy(alpha = 0.9f),
+                    1.0f to Color.Transparent,
+                    start = d2s,
+                    end = d2e,
+                ),
+                start = d2s,
+                end = d2e,
+                strokeWidth = 1.8.dp.toPx(),
+                alpha = 0.6f,
+                blendMode = BlendMode.Screen,
+            )
+            val arc = Path().apply {
+                moveTo(-w * 0.03f, h * 0.43f)
+                quadraticBezierTo(w * 0.28f, h * 0.33f, w * 0.5f, h * 0.5f)
+                quadraticBezierTo(w * 0.72f, h * 0.67f, w * 1.03f, h * 0.48f)
+            }
+            drawPath(
+                path = arc,
+                brush = Brush.linearGradient(
+                    0.0f to Color.Transparent,
+                    0.5f to Color(0xFFFFE082).copy(alpha = 0.9f),
+                    1.0f to Color.Transparent,
+                ),
+                style = Stroke(width = 2.5.dp.toPx()),
+                alpha = 0.7f,
+                blendMode = BlendMode.Screen,
             )
         }
         // Контент поверх шара.
@@ -573,41 +629,31 @@ private fun SolidOrb(
                     tint = Color.White,
                     modifier = Modifier.size(52.dp),
                 )
-                else -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.PlayArrow,
-                        contentDescription = stringResource(R.string.home_play_wave),
-                        tint = Color.White,
-                        modifier = Modifier.size(34.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        stringResource(R.string.home_my_wave),
-                        style = MaterialTheme.typography.headlineMedium.copy(shadow = textShadow),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                else -> Text(
+                    stringResource(R.string.home_my_wave),
+                    style = MaterialTheme.typography.headlineLarge.copy(shadow = textShadow),
+                    color = Color.White,
+                    fontWeight = FontWeight.ExtraBold,
+                )
             }
             Spacer(Modifier.height(14.dp))
             Surface(
-                onClick = onToggleMode,
+                onClick = { if (state.error != null) onRetry() else if (hasMusic) onPlayWave() },
                 shape = CircleShape,
                 color = Color.White.copy(alpha = 0.22f),
                 contentColor = Color.White,
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
             ) {
                 Row(
-                    Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
+                    Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Filled.SwapHoriz, null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (state.waveMode == WaveMode.Popular) stringResource(R.string.wave_popular)
-                        else stringResource(R.string.wave_for_you),
+                        "Play",
                         style = MaterialTheme.typography.labelLarge.copy(shadow = textShadow),
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -629,6 +675,22 @@ private fun SolidOrb(
                 modifier = Modifier.padding(horizontal = 48.dp),
             )
         }
+    }
+}
+
+/** Hue (0..360) of a color for the matugen core. */
+private fun colorHue(color: Color): Float {
+    val r = color.red
+    val g = color.green
+    val b = color.blue
+    val max = maxOf(r, g, b)
+    val min = minOf(r, g, b)
+    if (max == min) return 0f
+    val d = max - min
+    return when (max) {
+        r -> ((g - b) / d + (if (g < b) 6 else 0)) * 60f
+        g -> ((b - r) / d + 2) * 60f
+        else -> ((r - g) / d + 4) * 60f
     }
 }
 
