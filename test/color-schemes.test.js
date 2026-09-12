@@ -214,8 +214,6 @@ test('settings UI wires the save button, name field and scheme list', () => {
   assert.match(html, /id="picker-color-borders"/);
   assert.match(html, /id="picker-color-focus"/);
   [
-    'crossfade-duration',
-    'background-blur-slider',
     'font-size-slider',
     'corner-radius-slider',
     'slider-ui-scale',

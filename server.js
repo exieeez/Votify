@@ -12,6 +12,7 @@ const { handleAuthRoutes } = require('./routes/auth.js');
 const { handleMusicRoutes } = require('./routes/music.js');
 const { handleSmtpRoutes } = require('./routes/smtp.js');
 const { handleSyncRoutes } = require('./routes/sync.js');
+const { handleOfflineRoutes } = require('./routes/offline.js');
 
 const FIREBASE_CONFIG_FIELDS = [
   'apiKey',
@@ -133,6 +134,9 @@ const server = http.createServer(async (req, res) => {
 
     // --- MUSIC ENDPOINTS ---
     if (await handleMusicRoutes(req, res, u)) return;
+
+    // --- OFFLINE DOWNLOADS ---
+    if (await handleOfflineRoutes(req, res, u)) return;
 
     // --- DEMO (offline catalog covers/audio) ---
     if (require('./routes/demo.js').handleDemoRoutes(req, res, u)) return;

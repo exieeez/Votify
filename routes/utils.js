@@ -799,7 +799,7 @@ const AUDIO_QUALITY_FORMATS = {
 // then ask the ANDROID client through reel_item_watch. Returns direct audio URLs
 // with no yt-dlp binary involved.
 const IT_ANDROID_CLIENT_VERSION = '21.03.36';
-const IT_ANDROID_UA = `com.google.android.youtube/${IT_ANDROID_CLIENT_VERSION} (Linux; U; Android 15; UA) gzip`;
+const IT_ANDROID_UA = `com.google.android.youtube/${IT_ANDROID_CLIENT_VERSION} (Linux; U; Android 15; en-UA) gzip`;
 const IT_GAPIS_V1 = 'https://youtubei.googleapis.com/youtubei/v1/';
 const IT_NONCE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
@@ -836,6 +836,40 @@ function itAndroidContext(visitorData) {
 
 const IT_PLAYER_HEADERS = {
   'User-Agent': IT_ANDROID_UA,
+  'X-Goog-Api-Format-Version': '2',
+  Origin: undefined,
+  Referer: undefined,
+};
+
+// visionOS client (NewPipe recipe): plain player request that returns HLS-first
+// audio on networks where the ANDROID reel endpoint yields nothing usable.
+const IT_VISIONOS_CLIENT_VERSION = '1.02';
+const IT_VISIONOS_UA =
+  'com.google.visionos.youtube/1.02(RealityDevice14,1; U; CPU visionOS 25_6_0 like Mac OS X; CC)';
+
+function itVisionOsContext(visitorData) {
+  const client = {
+    clientName: 'VISIONOS',
+    clientVersion: IT_VISIONOS_CLIENT_VERSION,
+    clientScreen: 'WATCH',
+    platform: 'MOBILE',
+    osName: 'visionOS',
+    osVersion: '25.6.0.23O471',
+    deviceModel: 'RealityDevice14,1',
+    hl: 'ru',
+    gl: 'UA',
+    utcOffsetMinutes: 0,
+  };
+  if (visitorData) client.visitorData = visitorData;
+  return {
+    client,
+    request: { internalExperimentFlags: [], useSsl: true },
+    user: { lockedSafetyMode: false },
+  };
+}
+
+const IT_VISIONOS_HEADERS = {
+  'User-Agent': IT_VISIONOS_UA,
   'X-Goog-Api-Format-Version': '2',
   Origin: undefined,
   Referer: undefined,
@@ -882,30 +916,82 @@ function pickAudioFormat(adaptiveFormats, quality) {
 }
 
 async function innertubeStreamUrl(videoId, quality) {
-  const vd = await itGetVisitorData();
+  const vd = await itGetVisitorData().catch(e => {
+    console.log('[innertube] visitorData fetch failed:', e.message);
+    return '';
+  });
   const cpn = itNonce(16);
-  const body = {
-    context: itAndroidContext(vd),
-    playerRequest: { videoId, cpn, contentCheckOk: true, racyCheckOk: true },
-    disablePlayerResponse: false,
-  };
-  const data = await httpPostJSON(
-    `${IT_GAPIS_V1}reel/reel_item_watch?prettyPrint=false&t=${itNonce(12)}&id=${encodeURIComponent(
-      videoId
-    )}&$fields=playerResponse`,
-    body,
-    12000,
-    IT_PLAYER_HEADERS
-  );
-  const pr = data && data.playerResponse;
-  if (!pr) throw new Error('no playerResponse');
-  const ps = pr.playabilityStatus || {};
-  if (ps.status && ps.status !== 'OK') {
-    throw new Error('playability ' + ps.status + (ps.reason ? ': ' + ps.reason : ''));
+  const attempts = [
+    {
+      name: 'android-reel',
+      url: `${IT_GAPIS_V1}reel/reel_item_watch?prettyPrint=false&t=${itNonce(12)}&id=${encodeURIComponent(
+        videoId
+      )}&$fields=playerResponse`,
+      body: {
+        context: itAndroidContext(vd),
+        playerRequest: { videoId, cpn, contentCheckOk: true, racyCheckOk: true },
+        disablePlayerResponse: false,
+      },
+      headers: IT_PLAYER_HEADERS,
+      unwrap: d => d && d.playerResponse,
+    },
+    {
+      name: 'visionos',
+      url: `${IT_GAPIS_V1}player?prettyPrint=false&t=${itNonce(12)}&id=${encodeURIComponent(videoId)}`,
+      body: {
+        context: itVisionOsContext(vd),
+        videoId,
+        cpn,
+        contentCheckOk: true,
+        racyCheckOk: true,
+      },
+      headers: IT_VISIONOS_HEADERS,
+      unwrap: d => d,
+    },
+  ];
+  let lastErr = null;
+  for (const a of attempts) {
+    let data = null;
+    try {
+      data = await httpPostJSON(a.url, a.body, 12000, a.headers);
+    } catch (e) {
+      console.log(`[innertube] ${a.name} request failed for ${videoId}: ${e.message}`);
+      lastErr = e;
+      continue;
+    }
+    const pr = a.unwrap(data);
+    if (!pr) {
+      console.log(`[innertube] ${a.name}: no playerResponse for ${videoId}`);
+      lastErr = new Error('no playerResponse');
+      continue;
+    }
+    // Fake-response guard (NewPipe rule): never play a response minted for
+    // another video — it signals substitution or rate-limiting.
+    const gotId = pr.videoDetails && pr.videoDetails.videoId;
+    if (gotId && gotId !== videoId) {
+      console.log(`[innertube] ${a.name}: id mismatch (want ${videoId}, got ${gotId})`);
+      lastErr = new Error('id mismatch');
+      continue;
+    }
+    const ps = pr.playabilityStatus || {};
+    const ad = (pr.streamingData && pr.streamingData.adaptiveFormats) || [];
+    const plain = ad.filter(f => f && typeof f.url === 'string' && f.url.startsWith('http')).length;
+    const ciphered = ad.filter(f => f && !f.url && f.signatureCipher).length;
+    console.log(
+      `[innertube] ${a.name} ${videoId}: playability=${ps.status || '?'} adaptive=${ad.length} plain=${plain} ciphered=${ciphered}`
+    );
+    if (ps.status && ps.status !== 'OK') {
+      lastErr = new Error('playability ' + ps.status + (ps.reason ? ': ' + ps.reason : ''));
+      continue;
+    }
+    const fmt = pickAudioFormat(ad, quality);
+    if (!fmt || !fmt.url) {
+      lastErr = new Error('no audio format');
+      continue;
+    }
+    return fmt.url;
   }
-  const fmt = pickAudioFormat(pr.streamingData && pr.streamingData.adaptiveFormats, quality);
-  if (!fmt || !fmt.url) throw new Error('no audio format');
-  return fmt.url;
+  throw lastErr || new Error('no audio format');
 }
 
 async function fetchStreamUrl(videoId) {

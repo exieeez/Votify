@@ -10713,3 +10713,15 @@ textarea:focus-visible {
 .wave-stitch-orb-4 {
   background: var(--orb-2, #fde047);
 }
+
+/* ---------- Offline downloads ---------- */
+.playlist-card.offline-card .card-cover-placeholder {
+  background: rgba(124, 156, 255, 0.14);
+}
+.m3-icon-btn.dl-btn.is-downloading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.m3-icon-btn.dl-btn.is-downloaded .material-icons {
+  color: #8be28b;
+}

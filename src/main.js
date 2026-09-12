@@ -1396,6 +1396,7 @@ function renderTrackRows(container, tracks, options = {}) {
     showAddButton = false,
     showDeleteButton = false,
     showFavoriteButton = true,
+    showDownloadButton = true,
     playButtonClass = 'play-track-btn',
     addButtonClass = 'add-to-playlist-btn',
     playlistName = '',
@@ -1424,6 +1425,8 @@ function renderTrackRows(container, tracks, options = {}) {
         <div class="track-actions">
           <button class="m3-icon-btn ${playButtonClass}" data-index="${idx}"><i class="material-icons">play_arrow</i></button>
           ${showFavoriteButton ? `<button class="m3-icon-btn fav-btn ${isFav ? 'is-fav' : ''}" data-index="${idx}" title="В избранное"><i class="material-icons">${isFav ? 'favorite' : 'favorite_border'}</i></button>` : ''}
+          ${showDownloadButton && track.id && !track.isLocal && !isTrackDownloaded(track.id) ? `<button class="m3-icon-btn dl-btn" data-index="${idx}" title="Скачать"><i class="material-icons">download</i></button>` : ''}
+          ${showDownloadButton && track.id && !track.isLocal && isTrackDownloaded(track.id) ? `<button class="m3-icon-btn dl-btn is-downloaded" data-index="${idx}" title="Скачано"><i class="material-icons">offline_pin</i></button>` : ''}
           ${showAddButton ? `<button class="m3-icon-btn ${addButtonClass}" data-index="${idx}"><i class="material-icons">playlist_add</i></button>` : ''}
           ${showDeleteButton ? `<button class="m3-icon-btn delete-track-btn" data-index="${idx}" title="Удалить из плейлиста"><i class="material-icons">close</i></button>` : ''}
         </div>
@@ -1462,6 +1465,14 @@ function renderTrackRows(container, tracks, options = {}) {
       btn.classList.toggle('is-fav', added);
       btn.querySelector('.material-icons').textContent = added ? 'favorite' : 'favorite_border';
       showToast(added ? 'Добавлено в избранное' : 'Удалено из избранного');
+    };
+  });
+  container.querySelectorAll('.dl-btn').forEach(btn => {
+    btn.onclick = () => {
+      if (btn.classList.contains('is-downloading') || btn.classList.contains('is-downloaded'))
+        return;
+      const idx = Number(btn.getAttribute('data-index'));
+      startTrackDownload(tracks[idx], btn);
     };
   });
   if (showAddButton) {
@@ -1705,6 +1716,144 @@ function setLoadingState(active, subtitleKey = 'loader-search') {
 // ==========================================
 // Playlists UI (Master-Detail Layout)
 // ==========================================
+// ==========================================
+// Offline downloads (server-backed, like the phone)
+// ==========================================
+state.offlineTracks = state.offlineTracks || [];
+const offlineDownloading = new Set();
+
+function isTrackDownloaded(id) {
+  return (state.offlineTracks || []).some(t => t && t.id === id);
+}
+
+function offlineAudioUrl(id) {
+  if (!isTrackDownloaded(id)) return '';
+  return `/api/offline/audio/${encodeURIComponent(id)}`;
+}
+
+async function loadOfflineIndex() {
+  const j = await apiFetch('/api/offline/list');
+  const tracks = j && Array.isArray(j.tracks) ? j.tracks : [];
+  state.offlineTracks = tracks.map(t => ({
+    id: t.id,
+    title: t.title || t.id,
+    artist: t.artist || '',
+    duration: t.duration || 0,
+    cover: t.coverFile ? `/api/offline/cover/${encodeURIComponent(t.id)}` : '',
+    isLocal: false,
+    downloaded: true,
+  }));
+  // Repaint visible download buttons for tracks downloaded earlier.
+  document.querySelectorAll('.track-item .dl-btn:not(.is-downloaded)').forEach(btn => {
+    const row = btn.closest('.track-item');
+    const id = row && row.getAttribute('data-track-id');
+    if (id && isTrackDownloaded(id)) {
+      btn.classList.add('is-downloaded');
+      const icon = btn.querySelector('.material-icons');
+      if (icon) icon.textContent = 'offline_pin';
+    }
+  });
+  if (typeof renderPlaylists === 'function') renderPlaylists();
+}
+
+function paintDownloadButtons(id, mode) {
+  // mode: downloading | done | error
+  document
+    .querySelectorAll(`.track-item[data-track-id="${CSS.escape(String(id))}"] .dl-btn`)
+    .forEach(btn => {
+      const icon = btn.querySelector('.material-icons');
+      btn.classList.remove('is-downloading', 'is-downloaded');
+      if (mode === 'downloading') {
+        btn.classList.add('is-downloading');
+        if (icon) icon.textContent = 'downloading';
+      } else if (mode === 'done') {
+        btn.classList.add('is-downloaded');
+        if (icon) icon.textContent = 'offline_pin';
+      } else {
+        if (icon) icon.textContent = 'download';
+      }
+    });
+}
+
+async function pollOfflineProgress(id) {
+  for (let i = 0; i < 120; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    const j = await apiFetch(`/api/offline/progress?id=${encodeURIComponent(id)}`);
+    if (!j || j.error) continue;
+    if (j.state === 'done') return true;
+    if (j.state === 'error' || j.state === 'missing') return false;
+  }
+  return false;
+}
+
+function pollOfflineUntilDone(ids) {
+  showToast('Загрузка идёт в фоне');
+  (async () => {
+    for (const id of ids) {
+      if (!offlineDownloading.has(id)) continue;
+      const ok = await pollOfflineProgress(id);
+      paintDownloadButtons(id, ok ? 'done' : 'error');
+      offlineDownloading.delete(id);
+    }
+    await loadOfflineIndex();
+  })();
+}
+
+async function startTrackDownload(track) {
+  if (!track || !track.id || track.isLocal) return;
+  if (isTrackDownloaded(track.id) || offlineDownloading.has(track.id)) return;
+  offlineDownloading.add(track.id);
+  paintDownloadButtons(track.id, 'downloading');
+  try {
+    await apiFetch('/api/offline/download', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        cover: track.cover,
+        duration: track.duration,
+      }),
+    });
+    const ok = await pollOfflineProgress(track.id);
+    paintDownloadButtons(track.id, ok ? 'done' : 'error');
+    if (ok) {
+      await loadOfflineIndex();
+      showToast('Трек скачан');
+    } else {
+      showToast('Не удалось скачать трек');
+    }
+  } finally {
+    offlineDownloading.delete(track.id);
+  }
+}
+
+function wireOfflineDeleteButtons(container, tracks) {
+  container.querySelectorAll('.track-item').forEach((row, idx) => {
+    const actions = row.querySelector('.track-actions');
+    if (!actions) return;
+    const btn = document.createElement('button');
+    btn.className = 'm3-icon-btn delete-track-btn';
+    btn.title = 'Удалить загрузку';
+    btn.innerHTML = '<i class="material-icons">delete_outline</i>';
+    btn.onclick = async () => {
+      const track = tracks[idx];
+      if (!track) return;
+      const confirmed = await confirmModal(
+        'Удалить трек',
+        `Удалить «${track.title}» с устройства?`
+      );
+      if (!confirmed) return;
+      await apiFetch(`/api/offline?id=${encodeURIComponent(track.id)}`, { method: 'DELETE' });
+      await loadOfflineIndex();
+      openPlaylist('__OFFLINE__');
+    };
+    actions.appendChild(btn);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', loadOfflineIndex);
+
 let currentActiveLibItem = 'Избранное';
 
 function renderPlaylists() {
@@ -1721,14 +1870,35 @@ function renderPlaylists() {
 
   // Render user playlists list in left sidebar / grid
   const container = document.getElementById('lib-playlists-list');
+  const offlineList = state.offlineTracks || [];
+  const offlineCover = offlineList.length > 0 && offlineList[0].cover ? offlineList[0].cover : '';
+  const offlineCard = `
+        <div class="playlist-card offline-card" data-offline="1" id="lib-item-offline">
+          <div class="card-cover-wrap">
+            ${
+              offlineCover
+                ? `<img class="card-cover" src="${escapeHtml(offlineCover)}" alt="Офлайн" />`
+                : `<div class="card-cover-placeholder"><i class="material-icons">offline_pin</i></div>`
+            }
+            <button class="card-play-btn" title="Открыть"><i class="material-icons">play_arrow</i></button>
+          </div>
+          <div class="card-info">
+            <div class="card-title">Офлайн</div>
+            <div class="card-sub" id="lib-offline-count">${offlineList.length > 0 ? offlineList.length + ' треков' : 'Нет треков'}</div>
+          </div>
+        </div>
+      `;
   if (container) {
     const keys = Object.keys(playlists).filter(k => k !== 'Избранное');
     if (keys.length === 0) {
       container.innerHTML =
+        offlineCard +
         '<div style="font-size:13px;color:rgba(255,255,255,0.4);padding:18px 0;grid-column:1/-1;">У вас пока нет созданных плейлистов. Нажмите «Создать плейлист», чтобы добавить первый.</div>';
     } else {
-      container.innerHTML = keys
-        .map(key => {
+      container.innerHTML =
+        offlineCard +
+        keys
+          .map(key => {
           const list = playlists[key] || [];
           const cover = list.length > 0 && list[0].cover ? list[0].cover : '';
           return `
@@ -1748,12 +1918,16 @@ function renderPlaylists() {
         </div>
       `;
         })
-        .join('');
+          .join('');
     }
 
     // Attach click listeners for playlists
     container.querySelectorAll('.playlist-card').forEach(item => {
       item.onclick = () => {
+        if (item.hasAttribute('data-offline')) {
+          openPlaylist('__OFFLINE__');
+          return;
+        }
         const plName = item.getAttribute('data-playlist');
         openPlaylist(plName);
       };
@@ -1785,6 +1959,9 @@ function renderPlaylists() {
         if (tab === 'favorites') {
           if (playlistsSection) playlistsSection.style.display = 'none';
           openPlaylist('Избранное');
+        } else if (tab === 'offline') {
+          if (playlistsSection) playlistsSection.style.display = 'none';
+          openPlaylist('__OFFLINE__');
         } else if (tab === 'playlists') {
           if (playlistsSection) playlistsSection.style.display = 'block';
           if (detailPane) detailPane.style.display = 'none';
@@ -1889,6 +2066,19 @@ function openPlaylist(name) {
     tracks = playlists['Избранное'] || [];
     title = 'Любимые треки';
     subtitle = `${tracks.length} треков в вашей коллекции`;
+  } else if (name === '__OFFLINE__') {
+    // Downloaded tracks: server-backed, playable without network.
+    const playlistsSection = document.getElementById('lib-playlists-section');
+    if (playlistsSection) playlistsSection.style.display = 'none';
+    const filterTabs = document.getElementById('library-filter-tabs');
+    if (filterTabs) {
+      filterTabs.querySelectorAll('.lib-tab-btn').forEach(b => b.classList.remove('active'));
+      const offlineTab = filterTabs.querySelector('[data-tab="offline"]');
+      if (offlineTab) offlineTab.classList.add('active');
+    }
+    tracks = state.offlineTracks || [];
+    title = 'Офлайн';
+    subtitle = `${tracks.length} треков доступно без интернета`;
   } else {
     // User playlists live in the grid: the user clicked a playlist card or
     // opened it from elsewhere, so show the grid again.
@@ -1927,7 +2117,8 @@ function openPlaylist(name) {
     }
     if (coverFallback) coverFallback.style.display = has ? 'none' : 'flex';
     if (coverIcon) {
-      coverIcon.textContent = name === 'Избранное' ? 'favorite' : 'queue_music';
+      coverIcon.textContent =
+        name === 'Избранное' ? 'favorite' : name === '__OFFLINE__' ? 'offline_pin' : 'queue_music';
     }
   }
 
@@ -1954,8 +2145,21 @@ function openPlaylist(name) {
     playTrack(tracks[currentTrackIndex]);
   });
 
+  // Download-all button
+  safeClick('lib-download-active-btn', () => {
+    if (name === '__OFFLINE__') {
+      showToast('Эти треки уже на устройстве');
+      return;
+    }
+    downloadPlaylist(name, tracks);
+  });
+
   // Delete button
   safeClick('lib-delete-active-btn', async () => {
+    if (name === '__OFFLINE__') {
+      showToast('Скачанные треки удаляются по одному');
+      return;
+    }
     if (name === 'Избранное') {
       showToast('Системную подборку нельзя удалить');
       return;
@@ -1983,7 +2187,11 @@ function openPlaylist(name) {
     if (emptyState) emptyState.style.display = 'none';
     if (tracklistWrap) {
       tracklistWrap.style.display = 'block';
-      renderTrackRows(tracklistWrap, tracks, { showAddButton: true });
+      renderTrackRows(tracklistWrap, tracks, {
+        showAddButton: name !== '__OFFLINE__',
+        showDownloadButton: name !== '__OFFLINE__',
+      });
+      if (name === '__OFFLINE__') wireOfflineDeleteButtons(tracklistWrap, tracks);
     }
   }
 }
@@ -4561,25 +4769,6 @@ if (appSettings.rememberVolume && appSettings.defaultVolume != null)
 // General Settings Wiring
 // ==========================================
 
-// Audio quality (also pushed to the backend so it affects the actual stream)
-const audioQualitySelect = document.getElementById('setting-audio-quality');
-if (audioQualitySelect) {
-  audioQualitySelect.value = appSettings.audioQuality || 'medium';
-  audioQualitySelect.addEventListener('change', async () => {
-    appSettings.audioQuality = audioQualitySelect.value;
-    saveSettings();
-    try {
-      await apiFetch('/api/network/settings', {
-        method: 'POST',
-        body: JSON.stringify({ audioQuality: appSettings.audioQuality }),
-      });
-      showToast('Качество аудио изменено');
-    } catch (e) {
-      /* server may be unreachable */
-    }
-  });
-}
-
 // UI click sounds
 const uiSoundsToggle = document.getElementById('toggle-ui-sounds');
 if (uiSoundsToggle) {
@@ -4771,7 +4960,6 @@ async function loadNetworkSettingsFromServer() {
       delete appSettings.streamSource;
       delete appSettings.invidiousInstance;
       delete appSettings.pipedInstance;
-      if (audioQualitySelect) audioQualitySelect.value = appSettings.audioQuality || 'medium';
       localStorage.setItem('votify-settings', JSON.stringify(appSettings));
     }
   } catch (e) {
@@ -4834,14 +5022,39 @@ if (trackNotificationsToggle) {
 const openOfflineDB = openMP3DB;
 const OFFLINE_STORE = MP3_STORE_NAME;
 
-function downloadPlaylist(name) {
-  const list = playlists[name] || [];
+async function downloadPlaylist(name, trackList) {
+  const list = Array.isArray(trackList) ? trackList : playlists[name] || [];
   if (!list.length) {
-    if (typeof showToast === 'function') showToast('Плейлист пуст');
+    showToast('Плейлист пуст');
     return;
   }
-  if (typeof showToast === 'function')
-    showToast(`Загрузка плейлиста «${name}» (${list.length} треков)...`);
+  const pending = list.filter(t => t && t.id && !t.isLocal && !isTrackDownloaded(t.id));
+  if (!pending.length) {
+    showToast('Всё уже скачано');
+    return;
+  }
+  showToast(`Загрузка: ${pending.length} треков...`);
+  for (const t of pending) {
+    if (offlineDownloading.has(t.id)) continue;
+    offlineDownloading.add(t.id);
+    paintDownloadButtons(t.id, 'downloading');
+    try {
+      await apiFetch('/api/offline/download', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: t.id,
+          title: t.title,
+          artist: t.artist,
+          cover: t.cover,
+          duration: t.duration,
+        }),
+      });
+    } catch (e) {
+      offlineDownloading.delete(t.id);
+      paintDownloadButtons(t.id, 'error');
+    }
+  }
+  pollOfflineUntilDone(pending.map(t => t.id));
 }
 
 async function getOfflineCacheStats() {
@@ -6774,10 +6987,11 @@ async function playTrack(track) {
 
   try {
     // Stream the audio URL directly (server proxy handles the actual stream)
+    const downloadedUrl = !track.isLocal && track.id ? offlineAudioUrl(track.id) : '';
     const streamUrl =
       track.isLocal && track.localUrl
         ? track.localUrl
-        : `/api/stream?id=${encodeURIComponent(track.id)}`;
+        : downloadedUrl || `/api/stream?id=${encodeURIComponent(track.id)}`;
     audio.src = streamUrl;
     audio.load(); // ensure the new source is picked up immediately
     await audio.play();
@@ -9387,65 +9601,12 @@ function initRedesignedSettings() {
     });
   });
 
-  // --- 3. Аудио (gen-audio) ---
-  const qSelect = document.getElementById('setting-audio-quality');
-  if (qSelect) {
-    qSelect.value = appSettings.audioQuality || 'medium';
-    qSelect.addEventListener('change', async () => {
-      appSettings.audioQuality = qSelect.value;
-      saveSettings();
-      try {
-        await apiFetch('/api/network/settings', {
-          method: 'POST',
-          body: JSON.stringify({ audioQuality: appSettings.audioQuality }),
-        });
-        showToast('Качество аудио изменено');
-      } catch (e) {
-        /* ignore */
-      }
-    });
-  }
-  wireInput('toggle-gapless', 'gapless', false);
-  wireInput('crossfade-duration', 'crossfade', 0, 'crossfade-value', ' сек');
-  wireInput('toggle-normalize', 'normalize', false, null, '', () => {
-    if (typeof applyNormalizeToNode === 'function') applyNormalizeToNode();
-  });
-  wireInput('toggle-cache-tracks', 'cacheTracks', true);
-
-  // --- 4. Эффективность (gen-perf) ---
-  wireInput('setting-perf-limiting', 'perfLimiting', 'off');
-  const fxQualitySel = document.getElementById('setting-fx-quality');
-  if (fxQualitySel) {
-    fxQualitySel.value = appSettings.fxQuality || 'auto';
-    fxQualitySel.addEventListener('change', () => {
-      appSettings.fxQuality = fxQualitySel.value;
-      perfAutoLow = false;
-      applyPerfMode();
-      saveSettings();
-    });
-  }
-  wireInput('setting-glow', 'cursorGlow', false, '', '', applyGlowVisibility);
   applyGlowVisibility();
   applyPerfMode();
-  wireInput('background-blur-slider', 'background-blur', 15, 'background-blur-value', 'px');
-  const blurSlider = document.getElementById('background-blur-slider');
-  if (blurSlider) {
-    blurSlider.addEventListener('input', () => {
-      document.documentElement.style.setProperty('--background-blur', blurSlider.value + 'px');
-    });
-  }
-  wireInput('toggle-perf-bg', 'perfBg', true);
-  wireInput('toggle-perf-particles', 'perfParticles', true, null, '', () =>
-    updateParticleSystem()
-  );
-  wireInput('toggle-perf-covers', 'perfCovers', true);
-  wireInput('toggle-perf-visualizers', 'perfVisualizers', true);
-  wireInput('toggle-perf-blur', 'perfBlur', true);
-
-  // --- 5. Горячие клавиши (gen-hotkeys) ---
+  // --- 3. Горячие клавиши (gen-hotkeys) ---
   wireInput('toggle-global-hotkeys', 'globalHotkeysEnabled', true);
 
-  // --- 6. Хранилище (gen-storage) ---
+  // --- 4. Хранилище (gen-storage) ---
   function updateStorageSizes() {
     const tracksSizeEl = document.getElementById('cache-tracks-size');
     const coversSizeEl = document.getElementById('cache-covers-size');
@@ -9505,7 +9666,7 @@ function initRedesignedSettings() {
     }
   });
 
-  // --- 7. Плеер (app-player) ---
+  // --- 5. Плеер (app-player) ---
   wireInput('setting-player-title-align', 'playerTitleAlign', 'center', null, '', () =>
     applyPlayerSettings()
   );
@@ -9529,7 +9690,7 @@ function initRedesignedSettings() {
     applyPlayerSettings()
   );
 
-  // --- 8. Обложка (app-cover) ---
+  // --- 6. Обложка (app-cover) ---
   wireInput(
     'setting-cover-shape',
     'playerCoverShape',
@@ -9546,7 +9707,7 @@ function initRedesignedSettings() {
     applyCoverSettings()
   );
 
-  // --- 9. Интерфейс (app-ui) ---
+  // --- 7. Интерфейс (app-ui) ---
   wireInput('font-family-select', 'fontFamily', 'inter', null, '', () => applyUISettings());
   wireInput('font-size-slider', 'fontSize', '16px', 'font-size-slider-value', 'px', () =>
     applyUISettings()
@@ -9575,13 +9736,13 @@ function initRedesignedSettings() {
   // immediately instead of waiting for this delayed initializer.
   bindThemeColorPresets();
 
-  // --- 10. Вкладки (app-tabs) ---
+  // --- 8. Вкладки (app-tabs) ---
   wireInput('toggle-tab-home', 'tabHome', true, null, '', () => applyTabsSettings());
   wireInput('toggle-tab-search', 'tabSearch', true, null, '', () => applyTabsSettings());
   wireInput('toggle-tab-library', 'tabLibrary', true, null, '', () => applyTabsSettings());
   wireInput('toggle-tab-settings', 'tabSettings', true, null, '', () => applyTabsSettings());
 
-  // --- 11. Фон (app-bg) ---
+  // --- 9. Фон (app-bg) ---
   wireInput('setting-bg-particles', 'bgParticles', 'none', null, '', () => updateParticleSystem());
   wireInput('slider-particle-count', 'particleCount', 50, 'particle-count-val', '', () =>
     updateParticleSystem()
@@ -9645,7 +9806,7 @@ function initRedesignedSettings() {
     });
   }
 
-  // --- 12. Кастомизация (app-custom) ---
+  // --- 10. Кастомизация (app-custom) ---
   // This is also called during initial page setup, before this delayed
   // redesigned-settings initializer. The binding is idempotent.
   bindCustomColorPickers();

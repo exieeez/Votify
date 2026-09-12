@@ -52,12 +52,50 @@ app.commandLine.appendSwitch('disable-http-cache');
 // and the app also relaunches itself into this mode when the GPU process dies
 // or the window never becomes ready.
 const SOFTWARE_GPU_FLAG = '--votify-software-gpu';
-const softwareGpuRequested =
+const X11_FLAG = '--votify-x11';
+// Remember the last-known-good GPU mode (~/.votify/gpu-mode.json) so a healthy
+// machine boots straight into the working mode instead of replaying the
+// Wayland -> X11 -> software cascade every start. Explicit flags always win;
+// --reset-gpu clears the saved mode.
+function readSavedGpuMode() {
+  try {
+    if (process.argv.includes('--reset-gpu')) {
+      fs.unlinkSync(path.join(userDataPath, 'gpu-mode.json'));
+      console.log('[gpu] saved GPU mode cleared (--reset-gpu)');
+      return '';
+    }
+    const saved = JSON.parse(fs.readFileSync(path.join(userDataPath, 'gpu-mode.json'), 'utf8'));
+    return saved && typeof saved.mode === 'string' ? saved.mode : '';
+  } catch (e) {
+    return '';
+  }
+}
+function saveGpuMode(mode) {
+  try {
+    fs.mkdirSync(userDataPath, { recursive: true });
+    fs.writeFileSync(
+      path.join(userDataPath, 'gpu-mode.json'),
+      JSON.stringify({ mode, at: Date.now() })
+    );
+  } catch (e) {
+    console.warn('[gpu] could not save GPU mode:', e.message);
+  }
+}
+const savedGpuMode = readSavedGpuMode();
+const explicitSoftwareGpu =
   process.argv.includes('--disable-gpu') ||
   process.argv.includes('--software') ||
   process.argv.includes('--safe-mode') ||
   process.argv.includes(SOFTWARE_GPU_FLAG) ||
   process.env.VOTIFY_DISABLE_GPU === '1';
+const explicitX11 = process.argv.includes('--x11') || process.argv.includes(X11_FLAG);
+const explicitGpuMode = explicitSoftwareGpu || explicitX11;
+const softwareGpuRequested =
+  explicitSoftwareGpu || (!explicitGpuMode && savedGpuMode === 'software');
+const x11Requested = explicitX11 || (!explicitGpuMode && savedGpuMode === 'x11');
+if (savedGpuMode && !explicitGpuMode) {
+  console.log(`[gpu] applying remembered GPU mode: ${savedGpuMode}`);
+}
 if (softwareGpuRequested) {
   console.log('[gpu] Software rendering mode enabled');
   app.disableHardwareAcceleration();
@@ -67,8 +105,6 @@ if (softwareGpuRequested) {
 }
 // X11 fallback for broken Wayland presentation (black window with a live
 // page). Auto-selected by the cascade, or forced with --x11.
-const X11_FLAG = '--votify-x11';
-const x11Requested = process.argv.includes('--x11') || process.argv.includes(X11_FLAG);
 if (x11Requested && !process.argv.some(a => a.startsWith('--ozone-platform'))) {
   console.log('[gpu] Forcing ozone-platform=x11');
   app.commandLine.appendSwitch('ozone-platform', 'x11');
@@ -291,6 +327,7 @@ function createWindow() {
   const markHealthy = why => {
     if (pageHealthy) return;
     pageHealthy = true;
+    saveGpuMode(softwareGpuRequested ? 'software' : x11Requested ? 'x11' : 'native');
     console.log(`[window] healthy (${why})`);
     clearTimeout(showFailsafe);
     clearTimeout(cascadeTimer);

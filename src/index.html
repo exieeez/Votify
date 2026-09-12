@@ -666,6 +666,7 @@
                 <button class="lib-tab-btn active" data-tab="all">Все</button>
                 <button class="lib-tab-btn" data-tab="favorites">Любимые треки</button>
                 <button class="lib-tab-btn" data-tab="playlists">Плейлисты</button>
+                <button class="lib-tab-btn" data-tab="offline">Офлайн</button>
               </div>
             </div>
 
@@ -694,6 +695,7 @@
                   <div class="lib-detail-actions">
                     <button class="lib-action-circle-btn" id="lib-play-all-btn" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
                     <button class="lib-action-circle-btn" id="lib-shuffle-all-btn" title="Перемешать"><i class="material-icons">shuffle</i></button>
+                    <button class="lib-action-circle-btn" id="lib-download-active-btn" title="Скачать всё"><i class="material-icons">download</i></button>
                     <button class="lib-action-circle-btn" id="lib-delete-active-btn" title="Удалить"><i class="material-icons">delete_outline</i></button>
                     <button class="lib-action-circle-btn secondary" id="lib-close-detail-btn" title="Скрыть плейлист"><i class="material-icons">close</i></button>
                   </div>
@@ -1183,8 +1185,6 @@
             <div class="settings-menu-category">ОСНОВНЫЕ</div>
             <button class="settings-menu-item active" data-settings-section="gen-main"><i class="material-icons">tune</i>Основные</button>
 
-            <button class="settings-menu-item" data-settings-section="gen-audio"><i class="material-icons">volume_up</i>Аудио</button>
-            <button class="settings-menu-item" data-settings-section="gen-perf"><i class="material-icons">speed</i>Эффективность</button>
             <button class="settings-menu-item" data-settings-section="gen-hotkeys"><i class="material-icons">keyboard</i>Горячие клавиши</button>
             <button class="settings-menu-item" data-settings-section="gen-storage"><i class="material-icons">storage</i>Хранилище</button>
 
@@ -1255,111 +1255,7 @@
 
 
 
-            <!-- SECTION 3: Аудио (gen-audio) -->
-            <div class="settings-panel" id="settings-panel-gen-audio">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">album</i><h3>Качество звука</h3></div>
-                <div class="setting-item">
-                  <label for="setting-audio-quality">Качество потока аудио</label>
-                  <select id="setting-audio-quality" class="m3-select">
-                    <option value="low">Низкое (192 kbps MP3)</option>
-                    <option value="medium" selected>Среднее (256 kbps AAC)</option>
-                    <option value="high">Высокое (320 kbps HQ)</option>
-                    <option value="lossless">Без потерь (1411 kbps / FLAC)</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">graphic_eq</i><h3>Параметры стриминга</h3></div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Бесшовное воспроизведение (Gapless)</span>
-                    <span class="setting-toggle-desc">Минимизировать паузы и задержки перед началом следующего трека</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-gapless" /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Кроссфейд (плавный переход)</label><span class="setting-value" id="crossfade-value">0 сек</span></div>
-                  <input type="range" class="settings-range" id="crossfade-duration" min="0" max="15" value="0" />
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Нормализация громкости (AGC)</span>
-                    <span class="setting-toggle-desc">Выравнивать громкость разных треков на один уровень</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-normalize" /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Кеширование треков</span>
-                    <span class="setting-toggle-desc">Сохранять треки локально в кэш для экономии трафика</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-cache-tracks" checked /><span class="toggle-slider"></span></label>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 4: Эффективность (gen-perf) -->
-            <div class="settings-panel" id="settings-panel-gen-perf">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">battery_charging_full</i><h3>Ограничение ресурсов</h3></div>
-                <div class="setting-item">
-                  <label for="setting-perf-limiting">Энергосбережение и ЦП</label>
-                  <select id="setting-perf-limiting" class="m3-select">
-                    <option value="off">Выключено</option>
-                    <option value="minimize">При сворачивании окна</option>
-                    <option value="blur">При потере фокуса</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">blur_on</i><h3>Эффекты и Размытие</h3></div>
-                <div class="setting-item">
-                  <label for="setting-fx-quality">Качество эффектов (свечение курсора, лава-лампа)</label>
-                  <select id="setting-fx-quality" class="m3-select">
-                    <option value="auto">Авто — по FPS (рекомендуется)</option>
-                    <option value="max">Максимальное</option>
-                    <option value="low">Экономное — если лагает</option>
-                  </select>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Свет под курсором</span>
-                    <span class="setting-toggle-desc">Мягкий spotlight, следящий за мышью. Выключите, если нужен максимум производительности</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="setting-glow" /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Качество и сила размытия (Blur)</label><span class="setting-value" id="background-blur-value">15px</span></div>
-                  <input type="range" class="settings-range" id="background-blur-slider" min="0" max="30" value="15" />
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">toggle_on</i><h3>Управление активными ресурсами</h3></div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Динамический фон</span><span class="setting-toggle-desc">Анимированный градиент на фоне главного окна</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-bg" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Эффекты частиц на фоне</span><span class="setting-toggle-desc">Снег, дождь или летающие светлячки</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-particles" /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Анимации обложек</span><span class="setting-toggle-desc">Вращение, пульсация и 3D-перевороты</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-covers" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Визуализаторы спектра</span><span class="setting-toggle-desc">Canvas-анимация спектра частот звука</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-visualizers" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Высококачественный Blur</span><span class="setting-toggle-desc">Использовать продвинутые фильтры размытия в реальном времени</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-blur" checked /><span class="toggle-slider"></span></label>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 5: Горячие клавиши (gen-hotkeys) -->
+            <!-- SECTION 3: Горячие клавиши (gen-hotkeys) -->
             <div class="settings-panel" id="settings-panel-gen-hotkeys">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">keyboard</i><h3>Настройка клавиш активации</h3></div>
@@ -1379,7 +1275,7 @@
               </div>
             </div>
 
-            <!-- SECTION 6: Хранилище (gen-storage) -->
+            <!-- SECTION 4: Хранилище (gen-storage) -->
             <div class="settings-panel" id="settings-panel-gen-storage">
               <div class="settings-section storage-hero">
                 <div class="storage-hero-donut">
@@ -1419,7 +1315,7 @@
               </div>
             </div>
 
-            <!-- SECTION 7: Плеер (app-player) -->
+            <!-- SECTION 5: Плеер (app-player) -->
             <div class="settings-panel" id="settings-panel-app-player">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">format_align_center</i><h3>Выравнивание заголовка</h3></div>
@@ -1470,7 +1366,7 @@
               </div>
             </div>
 
-            <!-- SECTION 8: Обложка (app-cover) -->
+            <!-- SECTION 6: Обложка (app-cover) -->
             <div class="settings-panel" id="settings-panel-app-cover">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">crop_square</i><h3>Форма обложки</h3></div>
@@ -1527,7 +1423,7 @@
               </div>
             </div>
 
-            <!-- SECTION 9: Интерфейс (app-ui) -->
+            <!-- SECTION 7: Интерфейс (app-ui) -->
             <div class="settings-panel" id="settings-panel-app-ui">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">brightness_medium</i><h3>Тема оформления</h3></div>
@@ -1596,7 +1492,7 @@
               </div>
             </div>
 
-            <!-- SECTION 10: Вкладки (app-tabs) -->
+            <!-- SECTION 8: Вкладки (app-tabs) -->
             <div class="settings-panel" id="settings-panel-app-tabs">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">tab</i><h3>Вкладки навигации</h3></div>
@@ -1620,7 +1516,7 @@
               </div>
             </div>
 
-            <!-- SECTION 11: Фон (app-bg) -->
+            <!-- SECTION 9: Фон (app-bg) -->
             <div class="settings-panel" id="settings-panel-app-bg">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">wallpaper</i><h3>Изображение фона</h3></div>
@@ -1709,7 +1605,7 @@
               </div>
             </div>
 
-            <!-- SECTION 12: Кастомизация (app-custom) -->
+            <!-- SECTION 10: Кастомизация (app-custom) -->
             <div class="settings-panel" id="settings-panel-app-custom">
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">color_lens</i><h3>Конструктор тем (Моя тема)</h3></div>
