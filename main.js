@@ -45,6 +45,50 @@ app.commandLine.appendSwitch('disk-cache-dir', path.join(userDataPath, 'cache'))
 // runs to show an older interface after an update.
 app.commandLine.appendSwitch('disable-http-cache');
 
+// --- GPU-safe mode -----------------------------------------------------------
+// Some Linux GPU drivers break Chromium's ANGLE backend (glGetInternalformativ
+// errors, hung renderer) and the window never appears. Software rendering can
+// be forced with --disable-gpu / --software / --safe-mode (or VOTIFY_DISABLE_GPU=1),
+// and the app also relaunches itself into this mode when the GPU process dies
+// or the window never becomes ready.
+const SOFTWARE_GPU_FLAG = '--votify-software-gpu';
+const softwareGpuRequested =
+  process.argv.includes('--disable-gpu') ||
+  process.argv.includes('--software') ||
+  process.argv.includes('--safe-mode') ||
+  process.argv.includes(SOFTWARE_GPU_FLAG) ||
+  process.env.VOTIFY_DISABLE_GPU === '1';
+if (softwareGpuRequested) {
+  console.log('[gpu] Software rendering mode enabled');
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('disable-gpu');
+  // Newer Chromium needs this for the SwiftShader software fallback.
+  app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+}
+
+let gpuRelaunchDone = false;
+function relaunchWithSoftwareGpu(reason) {
+  if (softwareGpuRequested || gpuRelaunchDone) return;
+  gpuRelaunchDone = true;
+  console.warn(`[gpu] ${reason} — relaunching with software rendering`);
+  try {
+    app.relaunch({ args: process.argv.slice(1).concat([SOFTWARE_GPU_FLAG]) });
+  } catch (e) {
+    console.warn('[gpu] relaunch failed:', e.message);
+    return;
+  }
+  app.exit(0);
+}
+
+app.on('gpu-process-crashed', (event, killed) => {
+  relaunchWithSoftwareGpu(`GPU process crashed (killed=${killed})`);
+});
+app.on('child-process-gone', (event, details) => {
+  if (details && details.type === 'GPU') {
+    relaunchWithSoftwareGpu(`GPU child process gone (${details.reason || 'unknown'})`);
+  }
+});
+
 function getGoogleDesktopCredentials() {
   let clientId = process.env.VOTIFY_GOOGLE_DESKTOP_CLIENT_ID || '';
   let clientSecret = process.env.VOTIFY_GOOGLE_DESKTOP_CLIENT_SECRET || '';
@@ -170,19 +214,58 @@ function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
+    clearTimeout(showFailsafe);
     mainWindow.show();
   });
 
+  // Failsafe: never leave the user with an invisible app. If the renderer
+  // never reports ready-to-show (broken GPU driver, failed load), relaunch
+  // once with software rendering — otherwise force the window visible.
+  const showFailsafe = setTimeout(() => {
+    if (!mainWindow || mainWindow.isVisible()) return;
+    if (!softwareGpuRequested && !gpuRelaunchDone) {
+      relaunchWithSoftwareGpu('window never became ready (likely broken GPU driver)');
+      return;
+    }
+    console.warn('[window] ready-to-show never fired, forcing show()');
+    mainWindow.show();
+  }, 20000);
+  if (typeof showFailsafe.unref === 'function') showFailsafe.unref();
+
   // Load via HTTP to avoid file:// CORS issues
   mainWindow.loadURL(`http://localhost:${PORT}/index.html?v=${Date.now()}`);
+
+  let loadRetries = 0;
+  mainWindow.webContents.on('did-fail-load', (event, code, desc, url, isMainFrame) => {
+    if (!isMainFrame) return;
+    console.error(`[window] load failed (${code}): ${desc}`);
+    if (loadRetries < 2) {
+      loadRetries += 1;
+      setTimeout(() => {
+        if (mainWindow) mainWindow.loadURL(`http://localhost:${PORT}/index.html?v=${Date.now()}`);
+      }, 1500);
+    } else if (mainWindow && !mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+  });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  mainWindow.webContents.on('render-process-gone', () => {
+  let rendererReloaded = false;
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
     discordPresence.clear();
+    console.error('[window] render-process-gone:', details && details.reason);
+    if (!rendererReloaded && details && details.reason !== 'clean-exit') {
+      rendererReloaded = true;
+      try {
+        mainWindow.webContents.reload();
+      } catch (e) {
+        console.warn('[window] reload failed:', e.message);
+      }
+    }
   });
 
   mainWindow.on('closed', () => {
