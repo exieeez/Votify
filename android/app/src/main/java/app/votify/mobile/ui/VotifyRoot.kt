@@ -356,9 +356,9 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     var bgCachedFile by remember(workshopBgUrl) { mutableStateOf<java.io.File?>(null) }
     LaunchedEffect(workshopBgUrl) {
         bgCachedFile = if (workshopBgUrl.isBlank()) null
-        else app.votify.mobile.data.BackgroundCache.cachedFile(app, workshopBgUrl)
-            ?: app.votify.mobile.data.BackgroundCache.ensureCached(app, workshopBgUrl)
-        app.votify.mobile.data.BackgroundCache.prune(app, workshopBgUrl)
+        else BackgroundCache.cachedFile(app, workshopBgUrl)
+            ?: BackgroundCache.ensureCached(app, workshopBgUrl)
+        BackgroundCache.prune(app, workshopBgUrl)
     }
     val bgModel: Any? = bgCachedFile ?: workshopBgUrl.ifBlank { null }
     // Fine-tuning: Настройки → Фон («затемнение»/«размытие», prefs.bgDim/bgBlur).
