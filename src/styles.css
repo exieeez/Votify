@@ -10547,3 +10547,151 @@ textarea:focus-visible {
     font-size: 30px;
   }
 }
+
+/* ===== v0.9.3: «My wave» hero from Stitch design (fire banner + glass Play) ===== */
+.wave-stitch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 300px;
+  padding: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  background: #0b0b0e;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  user-select: none;
+}
+.wave-stitch-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  animation: wave-stitch-breathe 8s ease-in-out infinite;
+}
+@keyframes wave-stitch-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.035); opacity: 0.94; }
+}
+.wave-stitch-orb {
+  position: absolute;
+  border-radius: 50%;
+}
+.wave-stitch-orb-1 {
+  width: 560px;
+  height: 560px;
+  opacity: 0.6;
+  filter: blur(90px);
+  background: radial-gradient(circle, #ff0077 0%, #a800e0 45%, transparent 75%);
+}
+.wave-stitch-orb-2 {
+  width: 440px;
+  height: 440px;
+  opacity: 0.9;
+  filter: blur(50px);
+  background: radial-gradient(circle, #ffaa00 0%, #ff4b00 45%, #e10085 70%, transparent 85%);
+}
+.wave-stitch-orb-3 {
+  width: 270px;
+  height: 270px;
+  opacity: 0.95;
+  filter: blur(24px);
+  background: radial-gradient(circle, #fff176 0%, #ffb300 40%, #ff5722 80%, transparent 100%);
+}
+.wave-stitch-orb-4 {
+  width: 140px;
+  height: 140px;
+  opacity: 1;
+  filter: blur(12px);
+  background: #fde047;
+}
+.wave-stitch-rays {
+  position: absolute;
+  width: 680px;
+  height: 420px;
+  max-width: none;
+  opacity: 0.4;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.wave-stitch-ui {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+.wave-stitch-title {
+  margin: 0;
+  color: #fff;
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.6));
+  transition: transform 0.3s;
+}
+.wave-stitch:hover .wave-stitch-title {
+  transform: scale(1.05);
+}
+.wave-stitch-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.15);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  cursor: pointer;
+  transition: transform 0.3s, filter 0.3s;
+}
+.wave-stitch-play:hover {
+  transform: scale(1.05);
+}
+.wave-stitch-play:active {
+  transform: scale(0.95);
+}
+.wave-stitch-play svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.wave-stitch-play span {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.wave-stitch-play .wave-stitch-icon-play {
+  transform: translateX(2px);
+}
+.wave-stitch-play .wave-stitch-icon-pause {
+  display: none;
+}
+.wave-stitch-play.playing .wave-stitch-icon-play {
+  display: none;
+}
+.wave-stitch-play.playing .wave-stitch-icon-pause {
+  display: inline;
+}
+@media (max-width: 640px) {
+  .wave-stitch {
+    min-height: 260px;
+    padding: 24px;
+  }
+  .wave-stitch-title {
+    font-size: 36px;
+  }
+}
