@@ -65,16 +65,29 @@ if (softwareGpuRequested) {
   // Newer Chromium needs this for the SwiftShader software fallback.
   app.commandLine.appendSwitch('enable-unsafe-swiftshader');
 }
+console.log(
+  `[votify] starting pid=${process.pid} version=${app.getVersion()} ` +
+    `softwareGpu=${softwareGpuRequested} execPath=${process.execPath} ` +
+    `display=${process.env.DISPLAY || '-'} wayland=${process.env.WAYLAND_DISPLAY || '-'} ` +
+    `session=${process.env.XDG_SESSION_TYPE || '-'}`,
+);
 
 let gpuRelaunchDone = false;
 function relaunchWithSoftwareGpu(reason) {
   if (softwareGpuRequested || gpuRelaunchDone) return;
   gpuRelaunchDone = true;
   console.warn(`[gpu] ${reason} — relaunching with software rendering`);
+  // The forked local server would otherwise stay orphaned and keep the port.
+  try {
+    if (serverProcess) serverProcess.kill();
+  } catch (e) {
+    /* ignore */
+  }
   try {
     app.relaunch({ args: process.argv.slice(1).concat([SOFTWARE_GPU_FLAG]) });
   } catch (e) {
     console.warn('[gpu] relaunch failed:', e.message);
+    if (mainWindow && !mainWindow.isVisible()) mainWindow.show();
     return;
   }
   app.exit(0);
@@ -214,14 +227,19 @@ function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
+    console.log('[window] ready-to-show');
     clearTimeout(showFailsafe);
     mainWindow.show();
   });
+  mainWindow.on('show', () => console.log('[window] show event'));
 
   // Failsafe: never leave the user with an invisible app. If the renderer
   // never reports ready-to-show (broken GPU driver, failed load), relaunch
   // once with software rendering — otherwise force the window visible.
+  // The software-mode round gets a shorter timeout to avoid a painful double wait.
+  const FAILSAFE_MS = softwareGpuRequested ? 10000 : 20000;
   const showFailsafe = setTimeout(() => {
+    console.log(`[window] failsafe fired (visible=${!!mainWindow && mainWindow.isVisible()})`);
     if (!mainWindow || mainWindow.isVisible()) return;
     if (!softwareGpuRequested && !gpuRelaunchDone) {
       relaunchWithSoftwareGpu('window never became ready (likely broken GPU driver)');
@@ -229,12 +247,14 @@ function createWindow() {
     }
     console.warn('[window] ready-to-show never fired, forcing show()');
     mainWindow.show();
-  }, 20000);
+    console.log(`[window] forced show() called (visible=${mainWindow.isVisible()})`);
+  }, FAILSAFE_MS);
   if (typeof showFailsafe.unref === 'function') showFailsafe.unref();
 
   // Load via HTTP to avoid file:// CORS issues
   mainWindow.loadURL(`http://localhost:${PORT}/index.html?v=${Date.now()}`);
 
+  mainWindow.webContents.on('did-finish-load', () => console.log('[window] did-finish-load'));
   let loadRetries = 0;
   mainWindow.webContents.on('did-fail-load', (event, code, desc, url, isMainFrame) => {
     if (!isMainFrame) return;
@@ -416,6 +436,7 @@ app.whenReady().then(async () => {
     console.warn('[discord] Rich Presence disabled: invalid Discord Application ID');
   }
   await startServer();
+  console.log(`[votify] local server on port ${PORT}, creating window`);
   createWindow();
   createTray();
   setupAutoUpdater();
@@ -435,6 +456,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  console.log('[votify] quitting');
   isQuitting = true;
   void discordPresence.stop();
   if (serverProcess) {
