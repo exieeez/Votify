@@ -5,8 +5,6 @@ const {
   getRecommendations,
   getChartTracks,
   fetchStreamUrl,
-  streamCache,
-  STREAM_CACHE_TTL,
   httpGet,
   httpPostJSON,
   appRoot,
@@ -263,59 +261,16 @@ async function handleMusicRoutes(req, res, u) {
         return true;
       }
     }
-    const cached = streamCache.get(id);
-    if (cached && cached.expires > Date.now()) {
-      sendJson(res, 200, { url: cached.url });
-      return true;
-    }
+    // Single choke point: InnerTube (phone engine) first, yt-dlp as fallback.
+    // (fetchStreamUrl handles caching + both engines internally.)
     try {
-      const localYtdlpPath = process.env.YT_DLP_PATH || findYtDlp();
-      const proc = spawn(
-        localYtdlpPath,
-        [
-          '--no-check-certificates',
-          '--no-warnings',
-          '--quiet',
-          '-g',
-          '-f',
-          'ba/b',
-          '--socket-timeout',
-          '15',
-          '--max-filesize',
-          '50M',
-          '--extractor-args',
-          'youtube:player_client=android,web',
-          '--user-agent',
-          YT_UA,
-          'https://www.youtube.com/watch?v=' + id,
-        ],
-        { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }
-      );
-      const url = await new Promise((resolve, reject) => {
-        let out = '';
-        proc.stdout.on('data', d => {
-          out += d;
-          const line = out.trim();
-          if (line && line.startsWith('http')) {
-            proc.kill();
-            resolve(line.split('\n')[0]);
-          }
-        });
-        proc.on('error', reject);
-        proc.on('close', code => {
-          if (out.trim()) resolve(out.trim().split('\n')[0]);
-          else reject(new Error('exit ' + code));
-        });
-        setTimeout(() => {
-          proc.kill();
-          reject(new Error('timeout'));
-        }, 30000);
-      });
-      streamCache.set(id, { url, expires: Date.now() + STREAM_CACHE_TTL });
-      sendJson(res, 200, { url });
-      return true;
+      const fastUrl = await fetchStreamUrl(id);
+      if (fastUrl) {
+        sendJson(res, 200, { url: fastUrl });
+        return true;
+      }
     } catch (e) {
-      console.log('yt-dlp -g error for', id, ':', e.message);
+      console.log('stream error for', id, ':', e.message);
     }
     sendJson(res, 502, { error: 'No stream available' });
     return true;
