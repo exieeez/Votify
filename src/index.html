@@ -439,38 +439,17 @@
       <main class="main-content">
         <!-- HOME -->
         <section id="home-screen" class="screen">
-          <!-- CARD 1: МОЯ ВОЛНА — огненное солнце в духе ЯМ (v0.9.0) -->
-          <div class="my-wave-card wave-stitch" id="my-wave-card">
-            <div class="wave-stitch-bg" aria-hidden="true">
-              <div class="wave-stitch-orb wave-stitch-orb-1"></div>
-              <div class="wave-stitch-orb wave-stitch-orb-2"></div>
-              <div class="wave-stitch-orb wave-stitch-orb-3"></div>
-              <div class="wave-stitch-orb wave-stitch-orb-4"></div>
-              <svg class="wave-stitch-rays" viewBox="0 0 680 420" fill="none">
-                <path d="M-20,180 Q190,140 340,210 T700,200" stroke="url(#rayGlow1)" stroke-width="2.5" opacity="0.7"></path>
-                <path d="M80,-30 L340,210 L620,440" stroke="url(#rayGlow2)" stroke-width="2" opacity="0.5"></path>
-                <path d="M580,-40 L340,210 L100,450" stroke="url(#rayGlow1)" stroke-width="1.8" opacity="0.6"></path>
-                <defs>
-                  <linearGradient id="rayGlow1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#ff00bb" stop-opacity="0"></stop>
-                    <stop offset="50%" stop-color="#ffe082" stop-opacity="0.9"></stop>
-                    <stop offset="100%" stop-color="#ff2a00" stop-opacity="0"></stop>
-                  </linearGradient>
-                  <linearGradient id="rayGlow2" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#9c27b0" stop-opacity="0"></stop>
-                    <stop offset="50%" stop-color="#fff9c4" stop-opacity="0.8"></stop>
-                    <stop offset="100%" stop-color="#ff007f" stop-opacity="0"></stop>
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            <div class="wave-stitch-ui">
-              <h1 class="wave-stitch-title">Моя волна</h1>
-              <button class="wave-stitch-play" id="home-play-wave-btn" title="Слушать" aria-label="Слушать волну">
-                <svg class="wave-stitch-icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-                <svg class="wave-stitch-icon-pause" viewBox="0 0 24 24"><rect height="16" width="4" x="6" y="4"></rect><rect height="16" width="4" x="14" y="4"></rect></svg>
-                <span>Play</span>
+          <!-- CARD 1: МОЯ ВОЛНА — огненное солнце в духе ЯМ (v0.9.0, без тюна) -->
+          <div class="my-wave-card wave-sun" id="my-wave-card">
+            <div class="wave-sun-glow"></div>
+            <div class="wave-sun-stage">
+              <button class="wave-sun-orb" id="home-play-wave-btn" title="Слушать волну" aria-label="Слушать волну">
+                <span class="wave-sun-rays"></span>
+                <span class="wave-sun-threads"></span>
               </button>
+              <div class="wave-sun-ui">
+                <div class="wave-sun-title"><span class="wave-orb-icon wave-orb-play">▶</span><span class="wave-orb-icon wave-orb-pause">⏸</span><span>Моя волна</span></div>
+              </div>
             </div>
           </div>
 
@@ -1250,7 +1229,7 @@
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-restore-queue" checked /><span class="toggle-slider"></span></label>
                 </div>
-                <p class="settings-note" id="votify-build-stamp">Votify 0.9.9 • сборка 20260912.7</p>
+                <p class="settings-note" id="votify-build-stamp">Votify 0.9.9 • сборка 20260912.8</p>
               </div>
             </div>
 
