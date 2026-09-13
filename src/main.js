@@ -8399,67 +8399,6 @@ let particlesArray = [];
 let mousePos = { x: 0, y: 0 };
 let particleMouseListenerAdded = false;
 
-// Cursor glow spotlight — follows mouse like cool highlight
-(function initCursorGlow(){
-  let glow = null;
-  let glow2 = null;
-  let ticking = false;
-  let mouseX = 0, mouseY = 0;
-
-  function ensureGlow() {
-    glow = document.getElementById('cursor-glow');
-    glow2 = document.getElementById('cursor-glow-2');
-    if (!glow) {
-      glow = document.createElement('div');
-      glow.id = 'cursor-glow';
-      document.body.appendChild(glow);
-    }
-    if (!glow2) {
-      glow2 = document.createElement('div');
-      glow2.id = 'cursor-glow-2';
-      document.body.appendChild(glow2);
-    }
-  }
-
-  function updateGlow() {
-    if (!glow || !glow2) ensureGlow();
-    if (glow) {
-      glow.style.transform = 'translate3d(' + (mouseX - 400) + 'px, ' + (mouseY - 400) + 'px, 0)';
-      glow.classList.add('active');
-    }
-    if (glow2) {
-      glow2.style.transform = 'translate3d(' + (mouseX - 225) + 'px, ' + (mouseY - 225) + 'px, 0)';
-    }
-    ticking = false;
-  }
-
-  window.addEventListener('mousemove', e => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-    if (!ticking) {
-      requestAnimationFrame(updateGlow);
-      ticking = true;
-    }
-  }, { passive: true });
-
-  window.addEventListener('mouseleave', () => {
-    if (glow) glow.style.opacity = '0';
-    if (glow2) glow2.style.opacity = '0';
-  });
-
-  window.addEventListener('mouseenter', () => {
-    if (glow) glow.style.opacity = '';
-    if (glow2) glow2.style.opacity = '';
-  });
-
-  // Init after DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureGlow);
-  } else {
-    ensureGlow();
-  }
-})();
-
 // ---- PERF: auto quality for heavy effects (glow, lava lamp) ----
 let perfAutoLow = false;
 let perfFpsAcc = 0;
@@ -8472,12 +8411,6 @@ function effectivePerfMode() {
 }
 function applyPerfMode() {
   document.body.classList.toggle('perf-low', effectivePerfMode() === 'low');
-}
-function applyGlowVisibility() {
-  // De-slop: spotlight is opt-in. It only renders when the user explicitly
-  // enabled it (previously an absent setting meant ON, so everyone got the
-  // 800px glow layers by default).
-  document.body.classList.toggle('no-glow', appSettings.cursorGlow !== true);
 }
 function perfSample(ts) {
   if (appSettings.fxQuality !== 'auto' || perfAutoLow) return;
@@ -9648,7 +9581,6 @@ function initRedesignedSettings() {
     });
   });
 
-  applyGlowVisibility();
   applyPerfMode();
   // --- 3. Горячие клавиши (gen-hotkeys) ---
   wireInput('toggle-global-hotkeys', 'globalHotkeysEnabled', true);

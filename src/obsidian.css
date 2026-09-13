@@ -1101,3 +1101,94 @@ body:not(.light-theme):not([data-theme-mode='light']) .lyrics-body {
   color: #ffffff !important;
   border-radius: 12px !important;
 }
+
+/* ============================================================
+   HOME sanitizer: flat borderless cards, zero hover highlight.
+   Scoped to #home-screen — other screens keep their styles.
+   ============================================================ */
+
+/* --- borders off on all home objects (base + hover) --- */
+#home-screen .my-wave-card,
+#home-screen .my-wave-card:hover,
+#home-screen .home-quick-card,
+#home-screen .home-quick-card:hover,
+#home-screen .home-tile,
+#home-screen .home-tile:hover,
+#home-screen .home-quick-icon-badge,
+#home-screen .artist-card,
+#home-screen .artist-card:hover,
+#home-screen .artist-card-avatar,
+#home-screen .rec-tile,
+#home-screen .rec-tile:hover {
+  border: none !important;
+}
+
+/* --- hover backgrounds frozen to base (theme-aware vars) --- */
+#home-screen .home-quick-card:hover,
+#home-screen .home-tile:hover,
+#home-screen .artist-card:hover {
+  background: var(--ob-card) !important;
+  transform: none !important;
+}
+#home-screen .rec-tile:hover {
+  background: var(--bg-surface) !important;
+  transform: none !important;
+}
+#home-screen .track-item:hover {
+  background: transparent !important;
+}
+#home-screen .artist-card:hover .artist-card-avatar {
+  transform: none !important;
+}
+
+/* --- static soft depth, identical on hover (no pop) — dark --- */
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .home-quick-card,
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .home-quick-card:hover,
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .home-tile,
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .home-tile:hover,
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .artist-card,
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .artist-card:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+/* --- static soft depth — light --- */
+body.light-theme #home-screen .home-quick-card,
+body.light-theme #home-screen .home-quick-card:hover,
+body[data-theme-mode="light"] #home-screen .home-quick-card,
+body[data-theme-mode="light"] #home-screen .home-quick-card:hover,
+body.light-theme #home-screen .home-tile,
+body.light-theme #home-screen .home-tile:hover,
+body[data-theme-mode="light"] #home-screen .home-tile,
+body[data-theme-mode="light"] #home-screen .home-tile:hover,
+body.light-theme #home-screen .artist-card,
+body.light-theme #home-screen .artist-card:hover,
+body[data-theme-mode="light"] #home-screen .artist-card,
+body[data-theme-mode="light"] #home-screen .artist-card:hover {
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+}
+
+/* --- wave card: hover frozen to base, glow static — dark --- */
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .my-wave-card:hover {
+  background: #0c0c0d !important;
+  transform: none !important;
+}
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .my-wave-card:hover::before {
+  background: radial-gradient(
+    ellipse 62% 88% at 55% 50%,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.05) 45%,
+    transparent 78%
+  ) !important;
+}
+/* wave play bead: no white bloom on hover (press scale kept) — dark */
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .my-wave-play-btn,
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen .my-wave-play-btn:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* --- wave card: hover frozen to base — light --- */
+body.light-theme #home-screen .my-wave-card:hover,
+body[data-theme-mode="light"] #home-screen .my-wave-card:hover {
+  background: rgba(255, 255, 255, var(--ui-panel-opacity, 0.72)) !important;
+  transform: none !important;
+}
