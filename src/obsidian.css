@@ -1192,3 +1192,71 @@ body[data-theme-mode="light"] #home-screen .my-wave-card:hover {
   background: rgba(255, 255, 255, var(--ui-panel-opacity, 0.72)) !important;
   transform: none !important;
 }
+
+/* ============================================================
+   INPUTS + ICONS: no frames anywhere. Inner inputs fuse with
+   their wrappers (no black box in the middle of the field).
+   ============================================================ */
+
+/* --- field wrappers: borderless pills (bg kept) --- */
+.auth-field,
+.search-bar,
+.bg-url-input-wrap,
+.workshop-search,
+.acc-search-field,
+.acc-input-wrap {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* --- inner inputs fuse into wrapper (kill inner black box) --- */
+.auth-field input,
+.search-bar input,
+.bg-url-input,
+.workshop-search input,
+.acc-search-field input,
+.acc-input-wrap input,
+.acc-input-wrap textarea {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* --- standalone inputs/selects: keep pill bg, lose the frame --- */
+.workshop-form-field input,
+.workshop-form-field textarea,
+.m3-input-text,
+.m3-select,
+.morph-select,
+.votify-modal-body input,
+.profile-fields input {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* --- backstop: every text-ish input/select/textarea, both themes --- */
+body input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="file"]):not([type="hidden"]),
+body select,
+body textarea {
+  border: none !important;
+  outline: none !important;
+}
+
+/* --- icon badges/boxes: art without frames --- */
+.listen-together-icon-badge,
+.library-icon-btn,
+.general-settings-hero-icon,
+.lib-item-icon,
+.lib-empty-icon,
+.lib-detail-cover .cover-fallback,
+.lib-detail-cover #lib-detail-cover-icon,
+.right-player-header-actions .skiper99-icon-btn,
+.acc-icon-btn,
+.home-carousel-btn,
+.home-quick-icon-badge {
+  border: none !important;
+}
