@@ -1260,3 +1260,70 @@ body textarea {
 .home-quick-icon-badge {
   border: none !important;
 }
+
+/* ============================================================
+   SEARCH: single whole pill — no frame inside a frame.
+   LIBRARY: offline indicator chip (tab removed).
+   ============================================================ */
+.skiper106-wrap {
+  border: none !important;
+  box-shadow: none !important;
+}
+.skiper106-wrap:focus-within {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.skiper106-container {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+body.light-theme .skiper106-wrap,
+body[data-theme-mode="light"] .skiper106-wrap {
+  background: rgba(255, 255, 255, 0.75) !important;
+}
+body.light-theme .skiper106-wrap:focus-within,
+body[data-theme-mode="light"] .skiper106-wrap:focus-within {
+  background: #ffffff !important;
+}
+body.light-theme .skiper106-input::placeholder,
+body[data-theme-mode="light"] .skiper106-input::placeholder {
+  color: rgba(15, 23, 42, 0.4) !important;
+}
+
+.lib-offline-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px 8px 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.lib-offline-indicator .material-icons {
+  font-size: 18px;
+}
+.lib-offline-indicator:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+.lib-offline-indicator.is-empty {
+  opacity: 0.45;
+}
+body.light-theme .lib-offline-indicator,
+body[data-theme-mode="light"] .lib-offline-indicator {
+  background: rgba(15, 23, 42, 0.06);
+}
+body.light-theme .lib-offline-indicator:hover,
+body[data-theme-mode="light"] .lib-offline-indicator:hover {
+  background: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
+}

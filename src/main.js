@@ -1911,9 +1911,10 @@ function renderPlaylists() {
   const favCountEl = document.getElementById('lib-fav-count');
   if (favCountEl) favCountEl.textContent = favCount > 0 ? `${favCount} треков` : 'Нет треков';
 
-  const offlineCountEl = document.getElementById('lib-offline-count');
-  if (offlineCountEl)
-    offlineCountEl.textContent = offlineCount > 0 ? `${offlineCount} треков` : 'Нет треков';
+  const offlineIndCount = document.getElementById('lib-offline-indicator-count');
+  if (offlineIndCount) offlineIndCount.textContent = offlineCount;
+  const offlineIndBtn = document.getElementById('lib-offline-indicator');
+  if (offlineIndBtn) offlineIndBtn.classList.toggle('is-empty', offlineCount === 0);
 
   // Render user playlists list in left sidebar / grid
   const container = document.getElementById('lib-playlists-list');
@@ -2006,9 +2007,6 @@ function renderPlaylists() {
         if (tab === 'favorites') {
           if (playlistsSection) playlistsSection.style.display = 'none';
           openPlaylist('Избранное');
-        } else if (tab === 'offline') {
-          if (playlistsSection) playlistsSection.style.display = 'none';
-          openPlaylist('__OFFLINE__');
         } else if (tab === 'playlists') {
           if (playlistsSection) playlistsSection.style.display = 'block';
           if (detailPane) detailPane.style.display = 'none';
@@ -2026,6 +2024,13 @@ function renderPlaylists() {
   safeClick('lib-refresh-btn', () => {
     renderPlaylists();
     showToast('Медиатека обновлена');
+  });
+  safeClick('lib-offline-indicator', () => {
+    const playlistsSection = document.getElementById('lib-playlists-section');
+    if (playlistsSection) playlistsSection.style.display = 'none';
+    const filterTabs = document.getElementById('library-filter-tabs');
+    if (filterTabs) filterTabs.querySelectorAll('.lib-tab-btn').forEach(b => b.classList.remove('active'));
+    openPlaylist('__OFFLINE__');
   });
 
   // Do NOT auto-open any playlist — let user choose via tabs or card clicks
