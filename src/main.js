@@ -2769,6 +2769,8 @@ function switchScreen(screenId, activeBtnId) {
   if (screenId === 'account-edit-screen' && window.VotifyAccount) {
     window.VotifyAccount.renderEdit();
   }
+
+  pushScreenNav(screenId);
 }
 
 // Nav button handlers
@@ -2777,6 +2779,182 @@ safeClick('nav-player-btn', () => switchScreen('player-screen', 'nav-player-btn'
 safeClick('nav-search-btn', () => switchScreen('search-screen', 'nav-search-btn'));
 safeClick('nav-folders-btn', () => switchScreen('folders-screen', 'nav-folders-btn'));
 safeClick('nav-workshop-btn', () => switchScreen('workshop-screen', 'nav-workshop-btn'));
+
+// ==========================================
+// ROOSTER (stitch_rooster_theme_design): screen history, topbar,
+// quick tiles, history sidepanel, home filter pills
+// ==========================================
+const screenNavStack = [];
+let screenNavIdx = -1;
+let currentQuickTracks = [];
+let currentPanelTracks = [];
+function pushScreenNav(screenId) {
+  if (screenNavStack[screenNavIdx] === screenId) return;
+  screenNavStack.length = screenNavIdx + 1;
+  screenNavStack.push(screenId);
+  screenNavIdx = screenNavStack.length - 1;
+  updateRoosterNavBtns();
+}
+function updateRoosterNavBtns() {
+  const back = document.getElementById('rooster-back');
+  const fwd = document.getElementById('rooster-fwd');
+  if (back) back.disabled = screenNavIdx <= 0;
+  if (fwd) fwd.disabled = screenNavIdx >= screenNavStack.length - 1;
+}
+function roosterGo(d) {
+  const idx = screenNavIdx + d;
+  if (idx < 0 || idx >= screenNavStack.length) return;
+  screenNavIdx = idx;
+  const id = screenNavStack[idx];
+  const btnMap = {
+    'home-screen': 'nav-home-btn',
+    'player-screen': 'nav-player-btn',
+    'search-screen': 'nav-search-btn',
+    'folders-screen': 'nav-folders-btn',
+    'workshop-screen': 'nav-workshop-btn',
+    'account-screen': 'nav-profile-btn',
+  };
+  switchScreen(id, btnMap[id] || null);
+  updateRoosterNavBtns();
+}
+safeClick('rooster-back', () => roosterGo(-1));
+safeClick('rooster-fwd', () => roosterGo(1));
+safeClick('rooster-home', () => switchScreen('home-screen', 'nav-home-btn'));
+safeClick('rooster-bell', () => showToast('Уведомлений нет'));
+safeClick('rooster-avatar', () => switchScreen('account-screen', 'nav-profile-btn'));
+safeClick('rooster-activity', toggleHistoryPanel);
+safeClick('rooster-sidepanel-close', () => setHistoryPanel(false));
+const roosterSearchInput = document.getElementById('rooster-search-input');
+if (roosterSearchInput) {
+  roosterSearchInput.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const q = roosterSearchInput.value.trim();
+    if (!q) return;
+    if (typeof searchInput !== 'undefined' && searchInput) searchInput.value = q;
+    switchScreen('search-screen', 'nav-search-btn');
+    if (typeof doSearch === 'function') doSearch();
+  });
+}
+function setHistoryPanel(open) {
+  document.body.classList.toggle('rooster-panel-open', !!open);
+  try {
+    localStorage.setItem('rooster-panel', open ? '1' : '0');
+  } catch {}
+  if (open) renderHistoryPanel();
+}
+function toggleHistoryPanel() {
+  setHistoryPanel(!document.body.classList.contains('rooster-panel-open'));
+}
+function roosterCoverHTML(cover, icon) {
+  return cover
+    ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+    : `<i class="material-icons">${icon || 'music_note'}</i>`;
+}
+function playRoosterTrack(list, i) {
+  if (!list || !list[i]) return;
+  currentPlaylist = list;
+  currentTrackIndex = i;
+  playTrack(list[i]);
+}
+function renderQuickTiles() {
+  const grid = document.getElementById('home-quick-grid');
+  if (!grid) return;
+  grid.querySelectorAll('.quick-tile[data-track-id]').forEach(n => n.remove());
+  let history = [];
+  try {
+    history = JSON.parse(localStorage.getItem('listeningHistory') || '[]');
+  } catch {}
+  history = history.slice(0, 7);
+  currentQuickTracks = history;
+  history.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'quick-tile';
+    el.dataset.trackId = t.id || '';
+    el.title = `${t.title || 'Unknown'} — ${t.artist || ''}`;
+    el.innerHTML =
+      `<div class="quick-tile-cover">${roosterCoverHTML(t.cover)}</div>` +
+      `<span class="quick-tile-title">${escapeHtml(t.title || 'Unknown')}</span>` +
+      '<button class="quick-tile-play" title="Слушать"><i class="material-icons">play_arrow</i></button>';
+    el.onclick = () => playRoosterTrack(currentQuickTracks, i);
+    grid.appendChild(el);
+  });
+  updateSimilarName(history);
+}
+function renderHistoryPanel() {
+  const list = document.getElementById('rooster-sidepanel-list');
+  if (!list) return;
+  let history = [];
+  try {
+    history = JSON.parse(localStorage.getItem('listeningHistory') || '[]');
+  } catch {}
+  currentPanelTracks = history;
+  if (!history.length) {
+    list.innerHTML = '<div class="rooster-history-empty">Пока пусто — включите что-нибудь</div>';
+    return;
+  }
+  list.innerHTML = '';
+  history.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'rooster-history-row';
+    el.innerHTML =
+      `<div class="rooster-history-cover">${roosterCoverHTML(t.cover)}</div>` +
+      `<div class="rooster-history-meta"><div class="rooster-history-title">${escapeHtml(t.title || 'Unknown')}</div>` +
+      `<div class="rooster-history-artist">${escapeHtml(t.artist || '')}</div></div>` +
+      '<button class="rooster-history-play" title="Слушать"><i class="material-icons">play_arrow</i></button>';
+    el.onclick = () => playRoosterTrack(currentPanelTracks, i);
+    list.appendChild(el);
+  });
+}
+function updateSimilarName(history) {
+  const el = document.getElementById('similar-artist-name');
+  if (!el) return;
+  let list = history;
+  if (!list) {
+    try {
+      list = JSON.parse(localStorage.getItem('listeningHistory') || '[]');
+    } catch {
+      list = [];
+    }
+  }
+  const freq = new Map();
+  (list || []).forEach(t => {
+    const a = (t.artist || '').trim();
+    if (a) freq.set(a, (freq.get(a) || 0) + 1);
+  });
+  let best = '';
+  freq.forEach((n, a) => {
+    if (!best || n > freq.get(best)) best = a;
+  });
+  el.textContent = best || 'Ваши вкусы';
+}
+document.querySelectorAll('#rooster-pills .rooster-pill').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#rooster-pills .rooster-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.homeFilter;
+    const quick = document.getElementById('home-quick-section');
+    const artists = document.getElementById('home-recent-artists-section');
+    const foryou = document.getElementById('home-for-you-section');
+    if (quick) quick.style.display = f === 'artists' ? 'none' : '';
+    if (artists) artists.style.display = f === 'music' ? 'none' : '';
+    if (foryou) foryou.style.display = f === 'artists' ? 'none' : '';
+  };
+});
+const homeWaveTile = document.getElementById('home-wave-tile');
+if (homeWaveTile) {
+  homeWaveTile.onclick = e => {
+    if (e.target.closest('button')) return;
+    const btn = document.getElementById('home-play-wave-btn');
+    if (btn) btn.click();
+  };
+}
+try {
+  const stored = localStorage.getItem('rooster-panel');
+  if ((stored !== null ? stored : window.innerWidth >= 1200 ? '1' : '0') === '1') {
+    document.body.classList.add('rooster-panel-open');
+  }
+} catch {}
+updateRoosterNavBtns();
 safeClick('back-from-artist-btn', () => {
   artistRequestId++;
   switchScreen(previousScreenId || 'home-screen', previousActiveBtnId || 'nav-home-btn');
@@ -6899,6 +7077,8 @@ function loadHomeContent() {
 
   // Personal recommendations live directly on Home, beneath recent artists.
   loadForYouContent();
+  renderQuickTiles();
+  renderHistoryPanel();
 }
 
 // Home tiles
@@ -7019,6 +7199,8 @@ function addToListeningHistory(track) {
   if (history.length > limit) history = history.slice(0, limit);
   localStorage.setItem('listeningHistory', JSON.stringify(history));
   scheduleCloudPush();
+  if (typeof renderQuickTiles === 'function') renderQuickTiles();
+  if (typeof renderHistoryPanel === 'function') renderHistoryPanel();
 }
 
 async function playTrack(track) {
@@ -8784,6 +8966,8 @@ function applyUISettings() {
   const ff = appSettings.fontFamily || 'inter';
   const fonts = {
     inter: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    jakarta: '"Plus Jakarta Sans", "Inter", -apple-system, "Segoe UI", Roboto, sans-serif',
+    default: '"Plus Jakarta Sans", "Inter", -apple-system, "Segoe UI", Roboto, sans-serif',
     roboto: '"Roboto", sans-serif',
     system: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     modern: '"Outfit", "Inter", sans-serif',

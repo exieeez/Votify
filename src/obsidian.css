@@ -1392,3 +1392,522 @@ body.light-theme .settings-modal,
 body[data-theme-mode="light"] .settings-modal {
   background: rgba(255, 255, 255, 0.88) !important;
 }
+
+/* ============================================================
+   ROOSTER THEME (stitch_rooster_theme_design) — Spotify-like shell:
+   topbar + olive home + quick tiles + history sidepanel + bottom bar.
+   ============================================================ */
+
+/* --- main column: topbar on top, scrolled content below --- */
+.main-col {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  transition: margin-right 0.25s ease;
+}
+.main-col > .main-content {
+  flex: 1;
+  min-height: 0;
+}
+
+/* --- topbar --- */
+.rooster-topbar {
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: #000000;
+  z-index: 60;
+}
+.rooster-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rooster-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #7c7c7c;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rooster-nav-btn .material-icons {
+  font-size: 26px;
+}
+.rooster-nav-btn:hover:not(:disabled) {
+  color: #ffffff;
+}
+.rooster-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.rooster-home-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #1f1f1f;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rooster-home-btn:hover {
+  background: #2a2a2a;
+}
+.rooster-home-btn .material-icons {
+  font-size: 22px;
+}
+.rooster-search {
+  flex: 1;
+  max-width: 480px;
+  min-width: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #242424;
+  border: none;
+  border-radius: 999px;
+  padding: 0 16px;
+  color: #8a8a8a;
+}
+.rooster-search .material-icons {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.rooster-search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 14px;
+  font-family: inherit;
+}
+.rooster-search input::placeholder {
+  color: #8a8a8a;
+}
+.rooster-top-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.rooster-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #b3b3b3;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rooster-icon-btn:hover {
+  color: #ffffff;
+}
+.rooster-icon-btn .material-icons {
+  font-size: 22px;
+}
+.rooster-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: conic-gradient(from 200deg, #7dd3fc, #c084fc, #f9a8d4, #7dd3fc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000000;
+}
+.rooster-avatar .material-icons {
+  font-size: 34px;
+  background: #000000;
+  border-radius: 50%;
+  color: #b3b3b3;
+}
+
+/* --- home olive gradient (dark theme only; light keeps its bg) --- */
+body:not(.light-theme):not([data-theme-mode="light"]) #home-screen {
+  background: linear-gradient(180deg, #374610 0%, #1c2606 240px, #121212 500px) !important;
+  background-attachment: fixed;
+}
+
+/* --- filter pills --- */
+.rooster-pills {
+  display: flex;
+  gap: 8px;
+  padding: 16px 24px 4px;
+}
+.rooster-pill {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+.rooster-pill.active {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* --- quick tiles --- */
+.rooster-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 12px 24px 4px;
+}
+.quick-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  padding-right: 56px;
+}
+.quick-tile-cover {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  background: #282828;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+}
+.quick-tile-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wave-tile-cover {
+  background: linear-gradient(135deg, #4a5a10 0%, #232b06 100%);
+  color: #ffffff;
+}
+.wave-tile-cover .material-icons {
+  font-size: 34px;
+}
+.quick-tile-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-tile-play {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #ffffff;
+  color: #000000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+.quick-tile:hover .quick-tile-play {
+  opacity: 1;
+}
+.quick-tile-play .material-icons {
+  font-size: 26px;
+}
+
+/* --- "similar to" header --- */
+.rooster-similar-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rooster-similar-kicker {
+  font-size: 12px;
+  color: #b3b3b3;
+}
+#home-screen .rooster-similar-head .home-heading {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* --- artist cards (mockup tiles, no hover flash) --- */
+#home-screen .artist-card {
+  background: #181818 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  box-shadow: none !important;
+}
+#home-screen .artist-card:hover {
+  background: #181818 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+#home-screen .artist-card-avatar {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 !important;
+  border-radius: 50% !important;
+  border: none !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+#home-screen .artist-card:hover .artist-card-avatar {
+  transform: none !important;
+}
+#home-screen .artist-card-name {
+  color: #ffffff !important;
+  font-size: 14px !important;
+  margin-top: 12px !important;
+}
+#home-screen .artist-card-sub {
+  color: #b3b3b3 !important;
+}
+
+/* --- release cards (For You, mockup tiles) --- */
+#home-screen .rec-tile {
+  background: #181818 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  box-shadow: none !important;
+}
+#home-screen .rec-tile:hover {
+  background: #181818 !important;
+  transform: none !important;
+}
+#home-screen .rec-tile-cover {
+  border-radius: 4px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+#home-screen .rec-tile-title {
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+#home-screen .rec-tile-artist {
+  color: #b3b3b3 !important;
+}
+#home-screen .rec-tile-play {
+  background: #ffffff !important;
+}
+
+/* --- history sidepanel --- */
+.rooster-sidepanel {
+  position: fixed;
+  top: var(--titlebar-h);
+  right: 0;
+  bottom: var(--player-h);
+  width: 300px;
+  background: #121212;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(105%);
+  transition: transform 0.25s ease;
+  border: none;
+}
+body.rooster-panel-open .rooster-sidepanel {
+  transform: translateX(0);
+}
+body.rooster-panel-open .main-col {
+  margin-right: 300px;
+}
+.rooster-sidepanel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px;
+}
+.rooster-sidepanel-head h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+.rooster-sidepanel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+.rooster-history-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+}
+.rooster-history-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #282828;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+}
+.rooster-history-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rooster-history-meta {
+  min-width: 0;
+  flex: 1;
+}
+.rooster-history-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rooster-history-artist {
+  font-size: 12px;
+  color: #b3b3b3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rooster-history-play {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #ffffff;
+  color: #000000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+}
+.rooster-history-row:hover .rooster-history-play {
+  opacity: 1;
+}
+.rooster-history-empty {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #b3b3b3;
+}
+
+/* --- bottom player bar back (mockup style), island retired --- */
+.app-container {
+  grid-template-rows: var(--titlebar-h) 1fr var(--player-h) !important;
+}
+#floating-island {
+  display: none !important;
+}
+.player-bar {
+  display: flex !important;
+  background: #000000 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 0 16px !important;
+}
+.player-bar .control-btn {
+  color: #b3b3b3 !important;
+  background: transparent !important;
+}
+.player-bar .control-btn:hover {
+  color: #ffffff !important;
+}
+.player-bar .play-main-btn {
+  width: 40px !important;
+  height: 40px !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-radius: 50% !important;
+}
+.player-bar .play-main-btn:hover {
+  color: #000000 !important;
+  transform: scale(1.05) !important;
+}
+.player-bar .play-main-btn .material-icons {
+  color: #000000 !important;
+}
+#mini-visualizer {
+  display: none !important;
+}
+.player-bar .player-track-title {
+  color: #ffffff !important;
+}
+.player-bar .player-track-artist {
+  color: #b3b3b3 !important;
+}
+.player-bar #current-time,
+.player-bar #total-time {
+  color: #b3b3b3 !important;
+  font-size: 11px !important;
+}
+.player-bar .bar-tl-bg {
+  fill: rgba(255, 255, 255, 0.2) !important;
+}
+.player-bar .bar-tl-active {
+  fill: #ffffff !important;
+}
+.player-bar .bar-timeline-dot {
+  background: #ffffff !important;
+}
+
+/* --- narrow windows: panel overlays, tiles stack --- */
+@media (max-width: 900px) {
+  body.rooster-panel-open .main-col {
+    margin-right: 0;
+  }
+  .rooster-quick-grid {
+    grid-template-columns: 1fr;
+  }
+  .rooster-search {
+    max-width: none;
+  }
+  .rooster-nav {
+    display: none;
+  }
+}

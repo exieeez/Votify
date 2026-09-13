@@ -28,7 +28,7 @@
     <title>Votify</title>
     <link rel="stylesheet" href="fonts.css" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=0.8.0" />
     <link rel="stylesheet" href="custom-theme.css?v=0.8.0" />
     <link rel="stylesheet" href="home-personalization.css?v=0.8.0" />
@@ -433,53 +433,51 @@
       </aside>
 
       <!-- MAIN CONTENT -->
+      <div class="main-col" id="main-col">
+      <header class="rooster-topbar">
+        <div class="rooster-nav">
+          <button class="rooster-nav-btn" id="rooster-back" title="Назад"><i class="material-icons">chevron_left</i></button>
+          <button class="rooster-nav-btn" id="rooster-fwd" title="Вперёд"><i class="material-icons">chevron_right</i></button>
+        </div>
+        <button class="rooster-home-btn" id="rooster-home" title="Главная"><i class="material-icons">home</i></button>
+        <div class="rooster-search">
+          <i class="material-icons">search</i>
+          <input type="text" id="rooster-search-input" placeholder="Что хочешь включить?" autocomplete="off" />
+        </div>
+        <div class="rooster-top-actions">
+          <button class="rooster-icon-btn" id="rooster-bell" title="Уведомления"><i class="material-icons">notifications_none</i></button>
+          <button class="rooster-icon-btn" id="rooster-activity" title="История прослушивания"><i class="material-icons">people_outline</i></button>
+          <button class="rooster-avatar" id="rooster-avatar" title="Аккаунт"><i class="material-icons">account_circle</i></button>
+        </div>
+      </header>
       <main class="main-content">
          <!-- HOME -->
         <section id="home-screen" class="screen">
-          <!-- CARD 1: МОЯ ВОЛНА -->
-          <div class="my-wave-card" id="my-wave-card">
-            <svg class="my-wave-bg-svg" viewBox="0 0 1000 100" preserveAspectRatio="none">
-              <path d="M0,50 Q250,20 500,50 T1000,50" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
-              <path d="M0,65 Q300,80 600,45 T1000,60" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
-            </svg>
-            <div class="my-wave-left">
-              <button class="my-wave-play-btn" id="home-play-wave-btn" title="Слушать волну">
-                <i class="material-icons">play_arrow</i>
-              </button>
-              <div class="my-wave-text">
-                <div class="my-wave-title">Моя волна</div>
-                <div class="my-wave-subtitle">Послушайте минимум 5 треков, чтобы погрузиться в волну</div>
+          <!-- ROOSTER: filter pills -->
+          <div class="rooster-pills" id="rooster-pills">
+            <button class="rooster-pill active" data-home-filter="all" type="button">Все</button>
+            <button class="rooster-pill" data-home-filter="music" type="button">Музыка</button>
+            <button class="rooster-pill" data-home-filter="artists" type="button">Исполнители</button>
+          </div>
+
+          <!-- ROOSTER: quick tiles (wave + recent) -->
+          <div class="home-section" id="home-quick-section">
+            <div class="rooster-quick-grid" id="home-quick-grid">
+              <div class="quick-tile wave-tile" id="home-wave-tile" title="Слушать волну">
+                <div class="quick-tile-cover wave-tile-cover"><i class="material-icons">graphic_eq</i></div>
+                <span class="quick-tile-title">Моя волна</span>
+                <button class="quick-tile-play" id="home-play-wave-btn" title="Слушать волну"><i class="material-icons">play_arrow</i></button>
               </div>
             </div>
           </div>
 
-          <!-- ROW OF 2 CARDS: ИСТОРИЯ & ЛЮБИМЫЕ -->
-          <div class="home-quick-grid">
-            <div class="home-quick-card" id="tile-history">
-              <div class="home-quick-icon-badge">
-                <i class="material-icons">schedule</i>
-              </div>
-              <div class="home-quick-text">
-                <div class="home-quick-title">История прослушивания</div>
-                <div class="home-quick-subtitle">Ваши недавно прослушанные треки</div>
-              </div>
-            </div>
-
-            <div class="home-quick-card" id="tile-liked">
-              <div class="home-quick-icon-badge">
-                <i class="material-icons">favorite</i>
-              </div>
-              <div class="home-quick-text">
-                <div class="home-quick-title">Любимые треки</div>
-                <div class="home-quick-subtitle">Ваша коллекция любимой музыки</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- SECTION: НЕДАВНО ПРОСЛУШАННЫЕ АВТОРЫ -->
+          <!-- SECTION: ПОХОЖЕ (recent artists) -->
           <div class="home-section" id="home-recent-artists-section">
             <div class="home-section-header">
-              <h2 class="home-heading">Недавно прослушанные авторы</h2>
+              <div class="rooster-similar-head">
+                <span class="rooster-similar-kicker">Похоже на:</span>
+                <h2 class="home-heading" id="similar-artist-name">Ваши вкусы</h2>
+              </div>
               <div class="home-carousel-actions" aria-label="Прокрутка авторов">
                 <button class="home-carousel-btn" id="recent-artists-prev" type="button" aria-label="Предыдущие авторы"><i class="material-icons">chevron_left</i></button>
                 <button class="home-carousel-btn" id="recent-artists-next" type="button" aria-label="Следующие авторы"><i class="material-icons">chevron_right</i></button>
@@ -488,10 +486,10 @@
             <div class="artists-grid artists-carousel" id="home-recent-artists"></div>
           </div>
 
-          <!-- SECTION: ДЛЯ ВАС -->
+          <!-- SECTION: ВЫПУСКИ НА ТВОЙ ВКУС -->
           <div class="home-section" id="home-for-you-section">
             <div class="home-section-header">
-              <h2 class="home-heading">Для вас</h2>
+              <h2 class="home-heading">Выпуски на твой вкус</h2>
               <div class="home-carousel-actions" aria-label="Прокрутка рекомендаций">
                 <button class="home-carousel-btn" id="for-you-prev" type="button" aria-label="Предыдущие рекомендации"><i class="material-icons">chevron_left</i></button>
                 <button class="home-carousel-btn" id="for-you-next" type="button" aria-label="Следующие рекомендации"><i class="material-icons">chevron_right</i></button>
@@ -500,12 +498,6 @@
             </div>
             <div class="for-you-status" id="for-you-status">Подборка появится на основе вашей музыки</div>
             <div class="rec-grid for-you-carousel" id="for-you-results"></div>
-          </div>
-
-          <!-- SECTION: ПРОДОЛЖИТЬ СЛУШАТЬ -->
-          <div class="home-section">
-            <h2 class="home-heading">Продолжить слушать</h2>
-            <div class="scroll-fade-wrap"><div class="scroll-fade-content" id="home-continue" class="results-list"></div></div>
           </div>
         </section>
 
@@ -886,6 +878,7 @@
           </div>
         </section>
       </main>
+      </div>
 
       <!-- FOLLOWERS / FOLLOWING MODAL -->
       <div class="acc-list-overlay" id="acc-list-overlay" style="display:none">
@@ -901,7 +894,14 @@
       </div>
 
       <!-- OLD PLAYER BAR (hidden, keeps IDs alive for existing JS) -->
-      <footer class="player-bar" id="player-bar" style="display:none!important">
+      <aside class="rooster-sidepanel" id="rooster-sidepanel">
+        <div class="rooster-sidepanel-head">
+          <h2>История прослушивания</h2>
+          <button class="rooster-icon-btn" id="rooster-sidepanel-close" title="Закрыть"><i class="material-icons">close</i></button>
+        </div>
+        <div class="rooster-sidepanel-list" id="rooster-sidepanel-list"></div>
+      </aside>
+      <footer class="player-bar" id="player-bar">
         <div class="player-bar-left" id="player-expand-btn">
           <div class="player-bar-cover-wrap is-empty">
             <img id="player-bar-cover" class="player-bar-cover" src="" alt="" />
@@ -1231,7 +1231,7 @@
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-restore-queue" checked /><span class="toggle-slider"></span></label>
                 </div>
-                <p class="settings-note" id="votify-build-stamp">Votify 0.9.9 • сборка 20260912.15</p>
+                <p class="settings-note" id="votify-build-stamp">Votify 0.9.9 • сборка 20260912.16</p>
               </div>
             </div>
 
@@ -1451,6 +1451,7 @@
                     <option value="deco">Deco (Декоративный)</option>
                     <option value="game">Game (Ретро-игры)</option>
                     <option value="inter" selected>Inter</option>
+                    <option value="jakarta">Jakarta (Spotify)</option>
                     <option value="roboto">Roboto</option>
                     <option value="helvetica">Helvetica Neue</option>
                     <option value="sf">San Francisco</option>
