@@ -1327,3 +1327,68 @@ body[data-theme-mode="light"] .lib-offline-indicator:hover {
   background: rgba(15, 23, 42, 0.1);
   color: #0f172a;
 }
+
+/* ============================================================
+   PERF: kill always-on full-window costs; cheap scrolling.
+   SETTINGS: slightly transparent background (alpha only, no blur).
+   ============================================================ */
+
+/* 1. Fullscreen player renders NOTHING while closed (lava blobs +
+   full-window blur layers used to composite 24/7 behind opacity:0). */
+.fullscreen-player {
+  visibility: hidden !important;
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s linear 0.35s !important;
+}
+.fullscreen-player.open {
+  visibility: visible !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
+}
+
+/* 2. No backdrop-blur on cards/rows inside scrolling lists (translucent
+   bg stays — blur was repainted on every scroll frame). */
+.my-wave-card,
+.home-quick-card,
+.history-card,
+.history-item,
+.fav-card,
+.favorite-item,
+.card,
+.home-rec-card,
+.playlist-card,
+.track-card,
+.track-item,
+.lib-item {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 3. Cover-placeholder pulse without filter repaints (opacity only). */
+@keyframes coverFallbackPulse {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
+/* 4. Skip offscreen rows/cards entirely while scrolling. */
+.track-item,
+.rec-tile,
+.artist-card,
+.playlist-card,
+.history-item,
+.fav-card,
+.lib-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
+
+/* 5. Settings modal: slightly transparent (alpha only — blur would jank
+   on scroll). Dimmed app shows faintly through the overlay. */
+body #redesigned-settings-modal,
+body .settings-modal {
+  background: rgba(18, 20, 29, 0.88) !important;
+}
+body.light-theme #redesigned-settings-modal,
+body[data-theme-mode="light"] #redesigned-settings-modal,
+body.light-theme .settings-modal,
+body[data-theme-mode="light"] .settings-modal {
+  background: rgba(255, 255, 255, 0.88) !important;
+}

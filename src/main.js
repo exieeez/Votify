@@ -6971,8 +6971,10 @@ function skiper25Collapse() {
 on('state:isPlaying', playing => {
   if (heroToggle) heroToggle.classList.toggle('playing', playing);
   if (playing) {
-    skiper25Interval = setInterval(skiper25RandomHeights, 100);
-    skiper25RandomHeights();
+    if (skiper25Bars.length) {
+      skiper25Interval = setInterval(skiper25RandomHeights, 100);
+      skiper25RandomHeights();
+    }
   } else {
     if (skiper25Interval) {
       clearInterval(skiper25Interval);
