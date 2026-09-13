@@ -1597,69 +1597,6 @@ body[data-track-card-style="flat"] .track-item {
   gap: 8px;
 }
 
-.my-wave-bg-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  opacity: 0.85;
-}
-
-.my-wave-left {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 22px;
-}
-
-.my-wave-play-btn {
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.2s ease-out;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-.my-wave-play-btn:hover {
-  transform: scale(1.1);
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
-  box-shadow: 0 6px 24px rgba(255, 255, 255, 0.4);
-}
-
-.my-wave-play-btn .material-icons {
-  font-size: 32px;
-}
-
-.my-wave-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.my-wave-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.01em;
-}
-
-.my-wave-subtitle {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
-}
-
 /* CARD 2: LISTEN TOGETHER CARD */
 .listen-together-card {
   position: relative;
@@ -10198,7 +10135,7 @@ body .home-section-header h2 { color: #FFFFFF; }
 body .home-quick-title { color: #E5E5EA; }
 body .home-quick-subtitle { color: #8E8E93; }
 
-/* ============ WAVE SUN restored (v0.9.0 original, no tune UI) ============ */
+/* ============ MY WAVE original (first upload, plain card, no tune UI) ============ */
 /* ==========================================
    HOME SCREEN
    ========================================== */
@@ -10230,156 +10167,65 @@ body .home-quick-subtitle { color: #8E8E93; }
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
-/* ============ WAVE SUN (hero «Моей волны» в духе ЯМ, v0.9.0) ============ */
-/* Огненная палитра по умолчанию; JS перекрашивает тело под фон (matugen-стиль). */
-body .my-wave-card.wave-sun {
-  --orb-1: #ffdf8a;
-  --orb-2: #ffb02e;
-  --orb-3: #ff6a3c;
-  --orb-4: #e23c57;
-  --orb-halo: rgba(255, 105, 180, 0.5);
-  --orb-thread: rgba(178, 102, 255, 0.55);
-  --orb-glow: rgba(255, 122, 60, 0.4);
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  display: block;
-  padding: 30px 20px 26px;
-  overflow: visible;
-}
-
-body .my-wave-card.wave-sun:hover {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-}
-
-body.light-theme .my-wave-card.wave-sun,
-body[data-theme-mode="light"] .my-wave-card.wave-sun {
-  background: transparent !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  color: #fff !important;
-}
-
-.wave-sun-stage {
-  position: relative;
-  width: 100%;
-  height: 400px;
-}
-
-.wave-sun-glow {
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  width: 660px;
-  height: 660px;
-  max-width: none;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle, var(--orb-glow) 0%, transparent 62%);
-  animation: wave-sun-glow-breathe 5s ease-in-out infinite;
-}
-
-.wave-sun-orb {
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  width: 330px;
-  height: 330px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  background: radial-gradient(circle at 50% 42%, var(--orb-1) 0%, var(--orb-2) 34%, var(--orb-3) 66%, var(--orb-4) 100%);
-  box-shadow: 0 0 90px 10px var(--orb-glow), 0 0 210px 46px var(--orb-glow);
-  animation: wave-sun-breathe 5s ease-in-out infinite;
-  transition: transform 0.25s ease;
-}
-
-.wave-sun-orb:hover {
-  transform: translate(-50%, -50%) scale(1.03);
-}
-
-.wave-sun-rays {
-  position: absolute;
-  inset: -70px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: repeating-conic-gradient(from 0deg, var(--orb-halo) 0deg 5deg, transparent 5deg 16deg);
-  -webkit-mask-image: radial-gradient(circle, transparent 34%, #000 46%, transparent 72%);
-  mask-image: radial-gradient(circle, transparent 34%, #000 46%, transparent 72%);
-  filter: blur(10px);
-  animation: wave-sun-spin 46s linear infinite;
-}
-
-.wave-sun-threads {
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  pointer-events: none;
-  opacity: 0.85;
-  background: conic-gradient(from 20deg, transparent 0deg, var(--orb-thread) 24deg, transparent 60deg, rgba(255, 255, 255, 0.5) 90deg, transparent 130deg, var(--orb-thread) 200deg, transparent 250deg, rgba(255, 255, 255, 0.35) 300deg, transparent 340deg);
-  filter: blur(14px);
-  mix-blend-mode: screen;
-  animation: wave-sun-spin-rev 30s linear infinite;
-}
-
-.wave-sun-ui {
+.my-wave-bg-svg {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.my-wave-left {
+  position: relative;
+  z-index: 2;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+.my-wave-play-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
-  text-align: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease-out;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-.wave-sun-title {
-  color: #fff;
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+.my-wave-play-btn:hover {
+  transform: scale(1.1);
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+  box-shadow: 0 6px 24px rgba(255, 255, 255, 0.4);
+}
+
+.my-wave-play-btn .material-icons {
+  font-size: 32px;
+}
+
+.my-wave-text {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.wave-orb-icon {
-  font-size: 28px;
-  line-height: 1;
+.my-wave-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
 }
 
-.wave-orb-pause {
-  display: none;
-}
-
-#home-play-wave-btn.playing ~ .wave-sun-ui .wave-orb-play {
-  display: none;
-}
-
-#home-play-wave-btn.playing ~ .wave-sun-ui .wave-orb-pause {
-  display: inline;
-}
-
-@keyframes wave-sun-breathe {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.08); }
-}
-
-@keyframes wave-sun-glow-breathe {
-  0%, 100% { opacity: 0.85; }
-  50% { opacity: 1; }
-}
-
-@keyframes wave-sun-spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes wave-sun-spin-rev {
-  to { transform: rotate(-360deg); }
+.my-wave-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
 }

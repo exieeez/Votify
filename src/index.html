@@ -437,18 +437,21 @@
 
       <!-- MAIN CONTENT -->
       <main class="main-content">
-        <!-- HOME -->
+         <!-- HOME -->
         <section id="home-screen" class="screen">
-          <!-- CARD 1: МОЯ ВОЛНА — огненное солнце в духе ЯМ (v0.9.0, без тюна) -->
-          <div class="my-wave-card wave-sun" id="my-wave-card">
-            <div class="wave-sun-glow"></div>
-            <div class="wave-sun-stage">
-              <button class="wave-sun-orb" id="home-play-wave-btn" title="Слушать волну" aria-label="Слушать волну">
-                <span class="wave-sun-rays"></span>
-                <span class="wave-sun-threads"></span>
+          <!-- CARD 1: МОЯ ВОЛНА -->
+          <div class="my-wave-card" id="my-wave-card">
+            <svg class="my-wave-bg-svg" viewBox="0 0 1000 100" preserveAspectRatio="none">
+              <path d="M0,50 Q250,20 500,50 T1000,50" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+              <path d="M0,65 Q300,80 600,45 T1000,60" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+            </svg>
+            <div class="my-wave-left">
+              <button class="my-wave-play-btn" id="home-play-wave-btn" title="Слушать волну">
+                <i class="material-icons">play_arrow</i>
               </button>
-              <div class="wave-sun-ui">
-                <div class="wave-sun-title"><span class="wave-orb-icon wave-orb-play">▶</span><span class="wave-orb-icon wave-orb-pause">⏸</span><span>Моя волна</span></div>
+              <div class="my-wave-text">
+                <div class="my-wave-title">Моя волна</div>
+                <div class="my-wave-subtitle">Послушайте минимум 5 треков, чтобы погрузиться в волну</div>
               </div>
             </div>
           </div>
@@ -1229,7 +1232,7 @@
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-restore-queue" checked /><span class="toggle-slider"></span></label>
                 </div>
-                <p class="settings-note" id="votify-build-stamp">Votify 0.9.9 • сборка 20260912.8</p>
+                <p class="settings-note" id="votify-build-stamp">Votify 0.9.9 • сборка 20260912.9</p>
               </div>
             </div>
 
