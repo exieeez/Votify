@@ -1906,7 +1906,7 @@ let currentActiveLibItem = 'Избранное';
 function renderPlaylists() {
   // Update counts for system items
   const favCount = (playlists['Избранное'] || []).length;
-  const offlineCount = (state.offlineTracks || []).length;
+  const offlineCount = dedupeTracks(state.offlineTracks || []).length;
 
   const favCountEl = document.getElementById('lib-fav-count');
   if (favCountEl) favCountEl.textContent = favCount > 0 ? `${favCount} треков` : 'Нет треков';
@@ -1918,33 +1918,13 @@ function renderPlaylists() {
 
   // Render user playlists list in left sidebar / grid
   const container = document.getElementById('lib-playlists-list');
-  const offlineList = state.offlineTracks || [];
-  const offlineCover = offlineList.length > 0 && offlineList[0].cover ? offlineList[0].cover : '';
-  const offlineCard = `
-        <div class="playlist-card offline-card" data-offline="1" id="lib-item-offline">
-          <div class="card-cover-wrap">
-            ${
-              offlineCover
-                ? `<img class="card-cover" src="${escapeHtml(offlineCover)}" alt="Офлайн" />`
-                : `<div class="card-cover-placeholder"><i class="material-icons">offline_pin</i></div>`
-            }
-            <button class="card-play-btn" title="Открыть"><i class="material-icons">play_arrow</i></button>
-          </div>
-          <div class="card-info">
-            <div class="card-title">Офлайн</div>
-            <div class="card-sub" id="lib-offline-count">${offlineList.length > 0 ? offlineList.length + ' треков' : 'Нет треков'}</div>
-          </div>
-        </div>
-      `;
   if (container) {
     const keys = Object.keys(playlists).filter(k => k !== 'Избранное');
     if (keys.length === 0) {
       container.innerHTML =
-        offlineCard +
         '<div style="font-size:13px;color:rgba(255,255,255,0.4);padding:18px 0;grid-column:1/-1;">У вас пока нет созданных плейлистов. Нажмите «Создать плейлист», чтобы добавить первый.</div>';
     } else {
       container.innerHTML =
-        offlineCard +
         keys
           .map(key => {
           const list = playlists[key] || [];
@@ -2080,6 +2060,37 @@ async function createPlaylist() {
   showToast(`Плейлист «${name}» создан`);
 }
 
+// Library dedupe: the same song saved twice often differs only by an author
+// suffix ("Artist" vs "Artist - Topic" vs "ARTIST VEVO") or title decorations.
+// Collapse such pairs in library views (storage untouched).
+function normTrackAuthor(a) {
+  return (a || '')
+    .toLowerCase()
+    .replace(/\s*-\s*topic$/, '')
+    .replace(/\s*vevo$/, '')
+    .replace(/\s*official$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function normTrackTitle(t) {
+  return (t || '')
+    .toLowerCase()
+    .replace(/\s*\([^)]*(official|audio|video|lyric|hq|hd)[^)]*\)/g, '')
+    .replace(/\s*\[[^\]]*(official|audio|video|lyric|hq|hd)[^\]]*\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function dedupeTracks(list) {
+  const seen = new Set();
+  return (list || []).filter(t => {
+    if (!t) return false;
+    const key = normTrackTitle(t.title) + ' \u2016 ' + normTrackAuthor(t.artist);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function openPlaylist(name) {
   currentActiveLibItem = name;
 
@@ -2115,7 +2126,7 @@ function openPlaylist(name) {
       const favTab = filterTabs.querySelector('[data-tab="favorites"]');
       if (favTab) favTab.classList.add('active');
     }
-    tracks = playlists['Избранное'] || [];
+    tracks = dedupeTracks(playlists['Избранное'] || []);
     title = 'Любимые треки';
     subtitle = `${tracks.length} треков в вашей коллекции`;
   } else if (name === '__OFFLINE__') {
@@ -2128,7 +2139,7 @@ function openPlaylist(name) {
       const offlineTab = filterTabs.querySelector('[data-tab="offline"]');
       if (offlineTab) offlineTab.classList.add('active');
     }
-    tracks = state.offlineTracks || [];
+    tracks = dedupeTracks(state.offlineTracks || []);
     title = 'Офлайн';
     subtitle = `${tracks.length} треков доступно без интернета`;
   } else {
@@ -2142,7 +2153,7 @@ function openPlaylist(name) {
       const playlistsTab = filterTabs.querySelector('[data-tab="playlists"]');
       if (playlistsTab) playlistsTab.classList.add('active');
     }
-    tracks = playlists[name] || [];
+    tracks = dedupeTracks(playlists[name] || []);
     title = name;
     subtitle = `${tracks.length} треков`;
   }
