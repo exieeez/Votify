@@ -1,0 +1,647 @@
+/* ============================================================
+   VOTIFY — ROOSTER THEME · редизайн ПК-приложения
+   По мотивам design/stitch_rooster_theme_design.zip:
+   чёрный хром, оливково-зелёный градиент героя, скруглённые
+   панели #121212, узкая иконочная рейка, плавающий стеклянный
+   плеер-бар, шрифт Plus Jakarta Sans.
+   Загружается последним: выигрывает приоритет у styles.css /
+   custom-theme.css / home-personalization.css.
+   ============================================================ */
+
+:root {
+  /* Rooster palette */
+  --rz-green: #1ed760;
+  --rz-green-deep: #1db954;
+  --rz-panel: #121212;
+  --rz-card: #181818;
+  --rz-card-hover: #282828;
+  --rz-chip: #1f1f1f;
+  --rz-chip-hover: #2a2a2a;
+  --rz-dim: #b3b3b3;
+  --rz-mute: #a7a7a7;
+  --rz-faint: #7c7c7c;
+  --rz-line: #242424;
+  --rz-olive-1: #374610;
+  --rz-olive-2: #1c2606;
+  --rz-font: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Roboto, sans-serif;
+
+  /* Переписываем токены приложения */
+  --bg-base: #000000;
+  --bg-surface: #121212;
+  --bg-elevated: #181818;
+  --bg-highlight: #282828;
+  --bg-card: #181818;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #7c7c7c;
+  --text-subdued: #7c7c7c;
+  --accent: #1ed760;
+  --accent-hover: #3be477;
+  --accent-rgb: 30, 215, 96;
+  --accent-cool: #1ed760;
+  --accent-cool-rgb: 30, 215, 96;
+  --md-accent: #1ed760;
+  --md-primary: #1ed760;
+  --md-on-primary: #000000;
+  --titlebar-h: 64px;
+  --sidebar-w: 80px;
+  --app-font: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ------------------------------------------------------------
+   1. ТИПОГРАФИКА И ТЕКСТУРА
+   ------------------------------------------------------------ */
+html,
+body {
+  background: #000000 !important;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+.home-heading,
+.screen-header h2 {
+  font-family: var(--rz-font);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+::selection {
+  background: rgba(30, 215, 96, 0.3);
+  color: #ffffff;
+}
+
+/* Скроллбар как в макете: 12px, полупрозрачная белая «колбаса» */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ------------------------------------------------------------
+   2. ВЕРХНЯЯ ПАНЕЛЬ (TopBar из макета)
+   ------------------------------------------------------------ */
+.titlebar-strip {
+  background: #000000 !important;
+  border-color: #000000 !important;
+  padding: 0 16px;
+  gap: 16px;
+}
+
+.titlebar-left {
+  gap: 10px;
+}
+
+.titlebar-logo {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+.titlebar-logo:hover {
+  color: var(--rz-green);
+}
+
+.tb-gear-btn {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #7c7c7c;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.tb-gear-btn:hover {
+  color: #ffffff;
+}
+.tb-gear-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.titlebar-page-title {
+  display: none;
+}
+
+.titlebar-center {
+  flex: 2;
+  justify-content: center;
+}
+
+/* Центр: круглая кнопка «домой» + большой поиск-пилюля */
+.tb-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 1 560px;
+  min-width: 0;
+}
+
+.tb-round-btn {
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: var(--rz-chip);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.tb-round-btn:hover {
+  transform: scale(1.05);
+  background: var(--rz-chip-hover);
+}
+.tb-round-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.tb-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+}
+.tb-search > svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: var(--rz-dim);
+  pointer-events: none;
+}
+.tb-search input {
+  width: 100%;
+  height: 48px;
+  border: none;
+  outline: none;
+  border-radius: 9999px;
+  background: var(--rz-chip);
+  color: #ffffff;
+  font-family: var(--rz-font);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  padding: 0 20px 0 44px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.tb-search input::placeholder {
+  color: #757575;
+}
+.tb-search input:hover {
+  background: var(--rz-chip-hover);
+}
+.tb-search input:focus {
+  background: var(--rz-chip);
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+@media (max-width: 900px) {
+  .tb-search-wrap {
+    display: none;
+  }
+}
+
+/* Кнопки окна — круглее и мягче */
+.titlebar-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #7c7c7c;
+}
+.titlebar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+.titlebar-btn-close:hover {
+  background: #e81123;
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------
+   3. ОБОЛОЧКА: чёрный фон + скруглённые панели с зазорами
+   ------------------------------------------------------------ */
+.app-container {
+  background: #000000;
+}
+
+/* Узкая иконочная рейка слева (72px, #121212, rounded-lg) */
+.sidebar {
+  width: 72px;
+  margin: 0 0 8px 8px;
+  background: #121212 !important;
+  border: none !important;
+  border-radius: 8px;
+  padding: 14px 0;
+  box-sizing: border-box;
+}
+
+.sidebar-top {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rz-line);
+  width: 100%;
+}
+
+.sidebar-nav {
+  gap: 10px;
+}
+
+.sidebar-bottom {
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rz-line);
+  width: 100%;
+}
+
+.nav-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  color: #b3b3b3;
+  background: transparent;
+}
+.nav-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  transform: none;
+}
+.nav-btn.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+/* Перебиваем legacy-правила с !important */
+.sidebar .nav-btn {
+  color: #b3b3b3 !important;
+}
+.sidebar .nav-btn:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+.sidebar .nav-btn.active {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Основная область — панель #121212 со скруглением */
+.main-content {
+  background: #121212 !important;
+  border-radius: 8px;
+  margin: 0 8px 8px 0;
+}
+
+/* Оливковый градиент героя на главной, как в макете */
+#home-screen {
+  background: linear-gradient(180deg, #374610 0%, #1c2606 240px, #121212 520px) !important;
+  border-radius: 8px;
+}
+
+/* ------------------------------------------------------------
+   4. ГЛАВНЫЙ ЭКРАН
+   ------------------------------------------------------------ */
+/* «Моя волна» — полупрозрачная карточка поверх градиента */
+.my-wave-card {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  border-radius: 8px;
+  padding: 18px 22px;
+}
+.my-wave-card:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+.my-wave-play-btn {
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.my-wave-play-btn:hover {
+  transform: scale(1.06);
+  background: #ffffff;
+}
+.my-wave-title {
+  font-weight: 800;
+  color: #ffffff;
+}
+.my-wave-subtitle {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Быстрые плитки «История / Любимые» — как quick-cards макета:
+   высота 64px, фон white 10%, квадратная обложка-бейдж слева */
+.home-quick-grid {
+  gap: 12px;
+  max-width: 640px;
+  margin-bottom: 32px;
+}
+.home-quick-card {
+  height: 64px;
+  padding: 0;
+  gap: 0;
+  border: none !important;
+  border-radius: 4px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  overflow: hidden;
+}
+.home-quick-card:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+}
+.home-quick-icon-badge {
+  width: 64px;
+  height: 64px;
+  border: none;
+  border-radius: 0;
+  background: linear-gradient(135deg, #450af5, #c4efd9);
+  color: #ffffff;
+}
+#tile-history .home-quick-icon-badge {
+  background: #004d3d;
+  color: var(--rz-green);
+}
+/* id-селекторы custom-theme.css перебивают класс — дублирую с !important */
+#tile-history,
+#tile-liked {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  border-radius: 4px !important;
+}
+#tile-history:hover,
+#tile-liked:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+.home-quick-text {
+  padding-left: 16px;
+  padding-right: 12px;
+}
+.home-quick-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.home-quick-subtitle {
+  display: none;
+}
+
+/* Заголовки секций */
+.home-heading,
+.screen-header h2,
+.library-modern-title,
+.pp-similar-heading {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+/* Карусели и карточки рекомендаций — карточки #181818 → #282828 */
+.artist-card,
+.home-rec-card,
+.playlist-card,
+.rec-tile,
+.home-tile,
+.workshop-grid > * {
+  background: #181818 !important;
+  border: none !important;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+.artist-card:hover,
+.home-rec-card:hover,
+.playlist-card:hover,
+.rec-tile:hover,
+.home-tile:hover,
+.workshop-grid > *:hover {
+  background: #282828 !important;
+  border: none !important;
+}
+.artist-card-name,
+.home-rec-card-title {
+  font-weight: 700;
+  color: #ffffff;
+}
+.artist-card-sub,
+.home-rec-card-artist {
+  color: var(--rz-mute);
+}
+
+/* Строки треков */
+.track-item {
+  border-radius: 6px !important;
+  background: transparent !important;
+}
+.track-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+.track-item.playing {
+  background: rgba(30, 215, 96, 0.12) !important;
+}
+.track-title {
+  font-weight: 600;
+}
+
+/* Пилюли фильтров — белая активная, полупрозрачные остальные */
+.filter-pill,
+.lib-tab-btn {
+  border: none;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-family: var(--rz-font);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 7px 16px;
+  transition: background 0.15s ease;
+}
+.filter-pill:hover,
+.lib-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.filter-pill.active,
+.lib-tab-btn.active {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* Поиск: круглое поле в стиле макета */
+.skiper106-container {
+  border-radius: 9999px;
+  background: var(--rz-chip);
+}
+.skiper106-input {
+  font-family: var(--rz-font);
+}
+
+/* Кнопки-пилюли */
+.btn-accent,
+.auth-btn,
+.workshop-primary-btn,
+.library-action-btn {
+  border-radius: 9999px;
+  font-family: var(--rz-font);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------
+   5. ПЛАВАЮЩИЙ ПЛЕЕР-БАР (BottomPersistentPlayer из макета)
+   ------------------------------------------------------------ */
+.floating-island {
+  height: 80px;
+  width: min(1400px, calc(100vw - 48px));
+  bottom: 16px;
+  border-radius: 20px !important;
+  background: rgba(18, 18, 18, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 1px rgba(255, 255, 255, 0.2) !important;
+  padding: 0 20px;
+}
+.floating-island::before {
+  display: none;
+}
+.floating-island:hover {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.25) !important;
+}
+
+.fi-cover {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+}
+.fi-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+.fi-artist {
+  font-size: 11px;
+  color: var(--rz-mute);
+}
+.fi-btn {
+  color: var(--rz-mute);
+}
+.fi-btn:hover {
+  color: #ffffff;
+}
+.fi-btn.active {
+  color: var(--rz-green);
+}
+.fi-like.is-liked,
+.fi-like.is-liked .material-icons {
+  color: var(--rz-green);
+}
+
+/* Белая круглая кнопка Play, как в макете */
+.fi-play,
+#fi-play {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: none !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55) !important;
+}
+.fi-play:hover,
+#fi-play:hover {
+  transform: scale(1.06);
+  background: #ffffff !important;
+}
+
+/* ------------------------------------------------------------
+   6. БОКОВОЙ ПЛЕЕР — панель #121212 во всю высоту, как в макете
+   ------------------------------------------------------------ */
+.right-player-panel {
+  top: var(--titlebar-h);
+  right: 8px;
+  bottom: 8px;
+  height: auto;
+  width: min(320px, calc(100vw - 96px));
+  background: rgba(18, 18, 18, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 8px;
+  box-shadow: -12px 12px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.main-content.with-right-panel {
+  margin-right: 336px;
+}
+.right-player-kicker {
+  color: var(--rz-green);
+}
+
+/* ------------------------------------------------------------
+   7. МОДАЛКИ / ОВЕРЛЕИ
+   ------------------------------------------------------------ */
+.settings-modal,
+.votify-modal,
+.auth-card,
+.profile-card,
+.workshop-modal-card {
+  background: var(--rz-panel);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  font-family: var(--rz-font);
+}
+
+.splash-screen {
+  background: #000000;
+}
+
+/* Акцентные состояния — зелёные вместо янтарных/белых */
+.control-btn.active,
+.fav-btn.is-fav {
+  color: var(--rz-green);
+}
+
+/* Прогресс и ползунки — белая полоса, зелёная на ховер (как в макете) */
+input[type='range']::-webkit-slider-thumb {
+  background: #ffffff;
+}
+
+/* Светлая тема остаётся читаемой: не трогаем её переменные */
+body.light-theme,
+body[data-theme-mode='light'] {
+  --rz-panel: #ffffff;
+  --rz-card: #f2f2f2;
+  --rz-card-hover: #e8e8e8;
+}

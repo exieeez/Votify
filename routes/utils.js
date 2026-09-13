@@ -935,6 +935,46 @@ async function scImportPlaylist(playlistUrl) {
   }
 }
 
+/* ------------------------------------------------------------
+   Статика UI (src/) — веб-превью без Electron
+   ------------------------------------------------------------ */
+const fsPromises = require('fs/promises');
+const srcDir = path.resolve(process.env.VOTIFY_SRC_DIR || path.join(appRoot, 'src'));
+
+const STATIC_MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+};
+
+async function serveStatic(reqPath, res) {
+  const norm = reqPath === '/' ? '/index.html' : reqPath;
+  const fp = path.normalize(path.join(srcDir, norm));
+  if (!fp.startsWith(srcDir)) {
+    sendJson(res, 403, { error: 'Forbidden' });
+    return;
+  }
+  try {
+    const content = await fsPromises.readFile(fp);
+    res.writeHead(200, {
+      'Content-Type':
+        STATIC_MIME_TYPES[path.extname(fp).toLowerCase()] || 'application/octet-stream',
+    });
+    res.end(content);
+  } catch {
+    sendJson(res, 404, { error: 'Not found' });
+  }
+}
+
 module.exports = {
   // http helpers
   sendJson,
@@ -975,4 +1015,6 @@ module.exports = {
   scSearch,
   scGetStreamUrl,
   scImportPlaylist,
+  // static UI
+  serveStatic,
 };

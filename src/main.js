@@ -4723,10 +4723,10 @@ safeClick('morph-reset-all', async () => {
   );
   if (!confirmed) return;
   applyAccentColor('#FFFFFF');
-  // Font reset goes through the modern UI-settings path (default = Inter).
+  // Font reset goes through the modern UI-settings path (default = Rooster/Jakarta).
   delete appSettings.fontFamily;
   const fontFamilySelectEl = document.getElementById('font-family-select');
-  if (fontFamilySelectEl) fontFamilySelectEl.value = 'inter';
+  if (fontFamilySelectEl) fontFamilySelectEl.value = 'jakarta';
   if (typeof applyUISettings === 'function') applyUISettings();
   appSettings.compactUI = false;
   if (compactToggle) compactToggle.checked = false;
@@ -8157,8 +8157,9 @@ function applyCoverSettings() {
 
 function applyUISettings() {
   const root = document.documentElement;
-  const ff = appSettings.fontFamily || 'inter';
+  const ff = appSettings.fontFamily || 'jakarta';
   const fonts = {
+    jakarta: '"Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     inter: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     roboto: '"Roboto", sans-serif',
     system: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -8171,7 +8172,7 @@ function applyUISettings() {
     helvetica: '"Helvetica Neue", Helvetica, Arial, sans-serif',
     sf: '-apple-system, BlinkMacSystemFont, sans-serif',
   };
-  const fontVal = fonts[ff] || fonts.inter;
+  const fontVal = fonts[ff] || fonts.jakarta;
   root.style.setProperty('--font-family', fontVal);
   root.style.setProperty('--app-font', fontVal);
   document.body.style.fontFamily = fontVal;
@@ -9119,7 +9120,7 @@ function initRedesignedSettings() {
   );
 
   // --- 9. Интерфейс (app-ui) ---
-  wireInput('font-family-select', 'fontFamily', 'inter', null, '', () => applyUISettings());
+  wireInput('font-family-select', 'fontFamily', 'jakarta', null, '', () => applyUISettings());
   wireInput('font-size-slider', 'fontSize', '16px', 'font-size-slider-value', 'px', () =>
     applyUISettings()
   );
