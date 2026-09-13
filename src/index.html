@@ -274,41 +274,76 @@
 
       <!-- SIDEBAR (Reference Rail Layout) -->
       <aside class="sidebar">
-        <div class="sidebar-top">
+        <div class="sidebar-logo">Dotify</div>
+        <nav class="sidebar-nav">
           <button class="nav-btn active" id="nav-home-btn" title="Главная">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 3.5L3.5 10v9.5a1 1 0 0 0 1 1h15a1 1 0 0 0 1-1V10L12 3.5z"/>
               <circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none"/>
             </svg>
-          </button>
-        </div>
-        <nav class="sidebar-nav">
-          <button class="nav-btn" id="nav-player-btn" title="Плеер">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="6,3 20,12 6,21"/>
-            </svg>
+            <span>Главная</span>
           </button>
           <button class="nav-btn" id="nav-search-btn" title="Поиск">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
               <circle cx="11" cy="11" r="7"/>
               <line x1="16.5" y1="16.5" x2="21" y2="21"/>
             </svg>
+            <span>Поиск</span>
           </button>
           <button class="nav-btn" id="nav-folders-btn" title="Медиатека">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 8h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
               <path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
+            <span>Медиатека</span>
           </button>
-          <button class="nav-btn" id="nav-workshop-btn" title="Мастерская тем">
-            <i class="material-icons">storefront</i>
+          <button class="nav-btn" id="nav-plus-btn" title="Создать плейлист">
+            <i class="material-icons">add</i>
+            <span>Создать</span>
+          </button>
+          <button class="nav-btn" id="nav-screen-btn" title="Экран плеера">
+            <i class="material-icons">desktop_windows</i>
+            <span>Плеер</span>
+          </button>
+          <button class="nav-btn" id="nav-connection-btn" title="Аккаунт и связь">
+            <i class="material-icons">sensors</i>
+            <span>Связь</span>
+            <span class="net-dot" id="net-dot"></span>
           </button>
         </nav>
         <div class="sidebar-bottom">
-          <button class="nav-btn" id="nav-profile-btn" title="Войти в аккаунт"><i class="material-icons">person_outline</i></button>
-          <button class="nav-btn" id="nav-settings-btn" title="Настройки">
-            <i class="material-icons" style="font-size:22px;">tune</i>
+          <div class="sidebar-mini-row">
+            <button class="nav-btn nav-mini" id="nav-workshop-btn" title="Мастерская тем"><i class="material-icons">storefront</i></button>
+          </div>
+          <button class="nav-btn nav-settings" id="nav-settings-btn" title="Настройки">
+            <i class="material-icons">settings</i>
+            <span>Настройки</span>
           </button>
+          <div class="mini-player" id="mini-player">
+            <div class="mini-track">
+              <div class="mini-cover-wrap">
+                <img id="mini-cover" class="mini-cover" src="" alt="" style="display:none;" />
+                <div class="mini-cover-fallback" id="mini-cover-fallback"><i class="material-icons">music_note</i></div>
+              </div>
+              <div class="mini-info">
+                <div class="mini-title" id="mini-title">Votify</div>
+                <div class="mini-artist" id="mini-artist">Выберите трек</div>
+              </div>
+              <button class="mini-like" id="mini-like" title="В любимое"><i class="material-icons">favorite_border</i></button>
+            </div>
+            <div class="mini-controls">
+              <button id="mini-shuffle" title="Перемешать"><i class="material-icons">shuffle</i></button>
+              <button id="mini-prev" title="Предыдущий"><i class="material-icons">skip_previous</i></button>
+              <button id="mini-play" title="Слушать"><i class="material-icons">play_arrow</i></button>
+              <button id="mini-next" title="Следующий"><i class="material-icons">skip_next</i></button>
+              <button id="mini-repeat" title="Повтор"><i class="material-icons">repeat</i></button>
+            </div>
+            <div class="mini-progress" id="mini-progress"><div class="mini-progress-fill" id="mini-progress-fill"></div></div>
+            <div class="mini-bottom">
+              <i class="material-icons">volume_up</i>
+              <input type="range" id="mini-volume" min="0" max="100" value="80" />
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -464,14 +499,31 @@
                 </defs>
               </svg>
             </div>
+            <svg class="wave-doodles" width="120" height="80" viewBox="0 0 120 80" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M20 8 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5 z" fill="rgba(255,255,255,0.85)" stroke="none"/>
+              <path d="M68 14 q8 -8 16 0 t16 0"/>
+              <circle cx="100" cy="54" r="6"/>
+              <path d="M28 54 q6 6 12 0"/>
+              <circle cx="54" cy="38" r="2.5" fill="rgba(255,255,255,0.85)" stroke="none"/>
+            </svg>
             <div class="wave-stitch-ui">
               <h1 class="wave-stitch-title">Моя волна</h1>
+              <p class="wave-stitch-sub">Обычная</p>
               <button class="wave-stitch-play" id="home-play-wave-btn" title="Слушать" aria-label="Слушать волну">
                 <svg class="wave-stitch-icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
                 <svg class="wave-stitch-icon-pause" viewBox="0 0 24 24"><rect height="16" width="4" x="6" y="4"></rect><rect height="16" width="4" x="14" y="4"></rect></svg>
                 <span>Play</span>
               </button>
+              <button class="wave-next-btn" id="home-wave-next-btn" title="Следующий трек"><i class="material-icons">skip_next</i></button>
             </div>
+          </div>
+
+          <!-- DOTIFY: 10 recommendation tiles -->
+          <div class="home-section" id="home-top-tiles-section">
+            <div class="home-section-header">
+              <h2 class="home-heading">Рекомендации</h2>
+            </div>
+            <div class="rec-grid" id="top-tiles"></div>
           </div>
 
           <!-- ROW OF 2 CARDS: ИСТОРИЯ & ЛЮБИМЫЕ -->
@@ -920,7 +972,7 @@
       </div>
 
       <!-- OLD PLAYER BAR (hidden, keeps IDs alive for existing JS) -->
-      <footer class="player-bar" id="player-bar" style="display:none!important">
+      <footer class="player-bar" id="player-bar">
         <div class="player-bar-left" id="player-expand-btn">
           <div class="player-bar-cover-wrap is-empty">
             <img id="player-bar-cover" class="player-bar-cover" src="" alt="" />
@@ -1250,7 +1302,7 @@
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-restore-queue" checked /><span class="toggle-slider"></span></label>
                 </div>
-                <p class="settings-note" id="votify-build-stamp">Votify 0.9.9 • сборка 20260912.5</p>
+                <p class="settings-note" id="votify-build-stamp">Votify 0.9.9 • сборка 20260912.6</p>
               </div>
             </div>
 

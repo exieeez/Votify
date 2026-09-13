@@ -109,7 +109,7 @@ if (x11Requested && !process.argv.some(a => a.startsWith('--ozone-platform'))) {
   console.log('[gpu] Forcing ozone-platform=x11');
   app.commandLine.appendSwitch('ozone-platform', 'x11');
 }
-const VOTIFY_BUILD = '20260912.5';
+const VOTIFY_BUILD = '20260912.6';
 console.log(
   `[votify] starting build=${VOTIFY_BUILD} pid=${process.pid} version=${app.getVersion()} ` +
     `softwareGpu=${softwareGpuRequested} x11=${x11Requested} execPath=${process.execPath} ` +

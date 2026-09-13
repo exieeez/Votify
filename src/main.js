@@ -2701,6 +2701,8 @@ function switchScreen(screenId, activeBtnId) {
     'nav-folders-btn',
     'nav-workshop-btn',
     'nav-profile-btn',
+    'nav-screen-btn',
+    'nav-connection-btn',
     'nav-settings-btn',
   ];
   if (activeBtnId && validBtnIds.includes(activeBtnId)) {
@@ -2761,6 +2763,14 @@ safeClick('nav-player-btn', () => switchScreen('player-screen', 'nav-player-btn'
 safeClick('nav-search-btn', () => switchScreen('search-screen', 'nav-search-btn'));
 safeClick('nav-folders-btn', () => switchScreen('folders-screen', 'nav-folders-btn'));
 safeClick('nav-workshop-btn', () => switchScreen('workshop-screen', 'nav-workshop-btn'));
+safeClick('nav-plus-btn', () => {
+  if (typeof createPlaylist === 'function') createPlaylist();
+});
+safeClick('nav-screen-btn', () => switchScreen('player-screen', 'nav-screen-btn'));
+safeClick('nav-connection-btn', () => switchScreen('account-screen', 'nav-connection-btn'));
+safeClick('home-wave-next-btn', () => {
+  if (typeof playNextTrack === 'function') playNextTrack();
+});
 safeClick('back-from-artist-btn', () => {
   artistRequestId++;
   switchScreen(previousScreenId || 'home-screen', previousActiveBtnId || 'nav-home-btn');
@@ -6768,6 +6778,7 @@ async function loadForYouContent(forceReload = false) {
   if (!results || forYouLoading) return;
   if (forYouTracks.length && !forceReload) {
     renderRecTiles(results, forYouTracks);
+    renderTopTiles();
     if (status) status.textContent = `${forYouTracks.length} рекомендаций для вас`;
     return;
   }
@@ -6789,6 +6800,7 @@ async function loadForYouContent(forceReload = false) {
     forYouTracks = tuneWaveTracks(tracks).slice(0, 30);
     if (forYouTracks.length) {
       renderRecTiles(results, forYouTracks);
+      renderTopTiles();
       if (status) status.textContent = `${forYouTracks.length} рекомендаций для вас`;
     } else {
       results.innerHTML =
@@ -7743,7 +7755,133 @@ function syncVolumeBars() {
   if (typeof updateFsVolumeProgress === 'function') updateFsVolumeProgress();
   // Sync floating island volume
   if (typeof window._fiSyncVolume === 'function') window._fiSyncVolume();
+  const miniVol = document.getElementById('mini-volume');
+  if (miniVol && document.activeElement !== miniVol) miniVol.value = Math.round(v * 100);
 }
+
+// ==========================================
+// Sidebar mini-player + top tiles (DOTIFY)
+// Transport reuses the main buttons via .click(); state arrives
+// through the existing state:* emitter + audio element events.
+// ==========================================
+function miniInit() {
+  const click = id => {
+    const el = document.getElementById(id);
+    if (el) el.click();
+  };
+  safeClick('mini-play', () => click('play-btn'));
+  safeClick('mini-prev', () => click('prev-btn'));
+  safeClick('mini-next', () => click('next-btn'));
+  safeClick('mini-shuffle', () => {
+    click('shuffle-btn');
+    syncMiniTransport();
+  });
+  safeClick('mini-repeat', () => {
+    click('repeat-btn');
+    syncMiniTransport();
+  });
+  const like = document.getElementById('mini-like');
+  if (like) {
+    like.onclick = () => {
+      if (!state.currentTrack) return;
+      const added = toggleFavorite(state.currentTrack);
+      like.classList.toggle('active', added);
+      const ic = like.querySelector('.material-icons');
+      if (ic) ic.textContent = added ? 'favorite' : 'favorite_border';
+    };
+  }
+  const vol = document.getElementById('mini-volume');
+  if (vol) {
+    vol.oninput = e => {
+      const vb = document.getElementById('volume-bar');
+      if (vb) {
+        vb.value = e.target.value;
+        if (typeof vb.oninput === 'function') vb.oninput({ target: vb });
+      } else {
+        audio.volume = Number(e.target.value) / 100;
+      }
+    };
+  }
+  const prog = document.getElementById('mini-progress');
+  if (prog) {
+    prog.onclick = e => {
+      if (!audio.duration) return;
+      const r = prog.getBoundingClientRect();
+      const frac = r.width ? (e.clientX - r.left) / r.width : 0;
+      audio.currentTime = Math.max(0, Math.min(1, frac)) * audio.duration;
+    };
+  }
+  audio.addEventListener('playing', () => setMiniPlayIcon(false));
+  audio.addEventListener('pause', () => setMiniPlayIcon(true));
+  audio.addEventListener('timeupdate', () => {
+    const fill = document.getElementById('mini-progress-fill');
+    if (fill && audio.duration) {
+      fill.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+    }
+  });
+  on('state:currentTrack', updateMiniTrack);
+  updateNetDot();
+  window.addEventListener('online', updateNetDot);
+  window.addEventListener('offline', updateNetDot);
+}
+
+function setMiniPlayIcon(paused) {
+  const b = document.getElementById('mini-play');
+  const ic = b && b.querySelector('.material-icons');
+  if (ic) ic.textContent = paused ? 'play_arrow' : 'pause';
+}
+
+function syncMiniTransport() {
+  const sh = document.getElementById('mini-shuffle');
+  if (sh) sh.classList.toggle('active', !!isShuffle);
+  const rp = document.getElementById('mini-repeat');
+  if (rp) rp.classList.toggle('active', !!isRepeat);
+}
+
+function updateMiniTrack(track) {
+  const t = track || state.currentTrack || {};
+  const title = document.getElementById('mini-title');
+  const artist = document.getElementById('mini-artist');
+  const cover = document.getElementById('mini-cover');
+  const fb = document.getElementById('mini-cover-fallback');
+  if (title) title.textContent = t.title || 'Votify';
+  if (artist) artist.textContent = t.artist || 'Выберите трек';
+  if (cover) {
+    if (t.cover) {
+      cover.src = t.cover;
+      cover.style.display = 'block';
+      if (fb) fb.style.display = 'none';
+    } else {
+      cover.removeAttribute('src');
+      cover.style.display = 'none';
+      if (fb) fb.style.display = 'flex';
+    }
+  }
+  const like = document.getElementById('mini-like');
+  if (like) {
+    const fav = t.id && isTrackFavorite(t);
+    like.classList.toggle('active', !!fav);
+    const ic = like.querySelector('.material-icons');
+    if (ic) ic.textContent = fav ? 'favorite' : 'favorite_border';
+  }
+  syncMiniTransport();
+}
+
+function updateNetDot() {
+  const d = document.getElementById('net-dot');
+  if (d) d.classList.toggle('offline', !navigator.onLine);
+}
+
+function renderTopTiles() {
+  const grid = document.getElementById('top-tiles');
+  if (!grid || typeof renderRecTiles !== 'function') return;
+  if (forYouTracks.length) renderRecTiles(grid, forYouTracks.slice(0, 10));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  miniInit();
+  renderTopTiles();
+});
 
 function hideSplash() {
   if (startupSplashFailsafe) {
