@@ -7,7 +7,7 @@
          настоящую перезагрузку, если документ пришёл из прошлого билда
          или восстановлен из bfcache (иначе частицы/плеер живут старым JS). */
       (function () {
-        var BUILD = '0.9.10';
+        var BUILD = '0.9.11';
         try {
           var fresh = location.search.indexOf('reload=1') !== -1;
           if (localStorage.getItem('votify-build') !== BUILD && !fresh) {
@@ -29,10 +29,10 @@
     <link rel="stylesheet" href="fonts.css" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=0.9.10" />
-    <link rel="stylesheet" href="custom-theme.css?v=0.9.10" />
-    <link rel="stylesheet" href="home-personalization.css?v=0.9.10" />
-    <link rel="stylesheet" href="rooster.css?v=0.9.10" />
+    <link rel="stylesheet" href="styles.css?v=0.9.11" />
+    <link rel="stylesheet" href="custom-theme.css?v=0.9.11" />
+    <link rel="stylesheet" href="home-personalization.css?v=0.9.11" />
+    <link rel="stylesheet" href="rooster.css?v=0.9.11" />
     <link rel="icon" type="image/png" href="icon.png" />
     <meta name="theme-color" content="#000000" />
   </head>
@@ -255,7 +255,15 @@
           <button class="tb-gear-btn" id="tb-gear-btn" title="Настройки" aria-label="Настройки">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           </button>
-          <span class="titlebar-logo" id="titlebar-logo" title="Открыть сайт Votify">Votify<span class="titlebar-version">0.9.10</span></span>
+          <div class="tb-navbtns">
+            <button class="tb-round-sm" id="tb-back-btn" title="Назад" aria-label="Назад">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <button class="tb-round-sm" id="tb-fwd-btn" title="Вперёд" aria-label="Вперёд" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+          <span class="titlebar-logo" id="titlebar-logo" title="Открыть сайт Votify">Votify<span class="titlebar-version">0.9.11</span></span>
         </div>
         <div class="titlebar-center">
           <div class="tb-search-wrap">
@@ -270,6 +278,15 @@
           <span class="titlebar-page-title" id="page-title">Главная</span>
         </div>
         <div class="titlebar-drag-area"></div>
+        <div class="tb-right-icons">
+          <button class="tb-icon-btn" id="tb-bell-btn" title="Уведомления" aria-label="Уведомления">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"></path></svg>
+          </button>
+          <button class="tb-icon-btn" id="tb-friends-btn" title="История прослушивания" aria-label="История прослушивания">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+          </button>
+          <button class="tb-avatar-btn" id="tb-avatar-btn" title="Профиль" aria-label="Профиль"><i class="material-icons">person</i></button>
+        </div>
         <div class="titlebar-buttons">
           <button class="titlebar-btn" id="tb-minimize" title="Minimize">
             <svg width="12" height="12" viewBox="0 0 12 12"><rect y="5" width="12" height="1.5" rx="0.75" fill="currentColor"/></svg>
@@ -315,6 +332,7 @@
             <i class="material-icons">storefront</i>
           </button>
         </nav>
+        <div class="sidebar-pins" id="sidebar-pins" aria-label="Закреплённые плейлисты"></div>
         <div class="sidebar-bottom">
           <button class="nav-btn" id="nav-profile-btn" title="Войти в аккаунт"><i class="material-icons">person_outline</i></button>
           <button class="nav-btn" id="nav-settings-btn" title="Настройки">
@@ -446,10 +464,42 @@
         </div>
       </aside>
 
+      <!-- RIGHT ASIDE: ИСТОРИЯ ПРОСЛУШИВАНИЯ (Rooster, как в макете) -->
+      <aside class="rz-right-aside" id="rz-right-aside">
+        <div class="rz-aside-header">
+          <h3>История прослушивания</h3>
+          <button class="rz-aside-close" id="rz-aside-close" title="Закрыть" aria-label="Закрыть">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <p class="rz-aside-lead">Хочешь, чтобы друзья и подписчики видели, что ты сейчас слушаешь?</p>
+        <div class="rz-aside-friends">
+          <div class="rz-friend-row">
+            <div class="rz-friend-avatar online"><i class="material-icons">person</i></div>
+            <div class="rz-friend-lines"><span class="l1"></span><span class="l2"></span></div>
+          </div>
+          <div class="rz-friend-row">
+            <div class="rz-friend-avatar online"><i class="material-icons">person</i></div>
+            <div class="rz-friend-lines"><span class="l1 wide"></span><span class="l2"></span></div>
+          </div>
+          <div class="rz-friend-row">
+            <div class="rz-friend-avatar"><i class="material-icons">person</i></div>
+            <div class="rz-friend-lines"><span class="l1 wide"></span><span class="l2 short"></span></div>
+          </div>
+        </div>
+        <p class="rz-aside-note">В настройках выбери «История прослушивания и статистика», а затем включи параметр «История прослушивания». Отключить его можно в любое время.</p>
+        <button class="rz-aside-settings" id="rz-aside-settings">Настройки</button>
+      </aside>
+
       <!-- MAIN CONTENT -->
       <main class="main-content">
         <!-- HOME -->
         <section id="home-screen" class="screen">
+          <!-- FILTER CHIPS (как в макете Rooster) -->
+          <div class="rz-chips" id="rz-home-chips">
+            <button class="rz-chip active" data-chip="all">Все</button>
+            <button class="rz-chip" data-chip="music">Музыка</button>
+          </div>
           <!-- CARD 1: МОЯ ВОЛНА -->
           <div class="my-wave-card" id="my-wave-card">
             <svg class="my-wave-bg-svg" viewBox="0 0 1000 100" preserveAspectRatio="none">
@@ -517,7 +567,7 @@
           </div>
 
           <!-- SECTION: ПРОДОЛЖИТЬ СЛУШАТЬ -->
-          <div class="home-section">
+          <div class="home-section" id="home-continue-section">
             <h2 class="home-heading">Продолжить слушать</h2>
             <div class="scroll-fade-wrap"><div class="scroll-fade-content" id="home-continue" class="results-list"></div></div>
           </div>
@@ -1712,10 +1762,10 @@
     <script src="/vendor/firebase-app-compat.js"></script>
     <script src="/vendor/firebase-auth-compat.js"></script>
     <script src="/vendor/firebase-firestore-compat.js"></script>
-    <script src="firebase-client.js?v=0.9.10"></script>
-    <script src="color-schemes.js?v=0.9.10"></script>
-    <script src="main.js?v=0.9.10"></script>
-    <script src="workshop.js?v=0.9.10"></script>
-    <script src="rooster.js?v=0.9.10"></script>
+    <script src="firebase-client.js?v=0.9.11"></script>
+    <script src="color-schemes.js?v=0.9.11"></script>
+    <script src="main.js?v=0.9.11"></script>
+    <script src="workshop.js?v=0.9.11"></script>
+    <script src="rooster.js?v=0.9.11"></script>
   </body>
 </html>

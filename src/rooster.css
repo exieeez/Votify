@@ -645,3 +645,319 @@ body[data-theme-mode='light'] {
   --rz-card: #f2f2f2;
   --rz-card-hover: #e8e8e8;
 }
+
+/* ------------------------------------------------------------
+   8. ВЕРХНЯЯ ПАНЕЛЬ: назад/вперёд, иконки справа, аватар
+   ------------------------------------------------------------ */
+.tb-navbtns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+.tb-round-sm {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #0a0a0a;
+  color: #7c7c7c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.tb-round-sm svg {
+  width: 18px;
+  height: 18px;
+}
+.tb-round-sm:hover:not(:disabled) {
+  color: #ffffff;
+}
+.tb-round-sm:disabled {
+  color: #4a4a4a;
+  cursor: not-allowed;
+}
+
+.tb-right-icons {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  -webkit-app-region: no-drag;
+}
+.tb-icon-btn {
+  border: none;
+  background: transparent;
+  color: #a7a7a7;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+.tb-icon-btn:hover {
+  color: #ffffff;
+}
+.tb-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.tb-avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  border: 1px solid #1db954;
+  color: #b3b3b3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.tb-avatar-btn:hover {
+  transform: scale(1.06);
+  color: #ffffff;
+}
+.tb-avatar-btn .material-icons {
+  font-size: 20px;
+}
+
+/* ------------------------------------------------------------
+   9. ПИНЫ ПЛЕЙЛИСТОВ В САЙДБАРЕ
+   ------------------------------------------------------------ */
+.sidebar-pins {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.sidebar-pins::-webkit-scrollbar {
+  display: none;
+}
+.sidebar-pin {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #242424;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.sidebar-pin:hover {
+  transform: scale(1.06);
+}
+.sidebar-pin img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sidebar-pin.pin-liked {
+  background: linear-gradient(135deg, #450af5, #c4efd9);
+  color: #ffffff;
+}
+.sidebar-pin.pin-empty {
+  background: #004d3d;
+  color: #1ed760;
+}
+.sidebar-pin .material-icons {
+  font-size: 22px;
+}
+
+/* ------------------------------------------------------------
+   10. ЧИПСЫ «ВСЕ / МУЗЫКА» НА ГЛАВНОЙ
+   ------------------------------------------------------------ */
+.rz-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.rz-chip {
+  border: none;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-family: var(--rz-font);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.rz-chip:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.rz-chip.active {
+  background: #ffffff;
+  color: #000000;
+}
+#home-screen.rz-music #tile-history,
+#home-screen.rz-music #home-continue-section {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------
+   11. ПРАВАЯ ПАНЕЛЬ «ИСТОРИЯ ПРОСЛУШИВАНИЯ»
+   ------------------------------------------------------------ */
+.rz-right-aside {
+  position: fixed;
+  top: var(--titlebar-h);
+  right: 8px;
+  bottom: 8px;
+  width: 280px;
+  background: #121212;
+  border-radius: 8px;
+  padding: 16px 16px 100px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  color: #ffffff;
+  z-index: 90;
+}
+.rz-right-aside.closed {
+  display: none;
+}
+.rz-aside-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.rz-aside-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.rz-aside-close {
+  border: none;
+  background: transparent;
+  color: #a7a7a7;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rz-aside-close:hover {
+  color: #ffffff;
+}
+.rz-aside-close svg {
+  width: 20px;
+  height: 20px;
+}
+.rz-aside-lead {
+  font-size: 13px;
+  color: #b3b3b3;
+  line-height: 1.45;
+  margin-bottom: 28px;
+}
+.rz-aside-friends {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+.rz-friend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rz-friend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #282828;
+  color: #7c7c7c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+.rz-friend-avatar .material-icons {
+  font-size: 20px;
+}
+.rz-friend-avatar.online::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3d91f4;
+  border: 2px solid #121212;
+}
+.rz-friend-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rz-friend-lines span {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: #282828;
+}
+.rz-friend-lines .l1 {
+  width: 96px;
+}
+.rz-friend-lines .l1.wide {
+  width: 112px;
+}
+.rz-friend-lines .l2 {
+  width: 64px;
+}
+.rz-friend-lines .l2.short {
+  width: 48px;
+}
+.rz-aside-note {
+  font-size: 12px;
+  color: #8a8a8a;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.rz-aside-settings {
+  align-self: center;
+  border: none;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #000000;
+  font-family: var(--rz-font);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px 32px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.rz-aside-settings:hover {
+  transform: scale(1.05);
+}
+
+/* Отступ под правую панель (когда боковой плеер закрыт) */
+.main-content.rz-right-open:not(.with-right-panel) {
+  margin-right: 296px;
+}
+
+@media (max-width: 1100px) {
+  .rz-right-aside {
+    display: none;
+  }
+  .main-content.rz-right-open {
+    margin-right: 0;
+  }
+}
