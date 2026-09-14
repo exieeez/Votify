@@ -88,21 +88,12 @@
     if (gearBtn && navSettings) gearBtn.addEventListener('click', () => navSettings.click());
 
     if (tbSearch && navSearch && searchInput) {
-      tbSearch.addEventListener('focus', function () {
-        navSearch.click();
-        window.setTimeout(function () {
-          searchInput.focus();
-          if (tbSearch.value && !searchInput.value) {
-            searchInput.value = tbSearch.value;
-            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-        }, 0);
-      });
-      tbSearch.addEventListener('input', function () {
+      /* страница поиска не открывается сама: вводишь сверху, Enter — на страницу треков */
+      tbSearch.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
         navSearch.click();
         searchInput.value = tbSearch.value;
         searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        searchInput.focus();
       });
       searchInput.addEventListener('input', function () {
         if (document.activeElement !== tbSearch && tbSearch.value !== searchInput.value) {
@@ -266,32 +257,42 @@
     if (sig === lastPinsKey) return;
     lastPinsKey = sig;
 
-    var html = '<div class="sidebar-pin pin-liked" title="Любимые треки">' + SVG_HEART + '</div>';
-    if (keys.length) {
-      keys.forEach(function (key, i) {
-        var style = PIN_STYLES[i % PIN_STYLES.length];
-        html +=
-          '<div class="sidebar-pin ' +
+    var html =
+      '<div class="sidebar-pin pin-liked" data-pl="Избранное" title="Любимые треки">' +
+      SVG_HEART +
+      '</div>';
+    keys.forEach(function (key, i) {
+      var list = playlists[key] || [];
+      var cover = list.length && list[0] && list[0].cover ? list[0].cover : '';
+      var style = PIN_STYLES[i % PIN_STYLES.length];
+      html += cover
+        ? '<div class="sidebar-pin" data-pl="' +
+          key.replace(/"/g, '&quot;') +
+          '" title="' +
+          key.replace(/"/g, '&quot;') +
+          '"><img src="' +
+          cover +
+          '" alt="" /></div>'
+        : '<div class="sidebar-pin ' +
           style +
+          '" data-pl="' +
+          key.replace(/"/g, '&quot;') +
           '" title="' +
           key.replace(/"/g, '&quot;') +
           '"><span>' +
           pinInitials(key) +
           '</span></div>';
-      });
-    } else {
-      /* плейлистов нет — оставляем только «Любимые треки» */
-    }
+    });
     wrap.innerHTML = html;
     wrap.querySelectorAll('.sidebar-pin').forEach(function (pin) {
       pin.addEventListener('click', function () {
-        if (pin.dataset.demo !== undefined) {
-          if (typeof window.playTrack === 'function')
-            window.playTrack(demoTrack(Number(pin.dataset.demo)));
-        } else {
-          var b = byId('nav-folders-btn');
-          if (b) b.click();
-        }
+        var name = pin.getAttribute('data-pl');
+        if (!name) return;
+        var lib = byId('nav-folders-btn');
+        if (lib) lib.click();
+        window.setTimeout(function () {
+          if (typeof window.openPlaylist === 'function') window.openPlaylist(name);
+        }, 250);
       });
     });
   }
@@ -356,32 +357,26 @@
       },
     ];
     var html = '';
-    html += '<div class="rz-quick">';
-    html +=
-      '<div class="rz-quick-card" data-demo="0"><div class="rz-quick-cover qcc">CC</div><span class="rz-quick-name">exieeez</span><span class="rz-quick-play">' +
-      SVG_PLAY +
-      '</span></div>';
-    html +=
-      '<div class="rz-quick-card" data-demo="2"><div class="rz-quick-cover qmad">Mad</div><span class="rz-quick-name">sexyswag</span><span class="rz-quick-play">' +
-      SVG_PLAY +
-      '</span></div>';
-    html += '</div>';
-
+    /* вместо «авторов» — заглушки-мелодии: клик проигрывает демо-трек */
     html += '<section class="rz-section"><div class="rz-sec-head">';
-    html +=
-      '<div class="rz-sec-left"><div class="rz-sec-avatar">M1D</div><div><div class="rz-sec-kicker">Похоже на:</div><div class="rz-sec-title">madk1d</div></div></div>';
+    html += '<div class="rz-sec-title rz-sec-plain">Мелодии для тебя</div>';
     html += showAllBtn();
     html += '</div><div class="rz-grid">';
-    html +=
-      '<div class="rz-card" data-demo="0"><div class="rz-card-cover rz-cv-radio"><span class="rz-cv-top">РАДИО</span><span class="rz-cv-name">madk1d</span></div><div class="rz-card-title">тёмный принц, паранойя, greyrock …</div><div class="rz-card-sub">В эфире: madk1d, greyrock, trankvilizer и другие</div></div>';
-    html +=
-      '<div class="rz-card" data-demo="1"><div class="rz-card-cover rz-cv-collage"><span>ПРИНЦ</span><span>MASK</span><span>DARK</span><span>KING</span></div><div class="rz-card-title">отвратительный король</div><div class="rz-card-sub">тёмный принц</div></div>';
-    html +=
-      '<div class="rz-card" data-demo="2"><div class="rz-card-cover rz-cv-ukr"><span class="rz-mix-dot"></span><span class="rz-cv-plate">Топ українських треків 2025</span></div><div class="rz-card-title">Найпопулярніші українські треки в…</div><div class="rz-card-sub">Оновлюється щоп’ятниці.</div></div>';
-    html +=
-      '<div class="rz-card" data-demo="3"><div class="rz-card-cover rz-cv-hot"><span class="rz-cv-vert">HOT HITS</span><span class="rz-cv-corner">УКРАЇНА</span><span class="rz-cv-artist">ARTIST</span></div><div class="rz-card-title">50 найгарячіших пісень в Україні.…</div><div class="rz-card-sub">Головні хіти просто зараз.</div></div>';
-    html +=
-      '<div class="rz-card" data-demo="4"><div class="rz-card-cover rz-cv-papa"><span class="rz-cv-papa-t">ПАПА</span><span class="rz-cv-papa-s">FORTUNA</span></div><div class="rz-card-title">ПАПА</div><div class="rz-card-sub">тёмный пр… FORTUNA</div></div>';
+    html += DEMO.map(function (e, i) {
+      return (
+        '<div class="rz-card" data-demo="' +
+        i +
+        '"><div class="rz-card-cover rz-cv-demo"><img src="/demo/cover/' +
+        e.id +
+        '.svg" alt="" /><span class="rz-demo-play">' +
+        SVG_PLAY +
+        '</span></div>' +
+        '<div class="rz-card-title">' +
+        e.title +
+        '</div>' +
+        '<div class="rz-card-sub">Демо-мелодия • нажми, чтобы слушать</div></div>'
+      );
+    }).join('');
     html += '</div></section>';
 
     html += '<section class="rz-section"><div class="rz-sec-head">';
@@ -395,15 +390,6 @@
       .join('');
     html += '</div></section>';
 
-    html += '<section class="rz-section"><div class="rz-sec-head">';
-    html += '<div class="rz-sec-title rz-sec-plain">Недавние</div>';
-    html += showAllBtn();
-    html += '</div><div class="rz-grid">';
-    html +=
-      '<div class="rz-card" data-demo="5"><div class="rz-card-cover rz-cv-round">ARTIST</div><div class="rz-card-title">shadowraze</div><div class="rz-card-sub">Исполнитель</div></div>';
-    html +=
-      '<div class="rz-card" data-demo="6"><div class="rz-card-cover rz-cv-album">ALBUM</div><div class="rz-card-title">ASTRAL STEP</div><div class="rz-card-sub">shadowraze</div></div>';
-    html += '</div></section>';
     return html;
   }
   function fillHome() {
@@ -546,7 +532,7 @@
     } catch (e) {
       /* ignore */
     }
-    setAsideVisible(stored === 'open');
+    setAsideVisible(stored !== 'closed');
   }
 
   function init() {

@@ -963,61 +963,6 @@
 }
 
 /* ---------- Плеер-бар как в макете ---------- */
-.player-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 80px !important;
-  background: #000 !important;
-  border-top: 1px solid #171717;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  margin: 0 !important;
-  width: 100% !important;
-  padding: 0 16px;
-  display: flex !important;
-  align-items: center;
-  justify-content: space-between;
-  z-index: 40;
-}
-.player-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 30%;
-  min-width: 180px;
-  max-width: 360px;
-}
-.player-bar-cover {
-  width: 56px;
-  height: 56px;
-  border-radius: 4px;
-}
-.player-bar-cover-fallback {
-  width: 56px;
-  height: 56px;
-  border-radius: 4px;
-  background: #1e232a;
-}
-.player-track-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #fff;
-}
-.player-track-artist {
-  font-size: 12px;
-  color: #b3b3b3;
-}
-
-/* нижний отступ под фиксированный бар */
-.app-container {
-  padding-bottom: 80px;
-}
-.right-player-panel {
-  bottom: 96px;
-}
 
 /* ---------- правки v2.1 ---------- */
 .sidebar {
@@ -1028,33 +973,7 @@
   min-width: 0;
 }
 
-/* плеер-остров -> полноширинный бар как в макете */
-.floating-island {
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  top: auto !important;
-  transform: none !important;
-  width: 100% !important;
-  max-width: none !important;
-  height: 80px !important;
-  border-radius: 0 !important;
-  background: #000 !important;
-  border: none !important;
-  border-top: 1px solid #171717 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none !important;
-  padding: 0 16px !important;
-}
-.floating-island::before {
-  display: none !important;
-}
-.floating-island {
-  translate: 0 0 !important;
-}
-
+/* плеер остаётся островком, как раньше */
 /* ---------- правки v2.2: геометрия сетки и клики в Electron ---------- */
 :root {
   --titlebar-h: 56px;
@@ -1078,4 +997,153 @@
 }
 .app-container {
   padding-bottom: 0;
+}
+
+/* ---------- карточки-заглушки с мелодиями ---------- */
+.rz-cv-demo {
+  padding: 0;
+  background: #262626;
+}
+.rz-cv-demo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rz-demo-play {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1db954;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+.rz-demo-play svg {
+  width: 20px;
+  height: 20px;
+  transform: translateX(1px);
+}
+.rz-card:hover .rz-demo-play {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- профиль как на телефоне ---------- */
+.profile-card {
+  width: min(420px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  padding: 0 0 20px;
+  background: #121212;
+}
+.profile-card-header {
+  position: relative;
+  height: 120px;
+  background: linear-gradient(135deg, #1db954 0%, #0e6b4a 55%, #121212 100%);
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.profile-card-header > div:first-child {
+  color: #fff;
+}
+.profile-card-header h2 {
+  color: #fff;
+}
+.profile-card-header .btn-icon-sm {
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+}
+.profile-avatar-section {
+  margin-top: -48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.profile-avatar-large {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 4px solid #121212;
+  background: #282828;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 800;
+  color: #fff;
+}
+.profile-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-avatar-button {
+  border: none;
+  background: #242424;
+  color: #e5e5e5;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.profile-fields {
+  padding: 12px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.profile-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #b3b3b3;
+}
+.profile-fields input {
+  background: #242424;
+  border: 1px solid #2f2f2f;
+  border-radius: 10px;
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+.profile-meta-row {
+  background: #181818;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #b3b3b3;
+  display: flex;
+  justify-content: space-between;
+}
+.profile-sync-status {
+  color: #b3b3b3;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.profile-actions {
+  padding: 16px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.profile-actions .auth-btn {
+  border-radius: 9999px;
 }
