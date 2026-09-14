@@ -961,3 +961,145 @@ body[data-theme-mode='light'] {
     margin-right: 0;
   }
 }
+<<<<<<< HEAD
+=======
+
+/* ------------------------------------------------------------
+   12. САЙДBAR КАК В МАКЕТЕ: медиатека + «плюс», навигация вниз
+   ------------------------------------------------------------ */
+.sidebar #nav-home-btn {
+  display: none;
+}
+.sidebar-top {
+  gap: 12px;
+}
+.rz-plus-btn {
+  border-radius: 50%;
+  background: #1f1f1f;
+  color: #b3b3b3;
+}
+.rz-plus-btn:hover {
+  background: #2a2a2a;
+  color: #ffffff;
+}
+.sidebar-bottom {
+  gap: 6px;
+}
+
+/* ------------------------------------------------------------
+   13. ГЛАВНАЯ КАК В МАКЕТЕ: сетки карточек, «Показать все»
+   ------------------------------------------------------------ */
+.home-carousel-actions {
+  display: none !important;
+}
+#for-you-status {
+  display: none;
+}
+.rz-show-all {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #b3b3b3;
+  font-family: var(--rz-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.rz-show-all:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+.home-section {
+  position: relative;
+}
+.home-section > .rz-show-all {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  margin-left: 0;
+}
+.rec-grid,
+.for-you-carousel,
+.rz-demo-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+  gap: 16px !important;
+  overflow: visible !important;
+}
+.rec-tile {
+  background: #181818 !important;
+  border: none !important;
+  border-radius: 6px;
+  padding: 12px;
+}
+.rec-tile:hover {
+  background: #282828 !important;
+}
+.rec-tile-cover {
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  background: #242424;
+}
+.rec-tile-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rec-tile-artist {
+  font-size: 12px;
+  color: #a7a7a7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* «Моя волна» — компактная карточка в языке макета */
+.my-wave-card {
+  height: 64px;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.my-wave-left {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+}
+.my-wave-play-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 0;
+  background: #ffffff;
+  color: #000000;
+  flex-shrink: 0;
+}
+.my-wave-play-btn .material-icons {
+  font-size: 28px;
+  color: #000000;
+}
+.my-wave-text {
+  padding: 0 16px;
+}
+.my-wave-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.my-wave-subtitle {
+  display: none;
+}
+.my-wave-bg-svg {
+  display: none;
+}
+>>>>>>> 045ec3d (feat(ui): Rooster 1-в-1 — сайдбар как в макете (медиатека+плюс, пины с обложками), главная с сетками карточек и «Показать все», демо-наполнение пустых состояний)
