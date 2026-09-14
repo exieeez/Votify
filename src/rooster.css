@@ -1,764 +1,335 @@
 /* ============================================================
-   VOTIFY — ROOSTER THEME · редизайн ПК-приложения
-   По мотивам design/stitch_rooster_theme_design.zip:
-   чёрный хром, оливково-зелёный градиент героя, скруглённые
-   панели #121212, узкая иконочная рейка, плавающий стеклянный
-   плеер-бар, шрифт Plus Jakarta Sans.
-   Загружается последним: выигрывает приоритет у styles.css /
-   custom-theme.css / home-personalization.css.
+   VOTIFY — ROOSTER THEME v2 (1-в-1 с макетом stitch_)
    ============================================================ */
 
-:root {
-  /* Rooster palette */
-  --rz-green: #1ed760;
-  --rz-green-deep: #1db954;
-  --rz-panel: #121212;
-  --rz-card: #181818;
-  --rz-card-hover: #282828;
-  --rz-chip: #1f1f1f;
-  --rz-chip-hover: #2a2a2a;
-  --rz-dim: #b3b3b3;
-  --rz-mute: #a7a7a7;
-  --rz-faint: #7c7c7c;
-  --rz-line: #242424;
-  --rz-olive-1: #374610;
-  --rz-olive-2: #1c2606;
-  --rz-font: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Roboto, sans-serif;
-
-  /* Переписываем токены приложения */
-  --bg-base: #000000;
-  --bg-surface: #121212;
-  --bg-elevated: #181818;
-  --bg-highlight: #282828;
-  --bg-card: #181818;
-  --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --text-tertiary: #7c7c7c;
-  --text-subdued: #7c7c7c;
-  --accent: #1ed760;
-  --accent-hover: #3be477;
-  --accent-rgb: 30, 215, 96;
-  --accent-cool: #1ed760;
-  --accent-cool-rgb: 30, 215, 96;
-  --md-accent: #1ed760;
-  --md-primary: #1ed760;
-  --md-on-primary: #000000;
-  --titlebar-h: 64px;
-  --sidebar-w: 80px;
-  --app-font: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Roboto, sans-serif;
-}
-
-/* ------------------------------------------------------------
-   1. ТИПОГРАФИКА И ТЕКСТУРА
-   ------------------------------------------------------------ */
-html,
-body {
-  background: #000000 !important;
-}
-
-body {
-  font-family: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Roboto, sans-serif;
-  letter-spacing: -0.01em;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-h1,
-h2,
-h3,
-h4,
-.home-heading,
-.screen-header h2 {
-  font-family: var(--rz-font);
-  letter-spacing: -0.02em;
-  font-weight: 800;
-  color: #ffffff;
-}
-
-::selection {
-  background: rgba(30, 215, 96, 0.3);
-  color: #ffffff;
-}
-
-/* Скроллбар как в макете: 12px, полупрозрачная белая «колбаса» */
-::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 6px;
-  border: 3px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
-  border: 3px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* ------------------------------------------------------------
-   2. ВЕРХНЯЯ ПАНЕЛЬ (TopBar из макета)
-   ------------------------------------------------------------ */
+/* ---------- Верхняя панель ---------- */
 .titlebar-strip {
-  background: #000000 !important;
-  border-color: #000000 !important;
-  padding: 0 16px;
-  gap: 16px;
-}
-
-.titlebar-left {
-  gap: 10px;
-}
-
-.titlebar-logo {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-}
-.titlebar-logo:hover {
-  color: var(--rz-green);
-}
-
-.tb-gear-btn {
-  -webkit-app-region: no-drag;
+  height: 56px;
+  background: #000;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  position: relative;
+  z-index: 30;
+}
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tb-gear-btn {
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 8px;
   background: transparent;
-  color: #7c7c7c;
+  color: #a3a3a3;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: color 0.15s ease;
-}
-.tb-gear-btn:hover {
-  color: #ffffff;
 }
 .tb-gear-btn svg {
-  width: 17px;
-  height: 17px;
+  width: 20px;
+  height: 20px;
 }
-
-.titlebar-page-title {
+.tb-gear-btn:hover {
+  color: #fff;
+}
+.tb-navbtns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tb-round-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  color: #a3a3a3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.tb-round-sm svg {
+  width: 16px;
+  height: 16px;
+}
+.tb-round-sm:hover:not(:disabled) {
+  background: #1f1f1f;
+  color: #fff;
+}
+.tb-round-sm:disabled {
+  color: #525252;
+  cursor: not-allowed;
+}
+.titlebar-logo {
   display: none;
 }
-
 .titlebar-center {
-  flex: 2;
+  flex: 1;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 8px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 16px;
 }
-
-/* Центр: круглая кнопка «домой» + большой поиск-пилюля */
 .tb-search-wrap {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 0 1 560px;
-  min-width: 0;
+  gap: 8px;
+  flex: 1;
 }
-
 .tb-round-btn {
-  -webkit-app-region: no-drag;
-  flex-shrink: 0;
   width: 48px;
   height: 48px;
-  border: none;
   border-radius: 50%;
-  background: var(--rz-chip);
-  color: #ffffff;
+  border: none;
+  background: #1f1f1f;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+  transition: transform 0.12s;
 }
 .tb-round-btn:hover {
   transform: scale(1.05);
-  background: var(--rz-chip-hover);
 }
 .tb-round-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
-
 .tb-search {
   position: relative;
   flex: 1;
-  min-width: 0;
-  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
 }
 .tb-search > svg {
   position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 12px;
   width: 20px;
   height: 20px;
-  color: var(--rz-dim);
+  color: #a3a3a3;
   pointer-events: none;
 }
 .tb-search input {
   width: 100%;
   height: 48px;
+  background: #1f1f1f;
   border: none;
   outline: none;
   border-radius: 9999px;
-  background: var(--rz-chip);
-  color: #ffffff;
-  font-family: var(--rz-font);
-  font-size: 15px;
-  letter-spacing: -0.01em;
-  padding: 0 20px 0 44px;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  color: #fff;
+  font-size: 14px;
+  padding: 0 56px 0 44px;
+  transition: background 0.15s;
 }
 .tb-search input::placeholder {
-  color: #757575;
+  color: #a3a3a3;
 }
-.tb-search input:hover {
-  background: var(--rz-chip-hover);
-}
+.tb-search input:hover,
 .tb-search input:focus {
-  background: var(--rz-chip);
-  box-shadow: 0 0 0 2px #ffffff;
+  background: #282828;
 }
-
-@media (max-width: 900px) {
-  .tb-search-wrap {
-    display: none;
-  }
-}
-
-/* Кнопки окна — круглее и мягче */
-.titlebar-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  color: #7c7c7c;
-}
-.titlebar-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-}
-.titlebar-btn-close:hover {
-  background: #e81123;
-  color: #ffffff;
-}
-
-/* ------------------------------------------------------------
-   3. ОБОЛОЧКА: чёрный фон + скруглённые панели с зазорами
-   ------------------------------------------------------------ */
-.app-container {
-  background: #000000;
-}
-
-/* Узкая иконочная рейка слева (72px, #121212, rounded-lg) */
-.sidebar {
-  width: 72px;
-  margin: 0 0 8px 8px;
-  background: #121212 !important;
-  border: none !important;
-  border-radius: 8px;
-  padding: 14px 0;
-  box-sizing: border-box;
-}
-
-.sidebar-top {
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--rz-line);
-  width: 100%;
-}
-
-.sidebar-nav {
-  gap: 10px;
-}
-
-.sidebar-bottom {
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 1px solid var(--rz-line);
-  width: 100%;
-}
-
-.nav-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  color: #b3b3b3;
+.tb-browse-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  border: none;
   background: transparent;
-}
-.nav-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
-  transform: none;
-}
-.nav-btn.active {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: none;
-}
-/* Перебиваем legacy-правила с !important */
-.sidebar .nav-btn {
-  color: #b3b3b3 !important;
-}
-.sidebar .nav-btn:hover {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-.sidebar .nav-btn.active {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.14) !important;
-}
-
-/* Основная область — панель #121212 со скруглением */
-.main-content {
-  background: #121212 !important;
-  border-radius: 8px;
-  margin: 0 8px 8px 0;
-}
-
-/* Оливковый градиент героя на главной, как в макете */
-#home-screen {
-  background: linear-gradient(180deg, #374610 0%, #1c2606 240px, #121212 520px) !important;
-  border-radius: 8px;
-}
-
-/* ------------------------------------------------------------
-   4. ГЛАВНЫЙ ЭКРАН
-   ------------------------------------------------------------ */
-/* «Моя волна» — полупрозрачная карточка поверх градиента */
-.my-wave-card {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: none !important;
-  border-radius: 8px;
-  padding: 18px 22px;
-}
-.my-wave-card:hover {
-  background: rgba(255, 255, 255, 0.16) !important;
-}
-.my-wave-play-btn {
-  background: #ffffff;
-  color: #000000;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-}
-.my-wave-play-btn:hover {
-  transform: scale(1.06);
-  background: #ffffff;
-}
-.my-wave-title {
-  font-weight: 800;
-  color: #ffffff;
-}
-.my-wave-subtitle {
-  color: rgba(255, 255, 255, 0.65);
-}
-
-/* Быстрые плитки «История / Любимые» — как quick-cards макета:
-   высота 64px, фон white 10%, квадратная обложка-бейдж слева */
-.home-quick-grid {
-  gap: 12px;
-  max-width: 640px;
-  margin-bottom: 32px;
-}
-.home-quick-card {
-  height: 64px;
-  padding: 0;
-  gap: 0;
-  border: none !important;
-  border-radius: 4px !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  overflow: hidden;
-}
-.home-quick-card:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
-  border: none !important;
-}
-.home-quick-icon-badge {
-  width: 64px;
-  height: 64px;
-  border: none;
-  border-radius: 0;
-  background: linear-gradient(135deg, #450af5, #c4efd9);
-  color: #ffffff;
-}
-#tile-history .home-quick-icon-badge {
-  background: #004d3d;
-  color: var(--rz-green);
-}
-/* id-селекторы custom-theme.css перебивают класс — дублирую с !important */
-#tile-history,
-#tile-liked {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: none !important;
-  border-radius: 4px !important;
-}
-#tile-history:hover,
-#tile-liked:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
-}
-.home-quick-text {
-  padding-left: 16px;
-  padding-right: 12px;
-}
-.home-quick-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffffff;
-}
-.home-quick-subtitle {
-  display: none;
-}
-
-/* Заголовки секций */
-.home-heading,
-.screen-header h2,
-.library-modern-title,
-.pp-similar-heading {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-}
-
-/* Карусели и карточки рекомендаций — карточки #181818 → #282828 */
-.artist-card,
-.home-rec-card,
-.playlist-card,
-.rec-tile,
-.home-tile,
-.workshop-grid > * {
-  background: #181818 !important;
-  border: none !important;
-  border-radius: 6px;
-  transition: background 0.2s ease;
-}
-.artist-card:hover,
-.home-rec-card:hover,
-.playlist-card:hover,
-.rec-tile:hover,
-.home-tile:hover,
-.workshop-grid > *:hover {
-  background: #282828 !important;
-  border: none !important;
-}
-.artist-card-name,
-.home-rec-card-title {
-  font-weight: 700;
-  color: #ffffff;
-}
-.artist-card-sub,
-.home-rec-card-artist {
-  color: var(--rz-mute);
-}
-
-/* Строки треков */
-.track-item {
-  border-radius: 6px !important;
-  background: transparent !important;
-}
-.track-item:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-.track-item.playing {
-  background: rgba(30, 215, 96, 0.12) !important;
-}
-.track-title {
-  font-weight: 600;
-}
-
-/* Пилюли фильтров — белая активная, полупрозрачные остальные */
-.filter-pill,
-.lib-tab-btn {
-  border: none;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  font-family: var(--rz-font);
-  font-weight: 600;
-  font-size: 14px;
-  padding: 7px 16px;
-  transition: background 0.15s ease;
-}
-.filter-pill:hover,
-.lib-tab-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-.filter-pill.active,
-.lib-tab-btn.active {
-  background: #ffffff;
-  color: #000000;
-}
-
-/* Поиск: круглое поле в стиле макета */
-.skiper106-container {
-  border-radius: 9999px;
-  background: var(--rz-chip);
-}
-.skiper106-input {
-  font-family: var(--rz-font);
-}
-
-/* Кнопки-пилюли */
-.btn-accent,
-.auth-btn,
-.workshop-primary-btn,
-.library-action-btn {
-  border-radius: 9999px;
-  font-family: var(--rz-font);
-  font-weight: 700;
-}
-
-/* ------------------------------------------------------------
-   5. ПЛАВАЮЩИЙ ПЛЕЕР-БАР (BottomPersistentPlayer из макета)
-   ------------------------------------------------------------ */
-.floating-island {
-  height: 80px;
-  width: min(1400px, calc(100vw - 48px));
-  bottom: 16px;
-  border-radius: 20px !important;
-  background: rgba(18, 18, 18, 0.85) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 1px rgba(255, 255, 255, 0.2) !important;
-  padding: 0 20px;
-}
-.floating-island::before {
-  display: none;
-}
-.floating-island:hover {
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.25) !important;
-}
-
-.fi-cover {
-  width: 56px;
-  height: 56px;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
-}
-.fi-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-}
-.fi-artist {
-  font-size: 11px;
-  color: var(--rz-mute);
-}
-.fi-btn {
-  color: var(--rz-mute);
-}
-.fi-btn:hover {
-  color: #ffffff;
-}
-.fi-btn.active {
-  color: var(--rz-green);
-}
-.fi-like.is-liked,
-.fi-like.is-liked .material-icons {
-  color: var(--rz-green);
-}
-
-/* Белая круглая кнопка Play, как в макете */
-.fi-play,
-#fi-play {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 50% !important;
-  background: #ffffff !important;
-  color: #000000 !important;
-  border: none !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55) !important;
-}
-.fi-play:hover,
-#fi-play:hover {
-  transform: scale(1.06);
-  background: #ffffff !important;
-}
-
-/* ------------------------------------------------------------
-   6. БОКОВОЙ ПЛЕЕР — панель #121212 во всю высоту, как в макете
-   ------------------------------------------------------------ */
-.right-player-panel {
-  top: var(--titlebar-h);
-  right: 8px;
-  bottom: 8px;
-  height: auto;
-  width: min(320px, calc(100vw - 96px));
-  background: rgba(18, 18, 18, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 8px;
-  box-shadow: -12px 12px 40px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-}
-.main-content.with-right-panel {
-  margin-right: 336px;
-}
-.right-player-kicker {
-  color: var(--rz-green);
-}
-
-/* ------------------------------------------------------------
-   7. МОДАЛКИ / ОВЕРЛЕИ
-   ------------------------------------------------------------ */
-.settings-modal,
-.votify-modal,
-.auth-card,
-.profile-card,
-.workshop-modal-card {
-  background: var(--rz-panel);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  font-family: var(--rz-font);
-}
-
-.splash-screen {
-  background: #000000;
-}
-
-/* Акцентные состояния — зелёные вместо янтарных/белых */
-.control-btn.active,
-.fav-btn.is-fav {
-  color: var(--rz-green);
-}
-
-/* Прогресс и ползунки — белая полоса, зелёная на ховер (как в макете) */
-input[type='range']::-webkit-slider-thumb {
-  background: #ffffff;
-}
-
-/* Светлая тема остаётся читаемой: не трогаем её переменные */
-body.light-theme,
-body[data-theme-mode='light'] {
-  --rz-panel: #ffffff;
-  --rz-card: #f2f2f2;
-  --rz-card-hover: #e8e8e8;
-}
-
-/* ------------------------------------------------------------
-   8. ВЕРХНЯЯ ПАНЕЛЬ: назад/вперёд, иконки справа, аватар
-   ------------------------------------------------------------ */
-.tb-navbtns {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  -webkit-app-region: no-drag;
-}
-.tb-round-sm {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background: #0a0a0a;
-  color: #7c7c7c;
+  color: #a3a3a3;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color 0.15s ease;
+  border-left: 1px solid rgba(115, 115, 115, 0.6);
+  margin: 10px 0;
+  height: calc(100% - 20px);
+  border-radius: 0;
 }
-.tb-round-sm svg {
-  width: 18px;
-  height: 18px;
+.tb-browse-btn svg {
+  width: 20px;
+  height: 20px;
 }
-.tb-round-sm:hover:not(:disabled) {
-  color: #ffffff;
+.tb-browse-btn:hover {
+  color: #fff;
 }
-.tb-round-sm:disabled {
-  color: #4a4a4a;
-  cursor: not-allowed;
+.titlebar-page-title {
+  display: none;
 }
-
+.titlebar-drag-area {
+  position: absolute;
+  inset: 0;
+  -webkit-app-region: drag;
+  z-index: -1;
+}
 .tb-right-icons {
   display: flex;
   align-items: center;
-  gap: 18px;
-  -webkit-app-region: no-drag;
+  gap: 12px;
+  margin-left: auto;
 }
 .tb-icon-btn {
+  width: 32px;
+  height: 32px;
   border: none;
   background: transparent;
-  color: #a7a7a7;
-  cursor: pointer;
+  color: #a3a3a3;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  transition: color 0.15s ease;
-}
-.tb-icon-btn:hover {
-  color: #ffffff;
+  cursor: pointer;
+  transition: color 0.15s, transform 0.15s;
 }
 .tb-icon-btn svg {
   width: 20px;
   height: 20px;
 }
+.tb-icon-btn:hover {
+  color: #fff;
+  transform: scale(1.05);
+}
 .tb-avatar-btn {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #2a2a2a;
-  border: 1px solid #1db954;
-  color: #b3b3b3;
+  border: 2px solid #1db954;
+  background: #047857;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.15s ease;
-}
-.tb-avatar-btn:hover {
-  transform: scale(1.06);
-  color: #ffffff;
+  overflow: hidden;
 }
 .tb-avatar-btn .material-icons {
   font-size: 20px;
 }
+.titlebar-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 12px;
+  -webkit-app-region: no-drag;
+}
 
-/* ------------------------------------------------------------
-   9. ПИНЫ ПЛЕЙЛИСТОВ В САЙДБАРЕ
-   ------------------------------------------------------------ */
-.sidebar-pins {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
+/* ---------- Сайдбар ---------- */
+.sidebar {
+  width: 72px;
+  background: #121212;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0 0 8px 8px;
+  flex-shrink: 0;
+}
+.sidebar-top {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding-top: 14px;
-  overflow-y: auto;
-  scrollbar-width: none;
 }
-.sidebar-pins::-webkit-scrollbar {
+#nav-home-btn {
   display: none;
+}
+.sidebar-nav,
+.sidebar-bottom {
+  display: none;
+}
+.rz-lib-btn {
+  border: none;
+  background: transparent;
+  color: #a3a3a3;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+.rz-lib-btn svg {
+  width: 24px;
+  height: 24px;
+}
+.rz-lib-btn:hover {
+  color: #fff;
+}
+.rz-plus-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #1f1f1f;
+  color: #a3a3a3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.rz-plus-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.rz-plus-btn:hover {
+  background: #282828;
+  color: #fff;
+}
+
+/* пины-плитки */
+.sidebar-pins {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
 }
 .sidebar-pin {
   width: 48px;
   height: 48px;
   border-radius: 6px;
-  overflow: hidden;
-  background: #242424;
-  cursor: pointer;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #d4d4d4;
+  background: #171717;
+  border: 1px solid #262626;
+  transition: opacity 0.15s;
+  text-align: center;
 }
 .sidebar-pin:hover {
-  transform: scale(1.06);
+  opacity: 0.9;
+}
+.sidebar-pin svg {
+  width: 20px;
+  height: 20px;
 }
 .sidebar-pin img {
   width: 100%;
@@ -766,337 +337,720 @@ body[data-theme-mode='light'] {
   object-fit: cover;
 }
 .sidebar-pin.pin-liked {
-  background: linear-gradient(135deg, #450af5, #c4efd9);
-  color: #ffffff;
+  background: linear-gradient(135deg, #450af5, #8e8ee5);
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
-.sidebar-pin.pin-empty {
-  background: #004d3d;
-  color: #1ed760;
+.sidebar-pin.pin-liked svg {
+  width: 20px;
+  height: 20px;
+  fill: #fff;
 }
-.sidebar-pin .material-icons {
-  font-size: 22px;
+.sidebar-pin.ps-emerald {
+  background: #059669;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sidebar-pin.ps-dirt {
+  background: #533924;
+  border: none;
+  border-top: 4px solid #567d46;
+  color: #d4d4d4;
+}
+.sidebar-pin.ps-bookmark {
+  background: #006450;
+  border: none;
+  color: #fff;
+}
+.sidebar-pin.ps-bookmark svg {
+  width: 24px;
+  height: 24px;
+}
+.sidebar-pin.ps-mono {
+  font-family: monospace;
+  color: #a3a3a3;
+}
+.sidebar-pin.ps-circle::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #737373;
+}
+.sidebar-pin.ps-gray {
+  color: #a3a3a3;
+}
+.sidebar-pin.ps-cyan {
+  color: #22d3ee;
+}
+.sidebar-pin.ps-light {
+  color: #d4d4d4;
 }
 
-/* ------------------------------------------------------------
-   10. ЧИПСЫ «ВСЕ / МУЗЫКА» НА ГЛАВНОЙ
-   ------------------------------------------------------------ */
+/* ---------- Основная область ---------- */
+.app-container {
+  background: #000;
+}
+.main-content {
+  background: linear-gradient(180deg, #1e1e1e 0%, #121212 320px, #121212 100%);
+  border-radius: 8px;
+  margin: 0 8px 8px 0;
+  padding: 0;
+  overflow-y: auto;
+}
+.main-content.rz-right-open {
+  margin-right: 0;
+}
+
+/* чипсы */
 .rz-chips {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 24px;
+  padding: 16px 24px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+  background: rgba(18, 18, 18, 0.6);
 }
 .rz-chip {
   border: none;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  font-family: var(--rz-font);
-  font-weight: 600;
-  font-size: 14px;
-  padding: 7px 16px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  border-radius: 9999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #242424;
+  color: #fff;
+  transition: background 0.15s, transform 0.15s;
 }
 .rz-chip:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: #2c2c2c;
+  transform: scale(1.05);
 }
 .rz-chip.active {
-  background: #ffffff;
-  color: #000000;
+  background: #fff;
+  color: #000;
+  font-weight: 600;
 }
-#home-screen.rz-music #tile-history,
-#home-screen.rz-music #home-continue-section {
+
+/* старые блоки главной — скрыть, их заменяет #rz-home-new */
+#my-wave-card,
+#home-recent-artists-section,
+#home-for-you-section,
+#home-continue-section,
+#tile-history,
+.tile-history {
   display: none !important;
 }
 
-/* ------------------------------------------------------------
-   11. ПРАВАЯ ПАНЕЛЬ «ИСТОРИЯ ПРОСЛУШИВАНИЯ»
-   ------------------------------------------------------------ */
-.rz-right-aside {
-  position: fixed;
-  top: var(--titlebar-h);
-  right: 8px;
-  bottom: 8px;
-  width: 280px;
-  background: #121212;
-  border-radius: 8px;
-  padding: 16px 16px 100px;
-  box-sizing: border-box;
+/* ---------- Новый контент главной ---------- */
+#rz-home-new {
+  padding: 0 24px 24px;
   display: flex;
   flex-direction: column;
-  color: #ffffff;
-  z-index: 90;
+  gap: 36px;
+}
+#home-screen.rz-podcasts #rz-home-new {
+  display: none;
+}
+#home-screen.rz-podcasts::after {
+  content: 'Подкасты скоро появятся';
+  display: block;
+  color: #a3a3a3;
+  font-size: 14px;
+  padding: 40px 24px;
+}
+#home-screen.rz-music .rz-quick {
+  display: none;
+}
+
+/* быстрые плитки */
+.rz-quick {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.rz-quick-card {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  background: rgba(40, 40, 40, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+.rz-quick-card:hover {
+  background: #383838;
+}
+.rz-quick-cover {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.rz-quick-cover.qcc {
+  background: #059669;
+}
+.rz-quick-cover.qmad {
+  background: #3a3d4d;
+  color: #fcd34d;
+}
+.rz-quick-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  padding: 0 12px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rz-quick-play {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1db954;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+.rz-quick-play svg {
+  width: 20px;
+  height: 20px;
+  transform: translateX(1px);
+}
+.rz-quick-card:hover .rz-quick-play {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* секции */
+.rz-section {
+  display: flex;
+  flex-direction: column;
+}
+.rz-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.rz-sec-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rz-sec-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #404040;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rz-sec-kicker {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #b3b3b3;
+  font-weight: 600;
+}
+.rz-sec-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+.rz-sec-title:hover {
+  text-decoration: underline;
+}
+.rz-sec-plain {
+  line-height: 1.2;
+}
+.rz-show-all {
+  border: none;
+  background: transparent;
+  color: #b3b3b3;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.rz-show-all:hover {
+  text-decoration: underline;
+  color: #fff;
+}
+
+/* сетка карточек */
+.rz-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+@media (max-width: 1200px) {
+  .rz-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 900px) {
+  .rz-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.rz-card {
+  background: #181818;
+  border-radius: 6px;
+  padding: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+.rz-card:hover {
+  background: #282828;
+}
+.rz-card-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px;
+}
+.rz-card-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rz-card-sub {
+  font-size: 12px;
+  color: #b3b3b3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* обложки секции «Похоже на» */
+.rz-cv-radio {
+  background: linear-gradient(135deg, #c6a2e8, #986cd1);
+  color: rgba(0, 0, 0, 0.7);
+}
+.rz-cv-top {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+.rz-cv-name {
+  text-align: center;
+  font-weight: 900;
+  font-size: 20px;
+  color: #000;
+  letter-spacing: -0.02em;
+}
+.rz-cv-collage {
+  background: #1b1c20;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  padding: 4px;
+}
+.rz-cv-collage span {
+  background: #404040;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #d4d4d4;
+}
+.rz-cv-collage span:nth-child(2) {
+  background: #525252;
+}
+.rz-cv-collage span:nth-child(3) {
+  background: #262626;
+}
+.rz-cv-ukr {
+  background: #788896;
+}
+.rz-mix-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+}
+.rz-cv-plate {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000;
+  padding: 4px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.rz-cv-hot {
+  background: #0a0a0a;
+  border: 1px solid #262626;
+  position: relative;
+}
+.rz-cv-vert {
+  position: absolute;
+  left: 10px;
+  top: 12px;
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.12em;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.rz-cv-corner {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  font-size: 9px;
+  color: #a3a3a3;
+  letter-spacing: 0.12em;
+}
+.rz-cv-artist {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #525252;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rz-cv-papa {
+  background: #2d1b22;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.rz-cv-papa-t {
+  font-size: 20px;
+  font-weight: 900;
+  color: #f43f5e;
+  letter-spacing: 0.1em;
+}
+.rz-cv-papa-s {
+  font-size: 9px;
+  color: #a3a3a3;
+  margin-top: 4px;
+}
+
+/* миксы */
+.rz-mix {
+  padding: 12px;
+}
+.rz-mix .rz-mix-dot {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+.rz-mix-ring {
+  position: absolute;
+  right: -24px;
+  top: 8px;
+  width: 96px;
+  height: 96px;
+  border: 9px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+}
+.rz-mix-badge {
+  position: relative;
+  align-self: flex-start;
+  margin-top: auto;
+  color: #000;
+  font-weight: 800;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.mix-energy {
+  background: linear-gradient(135deg, #7a1862, #25002b);
+}
+.mix-energy .rz-mix-ring {
+  border-color: rgba(236, 72, 153, 0.4);
+}
+.mix-break {
+  background: linear-gradient(135deg, #5e5318, #241f02);
+}
+.mix-break .rz-mix-ring {
+  border-color: rgba(234, 179, 8, 0.4);
+}
+.mix-bpm {
+  background: linear-gradient(135deg, #6b580d, #1c1800);
+}
+.mix-bpm .rz-mix-ring {
+  border-color: rgba(251, 191, 36, 0.4);
+  border-radius: 8px;
+  transform: rotate(12deg);
+  top: -8px;
+}
+.mix-chill {
+  background: linear-gradient(135deg, #262482, #0d093b);
+}
+.mix-chill .rz-mix-ring {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+.mix-chill .rz-mix-badge {
+  color: #fff;
+}
+.mix-emo {
+  background: linear-gradient(135deg, #1e2a38, #0b1017);
+}
+.mix-emo .rz-mix-ring {
+  border-color: rgba(100, 116, 139, 0.3);
+}
+.mix-emo .rz-mix-badge {
+  color: #fff;
+}
+
+/* недавние */
+.rz-cv-round {
+  border-radius: 50%;
+  background: #262626;
+  align-items: center;
+  justify-content: center;
+  color: #a3a3a3;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+}
+.rz-cv-album {
+  background: #262626;
+  align-items: center;
+  justify-content: center;
+  color: #a3a3a3;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+}
+
+/* ---------- Правая панель «Активность друзей» ---------- */
+.rz-right-aside {
+  width: 300px;
+  background: #0a0a0a;
+  border-radius: 8px;
+  margin: 0 8px 8px 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
 }
 .rz-right-aside.closed {
   display: none;
 }
-.rz-aside-header {
+.rz-friends-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-}
-.rz-aside-header h3 {
   font-size: 15px;
   font-weight: 700;
-  color: #ffffff;
+  color: #fff;
+  margin-bottom: 20px;
 }
-.rz-aside-close {
+.rz-aside-x {
   border: none;
   background: transparent;
-  color: #a7a7a7;
+  color: #a3a3a3;
+  font-size: 14px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 4px;
 }
-.rz-aside-close:hover {
-  color: #ffffff;
+.rz-aside-x:hover {
+  color: #fff;
 }
-.rz-aside-close svg {
-  width: 20px;
-  height: 20px;
-}
-.rz-aside-lead {
-  font-size: 13px;
-  color: #b3b3b3;
-  line-height: 1.45;
-  margin-bottom: 28px;
-}
-.rz-aside-friends {
+.rz-friends-list {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-bottom: 32px;
+  flex: 1;
 }
-.rz-friend-row {
+.rz-friend {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
-.rz-friend-avatar {
-  width: 40px;
-  height: 40px;
+.rz-friend-ava {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: #282828;
-  color: #7c7c7c;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   flex-shrink: 0;
 }
-.rz-friend-avatar .material-icons {
-  font-size: 20px;
-}
-.rz-friend-avatar.online::after {
-  content: '';
+.rz-friend-dot {
   position: absolute;
-  top: 0;
   right: 0;
+  bottom: 0;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #3d91f4;
-  border: 2px solid #121212;
+  background: #1db954;
+  border: 2px solid #0a0a0a;
 }
-.rz-friend-lines {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.rz-friend-lines span {
-  display: block;
-  height: 8px;
-  border-radius: 4px;
-  background: #282828;
-}
-.rz-friend-lines .l1 {
-  width: 96px;
-}
-.rz-friend-lines .l1.wide {
-  width: 112px;
-}
-.rz-friend-lines .l2 {
-  width: 64px;
-}
-.rz-friend-lines .l2.short {
-  width: 48px;
-}
-.rz-aside-note {
-  font-size: 12px;
-  color: #8a8a8a;
-  line-height: 1.6;
-  margin-bottom: 24px;
-}
-.rz-aside-settings {
-  align-self: center;
-  border: none;
-  border-radius: 9999px;
-  background: #ffffff;
-  color: #000000;
-  font-family: var(--rz-font);
+.rz-friend-name {
   font-weight: 700;
-  font-size: 14px;
-  padding: 12px 32px;
-  cursor: pointer;
-  transition: transform 0.15s ease;
+  font-size: 13px;
+  color: #fff;
 }
-.rz-aside-settings:hover {
-  transform: scale(1.05);
+.rz-friend-track {
+  font-size: 12px;
+  color: #e5e5e5;
+  margin-top: 2px;
 }
-
-/* Отступ под правую панель (когда боковой плеер закрыт) */
-.main-content.rz-right-open:not(.with-right-panel) {
-  margin-right: 296px;
-}
-
-@media (max-width: 1100px) {
-  .rz-right-aside {
-    display: none;
-  }
-  .main-content.rz-right-open {
-    margin-right: 0;
-  }
-}
-
-/* ------------------------------------------------------------
-   12. САЙДBAR КАК В МАКЕТЕ: медиатека + «плюс», навигация вниз
-   ------------------------------------------------------------ */
-.sidebar #nav-home-btn {
-  display: none;
-}
-.sidebar-top {
-  gap: 12px;
-}
-.rz-plus-btn {
-  border-radius: 50%;
-  background: #1f1f1f;
-  color: #b3b3b3;
-}
-.rz-plus-btn:hover {
-  background: #2a2a2a;
-  color: #ffffff;
-}
-.sidebar-bottom {
-  gap: 6px;
-}
-
-/* ------------------------------------------------------------
-   13. ГЛАВНАЯ КАК В МАКЕТЕ: сетки карточек, «Показать все»
-   ------------------------------------------------------------ */
-.home-carousel-actions {
-  display: none !important;
-}
-#for-you-status {
-  display: none;
-}
-.rz-show-all {
-  margin-left: auto;
-  border: none;
-  background: transparent;
-  color: #b3b3b3;
-  font-family: var(--rz-font);
+.rz-friend-meta {
   font-size: 11px;
+  color: #a3a3a3;
+  margin-top: 4px;
+}
+.rz-find-friends {
+  margin-top: 24px;
+  border: none;
+  background: #242424;
+  color: #e5e5e5;
+  border-radius: 9999px;
+  padding: 12px 0;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  padding: 4px 0;
+  transition: background 0.15s;
 }
-.rz-show-all:hover {
-  color: #ffffff;
-  text-decoration: underline;
-}
-.home-section {
-  position: relative;
-}
-.home-section > .rz-show-all {
-  position: absolute;
-  top: 4px;
-  right: 0;
-  margin-left: 0;
-}
-.rec-grid,
-.for-you-carousel,
-.rz-demo-grid {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
-  gap: 16px !important;
-  overflow: visible !important;
-}
-.rec-tile {
-  background: #181818 !important;
-  border: none !important;
-  border-radius: 6px;
-  padding: 12px;
-}
-.rec-tile:hover {
-  background: #282828 !important;
-}
-.rec-tile-cover {
-  width: 100%;
-  aspect-ratio: 1;
-  height: auto;
-  object-fit: cover;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  background: #242424;
-}
-.rec-tile-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.rec-tile-artist {
-  font-size: 12px;
-  color: #a7a7a7;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.rz-find-friends:hover {
+  background: #2f2f2f;
 }
 
-/* «Моя волна» — компактная карточка в языке макета */
-.my-wave-card {
-  height: 64px;
-  padding: 0;
-  gap: 0;
-  overflow: hidden;
-  border-radius: 4px;
+/* ---------- Плеер-бар как в макете ---------- */
+.player-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 80px !important;
+  background: #000 !important;
+  border-top: 1px solid #171717;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+  padding: 0 16px;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 40;
 }
-.my-wave-left {
+.player-bar-left {
   display: flex;
   align-items: center;
-  gap: 0;
-  width: 100%;
+  gap: 14px;
+  width: 30%;
+  min-width: 180px;
+  max-width: 360px;
 }
-.my-wave-play-btn {
-  width: 64px;
-  height: 64px;
-  border-radius: 0;
-  background: #ffffff;
-  color: #000000;
-  flex-shrink: 0;
+.player-bar-cover {
+  width: 56px;
+  height: 56px;
+  border-radius: 4px;
 }
-.my-wave-play-btn .material-icons {
-  font-size: 28px;
-  color: #000000;
+.player-bar-cover-fallback {
+  width: 56px;
+  height: 56px;
+  border-radius: 4px;
+  background: #1e232a;
 }
-.my-wave-text {
-  padding: 0 16px;
+.player-track-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
 }
-.my-wave-title {
-  font-size: 15px;
-  font-weight: 700;
+.player-track-artist {
+  font-size: 12px;
+  color: #b3b3b3;
 }
-.my-wave-subtitle {
-  display: none;
+
+/* нижний отступ под фиксированный бар */
+.app-container {
+  padding-bottom: 80px;
 }
-.my-wave-bg-svg {
-  display: none;
+.right-player-panel {
+  bottom: 96px;
+}
+
+/* ---------- правки v2.1 ---------- */
+.sidebar {
+  justify-content: flex-start;
+}
+.rz-grid > *,
+.rz-quick-card {
+  min-width: 0;
+}
+
+/* плеер-остров -> полноширинный бар как в макете */
+.floating-island {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  top: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 80px !important;
+  border-radius: 0 !important;
+  background: #000 !important;
+  border: none !important;
+  border-top: 1px solid #171717 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  padding: 0 16px !important;
+}
+.floating-island::before {
+  display: none !important;
+}
+.floating-island {
+  translate: 0 0 !important;
 }

@@ -1,8 +1,9 @@
 /* ============================================================
-   VOTIFY — ROOSTER THEME · обвязка редизайна 1-в-1 с макетом
-   Верхняя панель, сайдбар как в макете (медиатека + «плюс»,
-   пины с обложками), главная с карточками-обложками и ссылками
-   «Показать все», чипсы, правая панель «История прослушивания».
+   VOTIFY — ROOSTER THEME v2 · обвязка редизайна 1-в-1
+   с новым макетом (stitch_): сайдбар без нижних кнопок,
+   иконка медиатеки «архив», текстовые пины, чипсы с «Подкасты»,
+   главная: быстрые плитки, «Похоже на», миксы, «Недавние»,
+   правая панель «Активность друзей», плеер-бар как в макете.
    ============================================================ */
 (function () {
   'use strict';
@@ -35,6 +36,22 @@
     };
   }
 
+  /* ---------- SVG как в макете ---------- */
+  var SVG_ARCHIVE =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>';
+  var SVG_PLUS =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16m8-8H4"/></svg>';
+  var SVG_HEART =
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+  var SVG_BOOKMARK =
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>';
+  var SVG_BELL =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>';
+  var SVG_DOTS =
+    '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+  var SVG_PLAY =
+    '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+
   /* ---------- Верхняя панель ---------- */
   function wireTopbar() {
     var homeBtn = byId('tb-home-btn');
@@ -44,6 +61,28 @@
     var navSearch = byId('nav-search-btn');
     var navSettings = byId('nav-settings-btn');
     var searchInput = byId('search-input');
+
+    /* иконки как в новом макете: «…» слева, outline-колокольчик, archive в поиске */
+    if (gearBtn) {
+      gearBtn.innerHTML = SVG_DOTS;
+      gearBtn.title = 'Ещё';
+    }
+    var bell = byId('tb-bell-btn');
+    if (bell) bell.innerHTML = SVG_BELL;
+    var searchWrap = document.querySelector('.tb-search');
+    if (searchWrap && !byId('tb-browse-btn')) {
+      var browse = document.createElement('button');
+      browse.className = 'tb-browse-btn';
+      browse.id = 'tb-browse-btn';
+      browse.title = 'Обзор';
+      browse.setAttribute('aria-label', 'Обзор');
+      browse.innerHTML = SVG_ARCHIVE;
+      browse.addEventListener('click', function () {
+        var b = byId('nav-folders-btn');
+        if (b) b.click();
+      });
+      searchWrap.appendChild(browse);
+    }
 
     if (homeBtn && navHome) homeBtn.addEventListener('click', () => navHome.click());
     if (gearBtn && navSettings) gearBtn.addEventListener('click', () => navSettings.click());
@@ -72,7 +111,6 @@
       });
     }
 
-    var bell = byId('tb-bell-btn');
     if (bell) {
       bell.addEventListener('click', function () {
         if (typeof window.showToast === 'function') window.showToast('Нет новых уведомлений');
@@ -161,25 +199,26 @@
     updateNavButtons();
   }
 
-  /* ---------- Сайдбар как в макете ---------- */
+  /* ---------- Сайдбар как в новом макете ---------- */
   function rebuildSidebar() {
     var top = document.querySelector('.sidebar-top');
-    var bottom = document.querySelector('.sidebar-bottom');
     if (top && !byId('rz-lib-btn')) {
       var lib = document.createElement('button');
-      lib.className = 'nav-btn';
+      lib.className = 'rz-lib-btn';
       lib.id = 'rz-lib-btn';
       lib.title = 'Моя медиатека';
-      lib.innerHTML = '<i class="material-icons">library_music</i>';
+      lib.setAttribute('aria-label', 'Моя медиатека');
+      lib.innerHTML = SVG_ARCHIVE;
       lib.addEventListener('click', function () {
         var b = byId('nav-folders-btn');
         if (b) b.click();
       });
       var plus = document.createElement('button');
-      plus.className = 'nav-btn rz-plus-btn';
+      plus.className = 'rz-plus-btn';
       plus.id = 'rz-plus-btn';
       plus.title = 'Создать плейлист';
-      plus.innerHTML = '<i class="material-icons">add</i>';
+      plus.setAttribute('aria-label', 'Создать плейлист');
+      plus.innerHTML = SVG_PLUS;
       plus.addEventListener('click', function () {
         var b = byId('nav-folders-btn');
         if (b) b.click();
@@ -191,16 +230,27 @@
       top.appendChild(lib);
       top.appendChild(plus);
     }
-    /* оставшуюся навигацию — вниз, чтобы верх сайдбара был как в макете */
-    if (bottom) {
-      ['nav-player-btn', 'nav-search-btn', 'nav-workshop-btn'].forEach(function (id) {
-        var b = byId(id);
-        if (b && b.parentElement !== bottom) bottom.insertBefore(b, bottom.firstChild);
-      });
-    }
   }
 
-  /* ---------- Пины с обложками ---------- */
+  /* ---------- Пины: текстовые плитки как в макете ---------- */
+  var PIN_STYLES = [
+    'ps-emerald',
+    'ps-dirt',
+    'ps-bookmark',
+    'ps-mono',
+    'ps-circle',
+    'ps-gray',
+    'ps-cyan',
+    'ps-light',
+  ];
+  function pinInitials(name) {
+    var words = String(name || '')
+      .trim()
+      .split(/\s+/);
+    var base = words[0] || 'PL';
+    var s = base.length <= 5 ? base : base.slice(0, 4);
+    return s.toUpperCase();
+  }
   var lastPinsKey = null;
   function renderPins() {
     var wrap = byId('sidebar-pins');
@@ -209,40 +259,49 @@
     try {
       playlists = JSON.parse(localStorage.getItem('votify-playlists') || '{}') || {};
     } catch (e) {
-      /* игнор */
+      /* ignore */
     }
     var keys = Object.keys(playlists).slice(0, 8);
     var sig = 'pl:' + keys.join('|');
     if (sig === lastPinsKey) return;
     lastPinsKey = sig;
 
-    var html =
-      '<div class="sidebar-pin pin-liked" title="Любимые треки"><i class="material-icons">music_note</i></div>';
+    var html = '<div class="sidebar-pin pin-liked" title="Любимые треки">' + SVG_HEART + '</div>';
     if (keys.length) {
-      keys.forEach(function (key) {
-        var list = playlists[key] || [];
-        var cover = list.length && list[0] && list[0].cover ? list[0].cover : '';
-        html += cover
-          ? '<div class="sidebar-pin" title="' +
-            key.replace(/"/g, '&quot;') +
-            '"><img src="' +
-            cover +
-            '" alt="" /></div>'
-          : '<div class="sidebar-pin pin-empty" title="' +
-            key.replace(/"/g, '&quot;') +
-            '"><i class="material-icons">queue_music</i></div>';
+      keys.forEach(function (key, i) {
+        var style = PIN_STYLES[i % PIN_STYLES.length];
+        html +=
+          '<div class="sidebar-pin ' +
+          style +
+          '" title="' +
+          key.replace(/"/g, '&quot;') +
+          '"><span>' +
+          pinInitials(key) +
+          '</span></div>';
       });
     } else {
-      /* нет плейлистов — пины демо-обложками, как в макете */
-      DEMO.forEach(function (e, i) {
+      /* нет плейлистов — демо-пины плитками, как в макете */
+      var demoPins = [
+        { t: 'CC', style: 'ps-emerald' },
+        { t: 'DIRT', style: 'ps-dirt' },
+        { t: SVG_BOOKMARK, style: 'ps-bookmark' },
+        { t: '264', style: 'ps-mono' },
+        { t: '', style: 'ps-circle' },
+        { t: 'SCOOT', style: 'ps-gray' },
+        { t: 'CITY', style: 'ps-cyan' },
+        { t: 'MANGA', style: 'ps-light' },
+      ];
+      demoPins.forEach(function (p, i) {
         html +=
-          '<div class="sidebar-pin pin-demo" data-demo="' +
+          '<div class="sidebar-pin ' +
+          p.style +
+          '" data-demo="' +
           i +
           '" title="' +
-          e.title +
-          '"><img src="/demo/cover/' +
-          e.id +
-          '.svg" alt="" /></div>';
+          DEMO[i % DEMO.length].title.replace(/"/g, '&quot;') +
+          '">' +
+          (p.t ? '<span>' + p.t + '</span>' : '') +
+          '</div>';
       });
     }
     wrap.innerHTML = html;
@@ -259,93 +318,233 @@
     });
   }
 
-  /* ---------- Главная: карточки как в макете ---------- */
-  function tileHtml(t, i) {
+  /* ---------- Главная как в новом макете ---------- */
+  function showAllBtn() {
+    return '<button class="rz-show-all" type="button">Показать все</button>';
+  }
+  function mixCard(m, i) {
     return (
-      '<div class="rec-tile" data-demo="' +
+      '<div class="rz-card" data-demo="' +
       i +
       '">' +
-      '<img class="rec-tile-cover" src="' +
-      t.cover +
-      '" alt="" />' +
-      '<div class="rec-tile-title">' +
-      t.title +
+      '<div class="rz-card-cover rz-mix ' +
+      m.cls +
+      '"><span class="rz-mix-dot"></span><span class="rz-mix-ring"></span>' +
+      '<span class="rz-mix-badge" style="background:' +
+      m.badge +
+      '">' +
+      m.name +
+      '</span></div>' +
+      '<div class="rz-card-title">' +
+      m.name +
       '</div>' +
-      '<div class="rec-tile-artist">' +
-      t.artist +
+      '<div class="rz-card-sub">' +
+      m.sub +
       '</div>' +
-      '<div class="rec-tile-play"><i class="material-icons">play_arrow</i></div>' +
       '</div>'
     );
   }
-  function isEmpty(el) {
-    if (!el) return true;
-    if (el.querySelector('.rec-tile')) return false;
-    if (el.querySelector('.track-item')) return false;
-    return true;
+  function homeNewHtml() {
+    var mixes = [
+      {
+        cls: 'mix-energy',
+        badge: '#ff4db8',
+        name: 'Energy Mix',
+        sub: 'Energy music for you. Also try rap, dance,…',
+      },
+      {
+        cls: 'mix-break',
+        badge: '#f8d02e',
+        name: 'Breakcore Mix',
+        sub: 'Breakcore music for you. Also try drum a…',
+      },
+      {
+        cls: 'mix-bpm',
+        badge: '#ffc83b',
+        name: '160 BPM Mix',
+        sub: '160 BPM music for you. Also try pop,…',
+      },
+      {
+        cls: 'mix-chill',
+        badge: '#5c68ff',
+        name: 'Chill Workout Mix',
+        sub: 'Chill Workout music for you. Also try…',
+      },
+      {
+        cls: 'mix-emo',
+        badge: '#486581',
+        name: 'Emo Rap',
+        sub: 'Emo Rap music for you. Also try…',
+      },
+    ];
+    var html = '';
+    html += '<div class="rz-quick">';
+    html +=
+      '<div class="rz-quick-card" data-demo="0"><div class="rz-quick-cover qcc">CC</div><span class="rz-quick-name">exieeez</span><span class="rz-quick-play">' +
+      SVG_PLAY +
+      '</span></div>';
+    html +=
+      '<div class="rz-quick-card" data-demo="2"><div class="rz-quick-cover qmad">Mad</div><span class="rz-quick-name">sexyswag</span><span class="rz-quick-play">' +
+      SVG_PLAY +
+      '</span></div>';
+    html += '</div>';
+
+    html += '<section class="rz-section"><div class="rz-sec-head">';
+    html +=
+      '<div class="rz-sec-left"><div class="rz-sec-avatar">M1D</div><div><div class="rz-sec-kicker">Похоже на:</div><div class="rz-sec-title">madk1d</div></div></div>';
+    html += showAllBtn();
+    html += '</div><div class="rz-grid">';
+    html +=
+      '<div class="rz-card" data-demo="0"><div class="rz-card-cover rz-cv-radio"><span class="rz-cv-top">РАДИО</span><span class="rz-cv-name">madk1d</span></div><div class="rz-card-title">тёмный принц, паранойя, greyrock …</div><div class="rz-card-sub">В эфире: madk1d, greyrock, trankvilizer и другие</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="1"><div class="rz-card-cover rz-cv-collage"><span>ПРИНЦ</span><span>MASK</span><span>DARK</span><span>KING</span></div><div class="rz-card-title">отвратительный король</div><div class="rz-card-sub">тёмный принц</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="2"><div class="rz-card-cover rz-cv-ukr"><span class="rz-mix-dot"></span><span class="rz-cv-plate">Топ українських треків 2025</span></div><div class="rz-card-title">Найпопулярніші українські треки в…</div><div class="rz-card-sub">Оновлюється щоп’ятниці.</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="3"><div class="rz-card-cover rz-cv-hot"><span class="rz-cv-vert">HOT HITS</span><span class="rz-cv-corner">УКРАЇНА</span><span class="rz-cv-artist">ARTIST</span></div><div class="rz-card-title">50 найгарячіших пісень в Україні.…</div><div class="rz-card-sub">Головні хіти просто зараз.</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="4"><div class="rz-card-cover rz-cv-papa"><span class="rz-cv-papa-t">ПАПА</span><span class="rz-cv-papa-s">FORTUNA</span></div><div class="rz-card-title">ПАПА</div><div class="rz-card-sub">тёмный пр… FORTUNA</div></div>';
+    html += '</div></section>';
+
+    html += '<section class="rz-section"><div class="rz-sec-head">';
+    html += '<div class="rz-sec-title rz-sec-plain">Soundtrack your Monday morning</div>';
+    html += showAllBtn();
+    html += '</div><div class="rz-grid">';
+    html += mixes
+      .map(function (m, i) {
+        return mixCard(m, i + 2);
+      })
+      .join('');
+    html += '</div></section>';
+
+    html += '<section class="rz-section"><div class="rz-sec-head">';
+    html += '<div class="rz-sec-title rz-sec-plain">Недавние</div>';
+    html += showAllBtn();
+    html += '</div><div class="rz-grid">';
+    html +=
+      '<div class="rz-card" data-demo="5"><div class="rz-card-cover rz-cv-round">ARTIST</div><div class="rz-card-title">shadowraze</div><div class="rz-card-sub">Исполнитель</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="6"><div class="rz-card-cover rz-cv-album">ALBUM</div><div class="rz-card-title">ASTRAL STEP</div><div class="rz-card-sub">shadowraze</div></div>';
+    html += '</div></section>';
+    return html;
   }
-  var filledOnce = {};
   function fillHome() {
-    var forYou = byId('for-you-results');
-    if (forYou && isEmpty(forYou) && !filledOnce.forYou) {
-      filledOnce.forYou = true;
-      forYou.innerHTML = DEMO.map(function (_, i) {
-        return tileHtml(demoTrack(i), i);
-      }).join('');
+    var home = byId('home-screen');
+    if (!home) return;
+    if (!byId('rz-home-new')) {
+      var chips = byId('rz-home-chips');
+      var box = document.createElement('div');
+      box.id = 'rz-home-new';
+      box.innerHTML = homeNewHtml();
+      if (chips && chips.nextSibling) home.insertBefore(box, chips.nextSibling);
+      else home.appendChild(box);
     }
-    var cont = byId('home-continue');
-    if (cont && isEmpty(cont) && !filledOnce.cont) {
-      filledOnce.cont = true;
-      cont.classList.add('rz-demo-grid');
-      cont.innerHTML = DEMO.map(function (_, i) {
-        return tileHtml(demoTrack((i + 3) % DEMO.length), (i + 3) % DEMO.length);
-      }).join('');
+    /* третий чипс «Подкасты» */
+    var chipsWrap = byId('rz-home-chips');
+    if (chipsWrap && !byId('rz-chip-podcasts')) {
+      var pod = document.createElement('button');
+      pod.className = 'rz-chip';
+      pod.id = 'rz-chip-podcasts';
+      pod.dataset.chip = 'podcasts';
+      pod.textContent = 'Подкасты';
+      chipsWrap.appendChild(pod);
     }
-    /* ссылки «Показать все» в заголовках секций, как в макете */
-    document
-      .querySelectorAll('.home-section-header, .home-section > .home-heading')
-      .forEach(function (hdr) {
-        var section = hdr.classList.contains('home-section') ? hdr.parentElement : hdr;
-        if (section && !section.querySelector('.rz-show-all')) {
-          var link = document.createElement('button');
-          link.className = 'rz-show-all';
-          link.type = 'button';
-          link.textContent = 'Показать все';
-          link.addEventListener('click', function () {
-            if (typeof window.showToast === 'function')
-              window.showToast('Все карточки уже на экране');
-          });
-          if (hdr.classList.contains('home-section-header')) hdr.appendChild(link);
-          else hdr.parentElement.appendChild(link);
-        }
-      });
   }
   function wireDemoClicks() {
     document.addEventListener('click', function (e) {
-      var tile = e.target.closest ? e.target.closest('.rec-tile[data-demo]') : null;
+      var tile = e.target.closest ? e.target.closest('[data-demo]') : null;
       if (tile && typeof window.playTrack === 'function') {
         window.playTrack(demoTrack(Number(tile.dataset.demo)));
+      }
+      var showAll = e.target.closest ? e.target.closest('.rz-show-all') : null;
+      if (showAll && typeof window.showToast === 'function') {
+        window.showToast('Все карточки уже на экране');
       }
     });
   }
 
-  /* ---------- Чипсы «Все / Музыка» ---------- */
+  /* ---------- Чипсы ---------- */
   function wireChips() {
-    var chips = document.querySelectorAll('#rz-home-chips .rz-chip');
-    chips.forEach(function (chip) {
-      chip.addEventListener('click', function () {
-        chips.forEach(function (c) {
-          c.classList.remove('active');
-        });
-        chip.classList.add('active');
-        var home = byId('home-screen');
-        if (!home) return;
-        home.classList.toggle('rz-music', chip.dataset.chip === 'music');
+    var chipsWrap = byId('rz-home-chips');
+    if (!chipsWrap) return;
+    chipsWrap.addEventListener('click', function (e) {
+      var chip = e.target.closest ? e.target.closest('.rz-chip') : null;
+      if (!chip) return;
+      chipsWrap.querySelectorAll('.rz-chip').forEach(function (c) {
+        c.classList.remove('active');
       });
+      chip.classList.add('active');
+      var home = byId('home-screen');
+      if (!home) return;
+      home.classList.toggle('rz-music', chip.dataset.chip === 'music');
+      home.classList.toggle('rz-podcasts', chip.dataset.chip === 'podcasts');
     });
   }
 
-  /* ---------- Правая панель «История прослушивания» ---------- */
+  /* ---------- Правая панель «Активность друзей» ---------- */
+  var FRIENDS_DEMO = [
+    {
+      ini: 'NK',
+      color: '#7b3fe4',
+      name: 'Nikita',
+      track: 'FEIN (feat. Playboi Carti)',
+      meta: 'Travis Scott • UTOPIA',
+      online: true,
+    },
+    {
+      ini: 'AL',
+      color: '#e07b12',
+      name: 'Alex',
+      track: 'Starlight',
+      meta: 'Muse • Black Holes',
+      online: true,
+    },
+    {
+      ini: 'VL',
+      color: '#0e6b4a',
+      name: 'Vladislav',
+      track: 'ASTRAL STEP',
+      meta: '3 ч. назад',
+      online: false,
+    },
+  ];
+  function buildAside() {
+    var aside = byId('rz-right-aside');
+    if (!aside || byId('rz-friends-list')) return;
+    var html = '<div class="rz-friends-head"><span>Активность друзей</span>';
+    html +=
+      '<button class="rz-aside-x" id="rz-aside-close" title="Закрыть" aria-label="Закрыть">✕</button></div>';
+    html += '<div class="rz-friends-list" id="rz-friends-list">';
+    FRIENDS_DEMO.forEach(function (f) {
+      html +=
+        '<div class="rz-friend"><div class="rz-friend-ava" style="background:' +
+        f.color +
+        '">' +
+        f.ini +
+        (f.online ? '<span class="rz-friend-dot"></span>' : '') +
+        '</div><div class="rz-friend-info"><div class="rz-friend-name">' +
+        f.name +
+        '</div><div class="rz-friend-track">' +
+        f.track +
+        '</div><div class="rz-friend-meta">♫ ' +
+        f.meta +
+        '</div></div></div>';
+    });
+    html += '</div>';
+    html += '<button class="rz-find-friends" id="rz-find-friends">Найти друзей</button>';
+    aside.innerHTML = html;
+    var close = byId('rz-aside-close');
+    if (close)
+      close.addEventListener('click', function () {
+        setAsideVisible(false);
+      });
+    var find = byId('rz-find-friends');
+    if (find)
+      find.addEventListener('click', function () {
+        if (typeof window.showToast === 'function')
+          window.showToast('Друзья появятся, когда вы войдёте в аккаунт');
+      });
+  }
   function asideIsVisible() {
     var aside = byId('rz-right-aside');
     return !!aside && !aside.classList.contains('closed');
@@ -359,35 +558,30 @@
     try {
       localStorage.setItem('rooster-aside', show ? 'open' : 'closed');
     } catch (e) {
-      /* игнор */
+      /* ignore */
     }
   }
   function wireAside() {
-    var close = byId('rz-aside-close');
-    if (close) close.addEventListener('click', () => setAsideVisible(false));
-    var settings = byId('rz-aside-settings');
-    var navSettings = byId('nav-settings-btn');
-    if (settings && navSettings) settings.addEventListener('click', () => navSettings.click());
     var stored = null;
     try {
       stored = localStorage.getItem('rooster-aside');
     } catch (e) {
-      /* игнор */
+      /* ignore */
     }
-    setAsideVisible(stored !== 'closed');
+    setAsideVisible(stored === 'open');
   }
 
   function init() {
     wireTopbar();
     wireHistory();
     rebuildSidebar();
+    buildAside();
     wireChips();
     wireAside();
     wireDemoClicks();
     renderPins();
     fillHome();
     window.setInterval(renderPins, 2000);
-    window.setInterval(fillHome, 1500);
   }
 
   if (document.readyState === 'loading') {

@@ -34,6 +34,13 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      # Firebase Web Config (секрет репозитория) кладётся в firebase-config.json
+      # до упаковки, чтобы в собранном exe работал вход в аккаунт.
+      - name: Prepare Firebase config
+        run: node scripts/prepare-firebase-config.js
+        env:
+          VOTIFY_FIREBASE_CONFIG: ${{ secrets.VOTIFY_FIREBASE_CONFIG }}
+
       - name: Build
         run: npx electron-builder ${{ matrix.args }} --publish never
         env:
