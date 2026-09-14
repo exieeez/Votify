@@ -862,15 +862,19 @@
 
 /* ---------- Правая панель «Активность друзей» ---------- */
 .rz-right-aside {
+  position: fixed;
+  right: 8px;
+  top: calc(var(--titlebar-h) + 8px);
+  bottom: 96px;
   width: 300px;
   background: #0a0a0a;
+  border: 1px solid #1f1f1f;
   border-radius: 8px;
-  margin: 0 8px 8px 0;
   padding: 20px;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
   overflow-y: auto;
+  z-index: 90;
 }
 .rz-right-aside.closed {
   display: none;
@@ -1146,4 +1150,39 @@
 }
 .profile-actions .auth-btn {
   border-radius: 9999px;
+}
+
+/* ---------- профиль: полноценное окно ---------- */
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  z-index: 300;
+  padding: 0;
+}
+.profile-card {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: none;
+  border-radius: 0;
+  overflow-y: auto;
+}
+.profile-card-header {
+  border-radius: 0;
+  height: 160px;
+}
+.rz-profile-friends {
+  padding: 20px;
+  border-top: 1px solid #242424;
+  margin-top: 16px;
+}
+.rz-profile-friends h4 {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 14px;
 }

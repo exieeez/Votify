@@ -291,7 +291,18 @@
         var lib = byId('nav-folders-btn');
         if (lib) lib.click();
         window.setTimeout(function () {
-          if (typeof window.openPlaylist === 'function') window.openPlaylist(name);
+          if (name === 'Избранное') {
+            /* любимые — раздел медиатеки, а не отдельный плейлист */
+            var tabs = document.getElementById('library-filter-tabs');
+            if (tabs) {
+              var fav = tabs.querySelector('[data-tab="favorites"]');
+              if (fav) fav.click();
+            }
+            var pane = document.getElementById('lib-detail-pane');
+            if (pane) pane.style.display = 'none';
+          } else if (typeof window.openPlaylist === 'function') {
+            window.openPlaylist(name);
+          }
         }, 250);
       });
     });
@@ -357,26 +368,32 @@
       },
     ];
     var html = '';
-    /* вместо «авторов» — заглушки-мелодии: клик проигрывает демо-трек */
+    html += '<div class="rz-quick">';
+    html +=
+      '<div class="rz-quick-card" data-demo="0"><div class="rz-quick-cover qcc">CC</div><span class="rz-quick-name">exieeez</span><span class="rz-quick-play">' +
+      SVG_PLAY +
+      '</span></div>';
+    html +=
+      '<div class="rz-quick-card" data-demo="2"><div class="rz-quick-cover qmad">Mad</div><span class="rz-quick-name">sexyswag</span><span class="rz-quick-play">' +
+      SVG_PLAY +
+      '</span></div>';
+    html += '</div>';
+
     html += '<section class="rz-section"><div class="rz-sec-head">';
-    html += '<div class="rz-sec-title rz-sec-plain">Мелодии для тебя</div>';
+    html +=
+      '<div class="rz-sec-left"><div class="rz-sec-avatar">M1D</div><div><div class="rz-sec-kicker">Похоже на:</div><div class="rz-sec-title">madk1d</div></div></div>';
     html += showAllBtn();
     html += '</div><div class="rz-grid">';
-    html += DEMO.map(function (e, i) {
-      return (
-        '<div class="rz-card" data-demo="' +
-        i +
-        '"><div class="rz-card-cover rz-cv-demo"><img src="/demo/cover/' +
-        e.id +
-        '.svg" alt="" /><span class="rz-demo-play">' +
-        SVG_PLAY +
-        '</span></div>' +
-        '<div class="rz-card-title">' +
-        e.title +
-        '</div>' +
-        '<div class="rz-card-sub">Демо-мелодия • нажми, чтобы слушать</div></div>'
-      );
-    }).join('');
+    html +=
+      '<div class="rz-card" data-demo="0"><div class="rz-card-cover rz-cv-radio"><span class="rz-cv-top">РАДИО</span><span class="rz-cv-name">madk1d</span></div><div class="rz-card-title">тёмный принц, паранойя, greyrock …</div><div class="rz-card-sub">В эфире: madk1d, greyrock, trankvilizer и другие</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="1"><div class="rz-card-cover rz-cv-collage"><span>ПРИНЦ</span><span>MASK</span><span>DARK</span><span>KING</span></div><div class="rz-card-title">отвратительный король</div><div class="rz-card-sub">тёмный принц</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="2"><div class="rz-card-cover rz-cv-ukr"><span class="rz-mix-dot"></span><span class="rz-cv-plate">Топ українських треків 2025</span></div><div class="rz-card-title">Найпопулярніші українські треки в…</div><div class="rz-card-sub">Оновлюється щоп’ятниці.</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="3"><div class="rz-card-cover rz-cv-hot"><span class="rz-cv-vert">HOT HITS</span><span class="rz-cv-corner">УКРАЇНА</span><span class="rz-cv-artist">ARTIST</span></div><div class="rz-card-title">50 найгарячіших пісень в Україні.…</div><div class="rz-card-sub">Головні хіти просто зараз.</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="4"><div class="rz-card-cover rz-cv-papa"><span class="rz-cv-papa-t">ПАПА</span><span class="rz-cv-papa-s">FORTUNA</span></div><div class="rz-card-title">ПАПА</div><div class="rz-card-sub">тёмный пр… FORTUNA</div></div>';
     html += '</div></section>';
 
     html += '<section class="rz-section"><div class="rz-sec-head">';
@@ -390,6 +407,15 @@
       .join('');
     html += '</div></section>';
 
+    html += '<section class="rz-section"><div class="rz-sec-head">';
+    html += '<div class="rz-sec-title rz-sec-plain">Недавние</div>';
+    html += showAllBtn();
+    html += '</div><div class="rz-grid">';
+    html +=
+      '<div class="rz-card" data-demo="5"><div class="rz-card-cover rz-cv-round">ARTIST</div><div class="rz-card-title">shadowraze</div><div class="rz-card-sub">Исполнитель</div></div>';
+    html +=
+      '<div class="rz-card" data-demo="6"><div class="rz-card-cover rz-cv-album">ALBUM</div><div class="rz-card-title">ASTRAL STEP</div><div class="rz-card-sub">shadowraze</div></div>';
+    html += '</div></section>';
     return html;
   }
   function fillHome() {
@@ -535,8 +561,80 @@
     setAsideVisible(stored !== 'closed');
   }
 
+  /* ---------- Клики по треку: вкладка плеера и панель автора ---------- */
+  function wirePlayerLinks() {
+    /* название трека -> вкладка «Плеер» (как раньше) */
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest
+        ? e.target.closest('#fi-title, #fi-info, #player-track-title, .player-bar-info')
+        : null;
+      if (t) {
+        var nav = byId('nav-player-btn');
+        if (nav) nav.click();
+        return;
+      }
+      /* имя исполнителя -> правая панель с автором */
+      var a = e.target.closest ? e.target.closest('#fi-artist') : null;
+      if (a && typeof window.openRightPlayerPanel === 'function') {
+        window.openRightPlayerPanel();
+        var isl = byId('floating-island');
+        if (isl) isl.style.display = '';
+      }
+    });
+    /* при старте трека — открыть правую панель с автором, островок оставить */
+    var userClosedRight = false;
+    document.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('#right-player-close')) userClosedRight = true;
+    });
+    window.setInterval(function () {
+      if (userClosedRight) return;
+      var fi = byId('fi-title');
+      if (!fi) return;
+      var title = fi.textContent;
+      if (title && title !== 'Votify') {
+        if (typeof window.openRightPlayerPanel === 'function') {
+          var panel = byId('right-player-panel');
+          if (panel && !panel.classList.contains('open')) {
+            window.openRightPlayerPanel();
+          }
+          var isl = byId('floating-island');
+          if (isl) isl.style.display = '';
+        }
+      }
+    }, 1000);
+  }
+
+  /* ---------- Друзья в профиле ---------- */
+  function fillProfile() {
+    var card = document.querySelector('#profile-overlay .profile-card');
+    if (!card || byId('rz-profile-friends')) return;
+    var box = document.createElement('div');
+    box.className = 'rz-profile-friends';
+    box.id = 'rz-profile-friends';
+    var html = '<h4>Друзья</h4>';
+    FRIENDS_DEMO.forEach(function (f) {
+      html +=
+        '<div class="rz-friend"><div class="rz-friend-ava" style="background:' +
+        f.color +
+        '">' +
+        f.ini +
+        (f.online ? '<span class="rz-friend-dot"></span>' : '') +
+        '</div><div class="rz-friend-info"><div class="rz-friend-name">' +
+        f.name +
+        '</div><div class="rz-friend-track">' +
+        f.track +
+        '</div><div class="rz-friend-meta">♫ ' +
+        f.meta +
+        '</div></div></div>';
+    });
+    box.innerHTML = html;
+    card.appendChild(box);
+  }
+
   function init() {
     wireTopbar();
+    fillProfile();
+    wirePlayerLinks();
     wireHistory();
     rebuildSidebar();
     buildAside();
