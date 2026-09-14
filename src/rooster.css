@@ -1054,3 +1054,28 @@
 .floating-island {
   translate: 0 0 !important;
 }
+
+/* ---------- правки v2.2: геометрия сетки и клики в Electron ---------- */
+:root {
+  --titlebar-h: 56px;
+  --sidebar-w: 80px;
+  --player-h: 80px;
+}
+.titlebar-drag-area {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  flex: 1;
+  -webkit-app-region: drag;
+}
+.titlebar-left,
+.titlebar-center,
+.tb-right-icons,
+.titlebar-buttons,
+.sidebar,
+.rz-right-aside {
+  -webkit-app-region: no-drag;
+}
+.app-container {
+  padding-bottom: 0;
+}

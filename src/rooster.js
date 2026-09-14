@@ -280,29 +280,7 @@
           '</span></div>';
       });
     } else {
-      /* нет плейлистов — демо-пины плитками, как в макете */
-      var demoPins = [
-        { t: 'CC', style: 'ps-emerald' },
-        { t: 'DIRT', style: 'ps-dirt' },
-        { t: SVG_BOOKMARK, style: 'ps-bookmark' },
-        { t: '264', style: 'ps-mono' },
-        { t: '', style: 'ps-circle' },
-        { t: 'SCOOT', style: 'ps-gray' },
-        { t: 'CITY', style: 'ps-cyan' },
-        { t: 'MANGA', style: 'ps-light' },
-      ];
-      demoPins.forEach(function (p, i) {
-        html +=
-          '<div class="sidebar-pin ' +
-          p.style +
-          '" data-demo="' +
-          i +
-          '" title="' +
-          DEMO[i % DEMO.length].title.replace(/"/g, '&quot;') +
-          '">' +
-          (p.t ? '<span>' + p.t + '</span>' : '') +
-          '</div>';
-      });
+      /* плейлистов нет — оставляем только «Любимые треки» */
     }
     wrap.innerHTML = html;
     wrap.querySelectorAll('.sidebar-pin').forEach(function (pin) {
