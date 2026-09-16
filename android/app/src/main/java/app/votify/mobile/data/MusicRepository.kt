@@ -96,10 +96,14 @@ class MusicRepository(
         if (isServerMode) api.recommendations(limit)
         else io { EmbeddedMusicSource.recommendations(limit) }
 
-    /** «В тренде»: the real CIS chart artists' current hits (standalone) / server recs. */
-    suspend fun trending(limit: Int = 50): List<Track> =
-        if (isServerMode) api.recommendations(limit)
-        else io { EmbeddedMusicSource.trendingCis(limit) }
+    /** «В тренде»: живой чарт (на телефоне — Apple Music, на сервере — /api/charts). */
+    suspend fun trending(limit: Int = 50): List<Track> = if (isServerMode) {
+        // Сервер может быть старой версии без /api/charts — тогда берём рекомендации.
+        val chart = runCatching { api.charts(limit) }.getOrNull()
+        if (!chart.isNullOrEmpty()) chart else api.recommendations(limit)
+    } else {
+        io { EmbeddedMusicSource.trendingCis(limit) }
+    }
 
     suspend fun lyrics(track: String, artist: String): LyricsResponse =
         if (isServerMode) api.lyrics(track, artist)

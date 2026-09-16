@@ -341,6 +341,241 @@ class FirebaseRest(private val config: FirebaseConfig) {
         }
     }
 
+    // ------------------------------------------------------------ профили и друзья (Firestore)
+
+    private fun fs(path: String): String =
+        "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/$path"
+
+    private fun execute(request: Request) {
+        http.newCall(request).execute().use { resp ->
+            if (!resp.isSuccessful) {
+                val text = resp.body?.string().orEmpty()
+                throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+            }
+        }
+    }
+
+    /** Документ или null, если его нет: именно так мы проверяем, свободен ли юзернейм. */
+    private fun getDoc(path: String, idToken: String): JsonObject? {
+        val request = Request.Builder().url(fs(path)).header("Authorization", "Bearer $idToken").get().build()
+        http.newCall(request).execute().use { resp ->
+            if (resp.code == 404) return null
+            val text = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+            return json.parseToJsonElement(text).jsonObject
+        }
+    }
+
+    private fun patchDoc(path: String, idToken: String, fields: JsonObject, mask: List<String>) {
+        val query = if (mask.isEmpty()) "" else "?" +
+            mask.joinToString("&") { "updateMask.fieldPaths=" + java.net.URLEncoder.encode(it, "UTF-8") }
+        val body = buildJsonObject { put("fields", fields) }
+        execute(
+            Request.Builder().url(fs(path) + query)
+                .header("Authorization", "Bearer $idToken")
+                .patch(body.toString().toRequestBody(JSON))
+                .build(),
+        )
+    }
+
+    private fun postDoc(path: String, idToken: String, fields: JsonObject) {
+        val body = buildJsonObject { put("fields", fields) }
+        execute(
+            Request.Builder().url(fs(path))
+                .header("Authorization", "Bearer $idToken")
+                .post(body.toString().toRequestBody(JSON))
+                .build(),
+        )
+    }
+
+    private fun deleteDoc(path: String, idToken: String) {
+        execute(Request.Builder().url(fs(path)).header("Authorization", "Bearer $idToken").delete().build())
+    }
+
+    private fun runQuery(idToken: String, structuredQuery: JsonObject): List<JsonObject> {
+        val body = buildJsonObject { put("structuredQuery", structuredQuery) }
+        val request = Request.Builder()
+            .url("https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents:runQuery")
+            .header("Authorization", "Bearer $idToken")
+            .post(body.toString().toRequestBody(JSON))
+            .build()
+        http.newCall(request).execute().use { resp ->
+            val text = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+            return json.parseToJsonElement(text).jsonArray
+                .mapNotNull { el -> runCatching { el.jsonObject["document"]!!.jsonObject }.getOrNull() }
+        }
+    }
+
+    private fun str(v: String) = buildJsonObject { put("stringValue", v) }
+    private fun int(v: Long) = buildJsonObject { put("integerValue", v.toString()) }
+    private fun bool(v: Boolean) = buildJsonObject { put("booleanValue", v) }
+    private fun strings(v: List<String>) = buildJsonObject {
+        put("arrayValue", buildJsonObject { put("values", buildJsonArray { v.forEach { add(str(it)) } }) })
+    }
+
+    private fun fieldValue(doc: JsonObject, name: String): JsonObject? = doc["fields"]?.jsonObject?.get(name)?.jsonObject
+
+    private fun fieldStr(doc: JsonObject, name: String): String =
+        fieldValue(doc, name)?.get("stringValue")?.jsonPrimitive?.content ?: ""
+
+    private fun fieldLong(doc: JsonObject, name: String): Long =
+        fieldValue(doc, name)?.get("integerValue")?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+
+    private fun fieldBool(doc: JsonObject, name: String): Boolean =
+        fieldValue(doc, name)?.get("booleanValue")?.jsonPrimitive?.booleanOrNull ?: false
+
+    private fun parseProfile(doc: JsonObject): UserProfile = UserProfile(
+        uid = fieldStr(doc, "uid"),
+        handle = fieldStr(doc, "handle"),
+        displayName = fieldStr(doc, "displayName"),
+        bio = fieldStr(doc, "bio"),
+        avatarUrl = fieldStr(doc, "avatarUrl"),
+        telegram = fieldStr(doc, "telegram"),
+        soundcloud = fieldStr(doc, "soundcloud"),
+        vk = fieldStr(doc, "vk"),
+        isPrivate = fieldBool(doc, "isPrivate"),
+        updatedAt = fieldLong(doc, "updatedAt"),
+    )
+
+    private fun parseFriendship(doc: JsonObject): Friendship = Friendship(
+        id = doc["name"]?.jsonPrimitive?.content.orEmpty().substringAfterLast('/'),
+        a = fieldStr(doc, "a"),
+        b = fieldStr(doc, "b"),
+        status = fieldStr(doc, "status").ifBlank { Friendship.STATUS_PENDING },
+        from = fieldStr(doc, "from"),
+        to = fieldStr(doc, "to"),
+        createdAt = fieldLong(doc, "createdAt"),
+        updatedAt = fieldLong(doc, "updatedAt"),
+    )
+
+    /** Профиль пользователя или null, если он его ещё не заполнял. */
+    suspend fun loadProfile(idToken: String, uid: String): UserProfile? = withContext(Dispatchers.IO) {
+        getDoc("profiles/$uid", idToken)?.let { parseProfile(it) }
+    }
+
+    /** Профили пачкой — заявки и друзей показываем с именами, а не голыми id. */
+    suspend fun loadProfiles(idToken: String, uids: List<String>): Map<String, UserProfile> = withContext(Dispatchers.IO) {
+        uids.distinct().mapNotNull { uid -> getDoc("profiles/$uid", idToken)?.let { uid to parseProfile(it) } }.toMap()
+    }
+
+    /** Пишет только свои поля профиля (по маске — чужие данные не затираем). */
+    suspend fun saveProfile(idToken: String, uid: String, profile: UserProfile): Unit = withContext(Dispatchers.IO) {
+        val fields = buildJsonObject {
+            put("uid", str(uid))
+            put("handle", str(profile.handle))
+            put("handleLower", str(normalizeHandle(profile.handle)))
+            put("displayName", str(profile.displayName))
+            put("bio", str(profile.bio))
+            put("avatarUrl", str(profile.avatarUrl))
+            put("telegram", str(profile.telegram))
+            put("soundcloud", str(profile.soundcloud))
+            put("vk", str(profile.vk))
+            put("isPrivate", bool(profile.isPrivate))
+            put("updatedAt", int(System.currentTimeMillis()))
+        }
+        patchDoc(
+            "profiles/$uid",
+            idToken,
+            fields,
+            listOf(
+                "uid", "handle", "handleLower", "displayName", "bio", "avatarUrl",
+                "telegram", "soundcloud", "vk", "isPrivate", "updatedAt",
+            ),
+        )
+    }
+
+    /** Занят ли юзернейм (документ-бронь в usernames/{handle}). */
+    suspend fun isHandleTaken(idToken: String, handle: String): Boolean = withContext(Dispatchers.IO) {
+        getDoc("usernames/${normalizeHandle(handle)}", idToken) != null
+    }
+
+    /** Занимает свободный юзернейм; если уже занят — Firestore вернёт ALREADY_EXISTS. */
+    suspend fun claimHandle(idToken: String, uid: String, handle: String): Unit = withContext(Dispatchers.IO) {
+        val lower = normalizeHandle(handle)
+        postDoc(
+            "usernames?documentId=$lower",
+            idToken,
+            buildJsonObject {
+                put("uid", str(uid))
+                put("handle", str(handle.trim().trimStart('@')))
+                put("createdAt", int(System.currentTimeMillis()))
+            },
+        )
+    }
+
+    /** Освобождает свой прежний юзернейм (правила пускают только владельца брони). */
+    suspend fun releaseHandle(idToken: String, handle: String): Unit = withContext(Dispatchers.IO) {
+        val lower = normalizeHandle(handle)
+        if (lower.isBlank()) return@withContext
+        runCatching { deleteDoc("usernames/$lower", idToken) }
+        Unit
+    }
+
+    /** Поиск человека по юзернейму — точное совпадение, как в Telegram. */
+    suspend fun profileByHandle(idToken: String, handle: String): UserProfile? = withContext(Dispatchers.IO) {
+        val lower = normalizeHandle(handle)
+        if (lower.isBlank()) return@withContext null
+        val claim = getDoc("usernames/$lower", idToken) ?: return@withContext null
+        val uid = fieldStr(claim, "uid")
+        if (uid.isBlank()) return@withContext null
+        getDoc("profiles/$uid", idToken)?.let { parseProfile(it).copy(uid = uid) }
+            ?: UserProfile(uid = uid, handle = handle.trim().trimStart('@'))
+    }
+
+    /** Все связи пользователя: и заявки, и подтверждённые друзья. */
+    suspend fun friendships(idToken: String, uid: String): List<Friendship> = withContext(Dispatchers.IO) {
+        val query = buildJsonObject {
+            put("from", buildJsonArray { add(buildJsonObject { put("collectionId", "friendships") }) })
+            put("where", buildJsonObject {
+                put("fieldFilter", buildJsonObject {
+                    put("field", buildJsonObject { put("fieldPath", "users") })
+                    put("op", "ARRAY_CONTAINS")
+                    put("value", str(uid))
+                })
+            })
+            put("limit", 200)
+        }
+        runQuery(idToken, query).map { parseFriendship(it) }
+    }
+
+    /** Заявка в друзья: один документ на пару, id не зависит от того, кто первый. */
+    suspend fun sendFriendRequest(idToken: String, from: String, to: String): Unit = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        postDoc(
+            "friendships?documentId=${friendshipId(from, to)}",
+            idToken,
+            buildJsonObject {
+                put("a", str(minOf(from, to)))
+                put("b", str(maxOf(from, to)))
+                put("users", strings(listOf(from, to)))
+                put("status", str(Friendship.STATUS_PENDING))
+                put("from", str(from))
+                put("to", str(to))
+                put("createdAt", int(now))
+                put("updatedAt", int(now))
+            },
+        )
+    }
+
+    /** Принять заявку (правила пускают только адресата). */
+    suspend fun acceptFriendRequest(idToken: String, id: String): Unit = withContext(Dispatchers.IO) {
+        patchDoc(
+            "friendships/$id",
+            idToken,
+            buildJsonObject {
+                put("status", str(Friendship.STATUS_ACCEPTED))
+                put("updatedAt", int(System.currentTimeMillis()))
+            },
+            listOf("status", "updatedAt"),
+        )
+    }
+
+    /** Отклонить заявку или удалить друга — связь удаляется целиком. */
+    suspend fun deleteFriendship(idToken: String, id: String): Unit = withContext(Dispatchers.IO) {
+        deleteDoc("friendships/$id", idToken)
+    }
+
     /** Returns the stored sync blob, or null when the user has never pushed. */
     suspend fun pullUserSync(idToken: String, uid: String): String? = withContext(Dispatchers.IO) {
         val url = "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/users/$uid"

@@ -107,27 +107,29 @@ function getNetworkConfig() {
 const SEARCH_LIMIT = 12;
 const SEARCH_MAX_LIMIT = 100;
 const RECOMMENDATION_LIMIT = 16;
+// Актуальная ротация: то, что реально в чартах, а не хиты десятилетней давности.
+// Живой чарт (Apple Music) подменяет этот список, когда доступен — см. getChartTracks.
 const RECOMMENDATION_SEEDS = [
-  'Фортуна official audio',
-  'Miyagi official audio',
-  'Big Baby Tape official audio',
-  'Тима Белорусских official audio',
-  'Artik & Asti official audio',
-  'Jah Khalib official audio',
-  'Pharaoh official audio',
-  'Эндшпиль official audio',
-  'Макс Корж official audio',
+  'ONDA ANDAR official audio',
+  'XOLIDAYBOY official audio',
+  'Nasty Babe official audio',
+  'Jakone official audio',
+  'ICEGERGERT official audio',
+  'Toxi$ official audio',
+  'Дора official audio',
+  'VILLIAN official audio',
+  'MIA BOYKA official audio',
+  'Zivert official audio',
+  'ANNA ASTI official audio',
+  'Три дня дождя official audio',
+  'JONY official audio',
+  'Ay Yola official audio',
   'Баста official audio',
-  'Мот official audio',
-  'Noize MC official audio',
-  'Скриптонит official audio',
-  'Oxxxymiron official audio',
-  'Грибы official audio',
-  'Время и Стекло official audio',
-  'Звонкий official audio',
-  'HammAli & Navai official audio',
-  'Руки Вверх official audio',
+  'Мари Краймбрери official audio',
+  'ENZRO official audio',
+  'SAYAN official audio',
   'Клава Кока official audio',
+  'BEARWOLF official audio',
 ];
 
 const BLOCKED_KEYWORDS = [
@@ -637,6 +639,81 @@ async function getRecommendations(limit = RECOMMENDATION_LIMIT) {
   return unique.slice(0, limit);
 }
 
+// ------------------------------------------------------------------ чарты
+
+const CHART_CACHE_TTL = 30 * 60 * 1000; // чарт обновляется ~раз в сутки, хватит и получаса
+const chartCache = new Map();
+
+/** Минимальный GET → JSON (без внешних зависимостей). */
+function httpsGetJson(url, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(
+      url,
+      { headers: { 'User-Agent': 'Votify/1.0', Accept: 'application/json' } },
+      res => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          reject(new Error('HTTP ' + res.statusCode));
+          return;
+        }
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', chunk => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(e);
+          }
+        });
+      },
+    );
+    req.setTimeout(timeoutMs, () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
+  });
+}
+
+/**
+ * Живой чарт Apple Music — то, что слушают прямо сейчас, а не «популярное когда-то».
+ * Позиции чарта резолвим в треки (каждый запрос — отдельный yt-dlp, поэтому
+ * небольшими пачками) и кэшируем на полчаса.
+ */
+async function getChartTracks(region = 'ru', limit = 30) {
+  const key = String(region).toLowerCase() + ':' + limit;
+  const cached = chartCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.tracks;
+
+  const url =
+    'https://rss.marketingtools.apple.com/api/v2/' +
+    encodeURIComponent(String(region).toLowerCase()) +
+    '/music/most-played/50/songs.json';
+  const data = await httpsGetJson(url);
+  const entries = (data && data.feed && data.feed.results ? data.feed.results : [])
+    .map(r => ({ title: r && r.name, artist: (r && r.artistName) || '' }))
+    .filter(e => e.title)
+    .slice(0, limit);
+  if (!entries.length) return [];
+
+  const tracks = [];
+  const CONCURRENCY = 4;
+  for (let i = 0; i < entries.length; i += CONCURRENCY) {
+    const batch = entries.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      batch.map(e => searchTracks(`${e.artist} ${e.title}`.trim(), 1, true)),
+    );
+    results.forEach(r => {
+      if (r.status === 'fulfilled' && r.value && r.value.length) tracks.push(r.value[0]);
+    });
+  }
+
+  const seen = new Set();
+  const unique = tracks.filter(t => t && t.id && !seen.has(t.id) && seen.add(t.id));
+  if (unique.length) chartCache.set(key, { tracks: unique, expires: Date.now() + CHART_CACHE_TTL });
+  return unique;
+}
+
 const AUDIO_QUALITY_FORMATS = {
   high: 'bestaudio[abr>=192]/bestaudio/best',
   medium: 'bestaudio[abr<=192]/bestaudio/best',
@@ -890,6 +967,7 @@ module.exports = {
   searchTracks,
   searchTracksByArtist,
   getRecommendations,
+  getChartTracks,
   fetchStreamUrl,
   streamCache,
   STREAM_CACHE_TTL,

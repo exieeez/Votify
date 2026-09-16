@@ -75,6 +75,10 @@ class VotifyApi(
     suspend fun recommendations(limit: Int = 16): List<Track> =
         get<TracksResponse>("api/recommendations", "limit" to limit.toString()).tracks
 
+    /** Живой чарт сервера (Настройки → Сервер): что популярно прямо сейчас. */
+    suspend fun charts(limit: Int = 30): List<Track> =
+        get<TracksResponse>("api/charts", "limit" to limit.toString()).tracks
+
     suspend fun customWave(
         artistSeeds: List<String>,
         trackSeeds: List<String> = emptyList(),

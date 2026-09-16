@@ -344,6 +344,14 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     val bgPrefs = parseCustomPrefs(settings.customPrefs)
     val bgBlurDp = bgPrefs.bgBlur.coerceIn(0, 60)
     val bgDimAlpha = bgPrefs.bgDim.coerceIn(0, 92) / 100f
+    // Как широкий ПК-фон ложится на экран телефона: обрезать по экрану, показать
+    // целиком (с полями) или растянуть — выбирается в Настройки → Библиотека → фон.
+    val bgScale = bgPrefs.bgScale.coerceIn(1f, 5f)
+    val bgContentScale = when (bgPrefs.bgFit) {
+        1 -> androidx.compose.ui.layout.ContentScale.Fit
+        2 -> androidx.compose.ui.layout.ContentScale.FillBounds
+        else -> androidx.compose.ui.layout.ContentScale.Crop
+    }
 
     // imePadding: with edge-to-edge the keyboard would cover the bottom nav — on the search
     // screen that made it impossible to return to Home without the system back gesture.
@@ -352,7 +360,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
             coil.compose.AsyncImage(
                 model = workshopBgUrl,
                 contentDescription = null,
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                contentScale = bgContentScale,
                 // Кадрирование: широкий ПК-фон можно сдвинуть и приблизить под экран телефона.
                 alignment = androidx.compose.ui.BiasAlignment(
                     bgPrefs.bgOffsetX.coerceIn(-1f, 1f),
@@ -360,7 +368,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 ),
                 modifier = Modifier
                     .fillMaxSize()
-                    .scale(bgPrefs.bgScale.coerceIn(1f, 3f))
+                    .scale(bgScale)
                     .blur(bgBlurDp.dp),
             )
             // Dim the background so text on cards stays readable (Настройки → Фон → Затемнение).

@@ -11,6 +11,9 @@
 // SIMPLE INLINE CORE (no bundler needed)
 // ==========================================
 
+/** Сайт проекта — открывается по логотипу Votify в шапке. */
+const VOTIFY_SITE = 'https://votify-gamma.vercel.app/';
+
 // --- Mini Store ---
 const state = new Proxy(
   {
@@ -406,45 +409,64 @@ function renderChartsView() {
   </div>`;
 }
 
-async function loadCharts(region = 'RU') {
-  try {
-    // Try Invidious trending by region
-    const instance = 'https://yewtu.be';
-    const popData = await api(`${instance}/api/v1/trending?type=music&region=${region}`);
+/** Рисует список чарта из массива треков {id, title, artist, cover}. */
+function renderChartTracks(tracks) {
+  const list = document.getElementById('chartList');
+  if (!list) return;
+  list.innerHTML = '';
+  list.classList.add('stagger');
+  tracks.slice(0, 16).forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'chart-item';
+    div.innerHTML = `
+      <span class="chart-item__rank${i < 3 ? ' is-top' + (i + 1) : ''}">${i + 1}</span>
+      <img class="chart-item__cover" src="${t.cover || 'https://img.youtube.com/vi/' + t.id + '/hqdefault.jpg'}" alt="${t.title}" loading="lazy">
+      <div class="chart-item__info">
+        <div class="chart-item__title">${t.title}</div>
+        <div class="chart-item__artist">${t.artist}</div>
+      </div>
+      <div class="chart-item__actions">
+        <button class="chart-item__play" data-id="${t.id}">
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        </button>
+      </div>`;
+    div.addEventListener('click', () => {
+      playTrack({ id: t.id, title: t.title, artist: t.artist });
+    });
+    list.appendChild(div);
+  });
+}
 
-    if (popData && Array.isArray(popData)) {
-      const list = document.getElementById('chartList');
-      if (!list) return;
-      list.innerHTML = '';
-      list.classList.add('stagger');
-      popData.slice(0, 16).forEach((v, i) => {
-        const div = document.createElement('div');
-        div.className = 'chart-item';
-        div.innerHTML = `
-          <span class="chart-item__rank${i < 3 ? ' is-top' + (i + 1) : ''}">${i + 1}</span>
-          <img class="chart-item__cover" src="${v.videoThumbnails?.[1]?.url || v.videoThumbnails?.[0]?.url || ''}" alt="${v.title}" loading="lazy">
-          <div class="chart-item__info">
-            <div class="chart-item__title">${v.title}</div>
-            <div class="chart-item__artist">${v.author}</div>
-          </div>
-          <div class="chart-item__actions">
-            <button class="chart-item__play" data-id="${v.videoId}">
-              <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            </button>
-          </div>`;
-        div.addEventListener('click', () => {
-          const track = { id: v.videoId, title: v.title, artist: v.author };
-          playTrack(track);
-        });
-        list.appendChild(div);
-      });
-    } else {
-      throw new Error('No data');
+async function loadCharts(region = 'RU') {
+  const list = document.getElementById('chartList');
+  if (!list) return;
+  // 1. Живой чарт: то, что слушают прямо сейчас (бэкенд → чарт Apple Music).
+  try {
+    const data = await api(`/api/charts?region=${String(region).toLowerCase()}&limit=20`);
+    if (data && Array.isArray(data.tracks) && data.tracks.length) {
+      renderChartTracks(data.tracks);
+      return;
     }
   } catch (e) {
-    // Fallback to search-based charts
-    const list = document.getElementById('chartList');
-    if (!list) return;
+    /* ниже пробуем другой источник */
+  }
+  // 2. Invidious trending by region
+  try {
+    const instance = 'https://yewtu.be';
+    const popData = await api(`${instance}/api/v1/trending?type=music&region=${region}`);
+    if (popData && Array.isArray(popData) && popData.length) {
+      renderChartTracks(
+        popData.map(v => ({
+          id: v.videoId,
+          title: v.title,
+          artist: v.author,
+          cover: (v.videoThumbnails && (v.videoThumbnails[1] || v.videoThumbnails[0]) || {}).url || '',
+        })),
+      );
+      return;
+    }
+    throw new Error('No data');
+  } catch (e) {
     list.innerHTML =
       '<div class="chart-item">Не удалось загрузить региональные чарты. Используй поиск.</div>';
   }
@@ -613,7 +635,8 @@ async function loadHomeCharts() {
   const container = document.getElementById('homeCharts');
   if (!container) return;
   try {
-    const data = await api('/api/recommendations?limit=6');
+    // Живой чарт вместо «рекомендаций по старым семплам».
+    const data = await api('/api/charts?limit=6');
     if (data && data.tracks) {
       container.innerHTML = data.tracks
         .map(
@@ -1001,6 +1024,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Periodic refresh
   $('refreshWave')?.addEventListener('click', loadNewWave);
+
+  // Логотип в шапке ведёт на сайт проекта (в браузере по умолчанию).
+  $('titlebar-logo')?.addEventListener('click', () => {
+    if (window.electronAPI?.openExternal) window.electronAPI.openExternal(VOTIFY_SITE);
+    else window.open(VOTIFY_SITE, '_blank', 'noopener');
+  });
 
   console.log('Votify Night Studio booted');
 });

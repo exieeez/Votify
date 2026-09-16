@@ -474,13 +474,19 @@ class SettingsViewModel(
     /** Размытие фоновой картинки, dp (0..60). */
     fun setBackgroundBlur(v: Int) = updatePrefs { cur -> cur.copy(bgBlur = v.coerceIn(0, 60)) }
 
-    /** Масштаб фона (1..3) — обрезка широкого ПК-фона под экран телефона. */
-    fun setBackgroundScale(v: Float) = updatePrefs { cur -> cur.copy(bgScale = v.coerceIn(1f, 3f)) }
+    /** Масштаб фона (1..5) — обрезка широкого ПК-фона под экран телефона. */
+    fun setBackgroundScale(v: Float) = updatePrefs { cur -> cur.copy(bgScale = v.coerceIn(1f, 5f)) }
 
     /** Сдвиг кадра фона: -1..1 по каждой оси. */
     fun setBackgroundOffsetX(v: Float) = updatePrefs { cur -> cur.copy(bgOffsetX = v.coerceIn(-1f, 1f)) }
 
     fun setBackgroundOffsetY(v: Float) = updatePrefs { cur -> cur.copy(bgOffsetY = v.coerceIn(-1f, 1f)) }
+
+    /** Как фон ложится на экран: 0 — заполнить (с обрезкой), 1 — целиком, 2 — растянуть. */
+    fun setBackgroundFit(v: Int) = updatePrefs { cur -> cur.copy(bgFit = v.coerceIn(0, 2)) }
+
+    /** Сбросить кадрирование: масштаб 1 и кадр по центру. */
+    fun resetBackgroundCrop() = updatePrefs { cur -> cur.copy(bgScale = 1f, bgOffsetX = 0f, bgOffsetY = 0f) }
 
     /** Apply a saved background (or "" to clear). Own setting field — the theme is untouched. */
     fun applyBackground(url: String) {

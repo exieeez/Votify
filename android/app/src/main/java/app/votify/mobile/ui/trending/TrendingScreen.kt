@@ -108,7 +108,7 @@ fun TrendingScreen(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    pluralTracks(state.tracks.size) + " · " + stringResource(R.string.home_weekly_chart),
+                    pluralTracks(state.tracks.size) + " · " + stringResource(R.string.trending_live),
                     style = MaterialTheme.typography.bodySmall,
                     color = VotifyColors.TextMuted,
                 )

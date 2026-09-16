@@ -108,6 +108,10 @@ class DownloadService : Service() {
             repeat(PARALLEL) { if (queue.isNotEmpty()) batch += queue.removeFirst() }
             val base = done.get() + failed.get()
             val total = base + batch.size + queue.size
+            // Пока качается эта пачка, готовим ссылки на следующую: разбор страницы
+            // YouTube занимает секунды и раньше шёл в общее время загрузки.
+            val upcoming = queue.take(PARALLEL * 2).map { it.id }
+            if (upcoming.isNotEmpty()) music.preload(upcoming)
             coroutineScope {
                 batch.forEachIndexed { i, item ->
                     launch {
@@ -198,7 +202,9 @@ class DownloadService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_votify_logo)
+            // В статус-баре нужен силуэт (система красит иконку одним цветом),
+            // поэтому берём знак без подложки.
+            .setSmallIcon(R.drawable.ic_votify_mark)
             .setContentTitle(getString(R.string.notif_download_title))
             .setContentText(text)
             .setProgress(100, percent, indeterminate)
@@ -233,7 +239,7 @@ class DownloadService : Service() {
         private const val CHANNEL_ID = "downloads"
         private const val NOTIFICATION_ID = 4201
         /** Сколько треков качаем одновременно (плейлист перестал уходить в часы). */
-        private const val PARALLEL = 3
+        private const val PARALLEL = 4
 
         /**
          * Queue [ids] for offline download. [titles] is optional and only used for the

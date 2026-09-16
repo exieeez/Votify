@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateDiscordPresence: playback => ipcRenderer.send('discord-presence:update', playback),
   clearDiscordPresence: () => ipcRenderer.send('discord-presence:clear'),
   signInWithGoogle: () => ipcRenderer.invoke('google-auth:start'),
+  openExternal: url => ipcRenderer.invoke('open-external', url),
   throwCursor: (dx, dy) => ipcRenderer.invoke('throw-cursor', { dx, dy }),
   // Auto-updater like Discord
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

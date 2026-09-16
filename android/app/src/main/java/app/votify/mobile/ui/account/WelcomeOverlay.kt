@@ -1,6 +1,7 @@
 package app.votify.mobile.ui.account
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -54,10 +55,9 @@ fun WelcomeOverlay(onSignIn: () -> Unit, onGuest: () -> Unit) {
                 border = BorderStroke(1.dp, VotifyColors.BorderSubtle),
             ) {
                 Box(Modifier.padding(18.dp), contentAlignment = Alignment.Center) {
-                    Icon(
-                        painterResource(R.drawable.ic_votify_logo),
-                        null,
-                        tint = VotifyColors.TextPrimary,
+                    Image(
+                        painter = painterResource(R.drawable.ic_votify_logo),
+                        contentDescription = null,
                         modifier = Modifier.size(40.dp),
                     )
                 }

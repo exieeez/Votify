@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -138,11 +139,22 @@ fun WorkshopThemeDetails(
                     ),
             ) {
                 if (doc.theme.backgroundUrl.isNotBlank()) {
+                    // ПК-темы часто с широкими обоями — здесь видно, как они кадрируются.
                     coil.compose.AsyncImage(
                         model = doc.theme.backgroundUrl,
                         contentDescription = doc.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                        contentScale = when (prefs.bgFit) {
+                            1 -> ContentScale.Fit
+                            2 -> ContentScale.FillBounds
+                            else -> ContentScale.Crop
+                        },
+                        alignment = androidx.compose.ui.BiasAlignment(
+                            prefs.bgOffsetX.coerceIn(-1f, 1f),
+                            prefs.bgOffsetY.coerceIn(-1f, 1f),
+                        ),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .scale(prefs.bgScale.coerceIn(1f, 5f)),
                     )
                 }
                 Row(
@@ -203,7 +215,73 @@ fun WorkshopThemeDetails(
                 ) { v -> viewModel.updatePrefs { it.copy(themeArtworkAlways = !v) } }
             }
 
-            // ---- 4. Тонкая подгонка ----
+            // ---- 4. Кадрирование: широкую ПК-тему кладём на экран телефона ----
+            if (doc.theme.backgroundUrl.isNotBlank()) {
+                DetailSection(stringResource(R.string.settings_bg_crop)) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        val labels = listOf(
+                            stringResource(R.string.settings_bg_fit_fill),
+                            stringResource(R.string.settings_bg_fit_whole),
+                            stringResource(R.string.settings_bg_fit_stretch),
+                        )
+                        labels.forEachIndexed { index, label ->
+                            val selected = prefs.bgFit == index
+                            Surface(
+                                onClick = { viewModel.updatePrefs { it.copy(bgFit = index) } },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
+                                contentColor = if (selected) Color.Black else Color.White,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Box(Modifier.padding(vertical = 9.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        label,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    SliderRow(
+                        label = stringResource(R.string.settings_bg_scale),
+                        value = prefs.bgScale,
+                        range = 1f..5f,
+                        onApply = { v -> viewModel.updatePrefs { it.copy(bgScale = v.coerceIn(1f, 5f)) } },
+                    )
+                    SliderRow(
+                        label = stringResource(R.string.settings_bg_offset_x),
+                        value = prefs.bgOffsetX,
+                        range = -1f..1f,
+                        onApply = { v -> viewModel.updatePrefs { it.copy(bgOffsetX = v.coerceIn(-1f, 1f)) } },
+                    )
+                    SliderRow(
+                        label = stringResource(R.string.settings_bg_offset_y),
+                        value = prefs.bgOffsetY,
+                        range = -1f..1f,
+                        onApply = { v -> viewModel.updatePrefs { it.copy(bgOffsetY = v.coerceIn(-1f, 1f)) } },
+                    )
+                    Text(
+                        stringResource(R.string.settings_bg_reset),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF8AB4F8),
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.updatePrefs { it.copy(bgScale = 1f, bgOffsetX = 0f, bgOffsetY = 0f) } }
+                            .padding(vertical = 12.dp),
+                    )
+                }
+            }
+
+            // ---- 5. Тонкая подгонка ----
             DetailSection(stringResource(R.string.workshop_adjust)) {
                 SliderRow(
                     label = stringResource(R.string.workshop_adj_blur),
@@ -231,7 +309,7 @@ fun WorkshopThemeDetails(
                 )
             }
 
-            // ---- 5. Удалить ----
+            // ---- 6. Удалить ----
             Surface(
                 onClick = { viewModel.deleteTheme(doc); onClose() },
                 shape = RoundedCornerShape(18.dp),

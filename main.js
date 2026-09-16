@@ -443,6 +443,19 @@ ipcMain.handle('set-launch-at-login', (event, enabled) => {
   }
 });
 
+// Открывает ссылку в браузере по умолчанию (логотип Votify в шапке → сайт проекта).
+ipcMain.handle('open-external', async (event, url) => {
+  const target = String(url || '').trim();
+  if (!/^https?:\/\//i.test(target)) return false;
+  try {
+    await shell.openExternal(target);
+    return true;
+  } catch (e) {
+    console.error('Failed to open external url:', e.message);
+    return false;
+  }
+});
+
 // IPC Handler to physically throw/knockback OS cursor when pet gets angry
 ipcMain.handle('throw-cursor', (event, { dx = -250, dy = -250 }) => {
   try {
