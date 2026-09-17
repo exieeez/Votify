@@ -41,6 +41,7 @@ import app.votify.mobile.ui.theme.VotifyColors
  */
 @Composable
 fun SettingsScreen(
+    viewModel: SettingsViewModel,
     contentPadding: PaddingValues,
     onBack: () -> Unit,
     onOpenGeneral: () -> Unit,
@@ -72,6 +73,10 @@ fun SettingsScreen(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+
+        // Иконка приложения — самый верхний раздел: выбор варианта (как сейчас / Ч-Б /
+        // в духе iOS 27 / старая) и своя картинка. Стоит выше «Основных».
+        AppIconSection(viewModel)
 
         SettingsSectionLabel(stringResource(R.string.settings_cat_main))
         SettingsCard {

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Своя иконка: картинка пользователя (filesDir/launcher_icon.png) подставляется самим
+     приложением и ярлыком; в лаунчере — запасная, пока картинка не выбрана. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_launcher_visual"
+    android:gravity="fill" />

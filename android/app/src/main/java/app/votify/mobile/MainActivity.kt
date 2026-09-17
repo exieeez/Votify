@@ -9,7 +9,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import app.votify.mobile.data.AppIcons
+import app.votify.mobile.data.parseCustomPrefs
 import app.votify.mobile.ui.VotifyRoot
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -24,6 +28,7 @@ class MainActivity : ComponentActivity() {
             // VotifyRoot applies VotifyTheme itself (the palette comes from user settings).
             VotifyRoot()
         }
+        reconcileAppIcon()
     }
 
     override fun onStart() {
@@ -35,6 +40,21 @@ class MainActivity : ComponentActivity() {
         // Playback keeps running in PlaybackService; we only drop the UI-side controller.
         VotifyApp.instance.player.disconnect()
         super.onStop()
+    }
+
+    /**
+     * Иконку мог сменить другой телефон пользователя (настройки синхронизируются через
+     * аккаунт/пресеты) — приводим лаунчер к сохранённому варианту. Ничего не делаем, если
+     * вариант совпадает или для «своей» иконки нет картинки.
+     */
+    private fun reconcileAppIcon() {
+        val app = VotifyApp.instance
+        app.appScope.launch {
+            runCatching {
+                val prefs = parseCustomPrefs(app.settings.settings.first().customPrefs)
+                AppIcons.reconcile(this@MainActivity, prefs.appIcon)
+            }
+        }
     }
 
     /** Android 13+: media notification is silent without this permission. */
