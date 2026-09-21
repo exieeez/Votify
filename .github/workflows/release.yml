@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Тег релиза (например v1.0.0)'
+        required: true
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -15,12 +20,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Windows: установщик .exe (NSIS)
           - os: windows-latest
             args: '--win nsis --x64'
-            artifacts: 'dist/*.exe'
+          # Linux: AppImage + .deb
           - os: ubuntu-latest
-            args: '--linux AppImage'
-            artifacts: 'dist/*.AppImage'
+            args: '--linux AppImage deb --x64'
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -35,7 +40,7 @@ jobs:
         run: npm install --no-audit --no-fund
 
       # Firebase Web Config (секрет репозитория) кладётся в firebase-config.json
-      # до упаковки, чтобы в собранном exe работал вход в аккаунт.
+      # до упаковки, чтобы в собранном приложении работал вход в аккаунт.
       - name: Prepare Firebase config
         run: node scripts/prepare-firebase-config.js
         env:
@@ -46,14 +51,42 @@ jobs:
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
 
-      - name: Publish assets to GitHub Release
+      # Скрипт установки и иконка едут вместе с релизом: по ним работает команда
+      #   curl -fsSL .../releases/latest/download/install.sh | bash
+      - name: Copy installer assets (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cp src/icons/icon-512.png dist/votify-icon.png
+          cp scripts/install.sh dist/install.sh
+
+      - name: Publish Windows assets
+        if: runner.os == 'Windows'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Votify ${{ github.ref_name }}
+          tag_name: ${{ inputs.version || github.ref_name }}
+          name: Votify ${{ inputs.version || github.ref_name }}
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: ${{ matrix.artifacts }}
+          files: |
+            dist/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Linux assets
+        if: runner.os == 'Linux'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version || github.ref_name }}
+          name: Votify ${{ inputs.version || github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/install.sh
+            dist/votify-icon.png
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

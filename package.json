@@ -1,6 +1,6 @@
 {
   "name": "votify",
-  "version": "0.9.17",
+  "version": "1.0.0",
   "description": "Votify - Material You Music Player",
   "author": "Votify Team",
   "main": "main.js",
