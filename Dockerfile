@@ -42,6 +42,6 @@ ENV NODE_ENV=production \
 EXPOSE 17217
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
-    CMD curl -fsS "http://127.0.0.1:${VOTIFY_PORT}/api/network/lan" >/dev/null || exit 1
+    CMD curl -fsS "http://127.0.0.1:${VOTIFY_PORT}/api/health" >/dev/null || exit 1
 
 CMD ["node", "server.js"]

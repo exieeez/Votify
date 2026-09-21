@@ -15,6 +15,14 @@ const { handleMusicRoutes } = require('./routes/music.js');
 const { handleSmtpRoutes } = require('./routes/smtp.js');
 const { handleSyncRoutes } = require('./routes/sync.js');
 
+const PKG_VERSION = (() => {
+  try {
+    return require('./package.json').version || '0.0.0';
+  } catch (e) {
+    return '0.0.0';
+  }
+})();
+
 const FIREBASE_CONFIG_FIELDS = [
   'apiKey',
   'authDomain',
@@ -105,6 +113,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   const u = new URL(req.url, `http://${req.headers.host}`);
+
+  // Health-проверка: её дергают docker/Render и Android-приложение («Свой сервер»),
+  // поэтому она доступна без пароля и отвечает быстро. Никаких данных не отдаёт.
+  if (u.pathname === '/api/health') {
+    sendJson(res, 200, { ok: true, name: 'Votify', version: PKG_VERSION });
+    return;
+  }
 
   // Пароль (если задан) спрашиваем у всего: и у страниц, и у API, и у потока.
   // Браузер запоминает его сам, ярлык на экране «Домой» продолжает работать.

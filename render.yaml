@@ -12,7 +12,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free
-    healthCheckPath: /api/network/lan
+    healthCheckPath: /api/health
     envVars:
       - key: VOTIFY_PORT
         value: 17217
