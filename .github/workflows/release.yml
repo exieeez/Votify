@@ -101,6 +101,23 @@ jobs:
           ls -la dist 2>/dev/null | head -20
           exit 1
 
+      # Что попало в пакет — видно аннотациями (логи раннера читаются не всегда).
+      - name: Diagnostics
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "OS: ${{ runner.os }} | args: ${{ matrix.args }}"
+            echo "dist:"; du -sh dist 2>/dev/null || true
+            echo "готовые файлы:"; ls -la dist 2>/dev/null | tail -12 || true
+            echo "bin:"; ls -la bin 2>/dev/null | tail -5 || true
+            echo "node_modules: $(ls node_modules 2>/dev/null | wc -l) пакетов"
+            echo "firebase: $(du -sh node_modules/firebase 2>/dev/null | cut -f1)"
+          } | while IFS= read -r line; do
+            [ -n "$line" ] && echo "::notice::$line"
+          done
+          true
+
       # Скрипт установки и иконка едут вместе с релизом: по ним работает команда
       #   curl -fsSL .../releases/latest/download/install.sh | bash
       - name: Copy installer assets (Linux)
