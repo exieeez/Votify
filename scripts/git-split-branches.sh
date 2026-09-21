@@ -132,7 +132,7 @@ fi
 
 # ---------------------------------------------------------------- чистка
 say "→ Чистка старых веток"
-OLD_BRANCHES="android $(git branch -r --list 'origin/arena/*' | sed 's#origin/##' | tr '\n' ' ')"
+OLD_BRANCHES="android my-pc $(git branch -r --list 'origin/arena/*' | sed 's#origin/##' | tr '\n' ' ')"
 for b in $OLD_BRANCHES; do
   [ -z "$b" ] && continue
   [ "$b" = "$SESSION_BRANCH" ] && continue
