@@ -5,7 +5,7 @@ name: Docker image
 #     -e VOTIFY_BASIC_AUTH=логин:пароль ghcr.io/exieeez/votify:latest
 on:
   push:
-    branches: ['main', 'android', 'arena/**']
+    branches: ['pc', 'mobile', 'main', 'android', 'arena/**']
     paths: ['Dockerfile', '.dockerignore', 'server.js', 'routes/**', 'utils.js', 'src/**', 'package.json', '.github/workflows/docker.yml']
   workflow_dispatch:
 
