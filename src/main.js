@@ -3339,77 +3339,6 @@ window.addEventListener('mouseup', e => {
 navigationHistory.updateButtons();
 
 
-// Адрес для ярлыка на телефоне: тот же сервер, но по IP в локальной сети (Wi-Fi).
-async function refreshLanAddress() {
-  const valueEl = document.getElementById('lan-url-value');
-  if (!valueEl) return;
-  const copyBtn = document.getElementById('lan-copy-btn');
-  const howtoEl = document.getElementById('lan-howto');
-  const noteEl = document.getElementById('lan-note');
-
-  const setUrl = url => {
-    valueEl.textContent = url;
-    if (/^https?:\/\//.test(url)) valueEl.dataset.url = url;
-    else delete valueEl.dataset.url;
-  };
-
-  if (/^https:/.test(location.protocol)) {
-    // Страница уже открыта по https (туннель/хостинг) — компьютер для телефона не нужен.
-    setUrl(location.origin);
-    if (howtoEl)
-      howtoEl.textContent =
-        'Этот адрес уже работает с телефона: откройте его в браузере и добавьте на экран «Домой». Компьютер держать включённым не нужно.';
-    if (noteEl) noteEl.textContent = '';
-  } else {
-    try {
-      const res = await fetch('/api/network/lan');
-      const data = await res.json();
-      const list = Array.isArray(data && data.addresses) ? data.addresses : [];
-      if (list.length) {
-        setUrl(list[0]);
-        if (noteEl)
-          noteEl.textContent =
-            'Телефон и компьютер должны быть в одной Wi-Fi сети; музыка идёт с компьютера, поэтому пока он выключен — телефон ничего не сыграет.';
-      } else {
-        setUrl('адрес в Wi-Fi не найден');
-        if (noteEl)
-          noteEl.textContent =
-            'Компьютер не подключён к Wi-Fi — подключите его к той же сети, что и телефон, и обновите страницу.';
-      }
-    } catch (e) {
-      setUrl('не удалось определить адрес');
-    }
-  }
-
-  if (copyBtn && !copyBtn.dataset.bound) {
-    copyBtn.dataset.bound = '1';
-    copyBtn.addEventListener('click', async () => {
-      const url = valueEl.dataset.url;
-      if (!url) return;
-      try {
-        await navigator.clipboard.writeText(url);
-      } catch (e) {
-        const ta = document.createElement('textarea');
-        ta.value = url;
-        document.body.appendChild(ta);
-        ta.select();
-        try {
-          document.execCommand('copy');
-        } catch (e2) {}
-        document.body.removeChild(ta);
-      }
-      const icon = copyBtn.querySelector('i');
-      if (icon) {
-        icon.textContent = 'check';
-        setTimeout(() => {
-          icon.textContent = 'content_copy';
-        }, 1200);
-      }
-    });
-  }
-}
-refreshLanAddress();
-
 // Settings overlay toggle
 const toggleSettingsOverlay = () => {
   const overlay = document.getElementById('settings-overlay');
@@ -3425,7 +3354,6 @@ const toggleSettingsOverlay = () => {
       if (typeof renderSettingsLocalTracks === 'function') renderSettingsLocalTracks();
       if (typeof syncSettingsModalUI === 'function') syncSettingsModalUI();
       if (typeof renderWallpaperHistory === 'function') renderWallpaperHistory();
-      if (typeof refreshLanAddress === 'function') refreshLanAddress();
     } else {
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       const btn = document.getElementById(previousActiveBtnId);
