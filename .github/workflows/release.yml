@@ -62,25 +62,42 @@ jobs:
 
       - name: Build
         id: build
+        shell: bash
         continue-on-error: true
-        run: npx electron-builder ${{ matrix.args }} --publish never
+        run: |
+          set -o pipefail
+          npx electron-builder ${{ matrix.args }} --publish never 2>&1 | tee build.log
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
 
       # Второй заход: если первый упал на скачивании инструментов (сетевой сбой или
       # лимит GitHub) — повтор обычно проходит.
       - name: Build (повтор)
+        id: build2
         if: steps.build.outcome == 'failure'
-        run: npx electron-builder ${{ matrix.args }} --publish never
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npx electron-builder ${{ matrix.args }} --publish never 2>&1 | tee -a build.log
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
-        continue-on-error: true
 
-      - name: Build failed
+      # Хвост лога ошибки выводим аннотациями: их читает API, даже когда сами логи
+      # раннера недоступны.
+      - name: Show build log
         if: steps.build.outcome == 'failure'
         shell: bash
         run: |
-          echo "::error::Сборка не удалась. Логи electron-builder — в шагах Build выше."
+          tail -40 build.log | tail -25 | while IFS= read -r line; do
+            [ -n "$line" ] && echo "::error::$line"
+          done
+          true
+
+      - name: Fail if build failed
+        if: steps.build.outcome == 'failure' && steps.build2.outcome != 'success'
+        shell: bash
+        run: |
           ls -la dist 2>/dev/null | head -20
           exit 1
 
