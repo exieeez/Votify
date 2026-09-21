@@ -518,6 +518,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 }
                 composable(Routes.SETTINGS) {
                     SettingsScreen(
+                        viewModel = settingsVm,
                         contentPadding = contentPadding,
                         onBack = { navController.popBackStack() },
                         onOpenGeneral = { navController.navigate(Routes.GENERAL) { launchSingleTop = true } },

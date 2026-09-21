@@ -1,17 +1,27 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const cryptoMod = require('crypto');
 const {
   sendJson,
   serveStatic,
   parseBody,
   saveNetworkConfig,
   getNetworkConfig,
+  getLanAddresses,
 } = require('./routes/utils.js');
 const { handleAuthRoutes } = require('./routes/auth.js');
 const { handleMusicRoutes } = require('./routes/music.js');
 const { handleSmtpRoutes } = require('./routes/smtp.js');
 const { handleSyncRoutes } = require('./routes/sync.js');
+
+const PKG_VERSION = (() => {
+  try {
+    return require('./package.json').version || '0.0.0';
+  } catch (e) {
+    return '0.0.0';
+  }
+})();
 
 const FIREBASE_CONFIG_FIELDS = [
   'apiKey',
@@ -72,6 +82,27 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length');
 }
 
+/**
+ * Необязательный пароль на весь сервер: VOTIFY_BASIC_AUTH="логин:пароль".
+ * Для доступа из интернета нужен обязательно — иначе любой, кто узнал адрес,
+ * сможет искать и качать музыку через ваш yt-dlp. Для домашней Wi-Fi сети можно не задавать.
+ */
+const BASIC_AUTH = (process.env.VOTIFY_BASIC_AUTH || '').trim();
+
+function basicAuthOk(req) {
+  const header = req.headers.authorization || '';
+  if (!header.startsWith('Basic ')) return false;
+  let decoded = '';
+  try {
+    decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
+  } catch (e) {
+    return false;
+  }
+  const a = Buffer.from(decoded);
+  const b = Buffer.from(BASIC_AUTH);
+  return a.length === b.length && cryptoMod.timingSafeEqual(a, b);
+}
+
 const server = http.createServer(async (req, res) => {
   setCorsHeaders(res);
 
@@ -82,6 +113,25 @@ const server = http.createServer(async (req, res) => {
   }
 
   const u = new URL(req.url, `http://${req.headers.host}`);
+
+  // Health-проверка: её дергают docker/Render и Android-приложение («Свой сервер»),
+  // поэтому она доступна без пароля и отвечает быстро. Никаких данных не отдаёт.
+  if (u.pathname === '/api/health') {
+    sendJson(res, 200, { ok: true, name: 'Votify', version: PKG_VERSION });
+    return;
+  }
+
+  // Пароль (если задан) спрашиваем у всего: и у страниц, и у API, и у потока.
+  // Браузер запоминает его сам, ярлык на экране «Домой» продолжает работать.
+  if (BASIC_AUTH && !basicAuthOk(req)) {
+    res.writeHead(401, {
+      'WWW-Authenticate': 'Basic realm="Votify", charset="UTF-8"',
+      'Content-Type': 'text/plain; charset=utf-8',
+    });
+    res.end('Votify: нужен логин и пароль');
+    return;
+  }
+
   try {
     if (u.pathname === '/api/debug-log' && req.method === 'POST') {
       const body = await parseBody(req);
@@ -104,6 +154,18 @@ const server = http.createServer(async (req, res) => {
     }
 
     // --- NETWORK ENDPOINTS ---
+    // Адрес для ярлыка на телефоне: тот же сервер, но по IP в локальной сети.
+    if (u.pathname === '/api/network/lan' && req.method === 'GET') {
+      const hostPort =
+        Number((req.headers.host || '').split(':')[1]) ||
+        Number(process.env.VOTIFY_PORT || process.env.PORT) ||
+        17217;
+      sendJson(res, 200, {
+        port: hostPort,
+        addresses: getLanAddresses().map(ip => `http://${ip}:${hostPort}`),
+      });
+      return;
+    }
     if (u.pathname === '/api/network/settings' && req.method === 'GET') {
       sendJson(res, 200, getNetworkConfig());
       return;
@@ -156,6 +218,8 @@ server.on('error', err => {
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`Votify server running at http://0.0.0.0:${port}`);
+  // Ярлык на телефоне: этот же адрес, но по IP в локальной сети.
+  getLanAddresses().forEach(ip => console.log(`Votify на телефоне: http://${ip}:${port}`));
   if (!process.env.VOTIFY_PORT) {
     try {
       const { exec } = require('child_process');

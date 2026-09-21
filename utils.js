@@ -10,7 +10,10 @@ const http = require('http');
 const { URL } = require('url');
 const crypto = require('crypto');
 
-const appRoot = path.dirname(__dirname);
+// utils.js лежит в корне проекта, поэтому корень — это его собственная папка.
+// (Раньше здесь стояло path.dirname(__dirname) — путь уходил на уровень выше проекта,
+// и статика из src/ не находилась.)
+const appRoot = __dirname;
 const srcDir = path.resolve(process.env.VOTIFY_SRC_DIR || path.join(appRoot, 'src'));
 const port = Number(process.env.VOTIFY_PORT || process.env.PORT || 17217);
 
@@ -140,6 +143,17 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.webmanifest': 'application/manifest+json',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.mp4': 'video/mp4',
 };
 
 const SALT_ROUNDS = 10;

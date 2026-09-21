@@ -34,6 +34,8 @@ data class CustomPrefs(
     // ---- Интерфейс ----
     val themeMode: String = "dark", // dark | light | system
     val themeName: String = "neutral", // neutral | graphite | violet | azure | emerald | amber | rose | workshop
+    /** Вариант иконки приложения: current | bw | glass | classic | custom (см. AppIcon). */
+    val appIcon: String = "current",
     val tabStyle: String = "standard", // standard | compact
     val accentFromArt: Boolean = false,
     val transparentCards: Boolean = false,

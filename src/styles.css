@@ -10796,3 +10796,34 @@ body[data-mini-border="capsule"] #floating-island,
 }
 
 
+
+/* ==========================================
+   ЯРЛЫК НА ТЕЛЕФОНЕ (iPhone/Android «на экран Домой»)
+   ==========================================
+   Страница открывается в standalone-режиме (viewport-fit=cover), поэтому контент
+   заходит под вырез и «домашнюю полоску» — компенсируем через env(safe-area-inset-*).
+   В обычном браузере env() = 0, поэтому правила ничего не меняют. */
+@media (max-width: 768px) {
+  .app-container {
+    /* 100dvh: в мобильном Safari 100vh выше видимой области из-за адресной строки */
+    grid-template-rows: 1fr 0 calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+  .sidebar {
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .floating-island {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .right-player-panel {
+    bottom: calc(var(--player-h) + 64px + env(safe-area-inset-bottom, 0px));
+  }
+  .settings-modal {
+    height: calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* iOS в standalone-режиме иногда ставит «резиновый» отскок на body — гасим его. */
+body {
+  overscroll-behavior: none;
+}

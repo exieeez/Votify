@@ -1,0 +1,41 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+#
+# Самый простой путь получить Votify на iPhone без своего сервера:
+#   Render → New → Blueprint → выбрать репозиторий Votify.
+# Render соберёт Dockerfile и выдаст адрес вида https://votify-xxxx.onrender.com —
+# его и добавляйте на экран «Домой» (Safari → «Поделиться» → «На экран „Домой“»).
+#
+# Что важно про бесплатный план:
+#   • сервис засыпает после ~15 минут без запросов, первый запрос после паузы — до минуты;
+#   • диска нет: файлы в /root/.config/Votify живут до следующего деплоя. Аккаунты и
+#     синхронизацию лучше держать в Firebase (VOTIFY_FIREBASE_CONFIG) — они в облаке и
+#     ничего не теряют. Если Firebase не подключён, локальные аккаунты придётся создать заново;
+#   • 750 часов инстанса в месяц — этого хватает на круглосуточную работу, если держать
+#     сервис «разбуженным» пингом раз в 10 минут (см. docs/DEPLOY.md).
+services:
+  - type: web
+    name: votify
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: VOTIFY_PORT
+        value: 17217
+      # Логин и пароль на весь сервер — ОБЯЗАТЕЛЬНО для адреса в интернете:
+      # без них приложение открыто и качает музыку через ваш yt-dlp для кого угодно.
+      # Render спросит значение при первом деплое (например votify:длинный-пароль).
+      - key: VOTIFY_BASIC_AUTH
+        sync: false
+      # Firebase Web Config (регистрация, друзья, Мастерская тем, синхронизация настроек) —
+      # вставьте строкой JSON. Необязательно, но на бесплатном плане желательно: данные
+      # остаются в облаке Firebase и не пропадают при передеплое.
+      - key: VOTIFY_FIREBASE_CONFIG
+        sync: false
+    # Постоянный диск Render даёт только на платных планах. Если перейдёте на платный —
+    # раскомментируйте, чтобы аккаунты и настройки сервера пережили передеплой:
+    # disk:
+    #   name: votify-data
+    #   mountPath: /root/.config/Votify
+    #   sizeGB: 1

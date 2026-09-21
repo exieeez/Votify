@@ -104,6 +104,28 @@ function getNetworkConfig() {
   return networkConfig;
 }
 
+/**
+ * Адреса этого компьютера в локальной сети — из них собирается ссылка для телефона.
+ * Сначала 192.168.x.x (домашние роутеры), потом 10.x, 172.x и прочее.
+ */
+function getLanAddresses() {
+  const os = require('os');
+  const result = [];
+  const ifaces = os.networkInterfaces();
+  Object.keys(ifaces).forEach(name => {
+    (ifaces[name] || []).forEach(item => {
+      if (!item || item.internal) return;
+      const family = typeof item.family === 'string' ? item.family : '';
+      if (family !== 'IPv4' && item.family !== 4) return;
+      if (!item.address || item.address.startsWith('169.254.')) return;
+      result.push(item.address);
+    });
+  });
+  const rank = ip =>
+    ip.startsWith('192.168.') ? 0 : ip.startsWith('10.') ? 1 : ip.startsWith('172.') ? 2 : 3;
+  return [...new Set(result)].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
+
 const SEARCH_LIMIT = 12;
 const SEARCH_MAX_LIMIT = 100;
 const RECOMMENDATION_LIMIT = 16;
@@ -1257,6 +1279,15 @@ const STATIC_MIME_TYPES = {
   '.webmanifest': 'application/manifest+json',
   '.woff2': 'font/woff2',
   '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.mp4': 'video/mp4',
 };
 
 async function serveStatic(reqPath, res) {
@@ -1292,6 +1323,7 @@ module.exports = {
   loadNetworkConfig,
   saveNetworkConfig,
   getNetworkConfig,
+  getLanAddresses,
   findYtDlp,
   // auth helpers
   bcrypt,
