@@ -27,6 +27,12 @@
 curl -fsSL https://github.com/exieeez/Votify/releases/latest/download/install.sh | bash
 ```
 
+Если релизный файл ещё не опубликован, тот же скрипт лежит в репозитории:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/exieeez/Votify/pc/scripts/install.sh | bash
+```
+
 Тем же скриптом: `... | bash -s -- --deb` — поставить пакет через dpkg (Debian/Ubuntu),
 `--version v1.0.0` — конкретная версия, `--uninstall` — удалить.
 
