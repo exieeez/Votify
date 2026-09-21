@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const cryptoMod = require('crypto');
 const {
   sendJson,
   serveStatic,
@@ -66,6 +67,27 @@ function serveFirebaseVendor(pathname, res) {
   return true;
 }
 
+/**
+ * Необязательный пароль на весь сервер: VOTIFY_BASIC_AUTH="логин:пароль".
+ * Для доступа из интернета нужен обязательно — иначе любой, кто узнал адрес, будет
+ * искать и качать музыку через ваш yt-dlp. Для домашней Wi-Fi сети можно не задавать.
+ */
+const BASIC_AUTH = (process.env.VOTIFY_BASIC_AUTH || '').trim();
+
+function basicAuthOk(req) {
+  const header = req.headers.authorization || '';
+  if (!header.startsWith('Basic ')) return false;
+  let decoded = '';
+  try {
+    decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
+  } catch (e) {
+    return false;
+  }
+  const a = Buffer.from(decoded);
+  const b = Buffer.from(BASIC_AUTH);
+  return a.length === b.length && cryptoMod.timingSafeEqual(a, b);
+}
+
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -83,6 +105,18 @@ const server = http.createServer(async (req, res) => {
   }
 
   const u = new URL(req.url, `http://${req.headers.host}`);
+
+  // Пароль (если задан) спрашиваем у всего: и у страниц, и у API, и у потока.
+  // Браузер запоминает его сам, ярлык на экране «Домой» продолжает работать.
+  if (BASIC_AUTH && !basicAuthOk(req)) {
+    res.writeHead(401, {
+      'WWW-Authenticate': 'Basic realm="Votify", charset="UTF-8"',
+      'Content-Type': 'text/plain; charset=utf-8',
+    });
+    res.end('Votify: нужен логин и пароль');
+    return;
+  }
+
   try {
     if (u.pathname === '/api/firebase/config' && req.method === 'GET') {
       try {

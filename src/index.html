@@ -1111,18 +1111,17 @@
               <div class="settings-section">
                 <div class="settings-section-header"><i class="material-icons">smartphone</i><h3>Votify на телефоне</h3></div>
                 <div class="setting-item">
-                  <label for="lan-url-value">Адрес для телефона — откройте его в браузере телефона</label>
+                  <label for="lan-url-value" id="lan-url-label">Адрес для телефона — откройте его в браузере телефона</label>
                   <div class="setting-row">
                     <span class="setting-value" id="lan-url-value">определяем адрес…</span>
                     <button class="m3-icon-btn" id="lan-copy-btn" title="Скопировать адрес"
                       aria-label="Скопировать адрес"><i class="material-icons">content_copy</i></button>
                   </div>
-                  <span class="setting-toggle-desc">Телефон и компьютер должны быть в одной Wi-Fi сети.
-                    iPhone: «Поделиться» → «На экран „Домой“» — на рабочем столе появится иконка Votify.
-                    Android: меню «⋮» → «Установить приложение». Интерфейс сам перестроится под телефон.</span>
-                  <span class="setting-toggle-desc">Музыка идёт с этого компьютера, поэтому пока он выключен или
-                    приложение закрыто — телефон ничего не сыграет. Если адрес не открывается, разрешите Votify
-                    доступ в брандмауэре Windows.</span>
+                  <span class="setting-toggle-desc" id="lan-howto">iPhone: «Поделиться» → «На экран „Домой“» —
+                    на рабочем столе появится иконка Votify. Android: меню «⋮» → «Установить приложение».
+                    Интерфейс сам перестроится под телефон.</span>
+                  <span class="setting-toggle-desc" id="lan-note">Телефон и компьютер должны быть в одной
+                    Wi-Fi сети; музыка идёт с компьютера, поэтому пока он выключен — телефон ничего не сыграет.</span>
                 </div>
               </div>
               <div class="settings-section">

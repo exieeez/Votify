@@ -2303,9 +2303,30 @@ safeClick('back-from-album-btn', () => {
 // Тот же интерфейс открывается с телефона по адресу этого ПК в Wi-Fi сети:
 // iPhone — «Поделиться» → «На экран „Домой“», Android — «Установить приложение».
 let lanUrlCache = '';
+function setLanText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
 async function refreshLanAddress() {
   const valueEl = document.getElementById('lan-url-value');
   if (!valueEl) return;
+
+  // Развёрнутый сервер (https): приложение живёт само, компьютер не нужен —
+  // показываем адрес, который надо открыть на телефоне, и как поставить ярлык.
+  if (location.protocol === 'https:') {
+    valueEl.textContent = location.origin;
+    lanUrlCache = location.origin;
+    setLanText('lan-url-label', 'Адрес приложения — откройте его на телефоне');
+    setLanText(
+      'lan-howto',
+      'iPhone: Safari → «Поделиться» → «На экран „Домой“». Android: Chrome → «⋮» → «Установить приложение». Запускается на весь экран, со своей иконкой.'
+    );
+    setLanText('lan-note', 'Компьютер не нужен — приложение работает само, из любой сети.');
+    return;
+  }
+
+  // Режим «компьютер в Wi-Fi»: адрес ПК в локальной сети.
   const fallback = `http://${location.hostname}:${location.port || 17217}`;
   try {
     const res = await fetch('/api/network/lan');

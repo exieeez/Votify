@@ -1,0 +1,29 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+#
+# Схема: Render → New → Blueprint → выбрать этот репозиторий. Render соберёт Dockerfile и
+# выдаст адрес вида https://votify-xxxx.onrender.com — его и добавляйте на экран «Домой»
+# на iPhone (Safari → «Поделиться» → «На экран „Домой“»). Компьютер больше не нужен.
+#
+# Тариф free засыпает после ~15 минут простоя: первый запрос после паузы грузится ~30–60 с,
+# дальше всё быстро. Для постоянной работы — любой VPS/NAS или платный план Render.
+services:
+  - type: web
+    name: votify
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/network/lan
+    envVars:
+      - key: VOTIFY_PORT
+        value: 17217
+      # Логин и пароль для доступа к вашему серверу (необязательно для домашней сети,
+      # обязательно для адреса в интернете). Render спросит значение при первом деплое.
+      - key: VOTIFY_BASIC_AUTH
+        sync: false
+      # Firebase Web Config (регистрация, друзья, Мастерская тем) — вставьте строкой JSON.
+      - key: VOTIFY_FIREBASE_CONFIG
+        sync: false
+    disk:
+      name: votify-data
+      mountPath: /root/.config/Votify
+      sizeGB: 1
