@@ -134,10 +134,15 @@ install -m 755 "$TMP/Votify.AppImage" "$APPIMAGE_PATH"
 ln -sf "$APPIMAGE_PATH" "$LAUNCHER"
 
 if [ "$SHORTCUT" = "1" ]; then
+  ICON_LINE="Icon=votify"
   ICON_URL="$(printf '%s\n' "$URLS" | grep -E 'votify-icon\.png$' | head -1 || true)"
   if [ -n "$ICON_URL" ]; then
     mkdir -p "$(dirname "$ICON_PATH")"
-    curl -fsSL "$ICON_URL" -o "$ICON_PATH" || warn "Иконку скачать не удалось — ярлык будет с системной."
+    if curl -fsSL "$ICON_URL" -o "$ICON_PATH"; then
+      ICON_LINE="Icon=${ICON_PATH}"
+    else
+      warn "Иконку скачать не удалось — ярлык будет с системной."
+    fi
   fi
   mkdir -p "$(dirname "$DESKTOP_FILE")"
   cat >"$DESKTOP_FILE" <<DESKTOP
@@ -146,7 +151,7 @@ Type=Application
 Name=Votify
 Comment=Музыкальный плеер Votify
 Exec=${APPIMAGE_PATH} %U
-Icon=${ICON_PATH}
+${ICON_LINE}
 Terminal=false
 Categories=AudioVideo;Audio;Player;
 StartupWMClass=Votify
