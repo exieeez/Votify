@@ -205,8 +205,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px solid #1db954;
-  background: #047857;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -438,10 +438,9 @@
   font-weight: 600;
 }
 
-/* старые блоки главной — скрыть, их заменяет #rz-home-new */
+/* старые блоки главной */
 #my-wave-card,
 #home-recent-artists-section,
-#home-for-you-section,
 #home-continue-section,
 #tile-history,
 .tile-history {
@@ -454,16 +453,6 @@
   display: flex;
   flex-direction: column;
   gap: 36px;
-}
-#home-screen.rz-podcasts #rz-home-new {
-  display: none;
-}
-#home-screen.rz-podcasts::after {
-  content: 'Подкасты скоро появятся';
-  display: block;
-  color: #a3a3a3;
-  font-size: 14px;
-  padding: 40px 24px;
 }
 #home-screen.rz-music .rz-quick {
   display: none;

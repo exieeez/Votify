@@ -90,6 +90,15 @@ class FirebaseRest(private val config: FirebaseConfig) {
 
     suspend fun register(email: String, username: String, password: String): FirebaseAccount =
         withContext(Dispatchers.IO) {
+            val handleLower = username.trim().lowercase().removePrefix("@")
+            if (handleLower.isNotBlank()) {
+                val docUrl = "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/usernames/$handleLower?key=${config.apiKey}"
+                val checkReq = Request.Builder().url(docUrl).get().build()
+                val exists = http.newCall(checkReq).execute().use { resp -> resp.isSuccessful }
+                if (exists) {
+                    throw FirebaseRestException("ALREADY_EXISTS", "Юзернейм @$handleLower уже занят")
+                }
+            }
             val body = postJson(
                 "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${config.apiKey}",
                 buildJsonObject {
@@ -105,20 +114,72 @@ class FirebaseRest(private val config: FirebaseConfig) {
                 refreshToken = body["refreshToken"]?.jsonPrimitive?.content ?: "",
                 uid = body["localId"]?.jsonPrimitive?.content ?: "",
             )
-            // Store the display name so the workshop can credit the author.
-            if (username.isNotBlank()) {
+            if (handleLower.isNotBlank()) {
                 runCatching {
-                    postJson(
-                        "https://identitytoolkit.googleapis.com/v1/accounts:update?key=${config.apiKey}",
-                        buildJsonObject {
-                            put("idToken", account.idToken)
-                            put("displayName", username)
-                        },
-                    )
+                    reserveUsername(account.idToken, account.uid, handleLower)
+                    saveProfile(account.idToken, account.uid, username, handleLower)
                 }
             }
             account
         }
+
+    /** Reserve handleLower in usernames collection. Fails with ALREADY_EXISTS if taken. */
+    suspend fun reserveUsername(idToken: String, uid: String, handle: String): String = withContext(Dispatchers.IO) {
+        val handleLower = handle.trim().lowercase().removePrefix("@")
+        if (handleLower.isBlank()) return@withContext ""
+        val docUrl = "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/usernames/$handleLower"
+        val fields = buildJsonObject {
+            put("uid", buildJsonObject { put("stringValue", uid) })
+        }
+        val commit = buildJsonObject {
+            put("writes", buildJsonArray {
+                add(buildJsonObject {
+                    put("update", buildJsonObject {
+                        put("name", "projects/${config.projectId}/databases/(default)/documents/usernames/$handleLower")
+                        put("fields", fields)
+                    })
+                    put("currentDocument", buildJsonObject { put("exists", false) })
+                })
+            })
+        }
+        val request = Request.Builder()
+            .url("https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents:commit?key=${config.apiKey}")
+            .header("Authorization", "Bearer $idToken")
+            .post(commit.toString().toRequestBody(JSON))
+            .build()
+        http.newCall(request).execute().use { resp ->
+            if (!resp.isSuccessful) {
+                val text = resp.body?.string().orEmpty()
+                if (text.contains("ALREADY_EXISTS") || resp.code == 409 || resp.code == 400) {
+                    throw FirebaseRestException("ALREADY_EXISTS", "Юзернейм @$handleLower уже занят")
+                }
+            }
+        }
+        handleLower
+    }
+
+    /** Create or update profiles/{uid} document */
+    suspend fun saveProfile(idToken: String, uid: String, displayName: String, handle: String, photoUrl: String = "", bio: String = ""): Unit = withContext(Dispatchers.IO) {
+        val url = "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/profiles/$uid"
+        val fields = buildJsonObject {
+            put("displayName", buildJsonObject { put("stringValue", displayName) })
+            put("handle", buildJsonObject { put("stringValue", handle) })
+            put("photoUrl", buildJsonObject { put("stringValue", photoUrl) })
+            put("bio", buildJsonObject { put("stringValue", bio) })
+        }
+        val body = buildJsonObject { put("fields", fields) }
+        val request = Request.Builder().url(url)
+            .header("Authorization", "Bearer $idToken")
+            .patch(body.toString().toRequestBody(JSON))
+            .build()
+        http.newCall(request).execute().use { resp ->
+            if (!resp.isSuccessful) {
+                val text = resp.body?.string().orEmpty()
+                throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+            }
+        }
+    }
+
 
     suspend fun login(email: String, password: String): FirebaseAccount = withContext(Dispatchers.IO) {
         val body = postJson(

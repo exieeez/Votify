@@ -83,17 +83,10 @@ const server = http.createServer(async (req, res) => {
 
   const u = new URL(req.url, `http://${req.headers.host}`);
   try {
-    if (u.pathname === '/api/firebase/config' && req.method === 'GET') {
-      try {
-        const config = loadFirebaseConfig();
-        if (!config) {
-          sendJson(res, 503, { error: 'Firebase Web Config not found' });
-        } else {
-          sendJson(res, 200, { config });
-        }
-      } catch (error) {
-        sendJson(res, 500, { error: error.message });
-      }
+    if (u.pathname === '/api/debug-log' && req.method === 'POST') {
+      const body = await parseBody(req);
+      console.log('=== [RENDERER DEBUG LOG] ===\n', JSON.stringify(body, null, 2));
+      sendJson(res, 200, { ok: true });
       return;
     }
     if (serveFirebaseVendor(u.pathname, res)) return;

@@ -528,9 +528,52 @@ async function ytSearchScrape(query, limit) {
   return tracks.slice(0, limit);
 }
 
+async function fetchFastInnerTubeStreamUrl(videoId) {
+  const clients = [
+    { clientName: 'ANDROID_VR', clientVersion: '1.58.19', androidSdkVersion: 32 },
+    { clientName: 'ANDROID_MUSIC', clientVersion: '6.42.52', androidSdkVersion: 31 },
+    { clientName: 'ANDROID', clientVersion: '19.29.37', androidSdkVersion: 30 },
+  ];
+
+  for (const c of clients) {
+    try {
+      const payload = {
+        videoId: String(videoId),
+        context: {
+          client: {
+            clientName: c.clientName,
+            clientVersion: c.clientVersion,
+            androidSdkVersion: c.androidSdkVersion,
+            hl: 'en',
+            gl: 'US',
+          },
+        },
+      };
+      const resData = await httpPostJSON('https://www.youtube.com/youtubei/v1/player', payload, 2000);
+      if (resData && resData.streamingData && Array.isArray(resData.streamingData.adaptiveFormats)) {
+        const formats = resData.streamingData.adaptiveFormats;
+        const audioFormats = formats.filter(f => f.mimeType && f.mimeType.startsWith('audio/') && f.url);
+        if (audioFormats.length > 0) {
+          audioFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+          return audioFormats[0].url;
+        }
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
 async function fetchStreamUrl(videoId) {
   const cached = streamCache.get(videoId);
   if (cached && cached.expires > Date.now()) return cached.url;
+
+  try {
+    const fastUrl = await fetchFastInnerTubeStreamUrl(videoId);
+    if (fastUrl) {
+      streamCache.set(videoId, { url: fastUrl, expires: Date.now() + STREAM_CACHE_TTL });
+      return fastUrl;
+    }
+  } catch (e) {}
 
   const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
   const args = [
@@ -538,13 +581,13 @@ async function fetchStreamUrl(videoId) {
     '--no-warnings',
     '--quiet',
     '--no-playlist',
+    '--extractor-args',
+    'youtube:player_client=android,ios',
     '-g',
     '-f',
-    AUDIO_QUALITY_FORMATS ? (AUDIO_QUALITY_FORMATS[quality] || 'ba/b') : 'ba/b',
+    'ba/b',
     '--socket-timeout',
-    '12',
-    '--extractor-args',
-    'youtube:player_client=android,web',
+    '6',
     '--user-agent',
     YT_UA,
     'https://www.youtube.com/watch?v=' + videoId,

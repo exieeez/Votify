@@ -14,22 +14,33 @@
 
   /* Демо-каталог (зеркало routes/demo.js) — обложки/аудио для пустых состояний */
   var DEMO = [
-    { id: 'demo-01', title: 'Неоновый дождь', artist: 'Стеклянный Оркестр' },
-    { id: 'demo-02', title: 'Полночный экспресс', artist: 'Стеклянный Оркестр' },
+    { id: 'demo-01', title: 'Неоновый дождь', artist: 'Votify Demo' },
+    { id: 'demo-02', title: 'Полночный экспресс', artist: 'Votify Demo' },
     { id: 'demo-03', title: 'Моя волна', artist: 'Votify Demo' },
     { id: 'demo-04', title: 'Хрустальное утро', artist: 'Votify Demo' },
-    { id: 'demo-05', title: 'Городские огни', artist: 'Ночной Рейс' },
-    { id: 'demo-06', title: 'Тёплый шум', artist: 'Ночной Рейс' },
-    { id: 'demo-07', title: 'Пыль на виниле', artist: 'Кассетный Дом' },
-    { id: 'demo-08', title: 'Последний троллейбус', artist: 'Кассетный Дом' },
+    { id: 'demo-05', title: 'Городские огни', artist: 'Votify Demo' },
+    { id: 'demo-06', title: 'Тёплый шум', artist: 'Votify Demo' },
+    { id: 'demo-07', title: 'Пыль на виниле', artist: 'Votify Demo' },
+    { id: 'demo-08', title: 'Последний троллейбус', artist: 'Votify Demo' },
   ];
+  var DEMO_COVERS = {
+    'demo-01': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop',
+    'demo-02': 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&h=500&fit=crop',
+    'demo-03': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop',
+    'demo-04': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&h=500&fit=crop',
+    'demo-05': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&h=500&fit=crop',
+    'demo-06': 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&h=500&fit=crop',
+    'demo-07': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=500&h=500&fit=crop',
+    'demo-08': 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=500&h=500&fit=crop',
+  };
+
   function demoTrack(i) {
     var e = DEMO[i % DEMO.length];
     return {
       id: e.id,
       title: e.title,
       artist: e.artist,
-      cover: '/demo/cover/' + e.id + '.svg',
+      cover: DEMO_COVERS[e.id] || ('/demo/cover/' + e.id + '.svg'),
       url: '/api/audio?id=' + e.id,
       duration: 26,
       demo: true,
@@ -64,36 +75,34 @@
 
     /* иконки как в новом макете: «…» слева, outline-колокольчик, archive в поиске */
     if (gearBtn) {
-      gearBtn.innerHTML = SVG_DOTS;
-      gearBtn.title = 'Ещё';
+      gearBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
+      gearBtn.title = 'Настройки';
     }
     var bell = byId('tb-bell-btn');
     if (bell) bell.innerHTML = SVG_BELL;
-    var searchWrap = document.querySelector('.tb-search');
-    if (searchWrap && !byId('tb-browse-btn')) {
-      var browse = document.createElement('button');
-      browse.className = 'tb-browse-btn';
-      browse.id = 'tb-browse-btn';
-      browse.title = 'Обзор';
-      browse.setAttribute('aria-label', 'Обзор');
-      browse.innerHTML = SVG_ARCHIVE;
-      browse.addEventListener('click', function () {
-        var b = byId('nav-folders-btn');
-        if (b) b.click();
-      });
-      searchWrap.appendChild(browse);
-    }
+    var existingBrowse = byId('tb-browse-btn');
+    if (existingBrowse) existingBrowse.remove();
 
     if (homeBtn && navHome) homeBtn.addEventListener('click', () => navHome.click());
-    if (gearBtn && navSettings) gearBtn.addEventListener('click', () => navSettings.click());
+    if (gearBtn) {
+      gearBtn.addEventListener('click', () => {
+        if (typeof window.openSettings === 'function') window.openSettings();
+        else if (navSettings) navSettings.click();
+      });
+    }
 
     if (tbSearch && navSearch && searchInput) {
-      /* страница поиска не открывается сама: вводишь сверху, Enter — на страницу треков */
+      /* страница поиска не открывается сама: вводишь сверху, Enter — на страницу треков и сразу ищет */
       tbSearch.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter') return;
+        e.preventDefault();
         navSearch.click();
         searchInput.value = tbSearch.value;
-        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (typeof window.doSearch === 'function') {
+          window.doSearch();
+        } else {
+          searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        }
       });
       searchInput.addEventListener('input', function () {
         if (document.activeElement !== tbSearch && tbSearch.value !== searchInput.value) {
@@ -109,8 +118,18 @@
     }
 
     var avatar = byId('tb-avatar-btn');
-    var navProfile = byId('nav-profile-btn');
-    if (avatar && navProfile) avatar.addEventListener('click', () => navProfile.click());
+    if (avatar) {
+      avatar.addEventListener('click', function () {
+        if (window.VotifyCloud && typeof window.VotifyCloud.openProfile === 'function') {
+          window.VotifyCloud.openProfile();
+        } else if (typeof window.openProfile === 'function') {
+          window.openProfile();
+        } else {
+          var overlay = byId('profile-overlay');
+          if (overlay) overlay.style.display = 'flex';
+        }
+      });
+    }
 
     var friends = byId('tb-friends-btn');
     if (friends) friends.addEventListener('click', () => setAsideVisible(!asideIsVisible()));
@@ -148,79 +167,17 @@
     }, 300);
   }
   function updateNavButtons() {
-    var back = byId('tb-back-btn');
-    var fwd = byId('tb-fwd-btn');
-    if (back) back.disabled = backStack.length === 0;
-    if (fwd) fwd.disabled = fwdStack.length === 0;
+    if (window.navigationHistory && typeof window.navigationHistory.updateButtons === 'function') {
+      window.navigationHistory.updateButtons();
+    }
   }
   function wireHistory() {
-    var back = byId('tb-back-btn');
-    var fwd = byId('tb-fwd-btn');
-    if (back) {
-      back.addEventListener('click', function () {
-        if (!backStack.length) return;
-        var prev = backStack.pop();
-        if (currentScreen) fwdStack.push(currentScreen);
-        navigateTo(prev);
-        currentScreen = prev;
-        updateNavButtons();
-      });
-    }
-    if (fwd) {
-      fwd.addEventListener('click', function () {
-        if (!fwdStack.length) return;
-        var next = fwdStack.pop();
-        if (currentScreen) backStack.push(currentScreen);
-        navigateTo(next);
-        currentScreen = next;
-        updateNavButtons();
-      });
-    }
-    window.setInterval(function () {
-      var now = visibleScreenId();
-      if (now === currentScreen) return;
-      if (!suppressHistory && currentScreen && now) {
-        backStack.push(currentScreen);
-        fwdStack.length = 0;
-      }
-      currentScreen = now;
-      updateNavButtons();
-    }, 400);
-    currentScreen = visibleScreenId();
-    updateNavButtons();
+    // Delegated to primary navigationHistory in main.js
   }
 
   /* ---------- Сайдбар как в новом макете ---------- */
   function rebuildSidebar() {
-    var top = document.querySelector('.sidebar-top');
-    if (top && !byId('rz-lib-btn')) {
-      var lib = document.createElement('button');
-      lib.className = 'rz-lib-btn';
-      lib.id = 'rz-lib-btn';
-      lib.title = 'Моя медиатека';
-      lib.setAttribute('aria-label', 'Моя медиатека');
-      lib.innerHTML = SVG_ARCHIVE;
-      lib.addEventListener('click', function () {
-        var b = byId('nav-folders-btn');
-        if (b) b.click();
-      });
-      var plus = document.createElement('button');
-      plus.className = 'rz-plus-btn';
-      plus.id = 'rz-plus-btn';
-      plus.title = 'Создать плейлист';
-      plus.setAttribute('aria-label', 'Создать плейлист');
-      plus.innerHTML = SVG_PLUS;
-      plus.addEventListener('click', function () {
-        var b = byId('nav-folders-btn');
-        if (b) b.click();
-        window.setTimeout(function () {
-          var add = byId('lib-add-playlist-btn');
-          if (add) add.click();
-        }, 350);
-      });
-      top.appendChild(lib);
-      top.appendChild(plus);
-    }
+    // Sidebar center buttons disabled as requested
   }
 
   /* ---------- Пины: текстовые плитки как в макете ---------- */
@@ -234,16 +191,17 @@
     'ps-cyan',
     'ps-light',
   ];
-  function pinInitials(name) {
-    var words = String(name || '')
-      .trim()
-      .split(/\s+/);
-    var base = words[0] || 'PL';
-    var s = base.length <= 5 ? base : base.slice(0, 4);
-    return s.toUpperCase();
-  }
+  var SVG_MUSIC_NOTE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+  var DEFAULT_PLAYLIST_COVERS = [
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop'
+  ];
   var lastPinsKey = null;
-  function renderPins() {
+  function renderPins(force) {
+    if (force) lastPinsKey = null;
     var wrap = byId('sidebar-pins');
     if (!wrap) return;
     var playlists = {};
@@ -252,7 +210,10 @@
     } catch (e) {
       /* ignore */
     }
-    var keys = Object.keys(playlists).slice(0, 8);
+    if (window.playlists && typeof window.playlists === 'object') {
+      playlists = Object.assign({}, window.playlists, playlists);
+    }
+    var keys = Object.keys(playlists);
     var sig = 'pl:' + keys.join('|');
     if (sig === lastPinsKey) return;
     lastPinsKey = sig;
@@ -261,49 +222,39 @@
       '<div class="sidebar-pin pin-liked" data-pl="Избранное" title="Любимые треки">' +
       SVG_HEART +
       '</div>';
-    keys.forEach(function (key, i) {
-      var list = playlists[key] || [];
-      var cover = list.length && list[0] && list[0].cover ? list[0].cover : '';
-      var style = PIN_STYLES[i % PIN_STYLES.length];
-      html += cover
-        ? '<div class="sidebar-pin" data-pl="' +
-          key.replace(/"/g, '&quot;') +
-          '" title="' +
-          key.replace(/"/g, '&quot;') +
-          '"><img src="' +
-          cover +
-          '" alt="" /></div>'
-        : '<div class="sidebar-pin ' +
-          style +
-          '" data-pl="' +
-          key.replace(/"/g, '&quot;') +
-          '" title="' +
-          key.replace(/"/g, '&quot;') +
-          '"><span>' +
-          pinInitials(key) +
-          '</span></div>';
+    
+    var idx = 0;
+    keys.forEach(function (key) {
+      if (key === 'Избранное' || key === 'Любимые треки') return;
+      var rawList = playlists[key] || [];
+      var list = Array.isArray(rawList) ? rawList : (rawList.tracks || rawList.items || []);
+      var cover = (list.length && list[0] && list[0].cover) ? list[0].cover : DEFAULT_PLAYLIST_COVERS[idx % DEFAULT_PLAYLIST_COVERS.length];
+      idx++;
+      var safeName = key.replace(/"/g, '&quot;');
+      html += '<div class="sidebar-pin" data-pl="' + safeName + '" title="' + safeName + '"><img src="' + cover + '" alt="" /></div>';
     });
+
+    html += '<div class="sidebar-pin pin-add-playlist" id="sidebar-add-pin-btn" title="Создать плейлист"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>';
+
     wrap.innerHTML = html;
     wrap.querySelectorAll('.sidebar-pin').forEach(function (pin) {
+      if (pin.id === 'sidebar-add-pin-btn' || pin.classList.contains('pin-add-playlist')) {
+        pin.addEventListener('click', function () {
+          if (typeof window.createPlaylist === 'function') {
+            window.createPlaylist();
+          } else if (typeof createPlaylist === 'function') {
+            createPlaylist();
+          }
+        });
+        return;
+      }
       pin.addEventListener('click', function () {
         var name = pin.getAttribute('data-pl');
         if (!name) return;
-        var lib = byId('nav-folders-btn');
-        if (lib) lib.click();
-        window.setTimeout(function () {
-          if (name === 'Избранное') {
-            /* любимые — раздел медиатеки, а не отдельный плейлист */
-            var tabs = document.getElementById('library-filter-tabs');
-            if (tabs) {
-              var fav = tabs.querySelector('[data-tab="favorites"]');
-              if (fav) fav.click();
-            }
-            var pane = document.getElementById('lib-detail-pane');
-            if (pane) pane.style.display = 'none';
-          } else if (typeof window.openPlaylist === 'function') {
-            window.openPlaylist(name);
-          }
-        }, 250);
+        var targetName = (name === 'Избранное' || name === 'Любимые треки') ? 'Избранное' : name;
+        if (typeof window.openPlaylist === 'function') {
+          window.openPlaylist(targetName);
+        }
       });
     });
   }
@@ -370,30 +321,30 @@
     var html = '';
     html += '<div class="rz-quick">';
     html +=
-      '<div class="rz-quick-card" data-demo="0"><div class="rz-quick-cover qcc">CC</div><span class="rz-quick-name">exieeez</span><span class="rz-quick-play">' +
+      '<div class="rz-quick-card" data-demo="0"><div class="rz-quick-cover"><img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:4px;"/></div><span class="rz-quick-name">exieeez</span><span class="rz-quick-play">' +
       SVG_PLAY +
       '</span></div>';
     html +=
-      '<div class="rz-quick-card" data-demo="2"><div class="rz-quick-cover qmad">Mad</div><span class="rz-quick-name">sexyswag</span><span class="rz-quick-play">' +
+      '<div class="rz-quick-card" data-demo="2"><div class="rz-quick-cover"><img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:4px;"/></div><span class="rz-quick-name">sexyswag</span><span class="rz-quick-play">' +
       SVG_PLAY +
       '</span></div>';
     html += '</div>';
 
     html += '<section class="rz-section"><div class="rz-sec-head">';
     html +=
-      '<div class="rz-sec-left"><div class="rz-sec-avatar">M1D</div><div><div class="rz-sec-kicker">Похоже на:</div><div class="rz-sec-title">madk1d</div></div></div>';
+      '<div class="rz-sec-left"><div class="rz-sec-avatar" style="overflow:hidden;"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div><div><div class="rz-sec-kicker">Похоже на:</div><div class="rz-sec-title">madk1d</div></div></div>';
     html += showAllBtn();
     html += '</div><div class="rz-grid">';
     html +=
-      '<div class="rz-card" data-demo="0"><div class="rz-card-cover rz-cv-radio"><span class="rz-cv-top">РАДИО</span><span class="rz-cv-name">madk1d</span></div><div class="rz-card-title">тёмный принц, паранойя, greyrock …</div><div class="rz-card-sub">В эфире: madk1d, greyrock, trankvilizer и другие</div></div>';
+      '<div class="rz-card" data-demo="0"><div class="rz-card-cover"><img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/></div><div class="rz-card-title">тёмный принц, паранойя, greyrock …</div><div class="rz-card-sub">В эфире: madk1d, greyrock, trankvilizer и другие</div></div>';
     html +=
-      '<div class="rz-card" data-demo="1"><div class="rz-card-cover rz-cv-collage"><span>ПРИНЦ</span><span>MASK</span><span>DARK</span><span>KING</span></div><div class="rz-card-title">отвратительный король</div><div class="rz-card-sub">тёмный принц</div></div>';
+      '<div class="rz-card" data-demo="1"><div class="rz-card-cover"><img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/></div><div class="rz-card-title">отвратительный король</div><div class="rz-card-sub">тёмный принц</div></div>';
     html +=
-      '<div class="rz-card" data-demo="2"><div class="rz-card-cover rz-cv-ukr"><span class="rz-mix-dot"></span><span class="rz-cv-plate">Топ українських треків 2025</span></div><div class="rz-card-title">Найпопулярніші українські треки в…</div><div class="rz-card-sub">Оновлюється щоп’ятниці.</div></div>';
+      '<div class="rz-card" data-demo="2"><div class="rz-card-cover"><img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&h=400&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/></div><div class="rz-card-title">Найпопулярніші українські треки в…</div><div class="rz-card-sub">Оновлюється щоп’ятниці.</div></div>';
     html +=
-      '<div class="rz-card" data-demo="3"><div class="rz-card-cover rz-cv-hot"><span class="rz-cv-vert">HOT HITS</span><span class="rz-cv-corner">УКРАЇНА</span><span class="rz-cv-artist">ARTIST</span></div><div class="rz-card-title">50 найгарячіших пісень в Україні.…</div><div class="rz-card-sub">Головні хіти просто зараз.</div></div>';
+      '<div class="rz-card" data-demo="3"><div class="rz-card-cover"><img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/></div><div class="rz-card-title">50 найгарячіших пісень в Україні.…</div><div class="rz-card-sub">Головні хіти просто зараз.</div></div>';
     html +=
-      '<div class="rz-card" data-demo="4"><div class="rz-card-cover rz-cv-papa"><span class="rz-cv-papa-t">ПАПА</span><span class="rz-cv-papa-s">FORTUNA</span></div><div class="rz-card-title">ПАПА</div><div class="rz-card-sub">тёмный пр… FORTUNA</div></div>';
+      '<div class="rz-card" data-demo="4"><div class="rz-card-cover"><img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/></div><div class="rz-card-title">ПАПА</div><div class="rz-card-sub">тёмный пр… FORTUNA</div></div>';
     html += '</div></section>';
 
     html += '<section class="rz-section"><div class="rz-sec-head">';
@@ -412,33 +363,17 @@
     html += showAllBtn();
     html += '</div><div class="rz-grid">';
     html +=
-      '<div class="rz-card" data-demo="5"><div class="rz-card-cover rz-cv-round">ARTIST</div><div class="rz-card-title">shadowraze</div><div class="rz-card-sub">Исполнитель</div></div>';
+      '<div class="rz-card" data-demo="5"><div class="rz-card-cover" style="border-radius:50%;overflow:hidden;"><img src="https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&h=400&fit=crop" style="width:100%;height:100%;object-fit:cover;"/></div><div class="rz-card-title">shadowraze</div><div class="rz-card-sub">Исполнитель</div></div>';
     html +=
-      '<div class="rz-card" data-demo="6"><div class="rz-card-cover rz-cv-album">ALBUM</div><div class="rz-card-title">ASTRAL STEP</div><div class="rz-card-sub">shadowraze</div></div>';
+      '<div class="rz-card" data-demo="6"><div class="rz-card-cover"><img src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=400&fit=crop" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/></div><div class="rz-card-title">ASTRAL STEP</div><div class="rz-card-sub">shadowraze</div></div>';
     html += '</div></section>';
     return html;
   }
   function fillHome() {
     var home = byId('home-screen');
     if (!home) return;
-    if (!byId('rz-home-new')) {
-      var chips = byId('rz-home-chips');
-      var box = document.createElement('div');
-      box.id = 'rz-home-new';
-      box.innerHTML = homeNewHtml();
-      if (chips && chips.nextSibling) home.insertBefore(box, chips.nextSibling);
-      else home.appendChild(box);
-    }
-    /* третий чипс «Подкасты» */
-    var chipsWrap = byId('rz-home-chips');
-    if (chipsWrap && !byId('rz-chip-podcasts')) {
-      var pod = document.createElement('button');
-      pod.className = 'rz-chip';
-      pod.id = 'rz-chip-podcasts';
-      pod.dataset.chip = 'podcasts';
-      pod.textContent = 'Подкасты';
-      chipsWrap.appendChild(pod);
-    }
+    var existingNew = byId('rz-home-new');
+    if (existingNew) existingNew.remove();
   }
   function wireDemoClicks() {
     document.addEventListener('click', function (e) {
@@ -466,63 +401,70 @@
       chip.classList.add('active');
       var home = byId('home-screen');
       if (!home) return;
-      home.classList.toggle('rz-music', chip.dataset.chip === 'music');
-      home.classList.toggle('rz-podcasts', chip.dataset.chip === 'podcasts');
+      var isMusic = chip.dataset.chip === 'music';
+      home.classList.toggle('rz-music', isMusic);
     });
   }
 
   /* ---------- Правая панель «Активность друзей» ---------- */
-  var FRIENDS_DEMO = [
-    {
-      ini: 'NK',
-      color: '#7b3fe4',
-      name: 'Nikita',
-      track: 'FEIN (feat. Playboi Carti)',
-      meta: 'Travis Scott • UTOPIA',
-      online: true,
-    },
-    {
-      ini: 'AL',
-      color: '#e07b12',
-      name: 'Alex',
-      track: 'Starlight',
-      meta: 'Muse • Black Holes',
-      online: true,
-    },
-    {
-      ini: 'VL',
-      color: '#0e6b4a',
-      name: 'Vladislav',
-      track: 'ASTRAL STEP',
-      meta: '3 ч. назад',
-      online: false,
-    },
-  ];
+  window.addFriend = function(targetUid, targetName) {
+    if (window.VotifyCloud && typeof window.VotifyCloud.addFriend === 'function') {
+      window.VotifyCloud.addFriend(targetUid, targetName).then(function() {
+        renderFriendsList();
+      });
+    }
+  };
+
+  function renderFriendsList() {
+    var container = byId('rz-friends-list');
+    if (!container) return;
+    var getFriendsFn = window.VotifyCloud && window.VotifyCloud.getFriends;
+    if (typeof getFriendsFn !== 'function') {
+      if (window.VotifyCloud && typeof window.VotifyCloud.whenReady === 'function') {
+        window.VotifyCloud.whenReady().then(renderFriendsList);
+        return;
+      }
+      container.innerHTML = '<div style="font-size:12px; color:#737373; padding:20px 12px; text-align:center;">Загрузка данных...</div>';
+      return;
+    }
+    getFriendsFn().then(function(friends) {
+      if (!friends || friends.length === 0) {
+        container.innerHTML = '<div style="font-size:12px; color:#737373; padding:20px 12px; text-align:center;">У вас пока нет друзей.<br/>Нажмите «Найти друзей» ниже, чтобы добавить.</div>';
+        return;
+      }
+      var html = '';
+      var defaultAva = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><rect width='128' height='128' rx='64' fill='%23262626'/><path d='M64 28a20 20 0 1 0 0 40 20 20 0 0 0 0-40zm0 48c-22.1 0-40 13.4-40 30v4h80v-4c0-16.6-17.9-30-40-30z' fill='%23888888'/></svg>";
+      friends.forEach(function (f) {
+        var subText = (f.track && f.track !== 'В сети' && f.track !== 'Не в сети')
+          ? ('♫ ' + f.track)
+          : (f.about || f.handle || '');
+        html +=
+          '<div class="rz-friend" style="cursor:pointer; display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; transition:background 0.2s;" onclick="if(window.openUserProfile){window.openUserProfile(\'' + f.uid + '\');}">' +
+          '<div class="rz-friend-ava" style="width:38px; height:38px; min-width:38px; background:#262626; overflow:hidden; border-radius:50%; position:relative;">' +
+          '<img src="' + (f.avatar || defaultAva) + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.src=\'' + defaultAva + '\'" />' +
+          '</div>' +
+          '<div class="rz-friend-info" style="flex:1; min-width:0;">' +
+          '<div class="rz-friend-name" style="font-weight:700; color:#fff; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + f.name + ' <span style="font-weight:400;font-size:11px;color:#a3a3a3;">' + (f.handle || '') + '</span></div>' +
+          (subText ? '<div class="rz-friend-track" style="font-size:11px; color:#a3a3a3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">' + subText + '</div>' : '') +
+          '</div></div>';
+      });
+      container.innerHTML = html;
+    }).catch(function() {
+      container.innerHTML = '<div style="font-size:12px; color:#737373; padding:20px 12px; text-align:center;">У вас пока нет друзей</div>';
+    });
+  }
+
   function buildAside() {
     var aside = byId('rz-right-aside');
-    if (!aside || byId('rz-friends-list')) return;
-    var html = '<div class="rz-friends-head"><span>Активность друзей</span>';
+    if (!aside) return;
+    var html = '<div class="rz-friends-head"><span style="font-weight:800;font-size:16px;">Активность друзей</span>';
     html +=
       '<button class="rz-aside-x" id="rz-aside-close" title="Закрыть" aria-label="Закрыть">✕</button></div>';
-    html += '<div class="rz-friends-list" id="rz-friends-list">';
-    FRIENDS_DEMO.forEach(function (f) {
-      html +=
-        '<div class="rz-friend"><div class="rz-friend-ava" style="background:' +
-        f.color +
-        '">' +
-        f.ini +
-        (f.online ? '<span class="rz-friend-dot"></span>' : '') +
-        '</div><div class="rz-friend-info"><div class="rz-friend-name">' +
-        f.name +
-        '</div><div class="rz-friend-track">' +
-        f.track +
-        '</div><div class="rz-friend-meta">♫ ' +
-        f.meta +
-        '</div></div></div>';
-    });
-    html += '</div>';
-    html += '<button class="rz-find-friends" id="rz-find-friends">Найти друзей</button>';
+    html += '<div class="rz-friends-list" id="rz-friends-list"></div>';
+    html += '<button class="rz-find-friends" id="rz-find-friends" style="margin-top:12px;width:100%;background:#ffffff;color:#000;border:none;border-radius:9999px;padding:10px;font-weight:700;cursor:pointer;">Найти друзей</button>';
     aside.innerHTML = html;
+    renderFriendsList();
+
     var close = byId('rz-aside-close');
     if (close)
       close.addEventListener('click', function () {
@@ -531,8 +473,10 @@
     var find = byId('rz-find-friends');
     if (find)
       find.addEventListener('click', function () {
-        if (typeof window.showToast === 'function')
-          window.showToast('Друзья появятся, когда вы войдёте в аккаунт');
+        var profile = byId('nav-profile-btn');
+        if (profile) profile.click();
+        var searchInput = byId('friend-search-input');
+        if (searchInput) searchInput.focus();
       });
   }
   function asideIsVisible() {
@@ -558,50 +502,24 @@
     } catch (e) {
       /* ignore */
     }
-    setAsideVisible(stored !== 'closed');
+    setAsideVisible(stored === 'open');
   }
 
-  /* ---------- Клики по треку: вкладка плеера и панель автора ---------- */
+  /* ---------- Клики по обложке и заголовку: открытие полноэкранного плеера ---------- */
   function wirePlayerLinks() {
-    /* название трека -> вкладка «Плеер» (как раньше) */
     document.addEventListener('click', function (e) {
       var t = e.target.closest
-        ? e.target.closest('#fi-title, #fi-info, #player-track-title, .player-bar-info')
+        ? e.target.closest('#fi-title, #fi-artist, #fi-info, #player-track-title, .player-bar-info, #fi-cover-wrap, #fi-cover, #fi-cover-expand-btn')
         : null;
       if (t) {
-        var nav = byId('nav-player-btn');
-        if (nav) nav.click();
-        return;
-      }
-      /* имя исполнителя -> правая панель с автором */
-      var a = e.target.closest ? e.target.closest('#fi-artist') : null;
-      if (a && typeof window.openRightPlayerPanel === 'function') {
-        window.openRightPlayerPanel();
-        var isl = byId('floating-island');
-        if (isl) isl.style.display = '';
-      }
-    });
-    /* при старте трека — открыть правую панель с автором, островок оставить */
-    var userClosedRight = false;
-    document.addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('#right-player-close')) userClosedRight = true;
-    });
-    window.setInterval(function () {
-      if (userClosedRight) return;
-      var fi = byId('fi-title');
-      if (!fi) return;
-      var title = fi.textContent;
-      if (title && title !== 'Votify') {
-        if (typeof window.openRightPlayerPanel === 'function') {
-          var panel = byId('right-player-panel');
-          if (panel && !panel.classList.contains('open')) {
-            window.openRightPlayerPanel();
-          }
-          var isl = byId('floating-island');
-          if (isl) isl.style.display = '';
+        if (typeof window.openFullscreenPlayer === 'function') {
+          window.openFullscreenPlayer();
+        } else {
+          var nav = byId('nav-player-btn');
+          if (nav) nav.click();
         }
       }
-    }, 1000);
+    });
   }
 
   /* ---------- Друзья в профиле ---------- */
@@ -611,24 +529,21 @@
     var box = document.createElement('div');
     box.className = 'rz-profile-friends';
     box.id = 'rz-profile-friends';
-    var html = '<h4>Друзья</h4>';
-    FRIENDS_DEMO.forEach(function (f) {
-      html +=
-        '<div class="rz-friend"><div class="rz-friend-ava" style="background:' +
-        f.color +
-        '">' +
-        f.ini +
-        (f.online ? '<span class="rz-friend-dot"></span>' : '') +
-        '</div><div class="rz-friend-info"><div class="rz-friend-name">' +
-        f.name +
-        '</div><div class="rz-friend-track">' +
-        f.track +
-        '</div><div class="rz-friend-meta">♫ ' +
-        f.meta +
-        '</div></div></div>';
-    });
-    box.innerHTML = html;
+    box.innerHTML = '<h4>Друзья</h4><div id="rz-profile-friends-inner" style="font-size:12px; color:#737373; padding:8px 0;">У вас пока нет друзей</div>';
     card.appendChild(box);
+    if (window.VotifyCloud && typeof window.VotifyCloud.getFriends === 'function') {
+      window.VotifyCloud.getFriends().then(function(friends) {
+        var inner = byId('rz-profile-friends-inner');
+        if (!inner) return;
+        if (!friends || friends.length === 0) {
+          inner.innerHTML = 'У вас пока нет друзей';
+        } else {
+          inner.innerHTML = friends.map(function(f) {
+            return '<div class="rz-friend" style="display:flex;align-items:center;gap:10px;padding:6px 0;"><img src="' + (f.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop') + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" /><div style="font-weight:700;color:#fff;">' + f.name + '</div></div>';
+          }).join('');
+        }
+      }).catch(function() {});
+    }
   }
 
   function init() {
@@ -641,6 +556,7 @@
     wireChips();
     wireAside();
     wireDemoClicks();
+    window.renderPins = renderPins;
     renderPins();
     fillHome();
     window.setInterval(renderPins, 2000);

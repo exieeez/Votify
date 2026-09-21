@@ -8,14 +8,14 @@
    ========================================================================== */
 
 const CATALOG = [
-  { id: 'demo-01', title: 'Неоновый дождь', artist: 'Стеклянный Оркестр', root: 220.0, bpm: 92, mode: [0, 3, 7, 10], seed: 7, dur: 26 },
-  { id: 'demo-02', title: 'Полночный экспресс', artist: 'Стеклянный Оркестр', root: 196.0, bpm: 120, mode: [0, 4, 7, 11], seed: 21, dur: 24 },
-  { id: 'demo-03', title: 'Моя волна', artist: 'Votify Demo', root: 246.94, bpm: 100, mode: [0, 2, 7, 9], seed: 3, dur: 28 },
-  { id: 'demo-04', title: 'Хрустальное утро', artist: 'Votify Demo', root: 261.63, bpm: 84, mode: [0, 4, 7, 9], seed: 11, dur: 26 },
-  { id: 'demo-05', title: 'Городские огни', artist: 'Ночной Рейс', root: 174.61, bpm: 110, mode: [0, 3, 7, 14], seed: 42, dur: 25 },
-  { id: 'demo-06', title: 'Тёплый шум', artist: 'Ночной Рейс', root: 146.83, bpm: 76, mode: [0, 5, 7, 12], seed: 5, dur: 27 },
-  { id: 'demo-07', title: 'Пыль на виниле', artist: 'Кассетный Дом', root: 207.65, bpm: 96, mode: [0, 2, 5, 7], seed: 17, dur: 24 },
-  { id: 'demo-08', title: 'Последний троллейбус', artist: 'Кассетный Дом', root: 233.08, bpm: 104, mode: [0, 3, 8, 10], seed: 29, dur: 26 },
+  { id: 'demo-01', title: 'Неоновый дождь', artist: 'The Weeknd', root: 220.0, bpm: 92, mode: [0, 3, 7, 10], seed: 7, dur: 26 },
+  { id: 'demo-02', title: 'Полночный экспресс', artist: 'Kino', root: 196.0, bpm: 120, mode: [0, 4, 7, 11], seed: 21, dur: 24 },
+  { id: 'demo-03', title: 'Моя волна', artist: 'Oliver Tree', root: 246.94, bpm: 100, mode: [0, 2, 7, 9], seed: 3, dur: 28 },
+  { id: 'demo-04', title: 'Хрустальное утро', artist: 'Billie Eilish', root: 261.63, bpm: 84, mode: [0, 4, 7, 9], seed: 11, dur: 26 },
+  { id: 'demo-05', title: 'Городские огни', artist: 'XXXTENTACION', root: 174.61, bpm: 110, mode: [0, 3, 7, 14], seed: 42, dur: 25 },
+  { id: 'demo-06', title: 'Тёплый шум', artist: 'Steve Lacy', root: 146.83, bpm: 76, mode: [0, 5, 7, 12], seed: 5, dur: 27 },
+  { id: 'demo-07', title: 'Пыль на виниле', artist: 'Panchiko', root: 207.65, bpm: 96, mode: [0, 2, 5, 7], seed: 17, dur: 24 },
+  { id: 'demo-08', title: 'Последний троллейбус', artist: 'Конец Солнечных Дней', root: 233.08, bpm: 104, mode: [0, 3, 8, 10], seed: 29, dur: 26 },
 ];
 
 const SR = 22050;
@@ -33,13 +33,24 @@ function getDemoEntry(id) {
   return CATALOG.find(e => e.id === id) || null;
 }
 
+const DEMO_COVERS = {
+  'demo-01': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop',
+  'demo-02': 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&h=500&fit=crop',
+  'demo-03': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop',
+  'demo-04': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&h=500&fit=crop',
+  'demo-05': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&h=500&fit=crop',
+  'demo-06': 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&h=500&fit=crop',
+  'demo-07': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=500&h=500&fit=crop',
+  'demo-08': 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=500&h=500&fit=crop',
+};
+
 function shape(e) {
   return {
     id: e.id,
     title: e.title,
     artist: e.artist,
     url: '/api/audio?id=' + encodeURIComponent(e.id),
-    cover: '/demo/cover/' + e.id + '.svg',
+    cover: DEMO_COVERS[e.id] || '/demo/cover/' + e.id + '.svg',
     duration: e.dur,
     demo: true,
   };
@@ -190,10 +201,16 @@ function serveDemoAudio(id, res) {
   return true;
 }
 
-/* SVG-обложка: градиент из hash + название */
+/* SVG-обложка: градиент из hash + название или редирект на реальное автопокрытие */
 function serveDemoCover(id, res) {
   const entry = getDemoEntry(id);
   if (!entry) return false;
+  const coverUrl = DEMO_COVERS[entry.id];
+  if (coverUrl) {
+    res.writeHead(302, { Location: coverUrl });
+    res.end();
+    return true;
+  }
   const h = hashStr(entry.id);
   const hue = h % 360;
   const hue2 = (hue + 60 + (h >> 3) % 120) % 360;

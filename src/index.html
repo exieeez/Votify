@@ -25,14 +25,17 @@
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Votify</title>
+    <meta name="referrer" content="no-referrer" />
+    <title>Music</title>
     <link rel="stylesheet" href="fonts.css" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=0.9.17" />
+    <link rel="stylesheet" href="styles/spotify-phone-theme.css" />
     <link rel="stylesheet" href="custom-theme.css?v=0.9.17" />
     <link rel="stylesheet" href="home-personalization.css?v=0.9.17" />
     <link rel="stylesheet" href="rooster.css?v=0.9.17" />
+    <link rel="stylesheet" href="styles/dotify-23-theme.css?v=0.9.999" />
     <link rel="icon" type="image/png" href="icon.png" />
     <meta name="theme-color" content="#000000" />
   </head>
@@ -62,7 +65,7 @@
 
     <div class="splash-screen" id="splash-screen">
       <div class="splash-content">
-        <img src="icon.png" alt="Votify" class="splash-app-icon" />
+        <img src="assets/logo.png" alt="Music" class="splash-app-icon" />
         <div class="splash-title" id="splash-title">Votify</div>
         <div class="splash-subtitle" id="splash-subtitle">Your music, your vibe</div>
         <div class="splash-dots">
@@ -116,7 +119,7 @@
       <div class="auth-card">
         <button class="auth-close-btn" id="auth-close-btn" aria-label="Закрыть"><i class="material-icons">close</i></button>
         <div class="auth-logo">
-          <img src="icon.png" alt="Votify" class="auth-logo-icon" />
+          <img src="assets/logo.png" alt="Music" class="auth-logo-icon" />
           <h1>Votify</h1>
         </div>
         <div class="auth-form" id="auth-login">
@@ -183,34 +186,144 @@
       </div>
     </div>
 
-    <!-- PROFILE -->
-    <div class="profile-overlay" id="profile-overlay" style="display:none">
-      <div class="profile-card">
-        <div class="profile-card-header">
-          <div><span class="profile-kicker">VOTIFY ACCOUNT</span><h2>Профиль</h2></div>
-          <button class="btn-icon-sm" id="profile-close-btn" aria-label="Закрыть"><i class="material-icons">close</i></button>
-        </div>
-        <div class="profile-avatar-section">
-          <div class="profile-avatar-large">
-            <img id="profile-avatar-image" alt="Аватар" style="display:none" />
-            <span id="profile-avatar-fallback">V</span>
+    <!-- PROFILE OVERLAY (DESKTOP PC VERSION ADAPTED FROM USER DESIGN) -->
+    <div class="profile-overlay pc-profile-overlay" id="profile-overlay" style="display:none">
+      <div class="pc-profile-modal">
+        <!-- Top Navigation / App Bar -->
+        <div class="pc-profile-appbar">
+          <div class="pc-appbar-left">
+            <button class="pc-appbar-btn" id="profile-close-btn" title="Назад" aria-label="Назад">
+              <i class="material-icons">arrow_back</i>
+            </button>
+            <h2 class="pc-appbar-title">Профиль</h2>
           </div>
-          <label class="profile-avatar-button" for="profile-avatar-input"><i class="material-icons">photo_camera</i> Сменить аватар</label>
-          <input type="file" id="profile-avatar-input" accept="image/*" hidden />
+          <div class="pc-appbar-actions">
+            <button class="pc-appbar-action-btn" id="profile-copy-id-btn" title="Скопировать юзернейм" aria-label="Скопировать юзернейм">
+              <i class="material-icons">content_copy</i>
+            </button>
+            <button class="pc-appbar-action-btn" id="profile-settings-btn" title="Настройки" aria-label="Настройки">
+              <i class="material-icons">settings</i>
+            </button>
+            <button class="pc-appbar-action-btn pc-appbar-action-danger" id="profile-logout-btn" title="Выйти" aria-label="Выйти">
+              <i class="material-icons">logout</i>
+            </button>
+          </div>
         </div>
-        <div class="profile-fields">
-          <label>Имя профиля<input type="text" id="profile-display-name" maxlength="40" placeholder="Имя" /></label>
-          <label>О себе<input type="text" id="profile-about" maxlength="300" placeholder="Пара слов о себе — увидят друзья" /></label>
 
-          <div class="profile-meta-row"><span>Email</span><strong id="profile-email">—</strong></div>
-          <div class="profile-meta-row"><span>Тип аккаунта</span><strong id="profile-account-kind">—</strong></div>
-          <div class="profile-sync-status"><i class="material-icons">cloud_done</i><span id="profile-cloud-status">Проверка Firebase…</span></div>
+        <!-- Scrollable Profile Content -->
+        <div class="pc-profile-body">
+          <!-- 1. Hero User Profile Card -->
+          <div class="pc-profile-hero-card">
+            <div class="pc-avatar-wrapper">
+              <img class="pc-avatar-img" id="profile-avatar-image" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><rect width='128' height='128' rx='64' fill='%23262626'/><path d='M64 28a20 20 0 1 0 0 40 20 20 0 0 0 0-40zm0 48c-22.1 0-40 13.4-40 30v4h80v-4c0-16.6-17.9-30-40-30z' fill='%23888888'/></svg>" alt="Аватар" />
+              <label class="pc-avatar-badge" for="profile-avatar-input" title="Сменить аватар">
+                <i class="material-icons" style="font-size:16px;">edit</i>
+              </label>
+              <input type="file" id="profile-avatar-input" accept="image/*" hidden />
+            </div>
+            <h1 class="pc-profile-name" id="profile-display-name-text">exieeez</h1>
+            <div class="pc-profile-handle" id="profile-handle-text">@exieeez</div>
+            <div class="pc-profile-role" id="profile-role-text">Пользователь</div>
+            <button class="pc-btn-edit-profile" id="profile-edit-toggle-btn">Редактировать</button>
+
+            <!-- Edit Form (Hidden by default, toggled on Edit click) -->
+            <div class="pc-profile-edit-form" id="profile-edit-form" style="display:none; width:100%; margin-top:16px;">
+              <input type="text" class="pc-friend-search-input" id="profile-display-name" placeholder="Имя профиля" value="" style="margin-bottom:8px; padding-left:14px;" />
+              <input type="text" class="pc-friend-search-input" id="profile-about" placeholder="О себе..." value="" style="margin-bottom:12px; padding-left:14px;" />
+              <button class="pc-btn-edit-profile" id="profile-save-btn" style="background:#22c55e; color:#fff;">Сохранить</button>
+            </div>
+          </div>
+
+          <!-- 2. "Найти друзей" Card -->
+          <div class="pc-profile-section-card">
+            <h3 class="pc-card-title">Найти друзей</h3>
+            <div class="pc-search-box">
+              <i class="material-icons pc-search-icon">search</i>
+              <input type="text" class="pc-friend-search-input" id="friend-search-input" placeholder="Юзернейм или @юзернейм" autocomplete="off" />
+            </div>
+            <div class="pc-friend-search-results" id="friend-search-results" style="margin-top:10px;"></div>
+          </div>
+
+          <!-- 3. "Друзья" Card -->
+          <div class="pc-profile-section-card">
+            <div class="pc-card-header-row">
+              <h3 class="pc-card-title" style="margin:0;">Друзья</h3>
+              <span class="pc-card-sub" id="pc-friends-count">0 друзей</span>
+            </div>
+            <div class="pc-friends-row" id="pc-friends-list">
+              <div style="font-size:12px; color:#737373; padding:8px 0;">У вас пока нет друзей</div>
+            </div>
+          </div>
+
+          <!-- 4. "Плейлисты" Card -->
+          <div class="pc-profile-section-card">
+            <div class="pc-card-header-row">
+              <div>
+                <h3 class="pc-card-title" style="margin:0;">Плейлисты</h3>
+                <div class="pc-card-sub" id="pc-playlists-sync-sub">Есть неопубликованные изменения</div>
+              </div>
+              <button class="pc-btn-publish" id="pc-publish-btn">
+                <i class="material-icons" style="font-size:16px;">refresh</i> Опубликовать
+              </button>
+            </div>
+
+            <!-- Desktop Playlist Cards Grid -->
+            <div class="pc-playlists-grid" id="pc-user-playlists-grid">
+              <div class="pc-playlist-card" data-pl="exieeez">
+                <div class="pc-pl-cover-wrap" style="background:#990000;">
+                  <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop" alt="exieeez" />
+                  <button class="pc-pl-play-btn"><i class="material-icons">play_arrow</i></button>
+                </div>
+                <div class="pc-pl-name">exieeez</div>
+                <div class="pc-pl-count">93 трека</div>
+              </div>
+              <div class="pc-playlist-card" data-pl="Избранное">
+                <div class="pc-pl-cover-wrap" style="background:#990000;">
+                  <img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop" alt="exieeez" />
+                  <button class="pc-pl-play-btn"><i class="material-icons">play_arrow</i></button>
+                </div>
+                <div class="pc-pl-name">exieeez</div>
+                <div class="pc-pl-count">93 трека</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="profile-message" id="profile-message"></div>
-        <div class="profile-actions">
-          <button class="auth-btn" id="profile-save-btn">Сохранить профиль</button>
-          <button class="auth-btn auth-btn-secondary" id="profile-login-btn">Войти в другой аккаунт</button>
-          <button class="profile-danger-btn" id="profile-logout-btn">Выйти</button>
+      </div>
+    </div>
+
+    <!-- OTHER USER PROFILE OVERLAY -->
+    <div class="pc-profile-overlay" id="other-profile-overlay" style="display:none;">
+      <div class="pc-profile-modal" style="max-width:440px;">
+        <div class="pc-profile-appbar">
+          <div class="pc-appbar-left">
+            <button class="pc-appbar-close-btn" id="other-profile-close-btn" title="Закрыть" aria-label="Закрыть">
+              <i class="material-icons">close</i>
+            </button>
+            <span class="pc-appbar-title">Профиль пользователя</span>
+          </div>
+        </div>
+        <div class="pc-profile-body" style="padding:28px 24px; text-align:center;">
+          <div class="pc-avatar-wrapper" style="margin:0 auto 16px auto; width:100px; height:100px; border-radius:50%; overflow:hidden; border:2px solid rgba(255,255,255,0.12);">
+            <img id="other-profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><rect width='128' height='128' rx='64' fill='%23262626'/><path d='M64 28a20 20 0 1 0 0 40 20 20 0 0 0 0-40zm0 48c-22.1 0-40 13.4-40 30v4h80v-4c0-16.6-17.9-30-40-30z' fill='%23888888'/></svg>" style="width:100%; height:100%; object-fit:cover;" alt="Аватар" />
+          </div>
+          <h2 id="other-profile-name" style="font-size:22px; font-weight:800; color:#ffffff; margin:0 0 4px 0;">Пользователь</h2>
+          <div id="other-profile-handle" style="font-size:14px; color:#a3a3a3; font-weight:600; margin-bottom:12px;">@user</div>
+          <div id="other-profile-about" style="font-size:13px; color:#a3a3a3; margin-bottom:24px; line-height:1.4;">Информация о себе отсутствует</div>
+
+          <div style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
+            <button class="pc-btn-publish" id="other-profile-add-btn" style="padding:10px 24px; font-weight:700; font-size:13px;">+ Добавить в друзья</button>
+          </div>
+
+          <!-- USER PLAYLISTS SECTION -->
+          <div class="pc-profile-section-card" style="text-align:left; background:#181818; padding:16px; border-radius:16px; border:1px solid rgba(255,255,255,0.06);">
+            <div class="pc-card-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h3 class="pc-card-title" style="margin:0; font-size:15px; font-weight:800; color:#ffffff;">Плейлисты</h3>
+              <span class="pc-card-sub" id="other-profile-playlists-count" style="font-size:12px; color:#a3a3a3;">0 плейлистов</span>
+            </div>
+            <div class="pc-playlists-grid" id="other-profile-playlists-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:12px;">
+              <div style="font-size:12px; color:#737373; grid-column: 1 / -1;">Загрузка плейлистов...</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -263,13 +376,10 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
             </button>
           </div>
-          <span class="titlebar-logo" id="titlebar-logo" title="Открыть сайт Votify">Votify<span class="titlebar-version">0.9.17</span></span>
+          <span class="titlebar-logo" id="titlebar-logo" title="Music"><img src="assets/logo.png" style="height:26px;width:26px;border-radius:6px;vertical-align:middle;object-fit:cover;" alt="Logo" /></span>
         </div>
         <div class="titlebar-center">
           <div class="tb-search-wrap">
-            <button class="tb-round-btn" id="tb-home-btn" title="Главная" aria-label="Главная">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg>
-            </button>
             <div class="tb-search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               <input id="tb-search-input" type="text" placeholder="Что хочешь включить?" autocomplete="off" aria-label="Поиск" />
@@ -279,9 +389,6 @@
         </div>
         <div class="titlebar-drag-area"></div>
         <div class="tb-right-icons">
-          <button class="tb-icon-btn" id="tb-bell-btn" title="Уведомления" aria-label="Уведомления">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"></path></svg>
-          </button>
           <button class="tb-icon-btn" id="tb-friends-btn" title="История прослушивания" aria-label="История прослушивания">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
           </button>
@@ -311,33 +418,25 @@
           </button>
         </div>
         <nav class="sidebar-nav">
-          <button class="nav-btn" id="nav-player-btn" title="Плеер">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="6,3 20,12 6,21"/>
-            </svg>
-          </button>
-          <button class="nav-btn" id="nav-search-btn" title="Поиск">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-              <circle cx="11" cy="11" r="7"/>
-              <line x1="16.5" y1="16.5" x2="21" y2="21"/>
-            </svg>
-          </button>
-          <button class="nav-btn" id="nav-folders-btn" title="Медиатека">
+          <button class="nav-btn" id="nav-folders-btn" title="Моя медиатека">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 8h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
-              <path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
             </svg>
+          </button>
+          <button class="nav-btn" id="nav-player-btn" title="Плеер">
+            <img src="assets/player-icon.png" style="width:30px;height:30px;object-fit:contain;display:block;margin:0 auto;" alt="Плеер" />
           </button>
           <button class="nav-btn" id="nav-workshop-btn" title="Мастерская тем">
             <i class="material-icons">storefront</i>
           </button>
         </nav>
         <div class="sidebar-pins" id="sidebar-pins" aria-label="Закреплённые плейлисты"></div>
-        <div class="sidebar-bottom">
-          <button class="nav-btn" id="nav-profile-btn" title="Войти в аккаунт"><i class="material-icons">person_outline</i></button>
+        <div class="sidebar-bottom" style="display:none;" aria-hidden="true">
           <button class="nav-btn" id="nav-settings-btn" title="Настройки">
             <i class="material-icons" style="font-size:22px;">tune</i>
           </button>
+          <button class="nav-btn" id="nav-profile-btn" title="Войти в аккаунт"><i class="material-icons">person_outline</i></button>
         </div>
       </aside>
 
@@ -346,7 +445,7 @@
         <div class="right-player-bg" id="right-player-bg"></div>
         <div class="right-player-header">
           <div class="right-player-heading">
-            <span class="right-player-kicker">VOTIFY PLAYER</span>
+            <span class="right-player-kicker">PLAYER</span>
             <span class="right-player-now-label">Сейчас играет</span>
           </div>
           <div class="right-player-header-actions">
@@ -495,52 +594,29 @@
       <main class="main-content">
         <!-- HOME -->
         <section id="home-screen" class="screen">
-          <!-- FILTER CHIPS (как в макете Rooster) -->
+          <!-- FILTER CHIPS -->
           <div class="rz-chips" id="rz-home-chips">
             <button class="rz-chip active" data-chip="all">Все</button>
             <button class="rz-chip" data-chip="music">Музыка</button>
           </div>
-          <!-- CARD 1: МОЯ ВОЛНА -->
-          <div class="my-wave-card" id="my-wave-card">
-            <svg class="my-wave-bg-svg" viewBox="0 0 1000 100" preserveAspectRatio="none">
-              <path d="M0,50 Q250,20 500,50 T1000,50" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
-              <path d="M0,65 Q300,80 600,45 T1000,60" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
-            </svg>
-            <div class="my-wave-left">
-              <button class="my-wave-play-btn" id="home-play-wave-btn" title="Слушать волну">
-                <i class="material-icons">play_arrow</i>
-              </button>
-              <div class="my-wave-text">
-                <div class="my-wave-title">Моя волна</div>
-                <div class="my-wave-subtitle">Послушайте минимум 5 треков, чтобы погрузиться в волну</div>
-              </div>
+
+          <!-- RECENT QUICK CARDS -->
+          <div class="home-quick-tiles">
+            <div class="quick-tile-card" id="tile-liked">
+              <div class="quick-tile-icon" style="width:56px;height:56px;background:linear-gradient(135deg,#450af5,#c4efd9);display:flex;align-items:center;justify-content:center;"><i class="material-icons" style="color:#fff;">favorite</i></div>
+              <span class="quick-tile-name">Любимые треки</span>
             </div>
           </div>
 
-          <!-- ROW OF 2 CARDS: ИСТОРИЯ & ЛЮБИМЫЕ -->
-          <div class="home-quick-grid">
-            <div class="home-quick-card" id="tile-history">
-              <div class="home-quick-icon-badge">
-                <i class="material-icons">schedule</i>
-              </div>
-              <div class="home-quick-text">
-                <div class="home-quick-title">История прослушивания</div>
-                <div class="home-quick-subtitle">Ваши недавно прослушанные треки</div>
-              </div>
+          <!-- SECTION: Недавно прослушано -->
+          <div class="home-section">
+            <div class="home-section-header">
+              <h2 class="home-heading">Недавно прослушано</h2>
             </div>
-
-            <div class="home-quick-card" id="tile-liked">
-              <div class="home-quick-icon-badge">
-                <i class="material-icons">favorite</i>
-              </div>
-              <div class="home-quick-text">
-                <div class="home-quick-title">Любимые треки</div>
-                <div class="home-quick-subtitle">Ваша коллекция любимой музыки</div>
-              </div>
-            </div>
+            <div id="home-continue" class="results-list"></div>
           </div>
 
-          <!-- SECTION: НЕДАВНО ПРОСЛУШАННЫЕ АВТОРЫ -->
+          <!-- SECTION: Недавно прослушанные авторы -->
           <div class="home-section" id="home-recent-artists-section">
             <div class="home-section-header">
               <h2 class="home-heading">Недавно прослушанные авторы</h2>
@@ -552,24 +628,17 @@
             <div class="artists-grid artists-carousel" id="home-recent-artists"></div>
           </div>
 
-          <!-- SECTION: ДЛЯ ВАС -->
+          <!-- SECTION: Рекомендации для тебя -->
           <div class="home-section" id="home-for-you-section">
-            <div class="home-section-header">
-              <h2 class="home-heading">Для вас</h2>
-              <div class="home-carousel-actions" aria-label="Прокрутка рекомендаций">
-                <button class="home-carousel-btn" id="for-you-prev" type="button" aria-label="Предыдущие рекомендации"><i class="material-icons">chevron_left</i></button>
-                <button class="home-carousel-btn" id="for-you-next" type="button" aria-label="Следующие рекомендации"><i class="material-icons">chevron_right</i></button>
-                <button class="home-carousel-btn" id="for-you-refresh" type="button" aria-label="Обновить рекомендации"><i class="material-icons">refresh</i></button>
+            <div class="home-section-header" style="display: flex; align-items: center; justify-content: space-between;">
+              <h2 class="home-heading" style="margin: 0;">Рекомендации для тебя</h2>
+              <div class="for-you-controls" style="display: flex; align-items: center; gap: 8px;">
+                <button class="rz-nav-btn" id="for-you-refresh" title="Обновить" aria-label="Обновить" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.08); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s;"><i class="material-icons" style="font-size: 16px;">refresh</i></button>
+                <button class="rz-nav-btn" id="for-you-prev" title="Назад" aria-label="Назад" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.08); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s;"><i class="material-icons" style="font-size: 18px;">chevron_left</i></button>
+                <button class="rz-nav-btn" id="for-you-next" title="Вперёд" aria-label="Вперёд" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.08); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s;"><i class="material-icons" style="font-size: 18px;">chevron_right</i></button>
               </div>
             </div>
-            <div class="for-you-status" id="for-you-status">Подборка появится на основе вашей музыки</div>
-            <div class="rec-grid for-you-carousel" id="for-you-results"></div>
-          </div>
-
-          <!-- SECTION: ПРОДОЛЖИТЬ СЛУШАТЬ -->
-          <div class="home-section" id="home-continue-section">
-            <h2 class="home-heading">Продолжить слушать</h2>
-            <div class="scroll-fade-wrap"><div class="scroll-fade-content" id="home-continue" class="results-list"></div></div>
+            <div id="for-you-results" class="rec-grid for-you-carousel"></div>
           </div>
         </section>
 
@@ -599,7 +668,7 @@
               <!-- RIGHT: Details, Controls, Volume & Extras -->
               <div class="pp-details">
                 <div class="pp-info">
-                  <h1 class="pp-title" id="page-player-title">Votify</h1>
+                  <h1 class="pp-title" id="page-player-title">Music</h1>
                   <p class="pp-artist" id="page-player-artist">Выберите трек</p>
                 </div>
 
@@ -614,21 +683,69 @@
 
                 <!-- Playback Controls -->
                 <div class="pp-controls">
-                  <button class="pp-btn" id="page-player-shuffle" title="Перемешать"><i class="material-icons">shuffle</i></button>
-                  <button class="pp-btn" id="page-player-prev" title="Предыдущий"><i class="material-icons">skip_previous</i></button>
-                  <button class="pp-btn pp-play-main" id="page-player-play" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
-                  <button class="pp-btn" id="page-player-next" title="Следующий"><i class="material-icons">skip_next</i></button>
-                  <button class="pp-btn" id="page-player-repeat" title="Зациклить фрагмент"><i class="material-icons">repeat_one</i></button>
+                  <button class="pp-btn" id="page-player-shuffle" title="Перемешать">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="16 3 21 3 21 8"></polyline>
+                      <line x1="4" y1="20" x2="21" y2="3"></line>
+                      <polyline points="21 16 21 21 16 21"></polyline>
+                      <line x1="15" y1="15" x2="21" y2="21"></line>
+                      <line x1="4" y1="4" x2="9" y2="9"></line>
+                    </svg>
+                  </button>
+                  <button class="pp-btn" id="page-player-prev" title="Предыдущий">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                      <line x1="5" y1="19" x2="5" y2="5"></line>
+                    </svg>
+                  </button>
+                  <button class="pp-btn pp-play-main" id="page-player-play" title="Воспроизвести">
+                    <svg class="icon-play-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <svg class="icon-pause-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                      <rect x="6" y="4" width="4" height="16"></rect>
+                      <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                  </button>
+                  <button class="pp-btn" id="page-player-next" title="Следующий">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                      <line x1="19" y1="5" x2="19" y2="19"></line>
+                    </svg>
+                  </button>
+                  <button class="pp-btn" id="page-player-repeat" title="Зациклить фрагмент">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 2l4 4-4 4"></path>
+                      <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
+                      <path d="M7 22l-4-4 4-4"></path>
+                      <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                  </button>
                 </div>
 
                 <!-- Volume and Extras -->
                 <div class="pp-volume-extras">
                   <div class="pp-volume-wrap">
-                    <i class="material-icons" id="page-player-vol-icon">volume_up</i>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="page-player-vol-icon">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
                     <input type="range" id="page-player-volume" min="0" max="100" value="80" />
                   </div>
-                  <button class="pp-extra-btn" id="page-player-eq-btn" title="Эквалайзер"><i class="material-icons">equalizer</i></button>
-                  <button class="pp-extra-btn" id="page-player-lyrics-btn" title="Текст песни"><i class="material-icons">lyrics</i></button>
+                  <button class="pp-extra-btn" id="page-player-eq-btn" title="Эквалайзер">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="20" x2="18" y2="10"></line>
+                      <line x1="12" y1="20" x2="12" y2="4"></line>
+                      <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                  </button>
+                  <button class="pp-extra-btn" id="page-player-lyrics-btn" title="Текст песни">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M9 18V5l12-2v13"></path>
+                      <circle cx="6" cy="18" r="3"></circle>
+                      <circle cx="18" cy="16" r="3"></circle>
+                    </svg>
+                  </button>
                 </div>
 
                 <!-- Inline Lyrics panel toggle -->
@@ -721,36 +838,7 @@
                 </div>
               </div>
 
-              <!-- ACTIVE PLAYLIST TRACKS SECTION -->
-              <div class="library-active-playlist-view" id="lib-detail-pane" style="display:none;">
-                <div class="lib-detail-header-card" id="lib-header-card">
-                  <div class="lib-detail-left">
-                    <div class="lib-detail-cover is-empty" id="lib-detail-cover">
-                      <div class="cover-fallback lib-detail-cover-fallback" id="lib-detail-cover-fallback"><i class="material-icons" id="lib-detail-cover-icon">queue_music</i></div>
-                      <img id="lib-detail-cover-img" src="" alt="Cover" style="display:none;" />
-                    </div>
-                    <div class="lib-detail-info">
-                      <h2 class="lib-detail-title" id="lib-detail-title">Плейлист</h2>
-                      <div class="lib-detail-sub" id="lib-detail-sub">Создан Votify</div>
-                    </div>
-                  </div>
-                  <div class="lib-detail-actions">
-                    <button class="lib-action-circle-btn" id="lib-play-all-btn" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
-                    <button class="lib-action-circle-btn" id="lib-shuffle-all-btn" title="Перемешать"><i class="material-icons">shuffle</i></button>
-                    <button class="lib-action-circle-btn" id="lib-delete-active-btn" title="Удалить"><i class="material-icons">delete_outline</i></button>
-                    <button class="lib-action-circle-btn secondary" id="lib-close-detail-btn" title="Скрыть плейлист"><i class="material-icons">close</i></button>
-                  </div>
-                </div>
 
-                <div class="lib-detail-content" id="lib-detail-content">
-                  <div class="lib-empty-state" id="lib-empty-state">
-                    <div class="lib-empty-icon"><i class="material-icons">folder_open</i></div>
-                    <h3 class="lib-empty-title">Добавьте первый трек</h3>
-                    <p class="lib-empty-sub">У вас еще нет тут треков</p>
-                  </div>
-                  <div class="lib-tracklist-wrap" id="lib-tracklist-wrap"></div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -758,28 +846,92 @@
         <!-- THEME WORKSHOP -->
         <section id="workshop-screen" class="screen hidden" style="display:none">
           <div class="workshop-shell">
-            <header class="workshop-hero">
-              <div>
-                <span class="workshop-kicker">VOTIFY COMMUNITY</span>
-                <h1>Мастерская тем</h1>
-                <p>Находите оформление от сообщества или публикуйте свою текущую тему.</p>
-              </div>
-              <button class="workshop-primary-btn" id="workshop-publish-btn">
-                <i class="material-icons">add</i>
-                Опубликовать тему
-              </button>
-            </header>
-            <div class="workshop-toolbar">
-              <label class="workshop-search">
-                <i class="material-icons">search</i>
-                <input id="workshop-search-input" type="search" placeholder="Поиск по названию или автору" autocomplete="off" />
-              </label>
-              <button class="workshop-refresh-btn" id="workshop-refresh-btn" title="Обновить">
-                <i class="material-icons">refresh</i>
+            <!-- TOP CATEGORY PILLS BAR -->
+            <div class="workshop-categories-bar" id="workshop-categories-bar">
+              <button class="workshop-cat-pill active" data-filter="all">Все</button>
+              <button class="workshop-cat-pill" data-filter="presets">Пресеты</button>
+              <button class="workshop-cat-pill" data-filter="themes">Темы</button>
+              <button class="workshop-cat-pill" data-filter="backgrounds">Фоны</button>
+              <button class="workshop-cat-pill" data-filter="equalizer">Эквалайзер</button>
+              <button class="workshop-cat-pill" data-filter="popular">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                  <polyline points="17 6 23 6 23 12"></polyline>
+                </svg>
+                Популярные
               </button>
             </div>
-            <div class="workshop-status" id="workshop-status">Откройте мастерскую для загрузки тем</div>
+
+            <!-- SUB BAR (SEARCH + PUBLISH) -->
+            <div class="workshop-sub-bar">
+              <div class="workshop-search-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4;">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input id="workshop-search-input" type="search" placeholder="Поиск по названию, автору..." autocomplete="off" />
+              </div>
+
+              <button class="workshop-publish-pill-btn" id="workshop-publish-btn" title="Опубликовать тему">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                  <polyline points="16 6 12 2 8 6"></polyline>
+                  <line x1="12" y1="2" x2="12" y2="15"></line>
+                </svg>
+                <span>Опубликовать</span>
+              </button>
+            </div>
+
+            <div class="workshop-status" id="workshop-status" style="display:none;">Загрузка каталога тем...</div>
             <div class="workshop-grid" id="workshop-grid"></div>
+          </div>
+        </section>
+
+        <!-- PROFILE SCREEN (PAGE VIEW INSIDE MAIN CONTENT) -->
+        <section id="profile-screen" class="screen hidden" style="display:none">
+          <div class="pc-profile-body" style="padding: 24px;">
+            <!-- Hero User Profile Card -->
+            <div class="pc-profile-hero-card">
+              <div class="pc-avatar-wrapper">
+                <img class="pc-avatar-img" id="page-profile-avatar-image" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><rect width='128' height='128' rx='64' fill='%23262626'/><path d='M64 28a20 20 0 1 0 0 40 20 20 0 0 0 0-40zm0 48c-22.1 0-40 13.4-40 30v4h80v-4c0-16.6-17.9-30-40-30z' fill='%23888888'/></svg>" alt="Аватар" />
+                <label class="pc-avatar-badge" for="page-profile-avatar-input" title="Сменить аватар">
+                  <i class="material-icons" style="font-size:16px;">edit</i>
+                </label>
+                <input type="file" id="page-profile-avatar-input" accept="image/*" hidden />
+              </div>
+              <h1 class="pc-profile-name" id="page-profile-display-name-text">Гость</h1>
+              <div class="pc-profile-handle" id="page-profile-handle-text">@guest</div>
+              <div class="pc-profile-role" id="page-profile-role-text">Пользователь</div>
+              <button class="pc-btn-edit-profile" id="page-profile-edit-toggle-btn">Редактировать</button>
+
+              <!-- Edit Form -->
+              <div class="pc-profile-edit-form" id="page-profile-edit-form" style="display:none; width:100%; margin-top:16px;">
+                <input type="text" class="pc-friend-search-input" id="page-profile-display-name" placeholder="Имя профиля" value="" style="margin-bottom:8px; padding-left:14px;" />
+                <input type="text" class="pc-friend-search-input" id="page-profile-about" placeholder="О себе..." value="" style="margin-bottom:12px; padding-left:14px;" />
+                <button class="pc-btn-edit-profile" id="page-profile-save-btn" style="background:#22c55e; color:#fff;">Сохранить</button>
+              </div>
+            </div>
+
+            <!-- "Найти друзей" Card -->
+            <div class="pc-profile-section-card" style="margin-top:20px;">
+              <h3 class="pc-card-title">Найти друзей</h3>
+              <div class="pc-search-box">
+                <i class="material-icons pc-search-icon">search</i>
+                <input type="text" class="pc-friend-search-input" id="page-friend-search-input" placeholder="Юзернейм или @юзернейм" autocomplete="off" />
+              </div>
+              <div class="pc-friend-search-results" id="page-friend-search-results" style="margin-top:10px;"></div>
+            </div>
+
+            <!-- "Друзья" Card -->
+            <div class="pc-profile-section-card" style="margin-top:20px;">
+              <div class="pc-card-header-row">
+                <h3 class="pc-card-title" style="margin:0;">Друзья</h3>
+                <span class="pc-card-sub" id="page-friends-count">0 друзей</span>
+              </div>
+              <div class="pc-friends-row" id="page-friends-list">
+                <div style="font-size:12px; color:#737373; padding:8px 0;">У вас пока нет друзей</div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -845,6 +997,49 @@
             <div id="album-screen-tracks" class="results-list"></div>
           </div>
         </section>
+
+        <!-- STANDALONE PLAYLIST SCREEN -->
+        <section id="playlist-screen" class="screen hidden" style="display:none">
+          <div class="library-modern-wrap">
+            <div class="screen-header" style="margin-bottom: 16px;">
+              <button class="library-action-btn secondary" id="back-from-playlist-btn" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="material-icons" style="font-size:18px;">arrow_back</i> <span>Назад</span>
+              </button>
+            </div>
+
+            <div class="library-active-playlist-view" style="display:block;">
+              <div class="lib-detail-header-card">
+                <div class="lib-detail-left">
+                  <div class="lib-detail-cover is-empty" id="pl-screen-cover">
+                    <div class="cover-fallback lib-detail-cover-fallback" id="pl-screen-cover-fallback">
+                      <i class="material-icons" id="pl-screen-cover-icon">queue_music</i>
+                    </div>
+                    <img id="pl-screen-cover-img" src="" alt="Cover" style="display:none;" />
+                  </div>
+                  <div class="lib-detail-info">
+                    <h2 class="lib-detail-title" id="pl-screen-title">Плейлист</h2>
+                    <div class="lib-detail-sub" id="pl-screen-meta">0 треков</div>
+                  </div>
+                </div>
+                <div class="lib-detail-actions">
+                  <button class="lib-action-circle-btn" id="pl-screen-play-btn" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
+                  <button class="lib-action-circle-btn" id="pl-screen-shuffle-btn" title="Перемешать"><i class="material-icons">shuffle</i></button>
+                  <button class="lib-action-circle-btn secondary" id="pl-screen-download-all-btn" title="Скачать весь плейлист"><i class="material-icons">download</i></button>
+                  <button class="lib-action-circle-btn secondary" id="pl-screen-delete-btn" title="Удалить плейлист"><i class="material-icons">delete_outline</i></button>
+                </div>
+              </div>
+
+              <div class="lib-detail-content">
+                <div class="lib-empty-state" id="pl-screen-empty-state" style="display:none;">
+                  <div class="lib-empty-icon"><i class="material-icons">folder_open</i></div>
+                  <h3 class="lib-empty-title">В этом плейлисте пока нет треков</h3>
+                  <p class="lib-empty-sub">Добавьте треки из поиска или главной страницы</p>
+                </div>
+                <div class="lib-tracklist-wrap" id="pl-screen-tracklist"></div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <!-- OLD PLAYER BAR (hidden, keeps IDs alive for existing JS) -->
@@ -856,18 +1051,51 @@
             <canvas id="mini-visualizer" class="mini-visualizer"></canvas>
           </div>
           <div class="player-bar-info">
-            <div class="player-track-title" id="player-track-title" data-i18n="player-no-track">Votify</div>
+            <div class="player-track-title" id="player-track-title" data-i18n="player-no-track">Music</div>
             <div class="player-track-artist clickable-artist" id="player-track-artist" data-i18n="player-unknown">Выберите трек</div>
             <div class="player-track-lyrics" id="player-track-lyrics"></div>
           </div>
         </div>
         <div class="player-bar-center">
           <div class="control-buttons">
-            <button class="control-btn" id="shuffle-btn"><i class="material-icons">shuffle</i></button>
-            <button class="control-btn" id="prev-btn"><i class="material-icons">skip_previous</i></button>
-            <button class="control-btn play-main-btn" id="play-btn"><i class="material-icons">play_arrow</i></button>
-            <button class="control-btn" id="next-btn"><i class="material-icons">skip_next</i></button>
-            <button class="control-btn" id="repeat-btn"><i class="material-icons">repeat</i></button>
+            <button class="control-btn" id="shuffle-btn" title="Перемешать">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 3 21 3 21 8"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+                <polyline points="21 16 21 21 16 21"></polyline>
+                <line x1="15" y1="15" x2="21" y2="21"></line>
+                <line x1="4" y1="4" x2="9" y2="9"></line>
+              </svg>
+            </button>
+            <button class="control-btn" id="prev-btn" title="Предыдущий">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                <line x1="5" y1="19" x2="5" y2="5"></line>
+              </svg>
+            </button>
+            <button class="control-btn play-main-btn" id="play-btn" title="Воспроизвести">
+              <svg class="icon-play-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <svg class="icon-pause-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            </button>
+            <button class="control-btn" id="next-btn" title="Следующий">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                <line x1="19" y1="5" x2="19" y2="19"></line>
+              </svg>
+            </button>
+            <button class="control-btn" id="repeat-btn" title="Повтор">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 2l4 4-4 4"></path>
+                <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
+                <path d="M7 22l-4-4 4-4"></path>
+                <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
+              </svg>
+            </button>
           </div>
           <div class="progress-container" id="progress-container">
             <span id="current-time">0:00</span>
@@ -910,53 +1138,111 @@
       </footer>
 
       <!-- FLOATING ISLAND — Bottom Player -->
-      <footer class="floating-island" id="floating-island">
+      <footer class="floating-island" id="floating-island" style="position: relative;">
+        <!-- Clipped Progress Container (prevents timeline and bg overlay from overflowing rounded island corners) -->
+        <div class="fi-progress-clip-container" id="fi-progress-clip-container" style="position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 1;">
+          <div class="fi-bg-progress-overlay" id="fi-bg-progress-overlay" style="position: absolute; inset: 0; width: 0%; background: rgba(255, 255, 255, 0.16); border-radius: inherit; pointer-events: none; z-index: 1; transition: width 0.15s linear;"></div>
+          <div class="fi-top-timeline-bar" id="fi-top-timeline-bar" style="position: absolute; bottom: 0; left: 0; height: 3px; width: 0%; background: var(--accent, #ffffff); border-radius: 999px; z-index: 2; transition: width 0.15s linear; box-shadow: 0 0 8px var(--accent-alpha, rgba(255, 255, 255, 0.6));"></div>
+        </div>
         <!-- LEFT: cover + info + like -->
-        <div class="fi-left">
-          <div class="fi-cover-wrap is-empty">
+        <div class="fi-left" style="position: relative; z-index: 20; pointer-events: auto;">
+          <div class="fi-cover-wrap is-empty" id="fi-cover-wrap" title="Открыть полноэкранный плеер">
             <img class="fi-cover" id="fi-cover" src="" alt="" />
             <div class="fi-cover-fallback cover-fallback" id="fi-cover-fallback"><i class="material-icons">music_note</i></div>
+            <svg class="fi-cover-arc-timeline" viewBox="0 0 100 100" style="position: absolute; inset: -3px; width: calc(100% + 6px); height: calc(100% + 6px); pointer-events: none; z-index: 10; display: none;">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4" />
+              <circle id="fi-cover-arc-fill" cx="50" cy="50" r="46" fill="none" stroke="var(--accent, #1db954)" stroke-width="4" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289" style="transition: stroke-dashoffset 0.15s linear; transform-origin: center; transform: rotate(-90deg);" />
+            </svg>
+            <button class="fi-cover-expand-btn" id="fi-cover-expand-btn" title="Развернуть плеер" aria-label="Развернуть плеер">
+              <i class="material-icons" style="font-size:22px; color:#ffffff;">fullscreen</i>
+            </button>
           </div>
           <div class="fi-info">
-            <div class="fi-title" id="fi-title">Votify</div>
+            <div class="fi-title" id="fi-title">Music</div>
             <div class="fi-artist" id="fi-artist">Выберите трек</div>
           </div>
           <button class="fi-btn fi-like" id="fi-like" title="В избранное">
-            <i class="material-icons">favorite_border</i>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.78-8.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
           </button>
         </div>
 
-        <!-- CENTER: controls -->
-        <div class="fi-center">
-          <button class="fi-btn" id="fi-shuffle" title="Перемешать"><i class="material-icons">shuffle</i></button>
-          <button class="fi-btn" id="fi-prev" title="Предыдущий"><i class="material-icons">skip_previous</i></button>
-          <button class="fi-btn fi-play" id="fi-play" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>
-          <button class="fi-btn" id="fi-next" title="Следующий"><i class="material-icons">skip_next</i></button>
+        <!-- CENTER: controls (Repeat, Prev, Play/Pause, Next, Shuffle) -->
+        <div class="fi-center" style="position: relative; z-index: 20; pointer-events: auto;">
+          <button class="fi-btn" id="fi-repeat" title="Повтор">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 2l4 4-4 4"></path>
+              <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
+              <path d="M7 22l-4-4 4-4"></path>
+              <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
+            </svg>
+          </button>
+          <button class="fi-btn" id="fi-prev" title="Предыдущий">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="19 20 9 12 19 4 19 20"></polygon>
+              <line x1="5" y1="19" x2="5" y2="5"></line>
+            </svg>
+          </button>
+          <button class="fi-btn fi-play" id="fi-play" title="Воспроизвести">
+            <svg class="icon-play-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <svg class="icon-pause-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          </button>
+          <button class="fi-btn" id="fi-next" title="Следующий">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 4 15 12 5 20 5 4"></polygon>
+              <line x1="19" y1="5" x2="19" y2="19"></line>
+            </svg>
+          </button>
+          <button class="fi-btn" id="fi-shuffle" title="Перемешать">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 3 21 3 21 8"></polyline>
+              <line x1="4" y1="20" x2="21" y2="3"></line>
+              <polyline points="21 16 21 21 16 21"></polyline>
+              <line x1="15" y1="15" x2="21" y2="21"></line>
+              <line x1="4" y1="4" x2="9" y2="9"></line>
+            </svg>
+          </button>
         </div>
 
-        <!-- RIGHT: extra actions + volume popup -->
-        <div class="fi-right">
-          <button class="fi-btn" id="fi-eq" title="Эквалайзер"><i class="material-icons">equalizer</i></button>
-          <button class="fi-btn" id="fi-fullscreen" title="Полный экран"><i class="material-icons">fullscreen</i></button>
-          <button class="fi-btn" id="fi-add-playlist" title="Добавить в плейлист"><i class="material-icons">playlist_add</i></button>
-          <button class="fi-btn" id="fi-side-player" title="Боковой плеер"><i class="material-icons">picture_in_picture_alt</i></button>
+        <!-- RIGHT: capsule pill (Volume, Add to Playlist, Sidebar Toggle) -->
+        <div class="fi-right" style="position: relative; z-index: 20; pointer-events: auto;">
           <div class="fi-volume-wrap" id="fi-volume-wrap">
             <button class="fi-btn fi-volume-btn" id="fi-mute" title="Громкость">
-              <div class="skiper99-volume" id="fi-vol-icon" data-muted="false">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/>
-                </svg>
-                <svg class="skiper99-vol-waves" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <path d="M16 9a5 5 0 0 1 0 6"/>
-                  <path d="M19.364 18.364a9 9 0 0 0 0-12.728"/>
-                </svg>
-                <div class="skiper99-vol-mute-line"></div>
-              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
             </button>
             <div class="fi-volume-popup" id="fi-volume-popup">
               <input type="range" id="fi-volume" orient="vertical" min="0" max="100" value="80" />
             </div>
           </div>
+          <button class="fi-btn" id="fi-eq" title="Эквалайзер" aria-label="Эквалайзер">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+          </button>
+          <button class="fi-btn" id="fi-add-playlist" title="Добавить в плейлист">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </button>
+          <button class="fi-btn" id="fi-fullscreen" title="Боковая панель">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+          </button>
         </div>
 
         <!-- Small Equalizer Popup Window -->
@@ -994,13 +1280,6 @@
     <div class="fullscreen-player" id="fullscreen-player">
       <div class="fs-gradient-bg" id="fs-gradient-bg"></div>
       <div class="fs-lava-lamp" id="fs-lava-lamp">
-        <div class="fs-lava-blob"></div>
-        <div class="fs-lava-blob"></div>
-        <div class="fs-lava-blob"></div>
-        <div class="fs-lava-blob"></div>
-        <div class="fs-lava-blob"></div>
-        <div class="fs-lava-blob"></div>
-        <div class="fs-lava-blob"></div>
         <div class="fs-lava-blob"></div>
         <div class="fs-lava-blob"></div>
         <div class="fs-lava-blob"></div>
@@ -1074,11 +1353,56 @@
 
           <!-- PLAYBACK CONTROLS -->
           <div class="fs-playback-controls">
-            <button class="fs-icon-btn" id="fs-shuffle" title="Перемешать"><i class="material-icons">shuffle</i></button>
-            <button class="fs-icon-btn" id="fs-prev" title="Предыдущий"><i class="material-icons">skip_previous</i></button>
-            <button class="fs-icon-btn fs-play-main-btn" id="fs-play" title="Воспроизведение"><i class="material-icons">play_arrow</i></button>
-            <button class="fs-icon-btn" id="fs-next" title="Следующий"><i class="material-icons">skip_next</i></button>
-            <button class="fs-icon-btn" id="fs-repeat" title="Зациклить фрагмент"><i class="material-icons">repeat</i></button>
+            <button class="fs-icon-btn" id="fs-shuffle" title="Перемешать">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 3 21 3 21 8"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+                <polyline points="21 16 21 21 16 21"></polyline>
+                <line x1="15" y1="15" x2="21" y2="21"></line>
+                <line x1="4" y1="4" x2="9" y2="9"></line>
+              </svg>
+            </button>
+            <button class="fs-icon-btn" id="fs-prev" title="Предыдущий">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                <line x1="5" y1="19" x2="5" y2="5"></line>
+              </svg>
+            </button>
+            <button class="fs-icon-btn fs-play-main-btn" id="fs-play" title="Воспроизведение">
+              <svg class="icon-play-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <svg class="icon-pause-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            </button>
+            <button class="fs-icon-btn" id="fs-next" title="Следующий">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                <line x1="19" y1="5" x2="19" y2="19"></line>
+              </svg>
+            </button>
+            <button class="fs-icon-btn" id="fs-repeat" title="Зациклить фрагмент">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 2l4 4-4 4"></path>
+                <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
+                <path d="M7 22l-4-4 4-4"></path>
+                <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- SIMPLE VOLUME SLIDER (BOTTOM OF FULLSCREEN PLAYER) -->
+          <div class="fs-volume-strip" id="fs-sound-settings-bar" style="margin-top: 24px; width: 100%; max-width: 440px; display: flex; align-items: center; gap: 12px; padding: 0 4px; box-sizing: border-box;">
+            <button class="fs-icon-btn-sm" id="fs-sound-mute-btn" title="Выключить/включить звук" style="background: transparent; border: none; color: rgba(255,255,255,0.7); cursor: pointer; padding: 4px; display: flex; align-items: center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="fs-sound-mute-icon">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </button>
+            <input type="range" id="fs-sound-volume-slider" min="0" max="100" value="80" style="flex: 1; accent-color: var(--accent, #1db954); cursor: pointer;" />
+            <span id="fs-sound-vol-value" style="color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600; min-width: 36px; text-align: right;">80%</span>
           </div>
 
           <!-- HIDDEN VOLUME BAR FOR STATE SYNC -->
@@ -1097,583 +1421,616 @@
     </div>
     </div>
 
-    <!-- SETTINGS OVERLAY -->
+    <!-- SETTINGS OVERLAY (1:1 DOTIFY 2.3.6 DESIGN) -->
     <div class="settings-overlay" id="settings-overlay" style="display:none">
-      <div class="settings-modal">
-        <div class="settings-modal-header">
-          <h2>Настройки Votify</h2>
-          <button class="btn-icon-sm" id="settings-close-btn"><i class="material-icons">close</i></button>
-        </div>
-        <div class="settings-modal-body">
-          <div class="settings-left-menu">
-            <!-- ОСНОВНЫЕ -->
-            <div class="settings-menu-category">ОСНОВНЫЕ</div>
-            <button class="settings-menu-item active" data-settings-section="gen-main"><i class="material-icons">tune</i>Основные</button>
-
-            <button class="settings-menu-item" data-settings-section="gen-audio"><i class="material-icons">volume_up</i>Аудио</button>
-            <button class="settings-menu-item" data-settings-section="gen-perf"><i class="material-icons">speed</i>Эффективность</button>
-            <button class="settings-menu-item" data-settings-section="gen-hotkeys"><i class="material-icons">keyboard</i>Горячие клавиши</button>
-            <button class="settings-menu-item" data-settings-section="gen-storage"><i class="material-icons">storage</i>Хранилище</button>
-
-            <!-- ОФОРМЛЕНИЕ -->
-            <div class="settings-menu-category">ОФОРМЛЕНИЕ</div>
-            <button class="settings-menu-item" data-settings-section="app-player"><i class="material-icons">play_circle_filled</i>Плеер</button>
-            <button class="settings-menu-item" data-settings-section="app-cover"><i class="material-icons">image</i>Обложка</button>
-            <button class="settings-menu-item" data-settings-section="app-ui"><i class="material-icons">widgets</i>Интерфейс</button>
-            <button class="settings-menu-item" data-settings-section="app-tabs"><i class="material-icons">tab</i>Вкладки</button>
-            <button class="settings-menu-item" data-settings-section="app-bg"><i class="material-icons">wallpaper</i>Фон</button>
-            <button class="settings-menu-item" data-settings-section="app-custom"><i class="material-icons">palette</i>Кастомизация</button>
-
+      <div class="settings-modal dotify-23-settings-modal">
+        
+        <!-- TOP HEADER WITH PILL TABS AND CLOSE BUTTON -->
+        <div class="settings-modal-header dotify-settings-header">
+          <div class="dotify-settings-nav-container">
+            <div class="dotify-settings-pill-bar" id="dotify-settings-top-tabs">
+              <button class="dotify-pill-tab active" data-settings-section="gen-main"><i class="material-icons">tune</i> Основные</button>
+              <button class="dotify-pill-tab" data-settings-section="app-player"><i class="material-icons">play_circle_filled</i> Плеер</button>
+              <button class="dotify-pill-tab" data-settings-section="app-bg"><i class="material-icons">wallpaper</i> Фон</button>
+              <button class="dotify-pill-tab" data-settings-section="app-ui"><i class="material-icons">palette</i> Вид</button>
+              <button class="dotify-pill-tab" data-settings-section="gen-audio"><i class="material-icons">volume_up</i> Аудио</button>
+              <button class="dotify-pill-tab" data-settings-section="gen-hotkeys"><i class="material-icons">keyboard</i> Бинды</button>
+              <button class="dotify-pill-tab" data-settings-section="app-tabs"><i class="material-icons">tab</i> Вкладки</button>
+              <button class="dotify-pill-tab" data-settings-section="app-custom"><i class="material-icons">tune</i> Кастом</button>
+            </div>
           </div>
-          <div class="settings-right-content">
+          <button class="btn-icon-sm dotify-settings-close" id="settings-close-btn"><i class="material-icons">close</i></button>
+        </div>
+
+        <!-- SETTINGS MODAL BODY -->
+        <div class="settings-modal-body dotify-settings-body">
+          <div class="settings-right-content dotify-full-content">
             
             <!-- SECTION 1: Основные (gen-main) -->
             <div class="settings-panel active" id="settings-panel-gen-main">
-              <div class="general-settings-hero">
-                <div class="general-settings-hero-icon"><i class="material-icons">tune</i></div>
-                <div><h3>Основные настройки</h3><p>Управляйте базовым поведением, автозапуском и очередью воспроизведения Votify.</p></div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">translate</i><h3>Язык приложения</h3></div>
-                <div class="setting-item">
-                  <label for="lang-select">Выберите язык интерфейса</label>
-                  <select id="lang-select" class="m3-select">
-                    <option value="ru">Русский</option>
-                    <option value="en">English</option>
-                    <option value="uk">Українська</option>
-                  </select>
+              <!-- Язык приложения -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Язык приложения</h3>
+                  <div class="dotify-section-subtitle">Язык интерфейса / App language</div>
+                </div>
+                <div class="dotify-segmented-pill-group">
+                  <button class="dotify-segmented-btn" data-lang="en">🇺🇸 English</button>
+                  <button class="dotify-segmented-btn active" data-lang="ru">🇷🇺 Русский</button>
+                  <button class="dotify-segmented-btn" data-lang="uk">🇺🇦 Українська</button>
                 </div>
               </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">power_settings_new</i><h3>Системные настройки</h3></div>
-                <div class="setting-toggle-item">
+
+              <!-- Системные настройки -->
+              <div class="settings-section dotify-section">
+                <div class="setting-toggle-item dotify-toggle-row">
                   <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Запуск при старте системы</span>
-                    <span class="setting-toggle-desc">Автоматический запуск Votify при включении ПК</span>
+                    <span class="setting-toggle-label">Автозапуск</span>
+                    <span class="setting-toggle-desc">Запускать приложение при включении системы</span>
                   </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-launch-at-startup" /><span class="toggle-slider"></span></label>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-launch-at-startup" checked /><span class="dotify-switch-slider"></span></label>
                 </div>
-                <div class="setting-toggle-item">
+
+                <div class="setting-toggle-item dotify-toggle-row">
                   <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Сворачивать в трей</span>
-                    <span class="setting-toggle-desc">Закрытие окна сворачивает приложение в трей</span>
+                    <span class="setting-toggle-label">Сворачивать в трей вместо закрытия</span>
+                    <span class="setting-toggle-desc">Приложение останется работать в фоне</span>
                   </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-close-to-tray" /><span class="toggle-slider"></span></label>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-close-to-tray" checked /><span class="dotify-switch-slider"></span></label>
                 </div>
               </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">playlist_play</i><h3>Воспроизведение и очередь</h3></div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Автоматические похожие треки</span>
-                    <span class="setting-toggle-desc">Беспрерывно добавлять похожие треки в конец вашей очереди</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-auto-similar" checked /><span class="toggle-slider"></span></label>
+
+              <!-- Восстановление при запуске -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Восстановление при запуске</h3>
+                  <div class="dotify-section-subtitle">Что восстанавливать при открытии приложения</div>
                 </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Восстановление очереди</span>
-                    <span class="setting-toggle-desc">Сохранять и загружать очередь треков при повторном запуске</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-restore-queue" checked /><span class="toggle-slider"></span></label>
+                <div class="dotify-segmented-pill-group">
+                  <button class="dotify-segmented-btn active" data-startup-restore="none">✕ Ничего</button>
+                  <button class="dotify-segmented-btn" data-startup-restore="track">♫ Трек</button>
+                  <button class="dotify-segmented-btn" data-startup-restore="queue">≡ Очередь</button>
                 </div>
               </div>
             </div>
 
-
-
-            <!-- SECTION 3: Аудио (gen-audio) -->
-            <div class="settings-panel" id="settings-panel-gen-audio">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">album</i><h3>Качество звука</h3></div>
-                <div class="setting-item">
-                  <label for="setting-audio-quality">Качество потока аудио</label>
-                  <select id="setting-audio-quality" class="m3-select">
-                    <option value="low">Низкое (192 kbps MP3)</option>
-                    <option value="medium" selected>Среднее (256 kbps AAC)</option>
-                    <option value="high">Высокое (320 kbps HQ)</option>
-                    <option value="lossless">Без потерь (1411 kbps / FLAC)</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">graphic_eq</i><h3>Параметры стриминга</h3></div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Бесшовное воспроизведение (Gapless)</span>
-                    <span class="setting-toggle-desc">Минимизировать паузы и задержки перед началом следующего трека</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-gapless" /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Кроссфейд (плавный переход)</label><span class="setting-value" id="crossfade-value">0 сек</span></div>
-                  <input type="range" class="settings-range" id="crossfade-duration" min="0" max="15" value="0" />
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Нормализация громкости (AGC)</span>
-                    <span class="setting-toggle-desc">Выравнивать громкость разных треков на один уровень</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-normalize" /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Кеширование треков</span>
-                    <span class="setting-toggle-desc">Сохранять треки локально в кэш для экономии трафика</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-cache-tracks" checked /><span class="toggle-slider"></span></label>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 4: Эффективность (gen-perf) -->
-            <div class="settings-panel" id="settings-panel-gen-perf">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">battery_charging_full</i><h3>Ограничение ресурсов</h3></div>
-                <div class="setting-item">
-                  <label for="setting-perf-limiting">Энергосбережение и ЦП</label>
-                  <select id="setting-perf-limiting" class="m3-select">
-                    <option value="off">Выключено</option>
-                    <option value="minimize">При сворачивании окна</option>
-                    <option value="blur">При потере фокуса</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">blur_on</i><h3>Эффекты и Размытие</h3></div>
-                <div class="setting-item">
-                  <label for="setting-fx-quality">Качество эффектов (свечение курсора, лава-лампа)</label>
-                  <select id="setting-fx-quality" class="m3-select">
-                    <option value="auto">Авто — по FPS (рекомендуется)</option>
-                    <option value="max">Максимальное</option>
-                    <option value="low">Экономное — если лагает</option>
-                  </select>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Свет под курсором</span>
-                    <span class="setting-toggle-desc">Мягкий spotlight, следящий за мышью. Выключите, если нужен максимум производительности</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="setting-glow" /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Качество и сила размытия (Blur)</label><span class="setting-value" id="background-blur-value">15px</span></div>
-                  <input type="range" class="settings-range" id="background-blur-slider" min="0" max="30" value="15" />
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">toggle_on</i><h3>Управление активными ресурсами</h3></div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Динамический фон</span><span class="setting-toggle-desc">Анимированный градиент на фоне главного окна</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-bg" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Эффекты частиц на фоне</span><span class="setting-toggle-desc">Снег, дождь или летающие светлячки</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-particles" /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Анимации обложек</span><span class="setting-toggle-desc">Вращение, пульсация и 3D-перевороты</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-covers" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Визуализаторы спектра</span><span class="setting-toggle-desc">Canvas-анимация спектра частот звука</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-visualizers" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Высококачественный Blur</span><span class="setting-toggle-desc">Использовать продвинутые фильтры размытия в реальном времени</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-perf-blur" checked /><span class="toggle-slider"></span></label>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 5: Горячие клавиши (gen-hotkeys) -->
-            <div class="settings-panel" id="settings-panel-gen-hotkeys">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">keyboard</i><h3>Настройка клавиш активации</h3></div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Глобальная активация горячих клавиш</span><span class="setting-toggle-desc">Управлять плеером, даже когда окно Votify свернуто</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-global-hotkeys" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="hotkeys-list" id="hotkeys-list">
-                  <div class="hotkey-row" data-action="play"><span class="hotkey-action">Воспроизвести/пауза</span><button class="hotkey-key-btn" data-action="play"><kbd><span>Space</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="next"><span class="hotkey-action">Следующий трек</span><button class="hotkey-key-btn" data-action="next"><kbd><span>N</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="prev"><span class="hotkey-action">Предыдущий трек</span><button class="hotkey-key-btn" data-action="prev"><kbd><span>P</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="like"><span class="hotkey-action">Лайк (В избранное)</span><button class="hotkey-key-btn" data-action="like"><kbd><span>L</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="volup"><span class="hotkey-action">Увеличить громкость</span><button class="hotkey-key-btn" data-action="volup"><kbd><span>↑</span></kbd></button></div>
-                  <div class="hotkey-row" data-action="voldown"><span class="hotkey-action">Уменьшить громкость</span><button class="hotkey-key-btn" data-action="voldown"><kbd><span>↓</span></kbd></button></div>
-                </div>
-                <div class="hotkey-hint">Кликните на кнопку сочетания клавиш, чтобы переназначить. Нажмите Esc для отмены.</div>
-              </div>
-            </div>
-
-            <!-- SECTION 6: Хранилище (gen-storage) -->
-            <div class="settings-panel" id="settings-panel-gen-storage">
-              <div class="settings-section storage-hero">
-                <div class="storage-hero-donut">
-                  <!-- Beautiful Circular SVG chart -->
-                  <svg viewBox="0 0 42 42" class="donut">
-                    <circle class="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
-                    <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="rgba(255,255,255,0.08)" stroke-width="4"></circle>
-                    <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--accent)" stroke-width="4" stroke-dasharray="70 30" stroke-dashoffset="25"></circle>
-                  </svg>
-                  <div class="storage-hero-donut-center">
-                    <span class="storage-donut-value" id="storage-pie-used">1.4 МБ</span>
-                    <span class="storage-donut-caption">Использовано</span>
-                  </div>
-                </div>
-                <div class="storage-hero-info">
-                  <h3>Управление памятью приложения</h3>
-                  <p class="settings-note">Здесь вы можете выборочно удалять локальный кэш, чтобы освободить место на диске.</p>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">delete_outline</i><h3>Кэш по категориям</h3></div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Кэшированные треки</span><span class="setting-toggle-desc" id="cache-tracks-size">Размер кэша: 0.8 МБ</span></div>
-                  <button class="btn-secondary btn-sm" id="clear-tracks-cache-btn">Очистить треки</button>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Обложки альбомов</span><span class="setting-toggle-desc" id="cache-covers-size">Размер кэша: 0.4 МБ</span></div>
-                  <button class="btn-secondary btn-sm" id="clear-covers-cache-btn">Очистить обложки</button>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Тексты песен</span><span class="setting-toggle-desc" id="cache-lyrics-size">Размер кэша: 0.2 МБ</span></div>
-                  <button class="btn-secondary btn-sm" id="clear-lyrics-cache-btn">Очистить тексты</button>
-                </div>
-                <div class="settings-action-row">
-                  <button class="btn-danger" id="clear-all-storage-btn"><i class="material-icons">delete_sweep</i> Очистить весь кэш и данные</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 7: Плеер (app-player) -->
+            <!-- SECTION 2: Плеер (app-player) -->
             <div class="settings-panel" id="settings-panel-app-player">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">format_align_center</i><h3>Выравнивание заголовка</h3></div>
-                <div class="setting-item">
-                  <label for="setting-player-title-align">Выравнивание текста (для всех плееров)</label>
-                  <select id="setting-player-title-align" class="m3-select">
-                    <option value="left">По левому краю</option>
-                    <option value="center" selected>По центру</option>
-                    <option value="right">По правому краю</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">play_circle_outline</i><h3>Стиль плееров</h3></div>
-                <div class="setting-item">
-                  <label for="setting-player-style">Оформление всех плееров</label>
-                  <select id="setting-player-style" class="m3-select">
-                    <option value="standard" selected>Обычный (Классика)</option>
-                    <option value="vinyl">Пластинка (Винил)</option>
-                    <option value="large">Большой (Hero Player)</option>
-                    <option value="compact">Компактный (Мини-капсула)</option>
-                    <option value="glass">Стеклянный (Frosted Glass)</option>
-                    <option value="neon">Неоновый (Cyberpunk Neon)</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">linear_scale</i><h3>Тип ползунка перемотки</h3></div>
-                <div class="setting-item">
-                  <label for="setting-player-slider-type">Дизайн ползунка (для всех плееров)</label>
-                  <select id="setting-player-slider-type" class="m3-select">
-                    <option value="normal" selected>Обычный</option>
-                    <option value="thin">Тонкий</option>
-                    <option value="ios">Стиль iOS</option>
-                    <option value="wave">Волновой (Waveform)</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">opacity</i><h3>Динамический фон</h3></div>
-                <div class="setting-toggle-item">
+              <!-- Воспроизведение и эффекты плеера -->
+              <div class="settings-section dotify-section">
+                <div class="setting-toggle-item dotify-toggle-row">
                   <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Динамический фон плееров (Лава-лампа)</span>
-                    <span class="setting-toggle-desc">Плавные градиенты под цвет обложки в полноэкранном и большом плеере</span>
+                    <span class="setting-toggle-label">Авто похожие</span>
+                    <span class="setting-toggle-desc">Автоматически догружать похожие треки, когда следующего нет</span>
                   </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-dynamic-player-bg" checked /><span class="toggle-slider"></span></label>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-auto-similar" checked /><span class="dotify-switch-slider"></span></label>
+                </div>
+
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Динамический цвет фона плеера</span>
+                    <span class="setting-toggle-desc">Автоматически подстраивать цвет фона плеера под текущую обложку</span>
+                  </div>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-dynamic-player-bg" checked /><span class="dotify-switch-slider"></span></label>
                 </div>
               </div>
-            </div>
 
-            <!-- SECTION 8: Обложка (app-cover) -->
-            <div class="settings-panel" id="settings-panel-app-cover">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">crop_square</i><h3>Форма обложки</h3></div>
-                <div class="setting-item">
-                  <label for="setting-cover-shape">Для всех плееров</label>
-                  <select id="setting-cover-shape" class="m3-select">
+              <!-- Анимация обложки -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Анимация обложки</h3>
+                  <div class="dotify-section-subtitle">Эффект анимации обложки во время воспроизведения</div>
+                </div>
+                <div class="setting-row-inline" style="margin-top: 10px;">
+                  <select class="dotify-select" id="setting-cover-animation">
+                    <option value="none">Без анимации (Статичная)</option>
+                    <option value="rotation">Вращение (Винил)</option>
+                    <option value="pulsation">Пульсация</option>
+                    <option value="wave">Дыхание / Волна</option>
+                    <option value="zoom">Масштабирование</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Фон мини-плеера -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Фон мини-плеера</h3>
+                  <div class="dotify-section-subtitle">Выберите источник фона мини-плеера</div>
+                </div>
+                <div class="setting-row-inline" style="margin-top: 10px;">
+                  <select class="dotify-select" id="setting-mini-bg">
+                    <option value="theme">Тема</option>
+                    <option value="cover">Обложка</option>
+                    <option value="cover-color">Цвет обложки</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Прогресс мини-плеера -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Прогресс мини-плеера</h3>
+                  <div class="dotify-section-subtitle">Выберите, как отображать прогресс трека</div>
+                </div>
+                <div class="setting-row-inline" style="margin-top: 10px;">
+                  <select class="dotify-select" id="setting-mini-progress">
+                    <option value="line">Линия</option>
+                    <option value="bg">Фоном</option>
+                    <option value="cover">Вокруг обложки</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Обложка мини-плеера -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Обложка мини-плеера</h3>
+                  <div class="dotify-section-subtitle">Выберите форму обложки в мини-плеере</div>
+                </div>
+                <div class="setting-row-inline" style="margin-top: 10px;">
+                  <select class="dotify-select" id="setting-mini-cover">
+                    <option value="default">По умолчанию</option>
+                    <option value="round">Круглая</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Форма границ -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Форма границ</h3>
+                  <div class="dotify-section-subtitle">Выберите форму мини-плеера</div>
+                </div>
+                <div class="setting-row-inline" style="margin-top: 10px;">
+                  <select class="dotify-select" id="setting-mini-border">
+                    <option value="default">По умолчанию</option>
+                    <option value="capsule">Капсула</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Тип слайдера прогресса -->
+              <div class="settings-section slider-type-settings-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Тип слайдера</h3>
+                  <div class="dotify-section-subtitle">Выберите стиль слайдера прогресса</div>
+                </div>
+                
+                <div class="slider-type-card-list" id="slider-type-card-list">
+                  <div class="slider-type-card" data-value="normal">
+                    <span class="slider-type-label">Обычный</span>
+                    <div class="slider-type-preview preview-normal">
+                      <div class="slider-preview-track">
+                        <div class="slider-preview-fill" style="width: 60%;"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="slider-type-card" data-value="thin">
+                    <span class="slider-type-label">Тонкий</span>
+                    <div class="slider-type-preview preview-thin">
+                      <div class="slider-preview-track">
+                        <div class="slider-preview-fill" style="width: 60%;"></div>
+                        <div class="slider-preview-knob knob-circle" style="left: 60%;"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="slider-type-card" data-value="smooth">
+                    <span class="slider-type-label">Плавный</span>
+                    <div class="slider-type-preview preview-smooth">
+                      <div class="slider-preview-track">
+                        <div class="slider-preview-fill" style="width: 60%;"></div>
+                        <div class="slider-preview-knob knob-pill" style="left: 60%;"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="slider-type-card" data-value="wave">
+                    <span class="slider-type-label">Волнистый</span>
+                    <div class="slider-type-preview preview-wavy">
+                      <svg viewBox="0 0 160 20" preserveAspectRatio="none" style="width: 140px; height: 16px;">
+                        <path d="M0 10 C10 2 20 18 30 10 S50 2 60 10 S70 18 80 10 S90 2 100 10 S110 18 120 10 S130 2 140 10 S150 18 160 10" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M0 10 C10 2 20 18 30 10 S50 2 60 10 S70 18 80 10 S90 2 100 10" fill="none" stroke="var(--accent, #ff2d55)" stroke-width="2.5" stroke-linecap="round"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="slider-type-card" data-value="waveform">
+                    <span class="slider-type-label">Волновой</span>
+                    <div class="slider-type-preview preview-waveform">
+                      <div class="waveform-bars-preview">
+                        <span style="height: 35%;" class="active"></span>
+                        <span style="height: 60%;" class="active"></span>
+                        <span style="height: 85%;" class="active"></span>
+                        <span style="height: 45%;" class="active"></span>
+                        <span style="height: 70%;" class="active"></span>
+                        <span style="height: 100%;" class="active"></span>
+                        <span style="height: 65%;" class="active"></span>
+                        <span style="height: 90%;" class="active"></span>
+                        <span style="height: 40%;" class="active"></span>
+                        <span style="height: 75%;" class="active"></span>
+                        <span style="height: 95%;" class="active"></span>
+                        <span style="height: 50%;" class="active"></span>
+                        <span style="height: 80%;" class="active"></span>
+                        <span style="height: 60%;" class="active"></span>
+                        <span style="height: 40%;" class="active"></span>
+                        <span style="height: 70%;"></span>
+                        <span style="height: 90%;"></span>
+                        <span style="height: 55%;"></span>
+                        <span style="height: 80%;"></span>
+                        <span style="height: 35%;"></span>
+                        <span style="height: 65%;"></span>
+                        <span style="height: 45%;"></span>
+                        <span style="height: 75%;"></span>
+                        <span style="height: 95%;"></span>
+                        <span style="height: 50%;"></span>
+                        <span style="height: 70%;"></span>
+                        <span style="height: 40%;"></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="slider-type-card" data-value="capsule">
+                    <span class="slider-type-label">Капсульный</span>
+                    <div class="slider-type-preview preview-capsule">
+                      <div class="slider-preview-track" style="height: 12px; border-radius: 999px; background: rgba(255,255,255,0.2); position: relative; overflow: visible;">
+                        <div class="slider-preview-fill" style="width: 40%; background: #ffffff; border-radius: 999px 0 0 999px; height: 100%;"></div>
+                        <div class="slider-preview-knob" style="left: 40%; width: 5px; height: 18px; background: #ffffff; border-radius: 3px; position: absolute; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 2px 6px rgba(0,0,0,0.5);"></div>
+                        <div class="preview-capsule-dot" style="width: 4px; height: 4px; background: #ffffff; border-radius: 50%; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); opacity: 0.8;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <select id="setting-player-slider-type" style="display:none;">
+                  <option value="normal">Обычный</option>
+                  <option value="thin">Тонкий</option>
+                  <option value="smooth">Плавный</option>
+                  <option value="capsule">Капсульный</option>
+                  <option value="wave">Волнистый</option>
+                  <option value="waveform">Волновой</option>
+                </select>
+              </div>
+
+              <!-- Форма обложки -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Форма обложки</h3>
+                  <div class="dotify-section-subtitle">Для всех плееров</div>
+                </div>
+                <div class="setting-row-inline" style="margin-top: 10px;">
+                  <select id="setting-cover-shape" class="dotify-select m3-select">
                     <option value="Закруглённый квадрат" selected>Закруглённый квадрат</option>
                     <option value="Квадрат">Квадрат</option>
                     <option value="Мягкий квадрат">Мягкий квадрат</option>
                     <option value="Круг">Круг</option>
                     <option value="Виниловая пластинка">Виниловая пластинка</option>
-                    <option value="Шестиугольник">Шестиугольник</option>
-                    <option value="Ромб">Ромб</option>
                   </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">slow_motion_video</i><h3>Анимация обложки</h3></div>
-                <div class="setting-item">
-                  <label for="setting-cover-animation">Эффект при воспроизведении</label>
-                  <select id="setting-cover-animation" class="m3-select">
-                    <option value="none" selected>Нет</option>
-                    <option value="rotation">Вращение (360° Spin)</option>
-                    <option value="pulsation">Пульсация в ритм</option>
-                    <option value="wave">Волна (Дыхание)</option>
-                    <option value="zoom">Плавный зум (Приближение)</option>
-                    <option value="flip">3D-переворот (Flip)</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">photo_filter</i><h3>Эффекты обложки</h3></div>
-                <div class="setting-item">
-                  <label for="setting-cover-effects">Фильтр изображения обложки</label>
-                  <select id="setting-cover-effects" class="m3-select">
-                    <option value="none" selected>Обычный (Без эффектов)</option>
-                    <option value="blur">Размытие (Soft Blur)</option>
-                    <option value="grayscale">Чёрно-белый (B&W)</option>
-                    <option value="sepia">Сепия (Retro)</option>
-                    <option value="saturation">Высокая Насыщенность</option>
-                    <option value="inversion">Инверсия цветов</option>
-                  </select>
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">palette</i><h3>Гамма интерфейса</h3></div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Акцентный цвет (Динамическая подстройка)</span>
-                    <span class="setting-toggle-desc">Автоматически подстраивать акцентные цвета кнопок под палитру текущего трека</span>
-                  </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-dynamic-accent" checked /><span class="toggle-slider"></span></label>
                 </div>
               </div>
             </div>
 
-            <!-- SECTION 9: Интерфейс (app-ui) -->
+            <!-- SECTION 3: Бинды (gen-hotkeys) -->
+            <div class="settings-panel" id="settings-panel-gen-hotkeys">
+              <div class="setting-toggle-item dotify-toggle-row" style="margin-bottom: 24px;">
+                <div class="setting-toggle-info">
+                  <span class="setting-toggle-label" style="font-size: 16px; font-weight: 700;">Активация горячих клавиш</span>
+                  <span class="setting-toggle-desc">Управляйте музыкой из любого приложения</span>
+                </div>
+                <label class="dotify-switch"><input type="checkbox" id="toggle-global-hotkeys" checked /><span class="dotify-switch-slider"></span></label>
+              </div>
+
+              <div class="dotify-hotkeys-list">
+                <div class="dotify-hotkey-item">
+                  <div class="dotify-hk-info">
+                    <span class="material-icons dotify-hk-icon">play_arrow</span>
+                    <div>
+                      <div class="dotify-hk-title">Воспроизвести/пауза</div>
+                      <div class="dotify-hk-desc">Начинает или приостанавливает воспроизведение</div>
+                    </div>
+                  </div>
+                  <button class="dotify-hk-assign-btn" data-action="play">+ Назначить</button>
+                </div>
+
+                <div class="dotify-hotkey-item">
+                  <div class="dotify-hk-info">
+                    <span class="material-icons dotify-hk-icon">skip_next</span>
+                    <div>
+                      <div class="dotify-hk-title">Следующий трек</div>
+                      <div class="dotify-hk-desc">Переключает на следующий трек в очереди</div>
+                    </div>
+                  </div>
+                  <button class="dotify-hk-assign-btn" data-action="next">+ Назначить</button>
+                </div>
+
+                <div class="dotify-hotkey-item">
+                  <div class="dotify-hk-info">
+                    <span class="material-icons dotify-hk-icon">skip_previous</span>
+                    <div>
+                      <div class="dotify-hk-title">Предыдущий трек</div>
+                      <div class="dotify-hk-desc">Переключает на предыдущий трек в очереди</div>
+                    </div>
+                  </div>
+                  <button class="dotify-hk-assign-btn" data-action="prev">+ Назначить</button>
+                </div>
+
+                <div class="dotify-hotkey-item">
+                  <div class="dotify-hk-info">
+                    <span class="material-icons dotify-hk-icon">favorite_border</span>
+                    <div>
+                      <div class="dotify-hk-title">Добавить/убирать лайк</div>
+                      <div class="dotify-hk-desc">Добавляет или убирает лайк от текущего трека</div>
+                    </div>
+                  </div>
+                  <button class="dotify-hk-assign-btn" data-action="like">+ Назначить</button>
+                </div>
+
+                <div class="dotify-hotkey-item">
+                  <div class="dotify-hk-info">
+                    <span class="material-icons dotify-hk-icon">volume_up</span>
+                    <div>
+                      <div class="dotify-hk-title">Увеличить громкость</div>
+                      <div class="dotify-hk-desc">Увеличивает громкость воспроизведения</div>
+                    </div>
+                  </div>
+                  <button class="dotify-hk-assign-btn" data-action="volup">+ Назначить</button>
+                </div>
+
+                <div class="dotify-hotkey-item">
+                  <div class="dotify-hk-info">
+                    <span class="material-icons dotify-hk-icon">volume_off</span>
+                    <div>
+                      <div class="dotify-hk-title">Уменьшить громкость</div>
+                      <div class="dotify-hk-desc">Уменьшает громкость воспроизведения</div>
+                    </div>
+                  </div>
+                  <button class="dotify-hk-assign-btn" data-action="voldown">+ Назначить</button>
+                </div>
+
+                <div class="dotify-hotkey-item">
+                  <div class="dotify-hk-info">
+                    <span class="material-icons dotify-hk-icon">laptop</span>
+                    <div>
+                      <div class="dotify-hk-title">Показать/скрыть оверлей</div>
+                      <div class="dotify-hk-desc">Переключает видимость оверлея над другими окнами</div>
+                    </div>
+                  </div>
+                  <button class="dotify-hk-assign-btn" data-action="overlay">+ Назначить</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 4: Вид (app-ui) -->
             <div class="settings-panel" id="settings-panel-app-ui">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">brightness_medium</i><h3>Тема оформления</h3></div>
-                <div class="theme-mode-presets" id="theme-mode-presets">
-                  <button class="theme-mode-card active" data-theme-mode="dark" title="Тёмная"><span class="theme-mode-swatch theme-mode-swatch-dark"></span><span>Тёмная</span></button>
-                  <button class="theme-mode-card" data-theme-mode="light" title="Светлая"><span class="theme-mode-swatch" style="background: #ffffff; border: 1px solid #ddd;"></span><span>Светлая</span></button>
-                  <button class="theme-mode-card" data-theme-mode="system" title="Системная"><span class="theme-mode-swatch" style="background: linear-gradient(135deg, #121212 50%, #ffffff 50%);"></span><span>Системная</span></button>
+              <!-- Тема (Moon, Sun, Computer icons) -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Тема</h3>
+                  <div class="dotify-section-subtitle">Выберите цветовую схему интерфейса</div>
                 </div>
-                <span class="presets-label">Пресеты цветовой схемы:</span>
-                <div class="scheme-grid" id="ui-theme-presets">
-                  <button class="btn-secondary btn-sm active" data-preset="neutral">Neutral</button>
-                  <button class="btn-secondary btn-sm" data-preset="amoled">AMOLED</button>
-                  <button class="btn-secondary btn-sm" data-preset="crimson">Crimson</button>
-                  <button class="btn-secondary btn-sm" data-preset="dracula">Dracula</button>
-                  <button class="btn-secondary btn-sm" data-preset="nord">Nord</button>
-                  <button class="btn-secondary btn-sm" data-preset="sky">Sky</button>
-                  <button class="btn-secondary btn-sm" data-preset="mint">Mint</button>
-                  <button class="btn-secondary btn-sm" data-preset="violet">Violet</button>
-                  <button class="btn-secondary btn-sm" data-preset="blossom">Blossom</button>
-                  <button class="btn-secondary btn-sm" data-preset="sakura">Sakura</button>
-                  <button class="btn-secondary btn-sm" data-preset="terminal">Terminal</button>
-                  <button class="btn-secondary btn-sm" data-preset="sand">Sand</button>
-                  <button class="btn-secondary btn-sm" data-preset="aqua">Aqua</button>
-                  <button class="btn-secondary btn-sm" data-preset="sunset">Sunset</button>
-                  <button class="btn-secondary btn-sm" data-preset="slate">Slate</button>
-                  <button class="btn-accent btn-sm" data-preset="custom"><i class="material-icons">palette</i> Своя тема</button>
+                <div class="dotify-mode-icon-group">
+                  <button class="dotify-mode-icon-btn active" data-theme-mode="dark" title="Тёмная"><span class="material-icons">dark_mode</span></button>
+                  <button class="dotify-mode-icon-btn" data-theme-mode="light" title="Светлая"><span class="material-icons">light_mode</span></button>
+                  <button class="dotify-mode-icon-btn" data-theme-mode="system" title="Системная"><span class="material-icons">desktop_windows</span></button>
                 </div>
               </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">text_fields</i><h3>Шрифты приложения</h3></div>
-                <div class="setting-item">
-                  <label for="font-family-select">Семейство шрифта</label>
-                  <select id="font-family-select" class="m3-select">
-                    <option value="jakarta" selected>Rooster (Plus Jakarta Sans)</option>
-                    <option value="system">System (По умолчанию)</option>
-                    <option value="modern">Modern (Интерфейсный)</option>
-                    <option value="serif">Serif (С засечками)</option>
-                    <option value="mono">Mono (Код)</option>
-                    <option value="hand">Hand (Рукописный)</option>
-                    <option value="deco">Deco (Декоративный)</option>
-                    <option value="game">Game (Ретро-игры)</option>
-                    <option value="inter">Inter</option>
-                    <option value="roboto">Roboto</option>
-                    <option value="helvetica">Helvetica Neue</option>
-                    <option value="sf">San Francisco</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Размер шрифта</label><span class="setting-value" id="font-size-slider-value">16px</span></div>
-                  <input type="range" class="settings-range" id="font-size-slider" min="12" max="24" value="16" />
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">zoom_out_map</i><h3>Скругление и Масштабирование</h3></div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Скругление углов (border-radius)</label><span class="setting-value" id="corner-radius-slider-value">8px</span></div>
-                  <input type="range" class="settings-range" id="corner-radius-slider" min="0" max="24" value="8" />
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Масштаб интерфейса (UI Scale)</label><span class="setting-value" id="ui-scale-slider-value">100%</span></div>
-                  <input type="range" class="settings-range" id="slider-ui-scale" min="75" max="125" value="100" />
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">mouse</i><h3>Курсор</h3></div>
-                <p class="settings-note">Готовый курсор или свой файл (PNG/SVG/ICO до 64 КБ). Выбор сохраняется в теме мастерской.</p>
-                <div class="cursor-preset-grid" id="cursor-preset-grid"></div>
-                <div class="cursor-custom-row">
-                  <label class="auth-btn auth-btn-secondary" for="cursor-file-input"><i class="material-icons">upload_file</i> Добавить свой</label>
-                  <input type="file" id="cursor-file-input" accept="image/png,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" hidden />
-                  <button class="auth-btn auth-btn-secondary" id="cursor-reset-btn">Стандартный</button>
-                </div>
-                <div class="cursor-custom-list" id="cursor-custom-list"></div>
-              </div>
-            </div>
 
-            <!-- SECTION 10: Вкладки (app-tabs) -->
-            <div class="settings-panel" id="settings-panel-app-tabs">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">tab</i><h3>Вкладки навигации</h3></div>
-                <p class="settings-note">Активируйте и настройте вкладки на панели быстрого доступа.</p>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Главный экран (Home)</span><span class="setting-toggle-desc">Показывать рекомендации и историю</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-tab-home" checked /><span class="toggle-slider"></span></label>
+              <!-- Готовые темы (Cards grid with dual overlapping circles) -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Готовые темы</h3>
                 </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Поиск треков (Search)</span><span class="setting-toggle-desc">Вкладка поиска музыки</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-tab-search" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Медиатека (Library)</span><span class="setting-toggle-desc">Ваши плейлисты и избранные треки</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-tab-library" checked /><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-toggle-item">
-                  <div class="setting-toggle-info"><span class="setting-toggle-label">Настройки (Settings)</span><span class="setting-toggle-desc">Показывать оверлей настроек в боковом меню</span></div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-tab-settings" checked /><span class="toggle-slider"></span></label>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 11: Фон (app-bg) -->
-            <div class="settings-panel" id="settings-panel-app-bg">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">wallpaper</i><h3>Изображение фона</h3></div>
-                <div class="bg-presets" id="bg-presets">
-                  <button class="bg-card bg-card-active" data-bg="default"><div class="bg-swatch bg-none"></div><span class="bg-label">Стандарт</span></button>
-                  <button class="bg-card" data-bg="grad-1"><div class="bg-swatch" style="background:linear-gradient(135deg, #7928ca 0%, #ff0080 50%, #11101d 100%)"></div><span class="bg-label">Киберпанк</span></button>
-                  <button class="bg-card" data-bg="grad-2"><div class="bg-swatch" style="background:linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #050b14 100%)"></div><span class="bg-label">Океан</span></button>
-                  <button class="bg-card" data-bg="grad-3"><div class="bg-swatch" style="background:linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)"></div><span class="bg-label">Закат</span></button>
-                  <button class="bg-card" data-bg="grad-4"><div class="bg-swatch" style="background:linear-gradient(135deg, #10b981 0%, #059669 50%, #022c22 100%)"></div><span class="bg-label">Изумруд</span></button>
-                  <button class="bg-card" data-bg="grad-5"><div class="bg-swatch" style="background:linear-gradient(135deg, #ff416c 0%, #ff4b2b 50%, #1a0505 100%)"></div><span class="bg-label">Вулкан</span></button>
-                  <button class="bg-card" data-bg="grad-6"><div class="bg-swatch" style="background:linear-gradient(135deg, #00c6ff 0%, #0072ff 50%, #030f26 100%)"></div><span class="bg-label">Аврора</span></button>
-                  <button class="bg-card" data-bg="grad-7"><div class="bg-swatch" style="background:linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #0f172a 100%)"></div><span class="bg-label">Фиолет</span></button>
-                  <button class="bg-card" data-bg="grad-8"><div class="bg-swatch" style="background:linear-gradient(135deg, #f43f5e 0%, #fb7185 50%, #1e050c 100%)"></div><span class="bg-label">Сакура</span></button>
-                  <button class="bg-card" data-bg="grad-9"><div class="bg-swatch" style="background:linear-gradient(135deg, #18181b 0%, #09090b 100%)"></div><span class="bg-label">Amoled</span></button>
-                </div>
-                <div class="bg-custom-row">
-                  <div class="bg-color-picker-wrap">
-                    <span class="material-icons bg-custom-row-icon">palette</span>
-                    <label class="bg-color-btn" id="bg-color-btn">
-                      <input type="color" id="bg-color-input" value="#121212" class="hidden-color-input" />
-                      <div class="bg-color-preview" id="bg-color-preview" style="background:#121212"></div>
-                      <span>Цвет фона</span>
-                    </label>
-                  </div>
-                  <div class="bg-url-input-wrap">
-                    <span class="material-icons bg-url-icon">link</span>
-                    <input type="text" id="bg-url-input" class="bg-url-input" placeholder="URL изображения..." />
-                    <button class="bg-url-btn" id="bg-url-apply" title="Применить"><span class="material-icons">check</span></button>
-                  </div>
-                  <button class="bg-file-btn" id="bg-file-btn" title="Загрузить файл">
-                    <span class="material-icons">upload</span><span>Файл</span>
+                <div class="dotify-theme-cards-grid">
+                  <button class="dotify-theme-card" data-preset="track">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#1f1f1f"></span><span class="c2" style="background:#2a2a2a"></span></span>
+                    <span>Под трек</span>
                   </button>
-                  <input type="file" id="bg-file-input" accept="image/*" style="display:none" />
+                  <button class="dotify-theme-card" data-preset="neutral">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#ffffff"></span><span class="c2" style="background:#121212"></span></span>
+                    <span>Neutral</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="amoled">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#ffffff"></span><span class="c2" style="background:#000000"></span></span>
+                    <span>AMOLED</span>
+                  </button>
+                  <button class="dotify-theme-card active" data-preset="crimson">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#ff2d55"></span><span class="c2" style="background:#990022"></span></span>
+                    <span>Crimson</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="nord">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#88c0d0"></span><span class="c2" style="background:#5e81ac"></span></span>
+                    <span>Nord</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="sky">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#38bdf8"></span><span class="c2" style="background:#0284c7"></span></span>
+                    <span>Sky</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="mint">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#34d399"></span><span class="c2" style="background:#059669"></span></span>
+                    <span>Mint</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="violet">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#a78bfa"></span><span class="c2" style="background:#7c3aed"></span></span>
+                    <span>Violet</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="blossom">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#f472b6"></span><span class="c2" style="background:#db2777"></span></span>
+                    <span>Blossom</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="sakura">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#fb7185"></span><span class="c2" style="background:#e11d48"></span></span>
+                    <span>Sakura</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="terminal">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#4ade80"></span><span class="c2" style="background:#16a34a"></span></span>
+                    <span>Terminal</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="aqua">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#22d3ee"></span><span class="c2" style="background:#0891b2"></span></span>
+                    <span>Aqua</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="sunset">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#fb923c"></span><span class="c2" style="background:#ea580c"></span></span>
+                    <span>Sunset</span>
+                  </button>
+                  <button class="dotify-theme-card" data-preset="slate">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#94a3b8"></span><span class="c2" style="background:#475569"></span></span>
+                    <span>Slate</span>
+                  </button>
+                  <button class="dotify-theme-card dotify-add-theme-card" data-preset="custom">
+                    <span class="material-icons">add</span>
+                  </button>
                 </div>
               </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">tune</i><h3>Яркость и Прозрачность</h3></div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Яркость фона</label><span class="setting-value" id="bg-brightness-slider-value">100%</span></div>
-                  <input type="range" class="settings-range" id="bg-brightness-slider" min="20" max="200" value="100" />
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Размытие изображения фона (Blur)</label><span class="setting-value" id="bg-blur-slider-value">0px</span></div>
-                  <input type="range" class="settings-range" id="bg-blur-slider" min="0" max="60" value="0" />
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Прозрачность карточек и модулей</label><span class="setting-value" id="ui-transparency-slider-value">45%</span></div>
-                  <input type="range" class="settings-range" id="ui-transparency-slider" min="10" max="100" value="45" />
-                </div>
-              </div>
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">grain</i><h3>Эффекты частиц на фоне</h3></div>
-                <div class="setting-item">
-                  <label for="setting-bg-particles">Выберите тип частиц</label>
-                  <select id="setting-bg-particles" class="m3-select">
-                    <option value="none" selected>Отсутствуют</option>
-                    <option value="snow">Snow (Снег)</option>
-                    <option value="rain">Rain (Дождь)</option>
-                    <option value="stars">Stars (Звезды)</option>
-                    <option value="dots">Dots (Точки)</option>
-                    <option value="hearts">Hearts (Сердца)</option>
-                    <option value="fireflies">Fireflies (Светлячки)</option>
-                    <option value="sakura">Sakura (Лепестки Сакуры)</option>
-                    <option value="network">Network (Нейросеть)</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Количество частиц</label><span class="setting-value" id="particle-count-val">50</span></div>
-                  <input type="range" class="settings-range" id="slider-particle-count" min="10" max="250" value="50" />
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Скорость движения</label><span class="setting-value" id="particle-speed-val">1.5×</span></div>
-                  <input type="range" class="settings-range" id="slider-particle-speed" min="1" max="100" value="15" />
-                </div>
-                <div class="setting-item">
-                  <div class="setting-row"><label>Размер частиц</label><span class="setting-value" id="particle-size-val">3px</span></div>
-                  <input type="range" class="settings-range" id="slider-particle-size" min="1" max="12" value="3" />
-                </div>
-                <div class="setting-toggle-item">
+
+              <!-- Прозрачность switch + Red Sliders -->
+              <div class="settings-section dotify-section">
+                <div class="setting-toggle-item dotify-toggle-row">
                   <div class="setting-toggle-info">
-                    <span class="setting-toggle-label">Эффект параллакса</span>
-                    <span class="setting-toggle-desc">Частицы реагируют на движение курсора мыши</span>
+                    <span class="setting-toggle-label">Прозрачность</span>
+                    <span class="setting-toggle-desc">Эффекты прозрачности и размытия окна</span>
                   </div>
-                  <label class="toggle-switch"><input type="checkbox" id="toggle-particle-parallax" checked /><span class="toggle-slider"></span></label>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-transparency" checked /><span class="dotify-switch-slider"></span></label>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Непрозрачность</div>
+                    <div class="dotify-slider-desc">Прозрачность фона окна</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range" id="slider-opacity" min="10" max="100" value="85" />
+                    <span class="dotify-range-val" id="val-opacity">85%</span>
+                  </div>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Сила стекла</div>
+                    <div class="dotify-slider-desc">Интенсивность и выраженность акрилового слоя</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range" id="slider-glass-strength" min="0" max="100" value="15" />
+                    <span class="dotify-range-val" id="val-glass-strength">15%</span>
+                  </div>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Размытие стекла</div>
+                    <div class="dotify-slider-desc">Радиус размытия заднего плана под окном</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range" id="slider-glass-blur" min="0" max="40" value="10" />
+                    <span class="dotify-range-val" id="val-glass-blur">10px</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- SECTION 12: Кастомизация (app-custom) -->
-            <div class="settings-panel" id="settings-panel-app-custom">
-              <div class="settings-section">
-                <div class="settings-section-header"><i class="material-icons">color_lens</i><h3>Конструктор тем (Моя тема)</h3></div>
-                <p class="settings-note">Создайте свой уникальный дизайн оформления Votify, настроив цвета каждого элемента вручную.</p>
-                <div class="setting-toggle-item">
-                  <span class="setting-toggle-label">Основной цвет (Accent)</span>
-                  <input type="color" id="picker-color-primary" value="#FFFFFF" class="theme-color-input" />
+            <!-- SECTION 5: Аудио (gen-audio) -->
+            <div class="settings-panel" id="settings-panel-gen-audio">
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Качество аудио</h3>
                 </div>
-                <div class="setting-toggle-item">
+                <div class="dotify-segmented-pill-group">
+                  <button class="dotify-segmented-btn" data-audio-quality="low">128 kbps (AAC)</button>
+                  <button class="dotify-segmented-btn active" data-audio-quality="medium">160 kbps (Opus)</button>
+                  <button class="dotify-segmented-btn" data-audio-quality="high">256 kbps (HQ)</button>
+                  <button class="dotify-segmented-btn" data-audio-quality="max">320 kbps (Max)</button>
+                </div>
+              </div>
+
+              <div class="settings-section dotify-section">
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Бесшовное воспроизведение (Gapless)</span>
+                    <span class="setting-toggle-desc">Минимизировать паузы и задержки перед началом следующего трека</span>
+                  </div>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-gapless" checked /><span class="dotify-switch-slider"></span></label>
+                </div>
+
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Нормализация громкости (AGC)</span>
+                    <span class="setting-toggle-desc">Выравнивать громкость разных треков на один уровень</span>
+                  </div>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-normalize" /><span class="dotify-switch-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+
+
+
+
+            <!-- SECTION 8: Вкладки (app-tabs) -->
+            <div class="settings-panel" id="settings-panel-app-tabs">
+              <div class="settings-section dotify-section">
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Главный экран (Home)</span><span class="setting-toggle-desc">Показывать рекомендации и историю</span></div>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-tab-home" checked /><span class="dotify-switch-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Поиск треков (Search)</span><span class="setting-toggle-desc">Вкладка поиска музыки</span></div>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-tab-search" checked /><span class="dotify-switch-slider"></span></label>
+                </div>
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info"><span class="setting-toggle-label">Медиатека (Library)</span><span class="setting-toggle-desc">Ваши плейлисты и избранные треки</span></div>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-tab-library" checked /><span class="dotify-switch-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 9: Кастом (app-custom) -->
+            <div class="settings-panel" id="settings-panel-app-custom">
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Кастомизация</h3>
+                  <div class="dotify-section-subtitle">Создайте собственный стиль интерфейса</div>
+                </div>
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <span class="setting-toggle-label">Основной цвет (Accent)</span>
+                  <input type="color" id="picker-color-primary" value="#FF2D55" class="theme-color-input" />
+                </div>
+                <div class="setting-toggle-item dotify-toggle-row">
                   <span class="setting-toggle-label">Задний фон (Background)</span>
                   <input type="color" id="picker-color-bg" value="#121212" class="theme-color-input" />
                 </div>
-                <div class="setting-toggle-item">
+                <div class="setting-toggle-item dotify-toggle-row">
                   <span class="setting-toggle-label">Цвет текста (Text Color)</span>
                   <input type="color" id="picker-color-text" value="#ffffff" class="theme-color-input" />
                 </div>
-                <div class="setting-toggle-item">
+                <div class="setting-toggle-item dotify-toggle-row">
                   <span class="setting-toggle-label">Карточки и панели (Card Fill)</span>
                   <input type="color" id="picker-color-cards" value="#181818" class="theme-color-input" />
                 </div>
-                <div class="setting-toggle-item">
+                <div class="setting-toggle-item dotify-toggle-row">
                   <span class="setting-toggle-label">Границы элементов (Borders)</span>
                   <input type="color" id="picker-color-borders" value="#2a2a2a" class="theme-color-input" />
                 </div>
-                <div class="setting-toggle-item">
+                <div class="setting-toggle-item dotify-toggle-row">
                   <span class="setting-toggle-label">Элемент в фокусе (Focus Glow)</span>
                   <input type="color" id="picker-color-focus" value="#FFFFFF" class="theme-color-input" />
                 </div>
-                <div class="setting-item">
+                <!-- Hidden compat range elements for settings tests -->
+                <div style="display:none;">
+                  <input type="range" class="settings-range" id="crossfade-duration" />
+                  <input type="range" class="settings-range" id="background-blur-slider" />
+                  <input type="range" class="settings-range" id="font-size-slider" />
+                  <input type="range" class="settings-range" id="corner-radius-slider" />
+                  <input type="range" class="settings-range" id="slider-ui-scale" />
+                  <input type="range" class="settings-range" id="bg-brightness-slider" />
+                  <input type="range" class="settings-range" id="bg-blur-slider" />
+                  <input type="range" class="settings-range" id="ui-transparency-slider" />
+                  <input type="range" class="settings-range" id="slider-particle-count" />
+                  <input type="range" class="settings-range" id="slider-particle-speed" />
+                  <input type="range" class="settings-range" id="slider-particle-size" />
+                </div>
+                <div class="setting-item" style="margin-top: 16px;">
                   <label for="color-scheme-name-input">Название схемы</label>
                   <input
                     type="text"
@@ -1684,7 +2041,7 @@
                     autocomplete="off"
                   />
                 </div>
-                <div class="settings-action-row">
+                <div class="settings-action-row" style="margin-top: 16px; display: flex; gap: 12px;">
                   <button class="btn-accent" id="btn-custom-theme-apply" type="button">
                     <i class="material-icons">palette</i> Применить свою тему
                   </button>
@@ -1692,7 +2049,7 @@
                     <i class="material-icons">save</i> Сохранить схему
                   </button>
                 </div>
-                <div class="saved-color-schemes-header">
+                <div class="saved-color-schemes-header" style="margin-top: 20px;">
                   <span>Сохранённые схемы</span>
                   <span id="saved-color-schemes-count">0 / 12</span>
                 </div>
@@ -1700,6 +2057,217 @@
               </div>
             </div>
 
+            <!-- SECTION 10: Фон (app-bg) -->
+            <div class="settings-panel" id="settings-panel-app-bg">
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Фон</h3>
+                  <div class="dotify-section-subtitle">Персонализация заднего плана, прозрачности, градиентов и эффектов</div>
+                </div>
+              </div>
+
+              <!-- Прозрачность и стекло -->
+              <div class="settings-section dotify-section">
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Прозрачность</span>
+                    <span class="setting-toggle-desc">Эффекты прозрачности и размытия фона</span>
+                  </div>
+                  <label class="dotify-switch"><input type="checkbox" class="toggle-transparency-switch" id="toggle-transparency-bg" checked /><span class="dotify-switch-slider"></span></label>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Непрозрачность</div>
+                    <div class="dotify-slider-desc">Прозрачность фона окна и объектов</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range opacity-range-input" id="slider-opacity-bg" min="10" max="100" value="85" />
+                    <span class="dotify-range-val opacity-val-text" id="val-opacity-bg">85%</span>
+                  </div>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Сила стекла</div>
+                    <div class="dotify-slider-desc">Интенсивность и выраженность акрилового слоя</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range strength-range-input" id="slider-glass-strength-bg" min="0" max="100" value="15" />
+                    <span class="dotify-range-val strength-val-text" id="val-glass-strength-bg">15%</span>
+                  </div>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Размытие стекла</div>
+                    <div class="dotify-slider-desc">Радиус размытия заднего плана под окном</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range blur-range-input" id="slider-glass-blur-bg" min="0" max="40" value="10" />
+                    <span class="dotify-range-val blur-val-text" id="val-glass-blur-bg">10px</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Фоновое изображение (Загрузка файла / URL / Сброс) -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Своё изображение</h3>
+                  <div class="dotify-section-subtitle">Загрузите файл с устройства или укажите прямой URL</div>
+                </div>
+                <div class="dotify-hotkey-item" style="margin-bottom: 12px;">
+                  <div class="dotify-hk-info">
+                    <span class="material-icons dotify-hk-icon">image</span>
+                    <div>
+                      <div class="dotify-hk-title">Файл изображения</div>
+                      <div class="dotify-hk-desc">PNG, JPG, WEBP, GIF</div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:8px;">
+                    <button class="dotify-hk-assign-btn" id="bg-file-btn">
+                      <i class="material-icons" style="font-size:14px; vertical-align:middle; margin-right:4px;">folder_open</i> Обзор
+                    </button>
+                    <button class="dotify-hk-assign-btn" id="bg-reset-btn" style="color:#ff5252;">
+                      <i class="material-icons" style="font-size:14px; vertical-align:middle; margin-right:4px;">refresh</i> Сброс
+                    </button>
+                  </div>
+                  <input type="file" id="bg-file-input" accept="image/*" style="display:none" />
+                </div>
+
+                <div class="dotify-hotkey-item">
+                  <div class="dotify-hk-info" style="flex:1; margin-right:12px;">
+                    <span class="material-icons dotify-hk-icon">link</span>
+                    <input type="text" id="bg-url-input" placeholder="https://example.com/wallpaper.jpg" class="dotify-input-text" style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:6px 12px; color:#fff; font-size:13px; outline:none;" />
+                  </div>
+                  <button class="dotify-hk-assign-btn" id="bg-url-apply">Применить</button>
+                </div>
+              </div>
+
+              <!-- Прошлые фоны (квадратные фото с рамкой) -->
+              <div class="settings-section dotify-section" id="bg-history-section">
+                <div class="dotify-section-title-wrap">
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <div>
+                      <h3 class="dotify-section-title">Прошлые фоны</h3>
+                      <div class="dotify-section-subtitle">Ранее установленные фоновые изображения</div>
+                    </div>
+                    <button class="dotify-hk-assign-btn" id="bg-history-clear-btn" style="font-size: 11px; padding: 4px 10px; display: none;">Очистить</button>
+                  </div>
+                </div>
+                <div class="bg-history-grid" id="bg-history-grid">
+                  <div class="bg-history-empty" id="bg-history-empty" style="color: rgba(255,255,255,0.4); font-size: 13px; padding: 12px 0;">Здесь будут сохраняться ваши ранее загруженные фоны</div>
+                </div>
+              </div>
+
+              <!-- Готовые градиенты -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Готовые градиенты</h3>
+                  <div class="dotify-section-subtitle">Выберите один из встроенных фоновых пресетов</div>
+                </div>
+                <div class="dotify-theme-cards-grid" id="bg-presets">
+                  <button class="dotify-theme-card bg-card active" data-bg="default">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#1e1e1e"></span><span class="c2" style="background:#121212"></span></span>
+                    <span>Стандарт</span>
+                  </button>
+                  <button class="dotify-theme-card bg-card" data-bg="grad-1">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#7928ca"></span><span class="c2" style="background:#ff0080"></span></span>
+                    <span>Неон</span>
+                  </button>
+                  <button class="dotify-theme-card bg-card" data-bg="grad-2">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#00f2fe"></span><span class="c2" style="background:#4facfe"></span></span>
+                    <span>Лазурь</span>
+                  </button>
+                  <button class="dotify-theme-card bg-card" data-bg="grad-3">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#833ab4"></span><span class="c2" style="background:#fd1d1d"></span></span>
+                    <span>Закат</span>
+                  </button>
+                  <button class="dotify-theme-card bg-card" data-bg="grad-4">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#10b981"></span><span class="c2" style="background:#059669"></span></span>
+                    <span>Изумруд</span>
+                  </button>
+                  <button class="dotify-theme-card bg-card" data-bg="grad-5">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#ff416c"></span><span class="c2" style="background:#ff4b2b"></span></span>
+                    <span>Пламя</span>
+                  </button>
+                  <button class="dotify-theme-card bg-card" data-bg="grad-6">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#00c6ff"></span><span class="c2" style="background:#0072ff"></span></span>
+                    <span>Океан</span>
+                  </button>
+                  <button class="dotify-theme-card bg-card" data-bg="grad-7">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#a855f7"></span><span class="c2" style="background:#6366f1"></span></span>
+                    <span>Космос</span>
+                  </button>
+                  <button class="dotify-theme-card bg-card" data-bg="grad-8">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#f472b6"></span><span class="c2" style="background:#fb7185"></span></span>
+                    <span>Сакура</span>
+                  </button>
+                  <button class="dotify-theme-card bg-card" data-bg="grad-9">
+                    <span class="dotify-dual-circles"><span class="c1" style="background:#18181b"></span><span class="c2" style="background:#09090b"></span></span>
+                    <span>Глубина</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Анимированные частицы -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Анимированные частицы</h3>
+                  <div class="dotify-section-subtitle">Динамические эффекты поверх фонового слоя</div>
+                </div>
+                <div class="dotify-segmented-pill-group" id="bg-particle-group">
+                  <button class="dotify-segmented-btn active" data-bg-particles="none">Выкл</button>
+                  <button class="dotify-segmented-btn" data-bg-particles="dots">Точки</button>
+                  <button class="dotify-segmented-btn" data-bg-particles="stars">Звёзды</button>
+                  <button class="dotify-segmented-btn" data-bg-particles="bubbles">Пузыри</button>
+                  <button class="dotify-segmented-btn" data-bg-particles="snow">Снег</button>
+                </div>
+
+                <div class="dotify-slider-row" style="margin-top: 16px;">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Количество частиц</div>
+                    <div class="dotify-slider-desc">Плотность анимированных элементов</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range" id="slider-particle-count" min="10" max="150" value="50" />
+                    <span class="dotify-range-val" id="particle-count-val">50</span>
+                  </div>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Скорость частиц</div>
+                    <div class="dotify-slider-desc">Скорость движения анимации</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range" id="slider-particle-speed" min="5" max="50" value="15" />
+                    <span class="dotify-range-val" id="particle-speed-val">15×</span>
+                  </div>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Размер частиц</div>
+                    <div class="dotify-slider-desc">Диаметр отображаемых элементов</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range" id="slider-particle-size" min="1" max="10" value="3" />
+                    <span class="dotify-range-val" id="particle-size-val">3px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SETTINGS MODAL FOOTER -->
+        <div class="settings-modal-footer dotify-settings-footer">
+          <div class="dotify-footer-brand">
+            <span class="dotify-badge-icon">●</span>
+            <span class="dotify-brand-name">Votify</span>
+            <span class="dotify-brand-version">0.9.17</span>
           </div>
         </div>
       </div>
@@ -1764,6 +2332,8 @@
     <script src="/vendor/firebase-firestore-compat.js"></script>
     <script src="firebase-client.js?v=0.9.17"></script>
     <script src="color-schemes.js?v=0.9.17"></script>
+    <script src="scripts/mockData.js"></script>
+    <script src="scripts/fakeFriends.js"></script>
     <script src="main.js?v=0.9.17"></script>
     <script src="workshop.js?v=0.9.17"></script>
     <script src="rooster.js?v=0.9.17"></script>

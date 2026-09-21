@@ -128,6 +128,23 @@ service cloud.firestore {
       }
     }
 
+    match /usernames/{handleLower} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /profiles/{uid} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /friendships/{friendshipId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.fromUid == request.auth.uid;
+      allow update, delete: if isSignedIn() && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+    }
+
     match /workshopThemes/{themeId} {
       allow read: if true;
       allow create: if isPermanentAccount() && isValidWorkshopDocument();
@@ -137,3 +154,4 @@ service cloud.firestore {
     }
   }
 }
+
