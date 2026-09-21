@@ -46,10 +46,43 @@ jobs:
         env:
           VOTIFY_FIREBASE_CONFIG: ${{ secrets.VOTIFY_FIREBASE_CONFIG }}
 
+      # Кэш electron и инструментов electron-builder: без него каждый прогон тянет
+      # сотни мегабайт с GitHub и иногда ловит лимит «too many requests».
+      - name: Cache electron and builder tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
+
       - name: Build
+        id: build
+        continue-on-error: true
         run: npx electron-builder ${{ matrix.args }} --publish never
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
+
+      # Второй заход: если первый упал на скачивании инструментов (сетевой сбой или
+      # лимит GitHub) — повтор обычно проходит.
+      - name: Build (повтор)
+        if: steps.build.outcome == 'failure'
+        run: npx electron-builder ${{ matrix.args }} --publish never
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        continue-on-error: true
+
+      - name: Build failed
+        if: steps.build.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::error::Сборка не удалась. Логи electron-builder — в шагах Build выше."
+          ls -la dist 2>/dev/null | head -20
+          exit 1
 
       # Скрипт установки и иконка едут вместе с релизом: по ним работает команда
       #   curl -fsSL .../releases/latest/download/install.sh | bash
