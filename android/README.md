@@ -13,6 +13,9 @@ Kotlin + Jetpack Compose (Material 3), Media3/ExoPlayer, Room, DataStore, OkHttp
 Если раньше был сохранён адрес сервера, приложение проверит его при запуске и при
 недоступности автоматически перейдёт в автономный режим.
 
+Тот же бекенд можно открыть с телефона без APK — ярлыком в браузере: Настройки → Основные
+→ «Votify на телефоне» (см. корневой README, раздел «Votify на телефоне»).
+
 CI: `.github/workflows/android.yml` собирает debug APK на каждый push в ветку — артефакт
 `votify-debug-apk` во вкладке Actions; `release-apk.yml` публикует APK в
 [Releases](https://github.com/exieeez/Votify/releases/tag/android-debug) (постоянная ссылка).

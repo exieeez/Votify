@@ -24,8 +24,17 @@
         } catch (err) {}
       })();
     </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Телефон: ярлык «на экран Домой» и установка как приложение.
+         iOS читает apple-мета, Android/Chrome — manifest.webmanifest. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Votify</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Votify" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Votify" />
     <link rel="stylesheet" href="fonts.css" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -1097,6 +1106,23 @@
                     <span class="setting-toggle-desc">Закрытие окна сворачивает приложение в трей</span>
                   </div>
                   <label class="toggle-switch"><input type="checkbox" id="toggle-close-to-tray" /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-header"><i class="material-icons">smartphone</i><h3>Votify на телефоне</h3></div>
+                <div class="setting-item">
+                  <label for="lan-url-value">Адрес для телефона — откройте его в браузере телефона</label>
+                  <div class="setting-row">
+                    <span class="setting-value" id="lan-url-value">определяем адрес…</span>
+                    <button class="m3-icon-btn" id="lan-copy-btn" title="Скопировать адрес"
+                      aria-label="Скопировать адрес"><i class="material-icons">content_copy</i></button>
+                  </div>
+                  <span class="setting-toggle-desc">Телефон и компьютер должны быть в одной Wi-Fi сети.
+                    iPhone: «Поделиться» → «На экран „Домой“» — на рабочем столе появится иконка Votify.
+                    Android: меню «⋮» → «Установить приложение». Интерфейс сам перестроится под телефон.</span>
+                  <span class="setting-toggle-desc">Музыка идёт с этого компьютера, поэтому пока он выключен или
+                    приложение закрыто — телефон ничего не сыграет. Если адрес не открывается, разрешите Votify
+                    доступ в брандмауэре Windows.</span>
                 </div>
               </div>
               <div class="settings-section">

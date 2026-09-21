@@ -11,6 +11,33 @@ const crypto = require('crypto');
 
 const appRoot = path.dirname(__dirname);
 
+// --- Статика и адреса в локальной сети -------------------------------------------------
+// index.html, стили, скрипты, иконки раздаёт serveStatic из корневого utils.js: там же
+// таблица MIME_TYPES и srcDir. После разделения модулей server.js продолжал импортировать
+// serveStatic отсюда, и статика отдавала 500 — UI нельзя было открыть ни в Electron, ни с
+// телефона. Реэкспортируем один общий экземпляр, чтобы не дублировать код.
+const { serveStatic } = require('../utils.js');
+
+/**
+ * Адреса этого ПК в локальной сети — для ярлыка Votify на телефоне
+ * (Настройки → Основные → «Votify на телефоне»). Домашние сети (192.168.*, 10.*)
+ * идут первыми: с них телефон почти всегда и открывает плеер.
+ */
+function getLanAddresses() {
+  const out = [];
+  const ifaces = os.networkInterfaces();
+  Object.keys(ifaces).forEach(name => {
+    (ifaces[name] || []).forEach(iface => {
+      const family = typeof iface.family === 'string' ? iface.family : String(iface.family);
+      if (family !== 'IPv4' || iface.internal) return;
+      out.push(iface.address);
+    });
+  });
+  const rank = ip =>
+    ip.startsWith('192.168.') ? 0 : ip.startsWith('10.') ? 1 : ip.startsWith('172.') ? 2 : 3;
+  return out.sort((a, b) => rank(a) - rank(b));
+}
+
 const os = require('os');
 function getConfigDir() {
   if (process.platform === 'win32') {
@@ -950,6 +977,8 @@ module.exports = {
   saveNetworkConfig,
   getNetworkConfig,
   findYtDlp,
+  serveStatic,
+  getLanAddresses,
   // auth helpers
   bcrypt,
   SALT_ROUNDS,

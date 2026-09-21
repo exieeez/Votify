@@ -10,7 +10,10 @@ const http = require('http');
 const { URL } = require('url');
 const crypto = require('crypto');
 
-const appRoot = path.dirname(__dirname);
+// Этот файл лежит в корне проекта (раньше — в routes/), поэтому корень = __dirname.
+// С path.dirname(__dirname) пути уезжали на уровень выше: src/ в статике и bin/yt-dlp
+// не находились, если сервер запускали без VOTIFY_SRC_DIR (например, node server.js).
+const appRoot = __dirname;
 const srcDir = path.resolve(process.env.VOTIFY_SRC_DIR || path.join(appRoot, 'src'));
 const port = Number(process.env.VOTIFY_PORT || process.env.PORT || 17217);
 
@@ -140,6 +143,19 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.webmanifest': 'application/manifest+json',
+  // Шрифты и медиа: страницу теперь открывают и с телефона (ярлык «на экран Домой»),
+  // а iOS/Chrome придирчивы к Content-Type.
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.mp4': 'video/mp4',
 };
 
 const SALT_ROUNDS = 10;

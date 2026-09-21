@@ -2297,6 +2297,49 @@ safeClick('back-from-album-btn', () => {
   switchScreen(albumPreviousScreenId || 'artist-screen', previousActiveBtnId || 'nav-home-btn');
 });
 
+// ==========================================
+// Votify на телефоне (ярлык в браузере)
+// ==========================================
+// Тот же интерфейс открывается с телефона по адресу этого ПК в Wi-Fi сети:
+// iPhone — «Поделиться» → «На экран „Домой“», Android — «Установить приложение».
+let lanUrlCache = '';
+async function refreshLanAddress() {
+  const valueEl = document.getElementById('lan-url-value');
+  if (!valueEl) return;
+  const fallback = `http://${location.hostname}:${location.port || 17217}`;
+  try {
+    const res = await fetch('/api/network/lan');
+    const data = await res.json();
+    const url = (data && data.addresses && data.addresses[0]) || fallback;
+    valueEl.textContent = url;
+    lanUrlCache = url;
+  } catch (err) {
+    valueEl.textContent = fallback;
+    lanUrlCache = fallback;
+  }
+}
+
+safeClick('lan-copy-btn', async () => {
+  const valueEl = document.getElementById('lan-url-value');
+  const url = lanUrlCache || (valueEl ? valueEl.textContent : '');
+  if (!url || url.indexOf('http') !== 0) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('Адрес скопирован: ' + url);
+  } catch (err) {
+    // Буфер обмена может быть недоступен — выделяем текст, чтобы скопировать вручную.
+    if (valueEl && window.getSelection) {
+      const range = document.createRange();
+      range.selectNodeContents(valueEl);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    showToast('Скопируйте выделенный адрес');
+  }
+});
+refreshLanAddress();
+
 // Settings overlay toggle
 safeClick('nav-settings-btn', () => {
   const overlay = document.getElementById('settings-overlay');
@@ -2306,6 +2349,7 @@ safeClick('nav-settings-btn', () => {
     if (!isOpen) {
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('nav-settings-btn').classList.add('active');
+      if (typeof refreshLanAddress === 'function') refreshLanAddress();
       if (typeof initRangeSliderTracks === 'function') initRangeSliderTracks();
       if (typeof renderSavedColorSchemes === 'function') renderSavedColorSchemes();
       if (typeof renderSettingsLocalTracks === 'function') renderSettingsLocalTracks();

@@ -7,6 +7,7 @@ const {
   parseBody,
   saveNetworkConfig,
   getNetworkConfig,
+  getLanAddresses,
 } = require('./routes/utils.js');
 const { handleAuthRoutes } = require('./routes/auth.js');
 const { handleMusicRoutes } = require('./routes/music.js');
@@ -111,6 +112,18 @@ const server = http.createServer(async (req, res) => {
     }
 
     // --- NETWORK ENDPOINTS ---
+    // Адрес для ярлыка на телефоне: тот же сервер, но по IP в локальной сети.
+    if (u.pathname === '/api/network/lan' && req.method === 'GET') {
+      const hostPort =
+        Number((req.headers.host || '').split(':')[1]) ||
+        Number(process.env.VOTIFY_PORT || process.env.PORT) ||
+        17217;
+      sendJson(res, 200, {
+        port: hostPort,
+        addresses: getLanAddresses().map(ip => `http://${ip}:${hostPort}`),
+      });
+      return;
+    }
     if (u.pathname === '/api/network/settings' && req.method === 'GET') {
       sendJson(res, 200, getNetworkConfig());
       return;
@@ -163,6 +176,8 @@ server.on('error', err => {
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`Votify server running at http://0.0.0.0:${port}`);
+  // Ярлык на телефоне: этот же адрес, но по IP в локальной сети.
+  getLanAddresses().forEach(ip => console.log(`Votify на телефоне: http://${ip}:${port}`));
   if (!process.env.VOTIFY_PORT) {
     try {
       const { exec } = require('child_process');
