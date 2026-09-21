@@ -4,25 +4,25 @@
 
 /* Colors — Night Studio Palette */
 :root {
-  /* Base — Deep Night */
-  --bg-deep: #0A0A0A;                    /* Основной фон */
+  /* Base — Spotify Dark */
+  --bg-deep: #000000;                    /* Основной фон */
   --bg-elevated: #121212;                /* Карточки, сайдбар, модалки */
-  --bg-overlay: rgba(18, 18, 18, 0.92);  /* Полупрозрачные слои */
-  --bg-hover: #1A1A1A;                   /* Ховер состояния */
-  --bg-active: #222222;                  /* Активное/нажатое */
+  --bg-overlay: rgba(18, 18, 18, 0.95);  /* Полупрозрачные слои */
+  --bg-hover: #181818;                   /* Ховер состояния */
+  --bg-active: #282828;                  /* Активное/нажатое */
 
   /* Foreground */
-  --fg-primary: #FAFAFA;                 /* Основной текст */
-  --fg-secondary: #CCCCCC;               /* Вторичный текст */
+  --fg-primary: #FFFFFF;                 /* Основной текст */
+  --fg-secondary: #B3B3B3;               /* Вторичный текст */
   --fg-muted: #888888;                   /* Приглушённый */
   --fg-disabled: #555555;                /* Отключённый */
 
-  /* Accent — Warm Amber */
-  --accent: #D4A843;                     /* Основной акцент */
-  --accent-hover: #E8C060;
-  --accent-active: #B89030;
-  --accent-glow: rgba(212, 168, 67, 0.25);
-  --accent-glow-strong: rgba(212, 168, 67, 0.4);
+  /* Accent — White (Black & White Theme) */
+  --accent: #ffffff;                     /* Основной акцент */
+  --accent-hover: #e5e5e5;
+  --accent-active: #cccccc;
+  --accent-glow: rgba(255, 255, 255, 0.25);
+  --accent-glow-strong: rgba(255, 255, 255, 0.4);
 
   /* Semantic */
   --success: #4ADE80;

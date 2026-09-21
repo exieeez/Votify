@@ -5,9 +5,6 @@ import androidx.lifecycle.viewModelScope
 import app.votify.mobile.BuildConfig
 import android.content.Context
 import app.votify.mobile.data.Account
-import app.votify.mobile.data.AppIcon
-import app.votify.mobile.data.AppIcons
-import app.votify.mobile.data.customIconFile
 import app.votify.mobile.data.AppTheme
 import app.votify.mobile.data.CustomPrefs
 import app.votify.mobile.data.NamedPreset
@@ -251,93 +248,6 @@ class SettingsViewModel(
         val next = transform(cur)
         settingsRepo.setCustomPrefs(next.toJson())
         settingsRepo.setTheme(next.toAppTheme())
-    }
-
-    // ------------------------------------------------------------ Иконка приложения
-
-    private val _activeIcon = MutableStateFlow(AppIcons.active(appContext))
-
-    /** Вариант иконки, который сейчас стоит в лаунчере (по данным PackageManager). */
-    val activeIcon: StateFlow<AppIcon> = _activeIcon
-
-    /** Превью иконки: пересобирается при каждой смене варианта. */
-    private val _iconPreview = MutableStateFlow(0)
-
-    /** Растёт при смене иконки — экран настроек по этому сигналу перерисовывает превью. */
-    val iconPreviewTick: StateFlow<Int> = _iconPreview
-
-    fun refreshActiveIcon() {
-        _activeIcon.value = AppIcons.active(appContext)
-        _iconPreview.value = _iconPreview.value + 1
-    }
-
-    /**
-     * Выбор иконки приложения. Переключение делает система ([AppIcons.setLauncherIcon]):
-     * включённым остаётся ровно один launcher-алиас, остальные выключаются — иначе на
-     * рабочем столе появилось бы несколько иконок Votify.
-     */
-    fun selectAppIcon(icon: AppIcon) {
-        viewModelScope.launch {
-            if (icon == AppIcon.Custom && !customIconFile(appContext).exists()) {
-                _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.icon_pick_first)))
-                return@launch
-            }
-            val ok = withContext(Dispatchers.IO) { AppIcons.setLauncherIcon(appContext, icon) }
-            if (!ok) {
-                _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.icon_failed)))
-                refreshActiveIcon()
-                return@launch
-            }
-            updatePrefs { it.copy(appIcon = icon.key) }
-            refreshActiveIcon()
-            _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.icon_applied, iconLabel(icon))))
-        }
-    }
-
-    private fun iconLabel(icon: AppIcon): String = appContext.getString(
-        when (icon) {
-            AppIcon.Current -> app.votify.mobile.R.string.icon_current
-            AppIcon.BlackWhite -> app.votify.mobile.R.string.icon_bw
-            AppIcon.Glass -> app.votify.mobile.R.string.icon_glass
-            AppIcon.Classic -> app.votify.mobile.R.string.icon_classic
-            AppIcon.Custom -> app.votify.mobile.R.string.icon_custom
-        },
-    )
-
-    /** Своя картинка из галереи: сохраняем, показываем и включаем вариант «Своя иконка». */
-    fun importAppIcon(uri: android.net.Uri) {
-        viewModelScope.launch {
-            val ok = AppIcons.importCustomIcon(appContext, uri)
-            if (!ok) {
-                _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.icon_import_failed)))
-                return@launch
-            }
-            selectAppIcon(AppIcon.Custom)
-        }
-    }
-
-    /** Android 16+: системный диалог смены иконки (там можно поставить любую картинку). */
-    fun systemIconIntent(): android.content.Intent? = AppIcons.iconCustomizationIntent(appContext)
-
-    /** Прошивка не поддерживает системную смену иконки — сообщаем об этом в снекбаре. */
-    fun onIconSystemUnavailable() {
-        _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.icon_system_unavailable)))
-    }
-
-    /** Ярлык на рабочий стол с картинкой пользователя. */
-    fun pinCustomIconShortcut() {
-        viewModelScope.launch {
-            val label = appContext.getString(app.votify.mobile.R.string.app_name)
-            val ok = AppIcons.pinCustomShortcut(appContext, label)
-            _events.tryEmit(
-                SettingsEvent.Message(
-                    appContext.getString(
-                        if (ok) app.votify.mobile.R.string.icon_shortcut_added
-                        else app.votify.mobile.R.string.icon_shortcut_failed,
-                    ),
-                ),
-            )
-        }
     }
 
     /** Шрифты/прозрачность apply instantly through VotifyTheme; nothing else to do. */

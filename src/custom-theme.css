@@ -9,7 +9,7 @@ body {
 }
 
 .bg-overlay {
-  background: color-mix(in srgb, var(--bg-base) 52%, transparent) !important;
+  background: color-mix(in srgb, var(--bg-base) 15%, transparent) !important;
 }
 
 .titlebar-strip,
@@ -48,7 +48,6 @@ body {
 .home-rec-card,
 .playlist-card,
 .track-card,
-.track-item,
 .about-card {
   background: color-mix(in srgb, var(--bg-surface) 72%, transparent) !important;
   border-color: var(--bg-highlight) !important;
@@ -56,19 +55,14 @@ body {
 }
 
 .settings-modal,
+.settings-modal:not(.dotify-23-settings-modal),
 .settings-dialog,
-.settings-right-content,
-.settings-section,
 #redesigned-settings-modal,
-body.light-theme .settings-modal,
+body.light-theme .settings-modal:not(.dotify-23-settings-modal),
 body.light-theme .settings-dialog,
-body.light-theme .settings-right-content,
-body.light-theme .settings-section,
 body.light-theme #redesigned-settings-modal,
-body[data-theme-mode="light"] .settings-modal,
+body[data-theme-mode="light"] .settings-modal:not(.dotify-23-settings-modal),
 body[data-theme-mode="light"] .settings-dialog,
-body[data-theme-mode="light"] .settings-right-content,
-body[data-theme-mode="light"] .settings-section,
 body[data-theme-mode="light"] #redesigned-settings-modal {
   background: var(--bg-surface) !important;
   color: var(--text-primary) !important;

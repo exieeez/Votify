@@ -101,12 +101,21 @@ async function handleMusicRoutes(req, res, u) {
       ...trackSeeds.map(seed => searchTracks(seed, perSeedLimit, false)),
     ]);
     const allTracks = results.flatMap(r => (r.status === 'fulfilled' ? r.value : []));
-    const seen = new Set();
+    const normTrackKey = t => {
+      const a = String(t.artist || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+      const tit = String(t.title || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+      return `${a}::${tit}`;
+    };
+    const seenIds = new Set();
+    const seenNames = new Set();
     const unique = allTracks.filter(t => {
       if (!t || !t.id) return false;
       if (excludeIds.has(t.id)) return false;
-      if (seen.has(t.id)) return false;
-      seen.add(t.id);
+      if (seenIds.has(t.id)) return false;
+      const key = normTrackKey(t);
+      if (key.length > 5 && seenNames.has(key)) return false;
+      seenIds.add(t.id);
+      if (key.length > 5) seenNames.add(key);
       return true;
     });
     // Ранжируем по похожести: совпадение артиста весит больше всего, потом —
@@ -263,59 +272,14 @@ async function handleMusicRoutes(req, res, u) {
         return true;
       }
     }
-    const cached = streamCache.get(id);
-    if (cached && cached.expires > Date.now()) {
-      sendJson(res, 200, { url: cached.url });
-      return true;
-    }
     try {
-      const localYtdlpPath = process.env.YT_DLP_PATH || findYtDlp();
-      const proc = spawn(
-        localYtdlpPath,
-        [
-          '--no-check-certificates',
-          '--no-warnings',
-          '--quiet',
-          '-g',
-          '-f',
-          'ba/b',
-          '--socket-timeout',
-          '15',
-          '--max-filesize',
-          '50M',
-          '--extractor-args',
-          'youtube:player_client=android,web',
-          '--user-agent',
-          YT_UA,
-          'https://www.youtube.com/watch?v=' + id,
-        ],
-        { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }
-      );
-      const url = await new Promise((resolve, reject) => {
-        let out = '';
-        proc.stdout.on('data', d => {
-          out += d;
-          const line = out.trim();
-          if (line && line.startsWith('http')) {
-            proc.kill();
-            resolve(line.split('\n')[0]);
-          }
-        });
-        proc.on('error', reject);
-        proc.on('close', code => {
-          if (out.trim()) resolve(out.trim().split('\n')[0]);
-          else reject(new Error('exit ' + code));
-        });
-        setTimeout(() => {
-          proc.kill();
-          reject(new Error('timeout'));
-        }, 30000);
-      });
-      streamCache.set(id, { url, expires: Date.now() + STREAM_CACHE_TTL });
-      sendJson(res, 200, { url });
-      return true;
+      const streamUrl = await fetchStreamUrl(id);
+      if (streamUrl) {
+        sendJson(res, 200, { url: streamUrl });
+        return true;
+      }
     } catch (e) {
-      console.log('yt-dlp -g error for', id, ':', e.message);
+      console.log('[stream] Error fetching stream for', id, ':', e.message);
     }
     sendJson(res, 502, { error: 'No stream available' });
     return true;
@@ -324,10 +288,10 @@ async function handleMusicRoutes(req, res, u) {
   // --- PRELOAD ---
   if (u.pathname === '/api/preload') {
     const ids = u.searchParams.get('ids')?.split(',').filter(Boolean) || [];
-    for (const id of ids.slice(0, 3)) {
+    ids.slice(0, 2).forEach(id => {
       fetchStreamUrl(id).catch(() => {});
-    }
-    sendJson(res, 200, { preloading: ids.length });
+    });
+    sendJson(res, 200, { preloading: Math.min(ids.length, 2) });
     return true;
   }
 

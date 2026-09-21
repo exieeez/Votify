@@ -1,102 +1,11 @@
 (() => {
   const CACHE_KEY = 'votify-workshop-themes-v1';
-  const BUILTIN_THEMES = [
-    {
-      id: 'builtin-aurora',
-      title: 'Aurora',
-      description: 'Холодное сияние, мягкие карточки и звёздные частицы.',
-      ownerId: 'votify',
-      authorName: 'Votify',
-      builtIn: true,
-      theme: {
-        primary: '#38BDF8',
-        background: '#07111F',
-        text: '#F1F7FF',
-        cards: '#101D2C',
-        borders: '#28445D',
-        focus: '#38BDF8',
-        mode: 'dark',
-        backgroundPreset: 'grad-2',
-        cornerRadius: 16,
-        uiTransparency: 60,
-        backgroundBlur: 12,
-        particles: 'stars',
-        fontFamily: 'modern',
-      },
-    },
-    {
-      id: 'builtin-sakura',
-      title: 'Sakura Night',
-      description: 'Тёмно-розовая тема с плавными формами и лепестками сакуры.',
-      ownerId: 'votify',
-      authorName: 'Votify',
-      builtIn: true,
-      theme: {
-        primary: '#F43F5E',
-        background: '#1A0C12',
-        text: '#FFF1F4',
-        cards: '#2A111A',
-        borders: '#542333',
-        focus: '#FB7185',
-        mode: 'dark',
-        backgroundPreset: 'grad-8',
-        cornerRadius: 20,
-        uiTransparency: 64,
-        backgroundBlur: 14,
-        particles: 'sakura',
-        fontFamily: 'hand',
-      },
-    },
-    {
-      id: 'builtin-terminal',
-      title: 'Terminal Green',
-      description: 'Контрастный зелёный интерфейс в стиле музыкального терминала.',
-      ownerId: 'votify',
-      authorName: 'Votify',
-      builtIn: true,
-      theme: {
-        primary: '#4AF626',
-        background: '#050805',
-        text: '#E8FFE4',
-        cards: '#0B120A',
-        borders: '#1F3D1A',
-        focus: '#4AF626',
-        mode: 'dark',
-        backgroundPreset: 'default',
-        cornerRadius: 4,
-        uiTransparency: 82,
-        backgroundBlur: 0,
-        particles: 'network',
-        fontFamily: 'mono',
-      },
-    },
-    {
-      id: 'builtin-porcelain',
-      title: 'Porcelain',
-      description: 'Светлая спокойная тема с фиолетовым акцентом.',
-      ownerId: 'votify',
-      authorName: 'Votify',
-      builtIn: true,
-      theme: {
-        primary: '#6750A4',
-        background: '#F7F2FA',
-        text: '#1D1B20',
-        cards: '#FFFFFF',
-        borders: '#CAC4D0',
-        focus: '#6750A4',
-        mode: 'light',
-        backgroundPreset: 'default',
-        cornerRadius: 16,
-        uiTransparency: 92,
-        backgroundBlur: 0,
-        particles: 'none',
-        fontFamily: 'modern',
-      },
-    },
-  ].map(item => cleanThemeDocument(item));
+  const BUILTIN_THEMES = [];
+
   const state = {
     themes: mergeWithBuiltins(readCache()),
     query: '',
+    filter: 'all',
     loading: false,
     loadedAt: 0,
     publishTheme: null,
@@ -200,6 +109,8 @@
       description: String(item?.description || '').slice(0, 240),
       ownerId: String(item?.ownerId || '').slice(0, 128),
       authorName: String(item?.authorName || 'Пользователь').slice(0, 40),
+      downloads: String(item?.downloads != null ? item.downloads : '0'),
+      category: String(item?.category || 'themes'),
       theme: cleanTheme(item?.theme),
       createdAt: Number(item?.createdAt) || 0,
       builtIn: item?.builtIn === true,
@@ -283,102 +194,107 @@
     const query = state.query.trim().toLocaleLowerCase('ru');
     const currentUser = window.VotifyCloud?.getCurrentUser?.();
     const installedId = installedThemeId();
-    const filtered = state.themes.filter(theme => {
+
+    let filtered = state.themes.filter(theme => {
+      // Category filter
+      if (state.filter === 'presets' && theme.category !== 'presets') return false;
+      if (state.filter === 'themes' && theme.category !== 'themes' && theme.builtIn) return false;
+      if (state.filter === 'backgrounds' && !theme.theme?.backgroundUrl) return false;
+      if (state.filter === 'equalizer' && theme.category !== 'equalizer') return false;
+
       if (!query) return true;
       return `${theme.title} ${theme.description} ${theme.authorName}`
         .toLocaleLowerCase('ru')
         .includes(query);
     });
 
-    // Default theme card (always first, unless searching)
-    const defaultThemeCard = !query ? `
-      <article class="workshop-card workshop-card-default" data-theme-id="default">
-        <div class="workshop-theme-preview workshop-preview-bg-default" style="--preview-bg:#121212;--preview-card:#181818;--preview-accent:#FFFFFF;--preview-text:#FFFFFF;--preview-border:#282828;--preview-focus:#FFFFFF;--preview-radius:8px">
-          <div class="workshop-preview-sidebar"><span></span><span></span><span></span></div>
-          <div class="workshop-preview-content">
-            <div class="workshop-preview-topline">
-              <div class="workshop-preview-heading"></div>
-              <div class="workshop-preview-palette" title="Палитра темы">
-                <i style="background:#FFFFFF"></i><i style="background:#121212"></i><i style="background:#181818"></i><i style="background:#FFFFFF"></i><i style="background:#282828"></i><i style="background:#FFFFFF"></i>
-              </div>
-            </div>
-            <div class="workshop-preview-cards"><span></span><span></span><span></span></div>
-            <div class="workshop-preview-player"><i></i><b></b><em></em></div>
-          </div>
-        </div>
-        <div class="workshop-card-body">
-          <div class="workshop-card-heading">
-            <div>
-              <h3>Стандартная тема</h3>
-              <span>от Votify · встроенная</span>
-            </div>
-            <span class="workshop-own-badge">Дефолт</span>
-          </div>
-          <p>Тёмно-серая тема в стиле Dotify — чёрно-белая, минималистичная, без цветов. Фон #121212, карточки #181818. Фоновые частицы выключены.</p>
-          <div class="workshop-theme-details">
-            <span><i style="background:#FFFFFF"></i>contrast</span>
-            <span>8px</span>
-            <span>system</span>
-            <span>без частиц</span>
-          </div>
-          <div class="workshop-card-actions">
-            <button class="workshop-install-btn" data-action="install-default">
-              <i class="material-icons">restart_alt</i>
-              Восстановить
-            </button>
-          </div>
-        </div>
-      </article>
-    ` : '';
+    if (state.filter === 'popular') {
+      filtered = [...filtered].sort((a, b) => parseFloat(b.downloads || 0) - parseFloat(a.downloads || 0));
+    }
 
     if (!filtered.length && query) {
       grid.innerHTML = `
         <div class="workshop-empty">
-          <i class="material-icons">palette</i>
+          <i class="material-icons">search_off</i>
           <h3>Ничего не найдено</h3>
-          <p>Попробуйте изменить поисковый запрос.</p>
+          <p>Попробуйте изменить поисковый запрос или выбрать другую категорию.</p>
         </div>`;
       return;
     }
 
     if (!filtered.length && !query) {
-      grid.innerHTML = defaultThemeCard + `
+      grid.innerHTML = `
         <div class="workshop-empty">
           <i class="material-icons">palette</i>
-          <h3>В мастерской пока нет тем</h3>
-          <p>Станьте первым автором и опубликуйте своё оформление. Стандартная тема уже установлена.</p>
+          <h3>В этой категории пока нет тем</h3>
+          <p>Будьте первым автором — опубликуйте своё новое оформление!</p>
         </div>`;
       return;
     }
 
-    grid.innerHTML = defaultThemeCard + filtered
+    grid.innerHTML = filtered
       .map(theme => {
         const own = !!currentUser && !currentUser.isAnonymous && theme.ownerId === currentUser.uid;
         const installed = installedId === theme.id;
+        const bgUrl = theme.theme?.backgroundUrl;
+        const authorHandle = theme.authorName.startsWith('@') ? theme.authorName : `@${theme.authorName}`;
+        const showDots = theme.title === 'Состояние' || theme.hasDots;
+
         return `
           <article class="workshop-card" data-theme-id="${escapeHtml(theme.id)}">
-            ${previewMarkup(theme.theme)}
+            <div class="workshop-card-preview">
+              ${
+                bgUrl
+                  ? `<img class="workshop-card-img" src="${escapeHtml(bgUrl)}" alt="${escapeHtml(theme.title)}" />`
+                  : previewMarkup(theme.theme)
+              }
+              ${
+                showDots
+                  ? `<div class="workshop-card-dots">
+                      <span class="workshop-card-dot active"></span>
+                      <span class="workshop-card-dot"></span>
+                      <span class="workshop-card-dot"></span>
+                     </div>`
+                  : ''
+              }
+            </div>
             <div class="workshop-card-body">
-              <div class="workshop-card-heading">
-                <div>
-                  <h3>${escapeHtml(theme.title)}</h3>
-                  <span>от ${escapeHtml(theme.authorName)} · ${theme.builtIn ? 'встроенная' : escapeHtml(formatDate(theme.createdAt))}</span>
+              <div class="workshop-card-row-top">
+                <div class="workshop-card-title-wrap">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="workshop-cube-icon">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                  </svg>
+                  <h3 class="workshop-card-title">${escapeHtml(theme.title)}</h3>
                 </div>
-                ${theme.builtIn ? '<span class="workshop-own-badge">Официальная</span>' : own ? '<span class="workshop-own-badge">Ваша</span>' : ''}
+                <div class="workshop-card-downloads">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>${escapeHtml(String(theme.downloads != null ? theme.downloads : '0'))}</span>
+                </div>
               </div>
-              <p>${escapeHtml(theme.description || 'Автор не добавил описание.')}</p>
-              <div class="workshop-theme-details">
-                <span><i style="background:${theme.theme.primary}"></i>${escapeHtml(theme.theme.mode)}</span>
-                <span>${theme.theme.cornerRadius}px</span>
-                <span>${escapeHtml(theme.theme.fontFamily)}</span>
-                ${theme.theme.backgroundUrl ? '<span><i class="material-icons">link</i>URL-фон</span>' : ''}
-              </div>
+              <div class="workshop-card-author">${escapeHtml(authorHandle)}</div>
+              ${theme.description ? `<div class="workshop-card-desc">${escapeHtml(theme.description)}</div>` : ''}
               <div class="workshop-card-actions">
-                <button class="workshop-install-btn ${installed ? 'installed' : ''}" data-action="install">
-                  <i class="material-icons">${installed ? 'check' : 'download'}</i>
-                  ${installed ? 'Установлена' : 'Установить'}
+                <button class="workshop-install-pill-btn ${installed ? 'installed' : ''}" data-action="install">
+                  <span>${installed ? 'Установлено' : 'Скачать'}</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
                 </button>
-                ${own ? '<button class="workshop-delete-btn" data-action="delete" title="Удалить тему"><i class="material-icons">delete_outline</i></button>' : ''}
+                <button class="workshop-preview-eye-btn" data-action="preview" title="Предпросмотр темы">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+                ${own ? '<button class="workshop-delete-btn" data-action="delete" title="Удалить"><i class="material-icons">delete_outline</i></button>' : ''}
               </div>
             </div>
           </article>`;
@@ -564,6 +480,15 @@
       return;
     }
 
+    if (actionButton.dataset.action === 'preview') {
+      window.VotifyThemeWorkshop?.applyTheme?.(theme.theme, {
+        id: theme.id,
+        title: theme.title,
+      });
+      setStatus(`Предпросмотр темы «${theme.title}»`, 'success');
+      return;
+    }
+
     if (actionButton.dataset.action === 'delete') {
       if (!window.confirm(`Удалить тему «${theme.title}» из мастерской?`)) return;
       actionButton.disabled = true;
@@ -602,12 +527,10 @@
           cornerRadius: 8,
           uiTransparency: 100,
           backgroundBlur: 0,
-          // De-slop: стандартная тема — без частиц; включаются только вручную.
           particles: 'none',
           fontFamily: 'system'
       };
         window.VotifyThemeWorkshop.applyTheme(defaultTheme, { id: '', title: 'Стандартная тема' });
-        // Clear active scheme id
         const settingsStr = localStorage.getItem('votify-settings');
         if (settingsStr) {
           const settings = JSON.parse(settingsStr);
@@ -630,6 +553,16 @@
       state.query = event.target.value || '';
       renderThemes();
     });
+
+    document.querySelectorAll('.workshop-cat-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.workshop-cat-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.filter = pill.dataset.filter || 'all';
+        renderThemes();
+      });
+    });
+
     document
       .getElementById('workshop-refresh-btn')
       ?.addEventListener('click', () => loadThemes(true));

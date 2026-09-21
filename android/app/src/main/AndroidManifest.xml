@@ -18,92 +18,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Votify">
 
-        <!--
-            Точка входа — только через activity-alias ниже (по одному на каждый вариант
-            иконки). У самой MainActivity intent-фильтра нет: иначе на рабочем столе
-            висели бы две иконки Votify, а переключение варианта не работало бы.
-        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.Votify" />
-
-        <!-- Иконка «как сейчас» (по умолчанию включена). -->
-        <activity-alias
-            android:name=".VotifyLauncher.Current"
-            android:targetActivity=".MainActivity"
-            android:enabled="true"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:roundIcon="@mipmap/ic_launcher"
-            android:label="@string/app_name">
+            android:theme="@style/Theme.Votify">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity-alias>
-
-        <!-- Ч/Б: та же иконка без серой полосы. -->
-        <activity-alias
-            android:name=".VotifyLauncher.Bw"
-            android:targetActivity=".MainActivity"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_bw"
-            android:roundIcon="@mipmap/ic_launcher_bw"
-            android:label="@string/app_name">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <!-- Старый логотип в духе iOS 27: стекло, блик, светлая кромка. -->
-        <activity-alias
-            android:name=".VotifyLauncher.Glass"
-            android:targetActivity=".MainActivity"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_glass"
-            android:roundIcon="@mipmap/ic_launcher_glass"
-            android:label="@string/app_name">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <!-- Старый логотип как есть: чёрная плитка со светлым диском. -->
-        <activity-alias
-            android:name=".VotifyLauncher.Classic"
-            android:targetActivity=".MainActivity"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_classic"
-            android:roundIcon="@mipmap/ic_launcher_classic"
-            android:label="@string/app_name">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <!-- Своя картинка из галереи (картинку показывает само приложение и ярлык). -->
-        <activity-alias
-            android:name=".VotifyLauncher.Custom"
-            android:targetActivity=".MainActivity"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_custom"
-            android:roundIcon="@mipmap/ic_launcher_custom"
-            android:label="@string/app_name">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
+        </activity>
 
         <service
             android:name=".player.PlaybackService"

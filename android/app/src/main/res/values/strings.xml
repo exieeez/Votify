@@ -572,29 +572,4 @@
     <string name="workshop_delete">Удалить</string>
     <string name="workshop_deleted">Тема удалена</string>
     <string name="workshop_unlinked">Тема отвязана</string>
-    <!-- Иконка приложения (Настройки → Иконка приложения, самый верхний раздел) -->
-    <string name="icon_section">Иконка приложения</string>
-    <string name="icon_section_sub">Вариант иконки на рабочем столе. Ч/Б — та же иконка без серой полосы, «в духе iOS 27» и «старая» — прежний логотип Votify.</string>
-    <string name="icon_current">Как сейчас</string>
-    <string name="icon_bw">Ч/Б</string>
-    <string name="icon_glass">В духе iOS 27</string>
-    <string name="icon_classic">Старая</string>
-    <string name="icon_custom">Своя иконка</string>
-    <string name="icon_pick">Выбрать картинку</string>
-    <string name="icon_change">Сменить картинку</string>
-    <string name="icon_applied">Иконка изменена: %1$s</string>
-    <string name="icon_failed">Не удалось сменить иконку — оставили прежнюю</string>
-    <string name="icon_import_failed">Не удалось прочитать картинку</string>
-    <string name="icon_pick_first">Сначала выберите картинку для иконки</string>
-    <string name="icon_system_title">Своя картинка в системе</string>
-    <string name="icon_system_sub">Android 16 и новее: системный диалог смены иконки — лаунчер подменит иконку на любую картинку</string>
-    <string name="icon_system_open">Открыть системный выбор</string>
-    <string name="icon_system_unavailable">Эта прошивка не умеет менять иконку приложения — используйте вариант иконки или ярлык</string>
-    <string name="icon_shortcut_title">Ярлык с картинкой</string>
-    <string name="icon_shortcut_sub">Добавить на рабочий стол ярлык с вашей картинкой — работает на любом Android</string>
-    <string name="icon_shortcut_add">Добавить ярлык</string>
-    <string name="icon_shortcut_added">Запрос на ярлык отправлен — подтвердите на рабочем столе</string>
-    <string name="icon_shortcut_failed">Лаунчер не поддерживает ярлыки</string>
-    <string name="icon_note">Иконку в лаунчере задаёт система: приложение переключает только встроенные варианты (иконка — часть APK). Своя картинка ставится системным диалогом Android 16+ или ярлыком.</string>
-    <string name="icon_active">выбрано</string>
 </resources>

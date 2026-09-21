@@ -11,33 +11,6 @@ const crypto = require('crypto');
 
 const appRoot = path.dirname(__dirname);
 
-// --- Статика и адреса в локальной сети -------------------------------------------------
-// index.html, стили, скрипты, иконки раздаёт serveStatic из корневого utils.js: там же
-// таблица MIME_TYPES и srcDir. После разделения модулей server.js продолжал импортировать
-// serveStatic отсюда, и статика отдавала 500 — UI нельзя было открыть ни в Electron, ни с
-// телефона. Реэкспортируем один общий экземпляр, чтобы не дублировать код.
-const { serveStatic } = require('../utils.js');
-
-/**
- * Адреса этого ПК в локальной сети — для ярлыка Votify на телефоне
- * (Настройки → Основные → «Votify на телефоне»). Домашние сети (192.168.*, 10.*)
- * идут первыми: с них телефон почти всегда и открывает плеер.
- */
-function getLanAddresses() {
-  const out = [];
-  const ifaces = os.networkInterfaces();
-  Object.keys(ifaces).forEach(name => {
-    (ifaces[name] || []).forEach(iface => {
-      const family = typeof iface.family === 'string' ? iface.family : String(iface.family);
-      if (family !== 'IPv4' || iface.internal) return;
-      out.push(iface.address);
-    });
-  });
-  const rank = ip =>
-    ip.startsWith('192.168.') ? 0 : ip.startsWith('10.') ? 1 : ip.startsWith('172.') ? 2 : 3;
-  return out.sort((a, b) => rank(a) - rank(b));
-}
-
 const os = require('os');
 function getConfigDir() {
   if (process.platform === 'win32') {
@@ -186,7 +159,7 @@ const resetCodes = new Map();
 
 const streamCache = new Map();
 const searchCache = new Map();
-const STREAM_CACHE_TTL = 90 * 60 * 1000;
+const STREAM_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours, matches mobile EmbeddedMusicSource
 const SEARCH_CACHE_TTL = 10 * 60 * 1000;
 
 const YT_UA = (() => {
@@ -398,15 +371,143 @@ function extractYTTracksFromContents(contents, limit) {
   return tracks;
 }
 
+function extractYTMArtist(runs, fallback) {
+  if (!Array.isArray(runs) || runs.length === 0) return fallback || 'Unknown Artist';
+
+  const firstText = runs[0]?.text?.trim();
+  if (['Выпуск', 'Подкаст', 'Профиль', 'Плейлист'].includes(firstText)) {
+    return null;
+  }
+
+  const artistRun = runs.find(
+    r =>
+      r.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig
+        ?.pageType === 'MUSIC_PAGE_TYPE_ARTIST' ||
+      r.navigationEndpoint?.browseEndpoint?.browseId?.startsWith('UC')
+  );
+  if (artistRun && artistRun.text?.trim() && !['Исполнитель', 'Artist'].includes(artistRun.text.trim())) {
+    return artistRun.text.trim();
+  }
+
+  const filtered = runs
+    .map(r => r.text?.trim())
+    .filter(Boolean)
+    .filter(
+      t =>
+        ![
+          '•',
+          ',',
+          'Композиция',
+          'Песня',
+          'Видео',
+          'Выпуск',
+          'Подкаст',
+          'Профиль',
+          'Плейлист',
+          'Альбом',
+          'Сингл',
+          'Исполнитель',
+          'Artist',
+          'Song',
+          'Video',
+          'Track',
+          'Single',
+          'Album',
+          'Playlist',
+        ].includes(t)
+    )
+    .filter(t => !/^\d+:\d+$/.test(t))
+    .filter(t => !/\d+\s*(тыс|млн|млрд|k|m|b|views|просмотр)/i.test(t))
+    .filter(t => !/^\d{4}$/.test(t))
+    .filter(t => !/^\d+\s+[а-яёa-z]+(\s+\d{4})?/i.test(t));
+
+  return filtered[0] || fallback || 'Unknown Artist';
+}
+
 async function ytInnerTubeSearch(query, limit) {
+  // 1. Query YouTube Music (WEB_REMIX) for pure song metadata
+  try {
+    const ytmBody = {
+      query: String(query),
+      context: {
+        client: {
+          clientName: 'WEB_REMIX',
+          clientVersion: '1.20241126.01.00',
+          hl: 'ru',
+          gl: 'RU',
+        },
+      },
+    };
+    const ytmData = await httpPostJSON('https://music.youtube.com/youtubei/v1/search?prettyPrint=false', ytmBody, 4000);
+    if (ytmData && typeof ytmData === 'object') {
+      const tracks = [];
+      const seen = new Set();
+      const sections = ytmData?.contents?.tabbedSearchResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents || [];
+
+      for (const sec of sections) {
+        if (tracks.length >= limit) break;
+        if (sec.musicCardShelfRenderer) {
+          const card = sec.musicCardShelfRenderer;
+          const title = card.title?.runs?.map(r => r.text).join('') || '';
+          const rawRuns = card.subtitle?.runs || [];
+          const artist = extractYTMArtist(rawRuns, 'Unknown');
+          const videoId = card.buttons?.find(b => b.buttonRenderer?.navigationEndpoint?.watchEndpoint?.videoId)?.buttonRenderer?.navigationEndpoint?.watchEndpoint?.videoId || card.onTap?.watchEndpoint?.videoId;
+          let rawCover = card.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.pop()?.url || '';
+          let cover = rawCover.trim();
+          if (cover.startsWith('//')) cover = 'https:' + cover;
+          if (cover.includes('googleusercontent.com')) {
+            cover = cover.replace(/=w\d+-h\d+[^?]*/, '=w544-h544-l90-rj');
+          } else if (!cover) {
+            cover = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+          }
+          if (videoId && title && artist && !isBlockedTitle(title) && !seen.has(videoId)) {
+            seen.add(videoId);
+            tracks.push(makeTrack(videoId, title, artist, cover));
+          }
+        }
+        const items = sec.musicShelfRenderer?.contents || sec.itemSectionRenderer?.contents || [];
+        for (const item of items) {
+          if (tracks.length >= limit) break;
+          const r = item.musicResponsiveListItemRenderer || item.videoRenderer;
+          if (!r) continue;
+          const videoId = r.videoId || r.playlistItemData?.videoId || r.flexColumns?.[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.navigationEndpoint?.watchEndpoint?.videoId;
+          if (!videoId || seen.has(videoId)) continue;
+          let title = r.title?.runs?.map(x => x.text).join('') || r.title?.simpleText || '';
+          let fallbackArtist = r.ownerText?.runs?.[0]?.text || r.shortBylineText?.runs?.[0]?.text || '';
+          let colRuns = r.flexColumns?.[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs;
+          if (r.flexColumns?.[0]) {
+            title = r.flexColumns[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.map(x => x.text).join('') || title;
+          }
+          const artist = extractYTMArtist(colRuns, fallbackArtist);
+          if (!artist || !title || isBlockedTitle(title)) continue;
+          const thumbnails = r.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails || r.thumbnail?.thumbnails || [];
+          let rawCover = thumbnails.pop()?.url || '';
+          let cover = rawCover.trim();
+          if (cover.startsWith('//')) cover = 'https:' + cover;
+          if (cover.includes('googleusercontent.com')) {
+            cover = cover.replace(/=w\d+-h\d+[^?]*/, '=w544-h544-l90-rj');
+          } else if (!cover) {
+            cover = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+          }
+          seen.add(videoId);
+          tracks.push(makeTrack(videoId, title, artist, cover));
+        }
+      }
+      if (tracks.length > 0) {
+        return tracks.slice(0, limit);
+      }
+    }
+  } catch (e) {}
+
+  // 2. Standard YouTube search fallback
   const body = {
     query: query + ' music',
     context: {
       client: {
         clientName: 'WEB',
         clientVersion: '2.20241126.01.00',
-        hl: 'en',
-        gl: 'US',
+        hl: 'ru',
+        gl: 'RU',
       },
     },
     params: 'EgIQAQ%3D%3D',
@@ -414,7 +515,7 @@ async function ytInnerTubeSearch(query, limit) {
   const data = await httpPostJSON(
     'https://www.youtube.com/youtubei/v1/search?prettyPrint=false',
     body,
-    10000
+    6000
   );
   if (!data || typeof data !== 'object') return [];
   const contents =
@@ -642,18 +743,27 @@ async function searchTracksByArtist(name, limit) {
 }
 
 async function getRecommendations(limit = RECOMMENDATION_LIMIT) {
-  // This route is called during application start.  Previously each seed was
-  // queried one after another; when YouTube was unavailable that kept the
-  // startup request pending for several minutes.  A small parallel batch gives
-  // a varied home page without making launch depend on a long network chain.
-  const seedCount = Math.min(6, RECOMMENDATION_SEEDS.length);
-  const seeds = RECOMMENDATION_SEEDS.slice(0, seedCount);
+  // Pick a fresh randomized selection of seeds on each call
+  const shuffledSeeds = [...RECOMMENDATION_SEEDS].sort(() => Math.random() - 0.5);
+  const seedCount = Math.min(8, shuffledSeeds.length);
+  const seeds = shuffledSeeds.slice(0, seedCount);
   const results = await Promise.allSettled(seeds.map(seed => searchTracks(seed, 3, false)));
   const allTracks = results.flatMap(result => (result.status === 'fulfilled' ? result.value : []));
-  const seen = new Set();
+
+  const normTrackKey = t => {
+    const a = String(t.artist || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    const tit = String(t.title || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    return `${a}::${tit}`;
+  };
+  const seenIds = new Set();
+  const seenNames = new Set();
   const unique = allTracks.filter(t => {
-    if (seen.has(t.id)) return false;
-    seen.add(t.id);
+    if (!t || !t.id) return false;
+    if (seenIds.has(t.id)) return false;
+    const key = normTrackKey(t);
+    if (key.length > 5 && seenNames.has(key)) return false;
+    seenIds.add(t.id);
+    if (key.length > 5) seenNames.add(key);
     return true;
   });
   if (!unique.length) {
@@ -747,82 +857,248 @@ const AUDIO_QUALITY_FORMATS = {
   low: 'worstaudio/bestaudio[abr<=96]/bestaudio/best',
 };
 
+async function fetchFastInnerTubeStreamUrl(videoId) {
+  const clients = [
+    { clientName: 'ANDROID_VR', clientVersion: '1.58.19', androidSdkVersion: 32 },
+    { clientName: 'ANDROID_MUSIC', clientVersion: '6.42.52', androidSdkVersion: 31 },
+    { clientName: 'ANDROID', clientVersion: '19.29.37', androidSdkVersion: 30 },
+  ];
+
+  for (const c of clients) {
+    try {
+      const payload = {
+        videoId: String(videoId),
+        context: {
+          client: {
+            clientName: c.clientName,
+            clientVersion: c.clientVersion,
+            androidSdkVersion: c.androidSdkVersion,
+            hl: 'en',
+            gl: 'US',
+          },
+        },
+      };
+      const resData = await httpPostJSON('https://www.youtube.com/youtubei/v1/player', payload, 2000);
+      if (resData && resData.streamingData && Array.isArray(resData.streamingData.adaptiveFormats)) {
+        const formats = resData.streamingData.adaptiveFormats;
+        const audioFormats = formats.filter(f => f.mimeType && f.mimeType.startsWith('audio/') && f.url);
+        if (audioFormats.length > 0) {
+          audioFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+          return audioFormats[0].url;
+        }
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
+// --- Persistent In-Memory Stream Resolver Daemon ---
+let resolverDaemonProc = null;
+const resolverPending = new Map();
+let resolverReqCounter = 0;
+let resolverDaemonDisabled = false;
+
+function getResolverDaemon() {
+  if (resolverDaemonDisabled) return null;
+  if (resolverDaemonProc && !resolverDaemonProc.killed && resolverDaemonProc.exitCode === null) {
+    return resolverDaemonProc;
+  }
+
+  const daemonPath = path.join(__dirname, 'resolver_daemon.py');
+  if (!fs.existsSync(daemonPath)) return null;
+
+  try {
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const proc = spawn(pythonCmd, [daemonPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
+
+    let buffer = '';
+    proc.stdout.on('data', data => {
+      buffer += data.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === 'READY') continue;
+        try {
+          const res = JSON.parse(trimmed);
+          if (res && res.id && resolverPending.has(res.id)) {
+            const { resolve, reject, timer } = resolverPending.get(res.id);
+            clearTimeout(timer);
+            resolverPending.delete(res.id);
+            if (res.url) resolve(res.url);
+            else reject(new Error(res.error || 'No url returned'));
+          }
+        } catch (e) {}
+      }
+    });
+
+    proc.on('error', err => {
+      console.warn('[resolver_daemon] Python daemon spawn error:', err.message);
+      resolverDaemonProc = null;
+      resolverDaemonDisabled = true;
+    });
+
+    proc.on('close', code => {
+      if (resolverDaemonProc === proc) resolverDaemonProc = null;
+      for (const [id, { reject, timer }] of resolverPending.entries()) {
+        clearTimeout(timer);
+        reject(new Error('daemon closed with code ' + code));
+      }
+      resolverPending.clear();
+    });
+
+    resolverDaemonProc = proc;
+    return resolverDaemonProc;
+  } catch (err) {
+    console.warn('[resolver_daemon] Init error:', err.message);
+    resolverDaemonDisabled = true;
+    return null;
+  }
+}
+
+const inflightStreams = new Map();
+
+async function fetchFromDaemon(videoId, quality, timeoutMs = 8000) {
+  const daemon = getResolverDaemon();
+  if (!daemon || !daemon.stdin || daemon.stdin.destroyed) return null;
+
+  return new Promise((resolve, reject) => {
+    const reqId = 'req_' + (++resolverReqCounter) + '_' + Date.now();
+    const timer = setTimeout(() => {
+      resolverPending.delete(reqId);
+      if (daemon && daemon.stdin && !daemon.stdin.destroyed) {
+        try { daemon.stdin.write(JSON.stringify({ cancel: reqId }) + '\n'); } catch (e) {}
+      }
+      reject(new Error('daemon timeout'));
+    }, timeoutMs);
+
+    resolverPending.set(reqId, { resolve, reject, timer });
+    try {
+      daemon.stdin.write(JSON.stringify({ id: reqId, videoId, quality }) + '\n');
+    } catch (e) {
+      clearTimeout(timer);
+      resolverPending.delete(reqId);
+      reject(e);
+    }
+  });
+}
+
 async function fetchStreamUrl(videoId) {
+  if (!videoId || typeof videoId !== 'string') return null;
+  const vid = videoId.trim();
+  if (vid.startsWith('local_') || vid.startsWith('demo_') || vid.startsWith('mock-') || vid.startsWith('fb-')) {
+    return null;
+  }
+
   const quality = networkConfig.audioQuality || 'medium';
-  const cacheKey = `${videoId}::${quality}`;
+  const cacheKey = `${vid}::${quality}`;
   const cached = streamCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
     return cached.url;
   }
 
-  // SoundCloud tracks
-  if (String(videoId).startsWith('sc_')) {
+  if (inflightStreams.has(cacheKey)) {
+    return inflightStreams.get(cacheKey);
+  }
+
+  const resolvePromise = (async () => {
+    // SoundCloud tracks
+    if (vid.startsWith('sc_')) {
+      try {
+        const url = await scGetStreamUrl(vid);
+        if (url) {
+          streamCache.set(cacheKey, { url, expires: Date.now() + STREAM_CACHE_TTL });
+          return url;
+        }
+      } catch (e) {
+        console.log('[soundcloud] Stream error for', vid, ':', e.message);
+      }
+      return null;
+    }
+
+    // 1. Try fast InnerTube HTTP direct stream extraction (~150-350ms, mobile parity)
     try {
-      const url = await scGetStreamUrl(videoId);
+      const fastUrl = await fetchFastInnerTubeStreamUrl(vid);
+      if (fastUrl) {
+        streamCache.set(cacheKey, { url: fastUrl, expires: Date.now() + STREAM_CACHE_TTL });
+        return fastUrl;
+      }
+    } catch (e) {}
+
+    // 2. Try persistent in-memory python resolver daemon (~1.2s on cold)
+    try {
+      const daemonUrl = await fetchFromDaemon(vid, quality, 8000);
+      if (daemonUrl) {
+        streamCache.set(cacheKey, { url: daemonUrl, expires: Date.now() + STREAM_CACHE_TTL });
+        return daemonUrl;
+      }
+    } catch (e) {}
+
+    // 3. Fallback to bundled yt-dlp binary
+    const fetchYtDlp = async () => {
+      const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
+      const ytdlpArgs = [
+        '--no-check-certificates',
+        '--no-warnings',
+        '--no-playlist',
+        '--quiet',
+        '--extractor-args',
+        'youtube:player_client=android',
+        '-g',
+        '-f',
+        AUDIO_QUALITY_FORMATS[quality] || 'ba/b',
+        '--socket-timeout',
+        '6',
+        '--user-agent',
+        YT_UA,
+      ];
+      ytdlpArgs.push('https://www.youtube.com/watch?v=' + vid);
+
+      const proc = spawn(ytdlpPath, ytdlpArgs, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+      return new Promise((resolve, reject) => {
+        let out = '';
+        proc.stdout.on('data', d => {
+          out += d;
+          const line = out.trim();
+          if (line && line.startsWith('http')) {
+            proc.kill();
+            resolve(line.split('\n')[0]);
+          }
+        });
+        proc.on('error', reject);
+        proc.on('close', code => {
+          if (out.trim()) resolve(out.trim().split('\n')[0]);
+          else reject(new Error('exit ' + code));
+        });
+        setTimeout(() => {
+          proc.kill();
+          reject(new Error('timeout'));
+        }, 10000);
+      });
+    };
+
+    try {
+      const url = await fetchYtDlp();
       if (url) {
         streamCache.set(cacheKey, { url, expires: Date.now() + STREAM_CACHE_TTL });
         return url;
       }
-    } catch (e) {
-      console.log('[soundcloud] Stream error for', videoId, ':', e.message);
+    } catch (error) {
+      console.error('[yt-dlp] Stream resolution failed for', vid, ':', error.message);
     }
+
     return null;
-  }
+  })();
 
-  // Resolve YouTube streams with the bundled yt-dlp binary.
-  const fetchYtDlp = async () => {
-    const ytdlpPath = process.env.YT_DLP_PATH || findYtDlp();
-    const ytdlpArgs = [
-      '--no-check-certificates',
-      '--no-warnings',
-      '--no-playlist',
-      '--quiet',
-      '-g',
-      '-f',
-      AUDIO_QUALITY_FORMATS[quality] || 'ba/b',
-      '--socket-timeout',
-      '12',
-      '--extractor-args',
-      'youtube:player_client=android,web',
-      '--user-agent',
-      YT_UA,
-    ];
-    ytdlpArgs.push('https://www.youtube.com/watch?v=' + videoId);
-
-    const proc = spawn(ytdlpPath, ytdlpArgs, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-    return new Promise((resolve, reject) => {
-      let out = '';
-      proc.stdout.on('data', d => {
-        out += d;
-        const line = out.trim();
-        if (line && line.startsWith('http')) {
-          proc.kill();
-          resolve(line.split('\n')[0]);
-        }
-      });
-      proc.on('error', reject);
-      proc.on('close', code => {
-        if (out.trim()) resolve(out.trim().split('\n')[0]);
-        else reject(new Error('exit ' + code));
-      });
-      setTimeout(() => {
-        proc.kill();
-        reject(new Error('timeout'));
-      }, 20000);
-    });
-  };
-
+  inflightStreams.set(cacheKey, resolvePromise);
   try {
-    const url = await fetchYtDlp();
-    if (url) {
-      streamCache.set(cacheKey, { url, expires: Date.now() + STREAM_CACHE_TTL });
-      return url;
-    }
-  } catch (error) {
-    console.error('[yt-dlp] Stream resolution failed for', videoId, ':', error.message);
+    return await resolvePromise;
+  } finally {
+    inflightStreams.delete(cacheKey);
   }
-
-  return null;
 }
 
 // --- SOUNDCLOUD ---
@@ -962,6 +1238,46 @@ async function scImportPlaylist(playlistUrl) {
   }
 }
 
+/* ------------------------------------------------------------
+   Статика UI (src/) — веб-превью без Electron
+   ------------------------------------------------------------ */
+const fsPromises = require('fs/promises');
+const srcDir = path.resolve(process.env.VOTIFY_SRC_DIR || path.join(appRoot, 'src'));
+
+const STATIC_MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+};
+
+async function serveStatic(reqPath, res) {
+  const norm = reqPath === '/' ? '/index.html' : reqPath;
+  const fp = path.normalize(path.join(srcDir, norm));
+  if (!fp.startsWith(srcDir)) {
+    sendJson(res, 403, { error: 'Forbidden' });
+    return;
+  }
+  try {
+    const content = await fsPromises.readFile(fp);
+    res.writeHead(200, {
+      'Content-Type':
+        STATIC_MIME_TYPES[path.extname(fp).toLowerCase()] || 'application/octet-stream',
+    });
+    res.end(content);
+  } catch {
+    sendJson(res, 404, { error: 'Not found' });
+  }
+}
+
 module.exports = {
   // http helpers
   sendJson,
@@ -977,8 +1293,6 @@ module.exports = {
   saveNetworkConfig,
   getNetworkConfig,
   findYtDlp,
-  serveStatic,
-  getLanAddresses,
   // auth helpers
   bcrypt,
   SALT_ROUNDS,
@@ -1004,4 +1318,6 @@ module.exports = {
   scSearch,
   scGetStreamUrl,
   scImportPlaylist,
+  // static UI
+  serveStatic,
 };
