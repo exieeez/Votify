@@ -41,6 +41,35 @@ jobs:
           ./gradlew --no-daemon --console=plain assembleRelease -PvotifyIslandPackage=com.hiby.music
           cp app/build/outputs/apk/release/app-release.apk Votify-debug.apk
 
+      # Постоянное зеркало: APK кладётся в отдельную ветку «apk». Оттуда он качается
+      # с других хостов (raw.githubusercontent, jsDelivr) — release-канал GitHub у части
+      # провайдеров виснет на 100%, а зеркала на catbox/gofile живут только 72 часа.
+      - name: Mirror APK to branch apk
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -e
+          APK="android/Votify-debug.apk"
+          ls -la "$APK"
+          rm -rf /tmp/apkmirror && mkdir -p /tmp/apkmirror && cd /tmp/apkmirror
+          git init -q -b apk
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cp "$GITHUB_WORKSPACE/$APK" Votify-debug.apk
+          {
+            echo "Зеркало APK Votify (обновляется каждой сборкой)."
+            echo
+            echo "Ссылки для скачивания:"
+            echo "- https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/apk/Votify-debug.apk"
+            echo "- https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@apk/Votify-debug.apk"
+            echo
+            echo "Сборка: ${GITHUB_SHA}"
+          } > README.md
+          git add -A
+          git commit -q -m "APK: сборка ${GITHUB_SHA:0:8}"
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -f origin apk
+          echo "зеркало обновлено: ветка apk"
+
       - name: Publish to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,11 +93,14 @@ jobs:
             echo "Единая сборка с package id из вайтлиста «островка» OriginOS (com.hiby.music) — трек показывается в Dynamic Spot как у Spotify. Для Google-входа добавьте в Firebase это Android-приложение (пакет com.hiby.music, SHA-1 8D:A3:BC:F4:59:CF:30:C9:54:EE:F6:51:98:6B:80:27:36:DC:50:7A)."
             echo
             echo "Сервер (опционально): Настройки → Интеграции → Прокси → адрес http://<IP-вашего-ПК>:17217"
+            echo
+            echo "Если скачивание с GitHub виснет — берите тот же APK с зеркал:"
+            echo "• постоянное: https://raw.githubusercontent.com/$GITHUB_REPOSITORY/apk/Votify-debug.apk"
+            echo "• постоянное (CDN, обычно быстрее всего): https://cdn.jsdelivr.net/gh/$GITHUB_REPOSITORY@apk/Votify-debug.apk"
             if [ -n "$LB_DEBUG" ] || [ -n "$GF_DEBUG" ]; then
-              echo
-              echo "Зеркала на 72 часа (если скачивание с GitHub зависает):"
-              [ -n "$LB_DEBUG" ] && echo "• Votify-debug.apk (litterbox): $LB_DEBUG"
-              [ -n "$GF_DEBUG" ] && echo "• Votify-debug.apk (gofile): $GF_DEBUG"
+              echo "• на 72 часа (обновляется каждой сборкой):"
+              [ -n "$LB_DEBUG" ] && echo "   - $LB_DEBUG"
+              [ -n "$GF_DEBUG" ] && echo "   - $GF_DEBUG"
             fi
           } > notes.md
 
