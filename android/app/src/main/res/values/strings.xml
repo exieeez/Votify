@@ -32,6 +32,7 @@
     <string name="search_hint">Поиск</string>
     <string name="search_results">Результаты поиска</string>
     <string name="search_empty">Ничего не найдено</string>
+    <string name="search_empty_hint">Попробуйте короче — только исполнитель или только название песни.</string>
     <string name="search_start">Введите название трека или исполнителя</string>
     <string name="search_error">Не удалось выполнить поиск</string>
     <string name="search_retry">Повторить</string>

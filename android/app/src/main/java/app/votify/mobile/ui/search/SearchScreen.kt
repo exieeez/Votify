@@ -147,7 +147,10 @@ fun SearchScreen(
             }
 
             state.searched && state.results.isEmpty() -> item {
-                StatusBlock(title = stringResource(R.string.search_empty), subtitle = "«${state.query}»")
+                StatusBlock(
+                    title = stringResource(R.string.search_empty),
+                    subtitle = "«${state.query}» — " + stringResource(R.string.search_empty_hint),
+                )
             }
 
             !state.searched -> item {

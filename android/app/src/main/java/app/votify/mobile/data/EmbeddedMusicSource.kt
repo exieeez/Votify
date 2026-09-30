@@ -118,14 +118,49 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
      */
     fun search(query: String, limit: Int = 24, music: Boolean = true): List<Track> {
         ensureInit()
-        if (!music) return runCatching { rawSearch(query, music = false, limit) }.getOrDefault(emptyList())
-        val songs = runCatching { rawSearch(query, music = true, limit) }.getOrDefault(emptyList())
-        val videos = runCatching { rawSearch(query, music = false, limit) }.getOrDefault(emptyList())
-        return (songs + videos)
+        val clean = query.trim().replace(Regex("\\s+"), " ")
+        if (!music) {
+            return runCatching { rawSearch(clean, music = false, limit) }
+                .getOrElse { throw IOException("Поиск не отвечает: ${it.message ?: "нет связи"}") }
+        }
+
+        // Попытка №1: песни из каталога YouTube Music + обычные видео YouTube. Сбой отличается
+        // от «пусто»: если упали оба запроса, показываем подсказку про связь, а не молчаливое
+        // «ничего не найдено».
+        val songs = runCatching { rawSearch(clean, music = true, limit) }.getOrNull()
+        val videos = runCatching { rawSearch(clean, music = false, limit) }.getOrNull()
+        if (songs == null && videos == null) {
+            throw IOException("Поиск не отвечает: нет связи с YouTube")
+        }
+        var found = mergeResults(songs.orEmpty(), videos.orEmpty(), limit)
+        if (found.isNotEmpty()) return found
+
+        // Попытка №2: по длинной фразе пусто — ищем по первым двум словам
+        // («мейби бейби любимая школа» → «мейби бейби»).
+        val words = clean.split(' ')
+        if (words.size > 2) {
+            val short = words.take(2).joinToString(" ")
+            val s2 = runCatching { rawSearch(short, music = true, limit) }.getOrDefault(emptyList())
+            val v2 = runCatching { rawSearch(short, music = false, limit) }.getOrDefault(emptyList())
+            found = mergeResults(s2, v2, limit)
+            if (found.isNotEmpty()) return found
+        }
+
+        // Попытка №3: та же выдача без отсева по длительности — у части результатов она
+        // приходит нулевой, и трек пропадал из списка.
+        val s3 = runCatching { rawSearch(clean, music = true, limit, strictDuration = false) }
+            .getOrDefault(emptyList())
+        val v3 = runCatching { rawSearch(clean, music = false, limit, strictDuration = false) }
+            .getOrDefault(emptyList())
+        return mergeResults(s3, v3, limit)
+    }
+
+    /** Склейка «песни каталога + обычные видео» без дублей. */
+    private fun mergeResults(songs: List<Track>, videos: List<Track>, limit: Int): List<Track> =
+        (songs + videos)
             .distinctBy { it.id }
             .distinctBy { "${it.artist}|${it.title}".lowercase() }
             .take(limit)
-    }
 
     /** Popular tracks of an artist (YouTube Music songs search). */
     fun artistTracks(artist: String, limit: Int = 50): List<Track> {
@@ -133,7 +168,12 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
         return runCatching { rawSearch(artist, music = true, limit) }.getOrDefault(emptyList())
     }
 
-    private fun rawSearch(query: String, music: Boolean, limit: Int): List<Track> {
+    private fun rawSearch(
+        query: String,
+        music: Boolean,
+        limit: Int,
+        strictDuration: Boolean = true,
+    ): List<Track> {
         val service = ServiceList.YouTube
         val handler = if (music) {
             service.searchQHFactory.fromQuery(query, listOf(YoutubeSearchQueryHandlerFactory.MUSIC_SONGS), "")
@@ -144,7 +184,9 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
             .relatedItems
             .filterIsInstance<StreamInfoItem>()
             // Keep real songs only: drop livestreams, mixes and podcasts (30 s … 15 min).
-            .filter { it.duration in MIN_TRACK_SECONDS..MAX_TRACK_SECONDS }
+            // При strictDuration = false фильтр выключен: у части результатов длительность
+            // неизвестна (0), и трек терялся.
+            .filter { !strictDuration || it.duration in MIN_TRACK_SECONDS..MAX_TRACK_SECONDS }
             .mapNotNull { it.toTrack() }
             .distinctBy { it.id }
             .distinctBy { "${it.artist}|${it.title}".lowercase() }
