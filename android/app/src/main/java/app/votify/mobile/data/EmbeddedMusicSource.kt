@@ -132,7 +132,7 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
         if (songs == null && videos == null) {
             throw IOException("Поиск не отвечает: нет связи с YouTube")
         }
-        var found = mergeResults(songs.orEmpty(), videos.orEmpty(), limit)
+        var found = mergeResults(songs.orEmpty(), videos.orEmpty(), clean, limit)
         if (found.isNotEmpty()) return found
 
         // Попытка №2: по длинной фразе пусто — ищем по первым двум словам
@@ -142,7 +142,7 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
             val short = words.take(2).joinToString(" ")
             val s2 = runCatching { rawSearch(short, music = true, limit) }.getOrDefault(emptyList())
             val v2 = runCatching { rawSearch(short, music = false, limit) }.getOrDefault(emptyList())
-            found = mergeResults(s2, v2, limit)
+            found = mergeResults(s2, v2, short, limit)
             if (found.isNotEmpty()) return found
         }
 
@@ -152,15 +152,59 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
             .getOrDefault(emptyList())
         val v3 = runCatching { rawSearch(clean, music = false, limit, strictDuration = false) }
             .getOrDefault(emptyList())
-        return mergeResults(s3, v3, limit)
+        return mergeResults(s3, v3, clean, limit)
     }
 
-    /** Склейка «песни каталога + обычные видео» без дублей. */
-    private fun mergeResults(songs: List<Track>, videos: List<Track>, limit: Int): List<Track> =
-        (songs + videos)
+    /**
+     * Склейка «песни каталога + обычные видео» без дублей, отсортированная по совпадению
+     * с запросом: трек, у которого название и исполнитель совпадают со словами запроса,
+     * стоит выше. Иначе YouTube отдаёт вперёд что угодно — например, при запросе
+     * «любимая школа мейби бейби» первой шла «Аскорбинка», а не сама песня.
+     */
+    private fun mergeResults(
+        songs: List<Track>,
+        videos: List<Track>,
+        query: String,
+        limit: Int,
+    ): List<Track> {
+        val words = relevanceWords(query)
+        return (songs + videos)
             .distinctBy { it.id }
             .distinctBy { "${it.artist}|${it.title}".lowercase() }
+            .sortedByDescending { searchScore(it, words) }
             .take(limit)
+    }
+
+    /** Слова запроса от трёх букв. */
+    private fun relevanceWords(query: String): List<String> =
+        normalizeText(query).split(' ').filter { it.length >= 3 }.distinct()
+
+    /**
+     * Приводит текст к сравнимому виду: регистр, «ё»/«э» → «е», дефисы — в пробелы.
+     * Без этого «мейби бейби» не совпадает с «Мэйби Бэйби».
+     */
+    private fun normalizeText(text: String): String = text
+        .lowercase()
+        .replace('ё', 'е')
+        .replace('э', 'е')
+        .replace('-', ' ')
+        .replace(Regex("\\s+"), " ")
+        .trim()
+
+    /** Насколько трек отвечает на запрос: название весит больше исполнителя. */
+    private fun searchScore(track: Track, words: List<String>): Int {
+        if (words.isEmpty()) return 0
+        val title = normalizeText(track.title)
+        val artist = normalizeText(track.artist)
+        var score = 0
+        words.forEach { word ->
+            if (title.contains(word)) score += 3
+            if (artist.contains(word)) score += 2
+        }
+        // Весь запрос в названии/исполнителе — почти наверняка то, что искали.
+        if (words.all { title.contains(it) || artist.contains(it) }) score += 2
+        return score
+    }
 
     /** Popular tracks of an artist (YouTube Music songs search). */
     fun artistTracks(artist: String, limit: Int = 50): List<Track> {
