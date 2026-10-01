@@ -104,9 +104,9 @@ fun ProfileScreen(
                 bottom = contentPadding.calculateBottomPadding() + 24.dp,
             ),
     ) {
-        // Header: back + title + friends
+        // Header: back + title + действия справа сверху
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            Modifier.fillMaxWidth().padding(start = 8.dp, end = 10.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
@@ -119,8 +119,14 @@ fun ProfileScreen(
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onOpenFriends) {
-                Icon(Icons.Outlined.Group, stringResource(R.string.friends_title), tint = VotifyColors.TextPrimary)
+            if (!state.editing) {
+                if (state.isGuest) {
+                    TopActionButton(Icons.Outlined.Person, stringResource(R.string.profile_login_short), onOpenLogin)
+                } else {
+                    TopActionButton(Icons.Outlined.Edit, stringResource(R.string.profile_edit), viewModel::startEdit)
+                    Spacer(Modifier.width(6.dp))
+                    TopActionButton(Icons.Outlined.Group, stringResource(R.string.friends_title), onOpenFriends)
+                }
             }
         }
 
@@ -140,83 +146,98 @@ fun ProfileScreen(
             val profHandle = (p?.handle ?: "").takeIf { it.isNotBlank() }
                 ?: if (guest) "guest" else state.fallbackHandle
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                // Hero: banner + avatar + name + handle + роль
-                Box {
-                    BannerBox(
-                        banner = p?.banner.orEmpty(),
-                        modifier = Modifier.fillMaxWidth().height(150.dp),
-                    )
-                    Box(
+                // Hero-карточка как на ПК («pc-profile-hero-card»): баннер — фон
+                // всей карточки (высота = контенту), аватар/имя/роль — поверх.
+                Box(Modifier.fillMaxWidth()) {
+                    Box(Modifier.matchParentSize()) {
+                        BannerBox(banner = p?.banner.orEmpty())
+                    }
+                    Column(
                         Modifier
-                            .align(Alignment.BottomCenter)
-                            .offset(y = 48.dp)
-                            .then(
+                            .fillMaxWidth()
+                            .padding(top = 28.dp, bottom = 26.dp, horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            Modifier.then(
                                 if (!guest) Modifier.clickable {
                                     avatarPicker.launch(
                                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                     )
                                 } else Modifier
                             ),
-                    ) {
-                        AvatarBox(
-                            url = state.stagedAvatar ?: (p?.avatar ?: "").takeIf { it.isNotBlank() } ?: "",
-                            size = 96.dp,
-                            border = true,
+                        ) {
+                            AvatarBox(
+                                url = state.stagedAvatar ?: (p?.avatar ?: "").takeIf { it.isNotBlank() } ?: "",
+                                size = 96.dp,
+                                border = true,
+                            )
+                            // camera badge (только для вошедших), у ПК — бейдж «edit»
+                            if (!guest) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = VotifyColors.SurfaceContainerHigh,
+                                    modifier = Modifier.align(Alignment.BottomEnd).size(30.dp),
+                                    content = {
+                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                Icons.Outlined.PhotoCamera,
+                                                null,
+                                                tint = VotifyColors.TextSecondary,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        Text(
+                            profName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                        // camera badge (только для вошедших)
-                        if (!guest) {
-                            Surface(
-                                shape = CircleShape,
-                                color = VotifyColors.SurfaceContainerHigh,
-                                modifier = Modifier.align(Alignment.BottomEnd).size(30.dp),
-                                content = {
-                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Outlined.PhotoCamera,
-                                            null,
-                                            tint = VotifyColors.TextSecondary,
-                                            modifier = Modifier.size(16.dp),
-                                        )
-                                    }
-                                },
+                        // @handle — тап копирует (как «Скопировать юзернейм» на ПК)
+                        Text(
+                            "@" + profHandle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier
+                                .clickable {
+                                    clipboard.setText(AnnotatedString("@" + profHandle))
+                                    onToast("@" + profHandle)
+                                }
+                                .padding(vertical = 2.dp),
+                        )
+                        // Роль: как на ПК («Пользователь» / «Не авторизован»)
+                        Text(
+                            stringResource(if (!guest) R.string.profile_role_user else R.string.profile_role_guest),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.65f),
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                        (p?.about ?: "").takeIf { it.isNotBlank() }?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.8f),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 8.dp, horizontal = 8.dp),
                             )
                         }
                     }
                 }
-                Spacer(Modifier.height(64.dp))
-                Text(
-                    profName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = VotifyColors.TextPrimary,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                // @handle — тап копирует (как «Скопировать юзернейм» на ПК)
-                Text(
-                    "@" + profHandle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = VotifyColors.Primary,
-                    modifier = Modifier
-                        .clickable {
-                            clipboard.setText(AnnotatedString("@" + profHandle))
-                            onToast("@" + profHandle)
-                        }
-                        .padding(vertical = 2.dp),
-                )
-                // Роль: как на ПК («Пользователь» / «Не авторизован»)
-                Text(
-                    stringResource(if (!guest) R.string.profile_role_user else R.string.profile_role_guest),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = VotifyColors.TextMuted,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
+
+                // Ошибка загрузки — под hero-карточкой
                 if (state.error != null && p == null) {
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .padding(top = 6.dp),
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -232,42 +253,10 @@ fun ProfileScreen(
                         }
                     }
                 }
-                (p?.about ?: "").takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = VotifyColors.TextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 6.dp),
-                    )
-                }
 
-                // Гость: «Войти / Зарегистрироваться»; вошедший: «Редактировать» + «Друзья»
-                when {
-                    state.editing -> ProfileEditForm(state, viewModel)
-                    guest -> OutlinedButton(
-                        onClick = onOpenLogin,
-                        modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
-                    ) {
-                        Icon(Icons.Outlined.Person, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.profile_login_btn))
-                    }
-                    else -> Row(
-                        Modifier.fillMaxWidth().padding(top = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        OutlinedButton(onClick = viewModel::startEdit, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Outlined.Edit, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.profile_edit))
-                        }
-                        OutlinedButton(onClick = onOpenFriends, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Outlined.Group, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.friends_title))
-                        }
-                    }
+                // Форма «Редактировать» (кнопка — справа сверху)
+                if (state.editing) {
+                    ProfileEditForm(state, viewModel)
                 }
 
                 // Favorite track (Telegram style, as on PC)
@@ -544,6 +533,24 @@ private fun ProfileEditForm(state: ProfileUiState, viewModel: ProfileViewModel) 
     }
 }
 
+/** Компактная кнопка для шапки профиля (справа сверху). */
+@Composable
+private fun TopActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
+        shape = RoundedCornerShape(10.dp),
+    ) {
+        Icon(icon, null, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(label, fontSize = 12.sp, maxLines = 1)
+    }
+}
+
 /** Повторный тап по выбранному градиенту снимает его. */
 private fun toggleGrad(grad: String, current: String) = if (current == grad) "" else grad
 
@@ -590,13 +597,18 @@ fun BannerBox(banner: String, modifier: Modifier = Modifier) {
                 ),
             )
         }
-        // subtle darkening at the bottom so the avatar stands out
+        // Затемнение как на ПК (pc-profile-banner-overlay): сверху почти
+        // прозрачное, внизу — почти чёрное, чтобы текст читался поверх баннера.
         Box(
             Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.25f)),
+                        listOf(
+                            Color.Black.copy(alpha = 0.15f),
+                            Color(0xFF181818).copy(alpha = 0.55f),
+                            Color(0xFF181818).copy(alpha = 0.92f),
+                        ),
                     ),
                 ),
         )

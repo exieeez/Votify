@@ -547,10 +547,13 @@ class FirebaseRest(private val config: FirebaseConfig) {
 
     private fun str(v: String) = buildJsonObject { put("stringValue", v) }
     private fun int(v: Int) = buildJsonObject { put("integerValue", v.toString()) }
-    // Firestore REST: server timestamp = {"timestampValue": "serverTimestamp"}
-    // (a {"serverTimestamp": {}} payload is rejected with
-    //  «Unknown name "serverTimestamp"»).
-    private fun serverTs() = buildJsonObject { put("timestampValue", "serverTimestamp") }
+    // Клиентское время в ISO-формате. Сентинел "serverTimestamp" REST API
+    // отклоняет в документ-записях («Invalid value at ...timestampValue»),
+    // а client time для updatedAt/createdAt/addedAt равноценен.
+    private fun serverTs(): JsonElement {
+        val iso = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString()
+        return buildJsonObject { put("timestampValue", iso) }
+    }
 
     private fun parseFavTrack(fields: JsonObject?): FavTrackInfo? {
         val m = fields?.get("favTrack")?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
