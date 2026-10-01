@@ -22,7 +22,7 @@ android {
         applicationId = islandPackage.ifBlank { "app.votify.mobile" }
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
+        versionCode = 11
         versionName = "1.0.0"
 
         // Backend base URL. 10.0.2.2 = host machine from the Android emulator.
@@ -36,6 +36,9 @@ android {
         val fbConfig = System.getenv("VOTIFY_FIREBASE_CONFIG")?.trim() ?: ""
         buildConfigField("String", "FIREBASE_CONFIG", "\"" + fbConfig.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
         buildConfigField("String", "BUILD_TIME", "\"" + (System.getenv("BUILD_TIME") ?: Instant.now().truncatedTo(ChronoUnit.SECONDS).toString()) + "\"")
+        // Short git sha of the built commit — shown in the UI so the user can
+        // tell old and new builds apart («Сборка: a1b2c3d»).
+        buildConfigField("String", "BUILD_SHA", "\"" + (System.getenv("GITHUB_SHA") ?: "dev") + "\"")
     }
 
     // Stable signing for every build. The stock debug key is regenerated on each CI runner,

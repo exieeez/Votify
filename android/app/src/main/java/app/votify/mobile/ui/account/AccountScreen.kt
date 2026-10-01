@@ -147,6 +147,14 @@ fun AccountScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
             )
+            Text(
+                "Сборка: " + app.votify.mobile.BuildConfig.BUILD_SHA.take(7) +
+                    " · " + app.votify.mobile.BuildConfig.VERSION_NAME + " (v" + app.votify.mobile.BuildConfig.VERSION_CODE + ")",
+                style = MaterialTheme.typography.labelSmall,
+                color = VotifyColors.TextMuted,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
             return@Column
         }
 

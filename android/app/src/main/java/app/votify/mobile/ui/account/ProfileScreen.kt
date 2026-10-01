@@ -433,6 +433,16 @@ fun ProfileScreen(
                         Text(stringResource(R.string.profile_logout), color = VotifyColors.Error)
                     }
                 }
+
+                // Метка сборки: помогает отличить старую версию APK от новой
+                Text(
+                    "Сборка: " + app.votify.mobile.BuildConfig.BUILD_SHA.take(7) +
+                        " · " + app.votify.mobile.BuildConfig.VERSION_NAME + " (v" + app.votify.mobile.BuildConfig.VERSION_CODE + ")",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = VotifyColors.TextMuted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                )
             }
         }
     }
