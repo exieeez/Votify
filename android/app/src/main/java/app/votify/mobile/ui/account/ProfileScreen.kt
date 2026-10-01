@@ -562,7 +562,9 @@ private fun BannerChip(stops: List<Color>, selected: Boolean, onClick: () -> Uni
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    )
+    ) {
+        // свотч градиента — содержимое не нужно
+    }
 }
 
 /** Banner: image (data:/https:), a grad-N preset (same colors as the web) or a dark fallback. */
