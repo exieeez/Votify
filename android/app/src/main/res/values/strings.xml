@@ -614,7 +614,8 @@
     <string name="profile_handle">Юзернейм</string>
     <string name="profile_handle_invalid">Юзернейм: 3–20 символов (латинские буквы, цифры, _)</string>
     <string name="profile_about">О себе</string>
-    <string name="profile_banner">Баннер (ссылка или grad-1 … grad-9)</string>
+    <string name="profile_banner">Баннер (градиент)</string>
+    <string name="profile_banner_url">Своя картинка (ссылка)</string>
     <string name="profile_save">Сохранить</string>
     <string name="profile_cancel">Отмена</string>
     <string name="profile_saved">Профиль сохранён</string>

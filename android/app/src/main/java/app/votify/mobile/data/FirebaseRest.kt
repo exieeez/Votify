@@ -547,7 +547,10 @@ class FirebaseRest(private val config: FirebaseConfig) {
 
     private fun str(v: String) = buildJsonObject { put("stringValue", v) }
     private fun int(v: Int) = buildJsonObject { put("integerValue", v.toString()) }
-    private fun serverTs() = buildJsonObject { put("serverTimestamp", JsonObject(emptyMap())) }
+    // Firestore REST: server timestamp = {"timestampValue": "serverTimestamp"}
+    // (a {"serverTimestamp": {}} payload is rejected with
+    //  «Unknown name "serverTimestamp"»).
+    private fun serverTs() = buildJsonObject { put("timestampValue", "serverTimestamp") }
 
     private fun parseFavTrack(fields: JsonObject?): FavTrackInfo? {
         val m = fields?.get("favTrack")?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject

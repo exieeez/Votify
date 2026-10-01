@@ -242,24 +242,31 @@ fun ProfileScreen(
                     )
                 }
 
-                // Гость: «Войти / Зарегистрироваться»; вошедший: «Редактировать»
+                // Гость: «Войти / Зарегистрироваться»; вошедший: «Редактировать» + «Друзья»
                 when {
                     state.editing -> ProfileEditForm(state, viewModel)
                     guest -> OutlinedButton(
                         onClick = onOpenLogin,
-                        modifier = Modifier.padding(top = 12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
                     ) {
                         Icon(Icons.Outlined.Person, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.profile_login_btn))
                     }
-                    else -> OutlinedButton(
-                        onClick = viewModel::startEdit,
-                        modifier = Modifier.padding(top = 12.dp),
+                    else -> Row(
+                        Modifier.fillMaxWidth().padding(top = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(Icons.Outlined.Edit, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.profile_edit))
+                        OutlinedButton(onClick = viewModel::startEdit, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Outlined.Edit, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.profile_edit))
+                        }
+                        OutlinedButton(onClick = onOpenFriends, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Outlined.Group, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.friends_title))
+                        }
                     }
                 }
 
@@ -268,7 +275,7 @@ fun ProfileScreen(
                     if (state.favCleared) null else (state.stagedFav ?: p.favTrack)
                 } else p?.favTrack
                 if (fav != null) {
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(12.dp))
                     VotifyCard(
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                         contentPadding = PaddingValues(12.dp),
@@ -306,7 +313,7 @@ fun ProfileScreen(
                 }
 
                 // Playlists + «Опубликовать»
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
                 VotifyCard(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     contentPadding = PaddingValues(12.dp),
@@ -387,36 +394,11 @@ fun ProfileScreen(
                     }
                 }
 
-                // Friends entry
-                Spacer(Modifier.height(12.dp))
-                VotifyCard(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    onClick = onOpenFriends,
-                    contentPadding = PaddingValues(16.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Group, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(22.dp))
-                        Spacer(Modifier.width(14.dp))
-                        Text(
-                            stringResource(R.string.friends_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = VotifyColors.TextPrimary,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(
-                            Icons.Outlined.ChevronRight,
-                            null,
-                            tint = VotifyColors.TextMuted,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
-
                 // Logout — только для вошедших
                 if (!guest) {
                     TextButton(
                         onClick = onLogout,
-                        modifier = Modifier.padding(top = 12.dp),
+                        modifier = Modifier.padding(top = 10.dp),
                     ) {
                         Icon(Icons.Outlined.ExitToApp, null, tint = VotifyColors.Error, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
@@ -431,7 +413,7 @@ fun ProfileScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = VotifyColors.TextMuted,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
                 )
             }
         }
@@ -463,7 +445,43 @@ private fun ProfileEditForm(state: ProfileUiState, viewModel: ProfileViewModel) 
                 stringResource(R.string.profile_about),
                 singleLine = false,
             )
-            VotifyTextField(state.editBanner, viewModel::setBanner, stringResource(R.string.profile_banner))
+            // Баннер: 9 градиентов (как на ПК) + «без баннера», либо своя ссылка ниже
+            Text(
+                stringResource(R.string.profile_banner),
+                style = MaterialTheme.typography.bodySmall,
+                color = VotifyColors.TextSecondary,
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                BannerChip(BANNER_GRADIENTS[0], selected = state.editBanner == "grad-1") { viewModel.setBanner(toggleGrad("grad-1", state.editBanner)) }
+                BannerChip(BANNER_GRADIENTS[1], selected = state.editBanner == "grad-2") { viewModel.setBanner(toggleGrad("grad-2", state.editBanner)) }
+                BannerChip(BANNER_GRADIENTS[2], selected = state.editBanner == "grad-3") { viewModel.setBanner(toggleGrad("grad-3", state.editBanner)) }
+                BannerChip(BANNER_GRADIENTS[3], selected = state.editBanner == "grad-4") { viewModel.setBanner(toggleGrad("grad-4", state.editBanner)) }
+                BannerChip(BANNER_GRADIENTS[4], selected = state.editBanner == "grad-5") { viewModel.setBanner(toggleGrad("grad-5", state.editBanner)) }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                BannerChip(BANNER_GRADIENTS[5], selected = state.editBanner == "grad-6") { viewModel.setBanner(toggleGrad("grad-6", state.editBanner)) }
+                BannerChip(BANNER_GRADIENTS[6], selected = state.editBanner == "grad-7") { viewModel.setBanner(toggleGrad("grad-7", state.editBanner)) }
+                BannerChip(BANNER_GRADIENTS[7], selected = state.editBanner == "grad-8") { viewModel.setBanner(toggleGrad("grad-8", state.editBanner)) }
+                BannerChip(BANNER_GRADIENTS[8], selected = state.editBanner == "grad-9") { viewModel.setBanner(toggleGrad("grad-9", state.editBanner)) }
+                // «без баннера» — тёмная подложка
+                Box(
+                    Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1B1B2F))
+                        .border(
+                            if (state.editBanner.isEmpty()) 2.dp else 1.dp,
+                            if (state.editBanner.isEmpty()) Color.White else Color(0x33FFFFFF),
+                            CircleShape,
+                        )
+                        .clickable { viewModel.setBanner("") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("×", color = VotifyColors.TextMuted, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            }
+            VotifyTextField(state.editBanner, viewModel::setBanner, stringResource(R.string.profile_banner_url))
 
             // Favorite track controls
             Text(
@@ -524,6 +542,27 @@ private fun ProfileEditForm(state: ProfileUiState, viewModel: ProfileViewModel) 
             }
         }
     }
+}
+
+/** Повторный тап по выбранному градиенту снимает его. */
+private fun toggleGrad(grad: String, current: String) = if (current == grad) "" else grad
+
+/** Круглый свотч градиента баннера. */
+@Composable
+private fun BannerChip(stops: List<Color>, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(Brush.linearGradient(stops))
+            .border(
+                if (selected) 2.dp else 1.dp,
+                if (selected) Color.White else Color(0x33FFFFFF),
+                CircleShape,
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    )
 }
 
 /** Banner: image (data:/https:), a grad-N preset (same colors as the web) or a dark fallback. */
