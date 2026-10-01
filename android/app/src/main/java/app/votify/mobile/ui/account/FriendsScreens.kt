@@ -485,7 +485,7 @@ fun UserScreen(
 // local alias (composable: stringResource требует composable-контекста)
 @androidx.compose.runtime.Composable
 private fun stringRes(id: Int, vararg args: Any?): String {
-    val nonNull = args.filterNotNull()
+    val nonNull = args.filterNotNull().toTypedArray()
     return if (nonNull.isEmpty()) androidx.compose.ui.res.stringResource(id)
     else androidx.compose.ui.res.stringResource(id, *nonNull)
 }
