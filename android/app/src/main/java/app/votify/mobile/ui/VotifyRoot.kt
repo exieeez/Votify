@@ -66,6 +66,11 @@ import app.votify.mobile.data.Track
 import app.votify.mobile.ui.account.AccountEvent
 import app.votify.mobile.ui.account.WelcomeOverlay
 import app.votify.mobile.ui.account.AccountScreen
+import app.votify.mobile.ui.account.FriendsScreen
+import app.votify.mobile.ui.account.FriendsViewModel
+import app.votify.mobile.ui.account.ProfileScreen
+import app.votify.mobile.ui.account.ProfileViewModel
+import app.votify.mobile.ui.account.UserScreen
 import app.votify.mobile.ui.account.AccountViewModel
 import app.votify.mobile.ui.artist.ArtistScreen
 import app.votify.mobile.ui.artist.ArtistViewModel
@@ -139,6 +144,8 @@ private object Routes {
     const val BACKGROUNDS = "settings/backgrounds"
     const val PRESETS = "settings/presets"
     const val PROXY = "settings/proxy"
+    const val FRIENDS = "friends"
+    const val USER_PROFILE = "user/{uid}"
 
     fun playlist(id: Long) = "playlist/$id"
     fun artist(name: String) = "artist/${Uri.encode(name)}"
@@ -197,6 +204,8 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     val importVm: ImportViewModel = viewModel(factory = factory)
     val trendingVm: TrendingViewModel = viewModel(factory = factory)
     val workshopVm: WorkshopViewModel = viewModel(factory = factory)
+    val profileVm: ProfileViewModel = viewModel(factory = factory)
+    val friendsVm: FriendsViewModel = viewModel(factory = factory)
 
     val favoriteIds by libraryVm.favoriteIds.collectAsStateWithLifecycle()
     val currentId = playerState.current?.id
@@ -596,10 +605,57 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                     )
                 }
                 composable(Routes.ACCOUNT) {
-                    AccountScreen(
-                        viewModel = accountVm,
+                    val loggedIn by accountVm.account.collectAsStateWithLifecycle()
+                    if (loggedIn != null) {
+                        ProfileScreen(
+                            viewModel = profileVm,
+                            contentPadding = contentPadding,
+                            onBack = { navController.popBackStack() },
+                            onOpenFriends = { navController.navigate(Routes.FRIENDS) },
+                            onToast = { snackbar.showSnackbar(it) },
+                            onPlayFav = { fav ->
+                                val id = Regex("[?&]v=([a-zA-Z0-9_-]{11})")
+                                    .find(fav.id)?.groupValues?.get(1)
+                                    ?: Regex("youtu\.be/([a-zA-Z0-9_-]{11})")
+                                        .find(fav.id)?.groupValues?.get(1)
+                                    ?: fav.id
+                                if (id.length == 11) {
+                                    player.playTrack(app.votify.mobile.data.Track(id, fav.title, fav.artist, fav.cover, "", fav.duration))
+                                }
+                            },
+                            onLogout = { accountVm.logout() },
+                        )
+                    } else {
+                        AccountScreen(
+                            viewModel = accountVm,
+                            contentPadding = contentPadding,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+                }
+                composable(Routes.FRIENDS) {
+                    FriendsScreen(
+                        viewModel = friendsVm,
                         contentPadding = contentPadding,
                         onBack = { navController.popBackStack() },
+                        onOpenUser = { uid -> navController.navigate("user/$uid") },
+                    )
+                }
+                composable(Routes.USER_PROFILE, arguments = listOf(navArgument("uid") { type = NavType.StringType })) { entry ->
+                    val uid = entry.arguments?.getString("uid").orEmpty()
+                    UserScreen(
+                        viewModel = friendsVm,
+                        uid = uid,
+                        contentPadding = contentPadding,
+                        onBack = { navController.popBackStack() },
+                        onPlayFav = { fav ->
+                            val id = Regex("[?&]v=([a-zA-Z0-9_-]{11})")
+                                .find(fav.id)?.groupValues?.get(1)
+                                ?: fav.id
+                            if (id.length == 11) {
+                                player.playTrack(app.votify.mobile.data.Track(id, fav.title, fav.artist, fav.cover, "", fav.duration))
+                            }
+                        },
                     )
                 }
                 composable(Routes.IMPORT) {
@@ -780,6 +836,9 @@ private class AppViewModelFactory(private val app: VotifyApp) : ViewModelProvide
         modelClass.isAssignableFrom(ImportViewModel::class.java) -> ImportViewModel(app.music, app.library) as T
         modelClass.isAssignableFrom(TrendingViewModel::class.java) -> TrendingViewModel(app.music) as T
         modelClass.isAssignableFrom(WorkshopViewModel::class.java) -> WorkshopViewModel(app.settings, app.api, app.music) as T
+        modelClass.isAssignableFrom(ProfileViewModel::class.java) ->
+            ProfileViewModel(app.settings, app.database, app.applicationContext, app.player) as T
+        modelClass.isAssignableFrom(FriendsViewModel::class.java) -> FriendsViewModel(app.settings) as T
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }
 }

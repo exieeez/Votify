@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
@@ -75,6 +76,31 @@ class FirebaseRestException(val code: String, message: String) : Exception(messa
  * standalone. Auth: identitytoolkit.googleapis.com; themes: Firestore REST (workshopThemes is
  * world-readable, creating requires a signed-in email account per firestore.rules).
  */
+/** «Любимый трек» на странице профиля — тот же формат, что в веб-версии. */
+data class FavTrackInfo(
+    val id: String,
+    val title: String,
+    val artist: String,
+    val cover: String = "",
+    val duration: Int = 0,
+)
+
+data class PlaylistInfo(val name: String, val count: Int, val cover: String = "")
+
+/** Публичный профиль: документы profiles/{uid} + users/{uid} слиты (profiles старший). */
+data class ProfileInfo(
+    val uid: String,
+    val name: String,
+    val handle: String,
+    val avatar: String = "",
+    val about: String = "",
+    val banner: String = "",
+    val frame: String = "none",
+    val favTrack: FavTrackInfo? = null,
+    val playlists: List<PlaylistInfo> = emptyList(),
+)
+
+
 class FirebaseRest(private val config: FirebaseConfig) {
 
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
@@ -457,7 +483,387 @@ class FirebaseRest(private val config: FirebaseConfig) {
         }
     }
 
+// ------------------------------------------------------------------ public profiles
+    //
+    // Те же документы, что читает веб-версия (см. src/firebase-client.js и firestore.rules):
+    //   profiles/{uid}   — публичный профиль (читает любой вошедший)
+    //   users/{uid}      — приватный документ владельца (такие же поля, плюс email, sync-blob)
+    //   users/{uid}/friends/{uid} — список друзей
+    //   friendships/{a_b}        — связь двух uid
+    //   usernames/{handle}       — handle → uid
+
+    private fun docUrl(path: String) =
+        "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/$path"
+
+    private fun httpGetJsonOrNull(url: String): JsonObject? = runCatching {
+        val request = Request.Builder().url(url).get().build()
+        http.newCall(request).execute().use { resp ->
+            val text = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) null else json.parseToJsonElement(text).jsonObject
+        }
+    }.getOrNull()
+
+    private fun httpDelete(idToken: String, path: String) {
+        val request = Request.Builder().url(docUrl(path))
+            .header("Authorization", "Bearer $idToken").delete().build()
+        http.newCall(request).execute().use { }
+    }
+
+    private fun commitWrites(idToken: String, writes: JsonArray) {
+        val body = buildJsonObject { put("writes", writes) }
+        val request = Request.Builder()
+            .url("https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents:commit?key=${config.apiKey}")
+            .header("Authorization", "Bearer $idToken")
+            .post(body.toString().toRequestBody(JSON))
+            .build()
+        http.newCall(request).execute().use { resp ->
+            val text = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+        }
+    }
+
+    private fun listDocs(idToken: String, path: String, pageSize: Int): List<Pair<String, JsonObject>> {
+        val resp = runCatching {
+            val request = Request.Builder().url("${docUrl(path)}?pageSize=$pageSize")
+                .header("Authorization", "Bearer $idToken").get().build()
+            http.newCall(request).execute().use { r ->
+                val text = r.body?.string().orEmpty()
+                if (!r.isSuccessful) null
+                else json.parseToJsonElement(text).jsonObject["documents"]?.jsonArray?.jsonArray?.mapNotNull { d ->
+                    val obj = d.jsonObject
+                    val name = obj["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                    Triple(name.substringAfterLast('/'), obj, obj["fields"]?.jsonObject ?: JsonObject(emptyMap()))
+                }
+            }
+        }.getOrNull()
+        return resp?.map { (id, _, fields) -> id to fields } ?: emptyList()
+    }
+
+    private fun fStr(fields: JsonObject?, key: String): String =
+        fields?.get(key)?.jsonObject?.get("stringValue")?.jsonPrimitive?.content ?: ""
+
+    private fun fInt(fields: JsonObject?, key: String): Int =
+        fields?.get(key)?.jsonObject?.get("integerValue")?.jsonPrimitive?.content?.toIntOrNull() ?: 0
+
+    private fun str(v: String) = buildJsonObject { put("stringValue", v) }
+    private fun int(v: Int) = buildJsonObject { put("integerValue", v.toString()) }
+    private fun serverTs() = buildJsonObject { put("serverTimestamp", JsonObject(emptyMap())) }
+
+    private fun parseFavTrack(fields: JsonObject?): FavTrackInfo? {
+        val m = fields?.get("favTrack")?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
+            ?: return null
+        val title = fStr(m, "title")
+        if (title.isBlank()) return null
+        return FavTrackInfo(fStr(m, "id"), title, fStr(m, "artist"), fStr(m, "cover"), fInt(m, "duration"))
+    }
+
+    /** Плейлисты из поля profiles/users-документа: [{name, count, cover}] (их пишет «Опубликовать»). */
+    private fun parsePlaylists(fields: JsonObject?): List<PlaylistInfo> {
+        val arr = fields?.get("playlists")?.jsonObject?.get("arrayValue")?.jsonArray?.jsonArray
+            ?: return emptyList()
+        return arr.mapNotNull { item ->
+            val m = item.jsonObject["mapValue"]?.jsonObject?.get("fields")?.jsonObject ?: return@mapNotNull null
+            val name = fStr(m, "name")
+            if (name.isBlank()) return@mapNotNull null
+            PlaylistInfo(name, fInt(m, "count"), fStr(m, "cover"))
+        }
+    }
+
+    /** Веб-формат: users/{uid}/sync/library → {playlists: {name: {tracks: [...], cover}}}. */
+    private fun playlistsFromWebLibrary(fields: JsonObject?): List<PlaylistInfo> {
+        val map = fields?.get("playlists")?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
+            ?: return emptyList()
+        return map.keys.mapNotNull { name ->
+            val pl = map[name]?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
+                ?: return@mapNotNull null
+            val tracks = pl["tracks"]?.jsonObject?.get("arrayValue")?.jsonArray?.jsonArray ?: emptyList()
+            val cover = fStr(pl, "cover").ifBlank {
+                tracks.firstOrNull()?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
+                    ?.let { fStr(it, "cover") } ?: ""
+            }
+            PlaylistInfo(name, tracks.size, cover)
+        }
+    }
+
+    /** Профиль из полей документов (users + profiles уже слиты). */
+    private fun profileFromFields(uid: String, fields: JsonObject?): ProfileInfo {
+        val name = fStr(fields, "displayName").ifBlank {
+            fStr(fields, "username").ifBlank { "Пользователь" }
+        }
+        val handle = (fStr(fields, "handle").ifBlank { fStr(fields, "username") })
+            .trim().removePrefix("@").lowercase().ifBlank { uid.take(8) }
+        val avatar = fStr(fields, "avatar").ifBlank { fStr(fields, "photoUrl") }
+        return ProfileInfo(
+            uid = uid,
+            name = name,
+            handle = handle,
+            avatar = avatar,
+            about = fStr(fields, "about").ifBlank { fStr(fields, "bio") },
+            banner = fStr(fields, "banner"),
+            frame = fStr(fields, "frame").ifBlank { "none" },
+            favTrack = parseFavTrack(fields),
+            playlists = parsePlaylists(fields),
+        )
+    }
+
+    /** Публичный профиль пользователя (для своей страницы и для друзей). */
+    suspend fun getProfile(idToken: String, uid: String): ProfileInfo? = withContext(Dispatchers.IO) {
+        runCatching {
+            val userDoc = httpGetJsonOrNull(docUrl("users/$uid"))?.jsonObject?.get("fields")?.jsonObject
+            val profDoc = httpGetJsonOrNull(docUrl("profiles/$uid"))?.jsonObject?.get("fields")?.jsonObject
+            if (userDoc == null && profDoc == null) return@withContext null
+            val merged = buildJsonObject {
+                userDoc.keys.forEach { put(it, userDoc[it]) }
+                profDoc.keys.forEach { put(it, profDoc[it]) }
+            }
+            var info = profileFromFields(uid, merged)
+            if (info.playlists.isEmpty()) {
+                val webLib = httpGetJsonOrNull(docUrl("users/$uid/sync/library"))
+                    ?.jsonObject?.get("fields")?.jsonObject
+                val pl = playlistsFromWebLibrary(webLib)
+                if (pl.isNotEmpty()) info = info.copy(playlists = pl)
+            }
+            if (info.playlists.isEmpty()) {
+                // Android-формат: blob в users/{uid}.sync (тот же SyncBlob, что в CloudSync)
+                val blob = runCatching {
+                    Json { ignoreUnknownKeys = true }.decodeFromString(SyncBlob.serializer(), fStr(userDoc, "sync"))
+                }.getOrNull()
+                val pl = blob?.playlists?.map { PlaylistInfo(it.name, it.tracks.size, it.tracks.firstOrNull()?.c ?: "") }
+                    ?: emptyList()
+                if (pl.isNotEmpty()) info = info.copy(playlists = pl)
+            }
+            info
+        }.getOrNull()
+    }
+
+    /**
+     * Сохранить публичный профиль в profiles/{uid} и users/{uid} (как веб-версия).
+     * Смена handle: резервируется новый, старый освобождается.
+     */
+    suspend fun saveProfile(
+        idToken: String,
+        uid: String,
+        displayName: String,
+        handle: String,
+        photoUrl: String = "",
+        bio: String = "",
+        banner: String = "",
+        favTrack: FavTrackInfo? = null,
+    ): Unit = withContext(Dispatchers.IO) {
+        val handleLower = handle.trim().lowercase().removePrefix("@")
+        val oldHandle = fStr(
+            httpGetJsonOrNull(docUrl("profiles/$uid"))?.jsonObject?.get("fields")?.jsonObject
+                ?: httpGetJsonOrNull(docUrl("users/$uid"))?.jsonObject?.get("fields")?.jsonObject,
+            "handle",
+        )
+        if (handleLower.isNotBlank() && handleLower != oldHandle) {
+            if (oldHandle.isNotBlank()) {
+                val oldDoc = httpGetJsonOrNull(docUrl("usernames/$oldHandle"))?.jsonObject?.get("fields")?.jsonObject
+                if (fStr(oldDoc, "uid") == uid) runCatching { httpDelete(idToken, "usernames/$oldHandle") }
+            }
+            if (handleLower.length in 3..20) runCatching { reserveUsername(idToken, uid, handleLower) }
+        }
+        val fields = buildJsonObject {
+            put("displayName", str(displayName.trim().take(40)))
+            put("handle", str(handleLower))
+            put("avatar", str(photoUrl))
+            put("photoUrl", str(photoUrl))
+            put("about", str(bio.trim().take(300)))
+            put("bio", str(bio.trim().take(300)))
+            put("banner", str(banner.trim()))
+            put("updatedAt", serverTs())
+            if (favTrack != null) {
+                put("favTrack", buildJsonObject {
+                    put("mapValue", buildJsonObject {
+                        put("fields", buildJsonObject {
+                            put("id", str(favTrack.id))
+                            put("title", str(favTrack.title))
+                            put("artist", str(favTrack.artist))
+                            put("cover", str(favTrack.cover))
+                            put("duration", int(favTrack.duration))
+                        })
+                    })
+                })
+            }
+        }
+        for (path in listOf("profiles/$uid", "users/$uid")) {
+            val body = buildJsonObject { put("fields", fields) }
+            val request = Request.Builder().url(docUrl(path))
+                .header("Authorization", "Bearer $idToken")
+                .patch(body.toString().toRequestBody(JSON))
+                .build()
+            http.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    val text = resp.body?.string().orEmpty()
+                    throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+                }
+            }
+        }
+    }
+
+    /**
+     * «Опубликовать плейлисты» (как в веб-версии): sync-blob в users/{uid}, сводки плейлистов
+     * в profiles/{uid} + users/{uid} и веб-формат users/{uid}/sync/library — чтобы их видел ПК.
+     */
+    suspend fun publishLibrary(idToken: String, uid: String, blob: SyncBlob): Unit =
+        withContext(Dispatchers.IO) {
+            pushUserSync(idToken, uid, Json { ignoreUnknownKeys = true }.encodeToString(SyncBlob.serializer(), blob))
+            val summaries = blob.playlists.map { PlaylistInfo(it.name, it.tracks.size, it.tracks.firstOrNull()?.c ?: "") }
+            val summariesJson = buildJsonObject {
+                put("arrayValue", buildJsonObject {
+                    put("arrayValue", buildJsonArray {
+                        summaries.forEach { p ->
+                            add(buildJsonObject {
+                                put("mapValue", buildJsonObject {
+                                    put("fields", buildJsonObject {
+                                        put("name", str(p.name))
+                                        put("count", int(p.count))
+                                        put("cover", str(p.cover))
+                                    })
+                                })
+                            })
+                        }
+                    })
+                })
+            }
+            val profileFields = buildJsonObject {
+                put("playlists", summariesJson)
+                put("updatedAt", serverTs())
+            }
+            for (path in listOf("profiles/$uid", "users/$uid")) {
+                val body = buildJsonObject { put("fields", profileFields) }
+                val request = Request.Builder().url(docUrl(path))
+                    .header("Authorization", "Bearer $idToken")
+                    .patch(body.toString().toRequestBody(JSON))
+                    .build()
+                http.newCall(request).execute().use { }
+            }
+            // Веб-формат библиотеки: {name: {cover, tracks: [{id,title,artist,cover,duration}]}}
+            val libMap = buildJsonObject {
+                put("mapValue", buildJsonObject {
+                    put("fields", buildJsonObject {
+                        blob.playlists.forEach { pl ->
+                            put(pl.name, buildJsonObject {
+                                put("mapValue", buildJsonObject {
+                                    put("fields", buildJsonObject {
+                                        put("cover", str(pl.tracks.firstOrNull()?.c ?: ""))
+                                        put("tracks", buildJsonObject {
+                                            put("arrayValue", buildJsonObject {
+                                                put("arrayValue", buildJsonArray {
+                                                    pl.tracks.forEach { t ->
+                                                        add(buildJsonObject {
+                                                            put("mapValue", buildJsonObject {
+                                                                put("fields", buildJsonObject {
+                                                                    put("id", str(t.id))
+                                                                    put("title", str(t.t))
+                                                                    put("artist", str(t.a))
+                                                                    put("cover", str(t.c))
+                                                                    put("duration", int(t.d))
+                                                                })
+                                                            })
+                                                        })
+                                                    }
+                                                })
+                                            })
+                                        })
+                                    })
+                                })
+                            })
+                        }
+                    })
+                })
+            }
+            val libBody = buildJsonObject {
+                put("fields", buildJsonObject {
+                    put("playlists", libMap)
+                    put("updatedAt", serverTs())
+                })
+            }
+            val libRequest = Request.Builder().url(docUrl("users/$uid/sync/library"))
+                .header("Authorization", "Bearer $idToken")
+                .patch(libBody.toString().toRequestBody(JSON))
+                .build()
+            http.newCall(libRequest).execute().use { }
+        }
+
+    /** Поиск публичных пользователей: profiles + users (первые 40) и точный юзернейм. */
+    suspend fun searchUsers(idToken: String, query: String, excludeUid: String): List<ProfileInfo> =
+        withContext(Dispatchers.IO) {
+            val q = query.trim().lowercase().removePrefix("@")
+            if (q.isBlank()) return@withContext emptyList()
+            val found = linkedMapOf<String, ProfileInfo>()
+            listDocs(idToken, "profiles", 40).forEach { (uid, fields) ->
+                val hay = (fStr(fields, "displayName") + " " + fStr(fields, "handle")).lowercase()
+                if (hay.contains(q)) found[uid] = profileFromFields(uid, fields)
+            }
+            listDocs(idToken, "users", 40).forEach { (uid, fields) ->
+                if (uid in found) return@forEach
+                val hay = (fStr(fields, "displayName") + " " + fStr(fields, "handle") + " " + fStr(fields, "email"))
+                    .lowercase()
+                if (hay.contains(q)) found[uid] = profileFromFields(uid, fields)
+            }
+            val byHandle = httpGetJsonOrNull(docUrl("usernames/$q"))?.jsonObject?.get("fields")?.jsonObject
+            val handleUid = fStr(byHandle, "uid")
+            if (handleUid.isNotBlank() && handleUid !in found) {
+                runCatching { getProfile(idToken, handleUid) }.getOrNull()?.let { found[handleUid] = it }
+            }
+            found.values.filter { it.uid != excludeUid }.toList()
+        }
+
+    /** Список друзей: users/{me}/friends + публичные профили каждого. */
+    suspend fun getFriends(idToken: String, myUid: String): List<ProfileInfo> = withContext(Dispatchers.IO) {
+        listDocs(idToken, "users/$myUid/friends", 200).mapNotNull { (fUid, fields) ->
+            runCatching { getProfile(idToken, fUid) }.getOrNull()
+                ?: ProfileInfo(fUid, fStr(fields, "name").ifBlank { "Пользователь" }, "")
+        }
+    }
+
+    /** Добавить друга: friendships + users/{me}/friends (та же схема, что в веб-версии). */
+    suspend fun addFriend(idToken: String, myUid: String, targetUid: String, targetName: String): Unit =
+        withContext(Dispatchers.IO) {
+            val docId = listOf(myUid, targetUid).sorted().joinToString("_")
+            commitWrites(idToken, buildJsonArray {
+                add(buildJsonObject {
+                    put("update", buildJsonObject {
+                        put("name", "projects/${config.projectId}/databases/(default)/documents/friendships/$docId")
+                        put("fields", buildJsonObject {
+                            put("users", buildJsonObject {
+                                put("arrayValue", buildJsonObject {
+                                    put("arrayValue", buildJsonArray {
+                                        add(buildJsonObject { put("stringValue", myUid) })
+                                        add(buildJsonObject { put("stringValue", targetUid) })
+                                    })
+                                })
+                            })
+                            put("fromUid", str(myUid))
+                            put("toUid", str(targetUid))
+                            put("createdAt", serverTs())
+                        })
+                    })
+                })
+                add(buildJsonObject {
+                    put("update", buildJsonObject {
+                        put("name", "projects/${config.projectId}/databases/(default)/documents/users/$myUid/friends/$targetUid")
+                        put("fields", buildJsonObject {
+                            put("uid", str(targetUid))
+                            put("name", str(targetName))
+                            put("addedAt", serverTs())
+                        })
+                    })
+                })
+            })
+        }
+
+    /** Убрать из друзей. */
+    suspend fun removeFriend(idToken: String, myUid: String, targetUid: String): Unit =
+        withContext(Dispatchers.IO) {
+            val docId = listOf(myUid, targetUid).sorted().joinToString("_")
+            runCatching { httpDelete(idToken, "users/$myUid/friends/$targetUid") }
+            runCatching { httpDelete(idToken, "friendships/$docId") }
+        }
+
     companion object {
+
         private val JSON = "application/json; charset=utf-8".toMediaType()
 
         /** Parses a Firebase Web Config JSON (either the raw file or {"config": {...}} wrapper). */

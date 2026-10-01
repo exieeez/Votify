@@ -598,4 +598,51 @@
     <string name="icon_shortcut_failed">Лаунчер не поддерживает ярлыки</string>
     <string name="icon_note">Иконку в лаунчере задаёт система: приложение переключает только встроенные варианты (иконка — часть APK). Своя картинка ставится системным диалогом Android 16+ или ярлыком.</string>
     <string name="icon_active">выбрано</string>
+
+    <!-- Профиль (страница как на ПК, адаптирована под телефон) -->
+    <string name="profile_title">Профиль</string>
+    <string name="profile_no_backend">Firebase не настроен</string>
+    <string name="profile_retry">Повторить</string>
+    <string name="profile_load_error">Не удалось загрузить профиль</string>
+    <string name="profile_edit">Редактировать</string>
+    <string name="profile_edit_title">Редактировать профиль</string>
+    <string name="profile_name">Имя профиля (ник)</string>
+    <string name="profile_handle">Юзернейм</string>
+    <string name="profile_handle_invalid">Юзернейм: 3–20 символов (латинские буквы, цифры, _)</string>
+    <string name="profile_about">О себе</string>
+    <string name="profile_banner">Баннер (ссылка или grad-1 … grad-9)</string>
+    <string name="profile_save">Сохранить</string>
+    <string name="profile_cancel">Отмена</string>
+    <string name="profile_saved">Профиль сохранён</string>
+    <string name="profile_avatar_failed">Не удалось загрузить аватар</string>
+    <string name="profile_avatar_saved">Аватар обновлён</string>
+    <string name="profile_fav_label">Любимый трек</string>
+    <string name="profile_play">Слушать</string>
+    <string name="profile_fav_current">Текущий трек</string>
+    <string name="profile_fav_clear">Очистить</string>
+    <string name="profile_fav_cleared">Любимый трек будет удалён</string>
+    <string name="profile_playlists">Плейлисты</string>
+    <string name="profile_publish_hint">После публикации плейлисты видны друзьям</string>
+    <string name="profile_published">Все изменения опубликованы</string>
+    <string name="profile_publish">Опубликовать</string>
+    <string name="profile_publishing">Публикация…</string>
+    <string name="profile_publish_toast">Плейлисты опубликованы!</string>
+    <string name="profile_playlists_empty">Плейлистов пока нет — создайте в Библиотеке</string>
+    <string name="profile_tracks_count">%d треков</string>
+    <string name="profile_logout">Выйти</string>
+    <!-- Друзья -->
+    <string name="friends_title">Друзья</string>
+    <string name="friends_count">%d друзей</string>
+    <string name="friends_search">Поиск друзей</string>
+    <string name="friends_search_ph">Юзернейм или @юзернейм</string>
+    <string name="friends_search_empty">Никого не нашлось</string>
+    <string name="friends_add">Добавить</string>
+    <string name="friends_add_btn">Добавить в друзья</string>
+    <string name="friends_list">Список друзей</string>
+    <string name="friends_empty">У вас пока нет друзей</string>
+    <string name="friends_remove">Убрать</string>
+    <string name="friends_remove_hint">Нажмите на иконку корзины, чтобы убрать из друзей</string>
+    <string name="friends_remove_title">Убрать из друзей?</string>
+    <string name="friends_remove_msg">Убрать %1$s из друзей?</string>
+    <string name="friend_profile">Профиль пользователя</string>
 </resources>
