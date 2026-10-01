@@ -106,7 +106,7 @@ fun ProfileScreen(
     ) {
         // Header: back + title + действия справа сверху
         Row(
-            Modifier.fillMaxWidth().padding(PaddingValues(start = 8.dp, end = 10.dp, vertical = 4.dp)),
+            Modifier.fillMaxWidth().padding(PaddingValues(start = 8.dp, top = 4.dp, end = 10.dp, bottom = 4.dp)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
@@ -226,7 +226,7 @@ fun ProfileScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.8f),
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(PaddingValues(top = 8.dp, horizontal = 8.dp)),
+                                modifier = Modifier.padding(PaddingValues(top = 8.dp, start = 8.dp, end = 8.dp)),
                             )
                         }
                     }
