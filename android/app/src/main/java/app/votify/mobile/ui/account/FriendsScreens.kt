@@ -320,17 +320,17 @@ fun UserScreen(
                 Box {
                     BannerBox(
                         banner = p.banner,
-                        modifier = Modifier.fillMaxWidth().height(140.dp),
+                        modifier = Modifier.fillMaxWidth().height(150.dp),
                     )
                     Box(
                         Modifier
-                            .align(Alignment.TopCenter)
-                            .offset(y = (-48).dp),
+                            .align(Alignment.BottomCenter)
+                            .offset(y = 48.dp),
                     ) {
                         AvatarBox(p.avatar, size = 96.dp, border = true)
                     }
                 }
-                Spacer(Modifier.height(52.dp))
+                Spacer(Modifier.height(64.dp))
                 Text(
                     p.name,
                     style = MaterialTheme.typography.headlineSmall,

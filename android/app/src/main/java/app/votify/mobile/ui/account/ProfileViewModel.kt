@@ -32,6 +32,9 @@ data class ProfileUiState(
     val profile: ProfileInfo? = null,
     /** Нет вошедшего аккаунта — показываем гостевой профиль (как «Гость» на ПК). */
     val isGuest: Boolean = false,
+    /** Имя/юзернейм по умолчанию для вошедшего (формула ПК: displayName || почта@…). */
+    val fallbackName: String = "Гость",
+    val fallbackHandle: String = "guest",
     val publishing: Boolean = false,
     val publishMsg: String? = null,
     // edit form
@@ -97,14 +100,30 @@ class ProfileViewModel(
     private suspend fun load() {
         val acct = settingsRepo.account.first()
         if (acct == null) {
-            _state.update { it.copy(loading = false, isGuest = true, profile = null) }
+            _state.update { it.copy(loading = false, isGuest = true, profile = null, fallbackName = "Гость", fallbackHandle = "guest") }
             return
         }
-        _state.update { it.copy(loading = true, error = null) }
+        // Те же фолбэки, что и на ПК: displayName (username) || префикс почты.
+        val emailPrefix = acct.email.substringBefore('@').lowercase()
+        val fbName = acct.username.ifBlank { emailPrefix }.ifBlank { "Пользователь" }
+        val fbHandle = (emailPrefix.ifBlank { acct.username })
+            .lowercase()
+            .replace(Regex("[^a-z0-9_]"), "")
+            .ifBlank { "user" }
+        _state.update { it.copy(loading = true, error = null, fallbackName = fbName, fallbackHandle = fbHandle) }
         runCatching {
             val client = client() ?: error(appContext.getString(R.string.profile_no_backend))
             val token = validToken(client, acct)
-            client.getProfile(token, acct.uid)
+            val profile = client.getProfile(token, acct.uid)
+            profile ?: if (acct.uid.isNotBlank()) {
+                // Документа профиля нет — создаём его (тот самый, что читает и
+                // пишет ПК): с этого момента имя/аватар/баннер синхронизированы
+                // в обе стороны между устройствами.
+                client.saveProfile(token, acct.uid, fbName, fbHandle, "", "", "", null)
+                client.getProfile(token, acct.uid)
+            } else {
+                null
+            }
         }.onSuccess { profile ->
             _state.update { it.copy(loading = false, isGuest = false, profile = profile, error = null) }
         }.onFailure { e ->

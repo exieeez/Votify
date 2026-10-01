@@ -132,20 +132,24 @@ fun ProfileScreen(
         } else {
             // Профиль всегда виден (гость — «Гость»/@guest, как на ПК)
             val p = state.profile
-            val guest = state.isGuest || p == null
-            val profName = p?.name ?: stringResource(R.string.profile_guest_name)
-            val profHandle = p?.handle ?: "guest"
+            // guest = «нет аккаунта». Вошедший без загруженного профиля видит
+            // свои же данные по умолчанию (как на ПК), а не «Гость».
+            val guest = state.isGuest
+            val profName = (p?.name ?: "").takeIf { it.isNotBlank() }
+                ?: if (guest) stringResource(R.string.profile_guest_name) else state.fallbackName
+            val profHandle = (p?.handle ?: "").takeIf { it.isNotBlank() }
+                ?: if (guest) "guest" else state.fallbackHandle
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 // Hero: banner + avatar + name + handle + роль
                 Box {
                     BannerBox(
                         banner = p?.banner.orEmpty(),
-                        modifier = Modifier.fillMaxWidth().height(140.dp),
+                        modifier = Modifier.fillMaxWidth().height(150.dp),
                     )
                     Box(
                         Modifier
-                            .align(Alignment.TopCenter)
-                            .offset(y = (-48).dp)
+                            .align(Alignment.BottomCenter)
+                            .offset(y = 48.dp)
                             .then(
                                 if (!guest) Modifier.clickable {
                                     avatarPicker.launch(
@@ -155,7 +159,7 @@ fun ProfileScreen(
                             ),
                     ) {
                         AvatarBox(
-                            url = state.stagedAvatar ?: p?.avatar.orEmpty(),
+                            url = state.stagedAvatar ?: (p?.avatar ?: "").takeIf { it.isNotBlank() } ?: "",
                             size = 96.dp,
                             border = true,
                         )
@@ -179,7 +183,7 @@ fun ProfileScreen(
                         }
                     }
                 }
-                Spacer(Modifier.height(52.dp))
+                Spacer(Modifier.height(64.dp))
                 Text(
                     profName,
                     style = MaterialTheme.typography.headlineSmall,
@@ -241,27 +245,13 @@ fun ProfileScreen(
                 // Гость: «Войти / Зарегистрироваться»; вошедший: «Редактировать»
                 when {
                     state.editing -> ProfileEditForm(state, viewModel)
-                    guest && state.error == null -> OutlinedButton(
+                    guest -> OutlinedButton(
                         onClick = onOpenLogin,
                         modifier = Modifier.padding(top = 12.dp),
                     ) {
                         Icon(Icons.Outlined.Person, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.profile_login_btn))
-                    }
-                    guest -> Box {
-                        // гость + ошибка (например, Firebase не настроен): и вход, и повтор
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            OutlinedButton(
-                                onClick = onOpenLogin,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text(stringResource(R.string.profile_login_btn), fontSize = 13.sp)
-                            }
-                        }
                     }
                     else -> OutlinedButton(
                         onClick = viewModel::startEdit,
