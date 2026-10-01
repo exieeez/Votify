@@ -79,6 +79,7 @@ fun ProfileScreen(
     onOpenFriends: () -> Unit,
     onToast: (String) -> Unit,
     onPlayFav: (FavTrackInfo) -> Unit,
+    onOpenLogin: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -123,64 +124,64 @@ fun ProfileScreen(
             }
         }
 
-        if (state.loading) {
+        // Герой профиля виден всегда (гость, вошедший, ошибка загрузки) — как на ПК.
+        if (state.loading && !state.isGuest && state.profile == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = VotifyColors.Primary)
             }
-        } else if (state.profile == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(state.error ?: stringResource(R.string.profile_load_error), color = VotifyColors.TextSecondary)
-                    OutlinedButton(onClick = viewModel::reload) {
-                        Text(stringResource(R.string.profile_retry))
-                    }
-                }
-            }
         } else {
-            val p = state.profile!!
+            // Профиль всегда виден (гость — «Гость»/@guest, как на ПК)
+            val p = state.profile
+            val guest = state.isGuest || p == null
+            val profName = p?.name ?: stringResource(R.string.profile_guest_name)
+            val profHandle = p?.handle ?: "guest"
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                // Hero: banner + avatar + name + handle
+                // Hero: banner + avatar + name + handle + роль
                 Box {
                     BannerBox(
-                        banner = p.banner,
+                        banner = p?.banner.orEmpty(),
                         modifier = Modifier.fillMaxWidth().height(140.dp),
                     )
                     Box(
                         Modifier
                             .align(Alignment.TopCenter)
                             .offset(y = (-48).dp)
-                            .clickable {
-                                avatarPicker.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
+                            .then(
+                                if (!guest) Modifier.clickable {
+                                    avatarPicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                } else Modifier
+                            ),
                     ) {
                         AvatarBox(
-                            url = state.stagedAvatar ?: p.avatar,
+                            url = state.stagedAvatar ?: p?.avatar.orEmpty(),
                             size = 96.dp,
                             border = true,
                         )
-                        // camera badge
-                        Surface(
-                            shape = CircleShape,
-                            color = VotifyColors.SurfaceContainerHigh,
-                            modifier = Modifier.align(Alignment.BottomEnd).size(30.dp),
-                            content = {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Outlined.PhotoCamera,
-                                        null,
-                                        tint = VotifyColors.TextSecondary,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                }
-                            },
-                        )
+                        // camera badge (только для вошедших)
+                        if (!guest) {
+                            Surface(
+                                shape = CircleShape,
+                                color = VotifyColors.SurfaceContainerHigh,
+                                modifier = Modifier.align(Alignment.BottomEnd).size(30.dp),
+                                content = {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Outlined.PhotoCamera,
+                                            null,
+                                            tint = VotifyColors.TextSecondary,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
                 Spacer(Modifier.height(52.dp))
                 Text(
-                    p.name,
+                    profName,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = VotifyColors.TextPrimary,
@@ -190,19 +191,46 @@ fun ProfileScreen(
                 )
                 // @handle — тап копирует (как «Скопировать юзернейм» на ПК)
                 Text(
-                    "@" + p.handle,
+                    "@" + profHandle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = VotifyColors.Primary,
                     modifier = Modifier
                         .clickable {
-                            clipboard.setText(AnnotatedString("@" + p.handle))
-                            onToast("@" + p.handle)
+                            clipboard.setText(AnnotatedString("@" + profHandle))
+                            onToast("@" + profHandle)
                         }
                         .padding(vertical = 2.dp),
                 )
-                if (p.about.isNotBlank()) {
+                // Роль: как на ПК («Пользователь» / «Не авторизован»)
+                Text(
+                    stringResource(if (!guest) R.string.profile_role_user else R.string.profile_role_guest),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = VotifyColors.TextMuted,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+                if (state.error != null && p == null) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            state.error!!,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = VotifyColors.Error,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        TextButton(onClick = viewModel::reload) {
+                            Text(stringResource(R.string.profile_retry))
+                        }
+                    }
+                }
+                (p?.about ?: "").takeIf { it.isNotBlank() }?.let {
                     Text(
-                        p.about,
+                        it,
                         style = MaterialTheme.typography.bodyMedium,
                         color = VotifyColors.TextSecondary,
                         textAlign = TextAlign.Center,
@@ -210,11 +238,32 @@ fun ProfileScreen(
                     )
                 }
 
-                // Edit form or the «Редактировать» button
-                if (state.editing) {
-                    ProfileEditForm(state, viewModel)
-                } else {
-                    OutlinedButton(
+                // Гость: «Войти / Зарегистрироваться»; вошедший: «Редактировать»
+                when {
+                    state.editing -> ProfileEditForm(state, viewModel)
+                    guest && state.error == null -> OutlinedButton(
+                        onClick = onOpenLogin,
+                        modifier = Modifier.padding(top = 12.dp),
+                    ) {
+                        Icon(Icons.Outlined.Person, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.profile_login_btn))
+                    }
+                    guest -> Box {
+                        // гость + ошибка (например, Firebase не настроен): и вход, и повтор
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            OutlinedButton(
+                                onClick = onOpenLogin,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text(stringResource(R.string.profile_login_btn), fontSize = 13.sp)
+                            }
+                        }
+                    }
+                    else -> OutlinedButton(
                         onClick = viewModel::startEdit,
                         modifier = Modifier.padding(top = 12.dp),
                     ) {
@@ -225,9 +274,9 @@ fun ProfileScreen(
                 }
 
                 // Favorite track (Telegram style, as on PC)
-                val fav = if (state.editing) {
+                val fav = if (state.editing && p != null) {
                     if (state.favCleared) null else (state.stagedFav ?: p.favTrack)
-                } else p.favTrack
+                } else p?.favTrack
                 if (fav != null) {
                     Spacer(Modifier.height(16.dp))
                     VotifyCard(
@@ -289,7 +338,7 @@ fun ProfileScreen(
                             }
                             OutlinedButton(
                                 onClick = viewModel::publish,
-                                enabled = !state.publishing,
+                                enabled = !state.publishing && !guest,
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                             ) {
                                 if (state.publishing) {
@@ -373,14 +422,16 @@ fun ProfileScreen(
                     }
                 }
 
-                // Logout
-                TextButton(
-                    onClick = onLogout,
-                    modifier = Modifier.padding(top = 12.dp),
-                ) {
-                    Icon(Icons.Outlined.ExitToApp, null, tint = VotifyColors.Error, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.profile_logout), color = VotifyColors.Error)
+                // Logout — только для вошедших
+                if (!guest) {
+                    TextButton(
+                        onClick = onLogout,
+                        modifier = Modifier.padding(top = 12.dp),
+                    ) {
+                        Icon(Icons.Outlined.ExitToApp, null, tint = VotifyColors.Error, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.profile_logout), color = VotifyColors.Error)
+                    }
                 }
             }
         }

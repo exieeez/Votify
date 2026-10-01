@@ -59,7 +59,11 @@ class FriendsViewModel(
 
     fun loadFriends() {
         viewModelScope.launch {
-            val acct = settingsRepo.account.first() ?: return@launch
+            val acct = settingsRepo.account.first()
+            if (acct == null) {
+                _state.update { it.copy(loading = false) }
+                return@launch
+            }
             _state.update { it.copy(loading = true, error = null) }
             runCatching {
                 val client = client() ?: error("no firebase config")
@@ -138,7 +142,11 @@ class FriendsViewModel(
     fun loadUser(uid: String) {
         _userState.update { UserUiState() }
         viewModelScope.launch {
-            val acct = settingsRepo.account.first() ?: return@launch
+            val acct = settingsRepo.account.first()
+            if (acct == null) {
+                _userState.update { it.copy(loading = false) }
+                return@launch
+            }
             runCatching {
                 val client = client() ?: error("no firebase config")
                 val token = validToken(client, acct)

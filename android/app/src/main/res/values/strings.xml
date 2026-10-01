@@ -601,6 +601,10 @@
 
     <!-- Профиль (страница как на ПК, адаптирована под телефон) -->
     <string name="profile_title">Профиль</string>
+    <string name="profile_guest_name">Гость</string>
+    <string name="profile_role_user">Пользователь</string>
+    <string name="profile_role_guest">Не авторизован</string>
+    <string name="profile_login_btn">Войти / Зарегистрироваться</string>
     <string name="profile_no_backend">Firebase не настроен</string>
     <string name="profile_retry">Повторить</string>
     <string name="profile_load_error">Не удалось загрузить профиль</string>

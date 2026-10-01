@@ -130,6 +130,7 @@ private object Routes {
     const val HISTORY = "history"
     const val SETTINGS = "settings"
     const val ACCOUNT = "account"
+    const val PROFILE = "profile"
     const val IMPORT = "import"
     const val PLAYLIST = "playlist/{id}"
     const val ARTIST = "artist/{name}"
@@ -458,7 +459,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         onOpenHistory = { navController.navigate(Routes.HISTORY) { launchSingleTop = true } },
                         onOpenFavorites = { navController.navigate(Routes.FAVORITES) { launchSingleTop = true } },
                         onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
-                        onOpenAccount = { navController.navigate(Routes.ACCOUNT) { launchSingleTop = true } },
+                        onOpenAccount = { navController.navigate(Routes.PROFILE) { launchSingleTop = true } },
                         onOpenTrending = { navController.navigate(Routes.TRENDING) { launchSingleTop = true } },
                         onOpenSite = { openSite(context) },
                     )
@@ -549,7 +550,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         viewModel = settingsVm,
                         contentPadding = contentPadding,
                         onBack = { navController.popBackStack() },
-                        onOpenAccount = { navController.navigate(Routes.ACCOUNT) { launchSingleTop = true } },
+                        onOpenAccount = { navController.navigate(Routes.PROFILE) { launchSingleTop = true } },
                     )
                 }
                 composable(Routes.AUDIO) {
@@ -607,33 +608,32 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                     )
                 }
                 composable(Routes.ACCOUNT) {
-                    val loggedIn by accountVm.account.collectAsStateWithLifecycle()
-                    if (loggedIn != null) {
-                        ProfileScreen(
-                            viewModel = profileVm,
-                            contentPadding = contentPadding,
-                            onBack = { navController.popBackStack() },
-                            onOpenFriends = { navController.navigate(Routes.FRIENDS) },
-                            onToast = { snackbarScope.launch { snackbar.showSnackbar(it) } },
-                            onPlayFav = { fav ->
-                                val id = Regex("[?&]v=([a-zA-Z0-9_-]{11})")
+                    AccountScreen(
+                        viewModel = accountVm,
+                        contentPadding = contentPadding,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(Routes.PROFILE) {
+                    ProfileScreen(
+                        viewModel = profileVm,
+                        contentPadding = contentPadding,
+                        onBack = { navController.popBackStack() },
+                        onOpenFriends = { navController.navigate(Routes.FRIENDS) },
+                        onToast = { snackbarScope.launch { snackbar.showSnackbar(it) } },
+                        onPlayFav = { fav ->
+                            val id = Regex("[?&]v=([a-zA-Z0-9_-]{11})")
+                                .find(fav.id)?.groupValues?.get(1)
+                                ?: Regex("""youtu\.be/([a-zA-Z0-9_-]{11})""")
                                     .find(fav.id)?.groupValues?.get(1)
-                                    ?: Regex("""youtu\.be/([a-zA-Z0-9_-]{11})""")
-                                        .find(fav.id)?.groupValues?.get(1)
                                     ?: fav.id
-                                if (id.length == 11) {
-                                    player.playTrack(Track(id, fav.title, fav.artist, fav.cover, "", fav.duration))
-                                }
-                            },
-                            onLogout = { accountVm.logout() },
-                        )
-                    } else {
-                        AccountScreen(
-                            viewModel = accountVm,
-                            contentPadding = contentPadding,
-                            onBack = { navController.popBackStack() },
-                        )
-                    }
+                            if (id.length == 11) {
+                                player.playTrack(Track(id, fav.title, fav.artist, fav.cover, "", fav.duration))
+                            }
+                        },
+                        onOpenLogin = { navController.navigate(Routes.ACCOUNT) },
+                        onLogout = { accountVm.logout() },
+                    )
                 }
                 composable(Routes.FRIENDS) {
                     FriendsScreen(

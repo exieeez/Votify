@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -29,6 +30,8 @@ data class ProfileUiState(
     val loading: Boolean = true,
     val error: String? = null,
     val profile: ProfileInfo? = null,
+    /** Нет вошедшего аккаунта — показываем гостевой профиль (как «Гость» на ПК). */
+    val isGuest: Boolean = false,
     val publishing: Boolean = false,
     val publishMsg: String? = null,
     // edit form
@@ -79,6 +82,12 @@ class ProfileViewModel(
 
     init {
         viewModelScope.launch { load() }
+        // Вход/выход (с экрана логина) — перерисовать профиль
+        viewModelScope.launch {
+            settingsRepo.account
+                .drop(1)
+                .collect { load() }
+        }
     }
 
     fun reload() {
@@ -88,7 +97,7 @@ class ProfileViewModel(
     private suspend fun load() {
         val acct = settingsRepo.account.first()
         if (acct == null) {
-            _state.update { it.copy(loading = false) }
+            _state.update { it.copy(loading = false, isGuest = true, profile = null) }
             return
         }
         _state.update { it.copy(loading = true, error = null) }
@@ -97,9 +106,11 @@ class ProfileViewModel(
             val token = validToken(client, acct)
             client.getProfile(token, acct.uid)
         }.onSuccess { profile ->
-            _state.update { it.copy(loading = false, profile = profile) }
+            _state.update { it.copy(loading = false, isGuest = false, profile = profile, error = null) }
         }.onFailure { e ->
-            _state.update { it.copy(loading = false, error = e.message ?: "error") }
+            // Аккаунт есть, но профиль не загрузился: герой остаётся (как на ПК),
+            // подсказка об ошибке — под именем.
+            _state.update { it.copy(loading = false, isGuest = false, error = e.message ?: "error") }
         }
     }
 
@@ -112,6 +123,7 @@ class ProfileViewModel(
     // ------------------------------------------------------------------ edit form
 
     fun startEdit() {
+        if (_state.value.isGuest) return
         val p = _state.value.profile ?: return
         _state.update {
             it.copy(
@@ -152,6 +164,7 @@ class ProfileViewModel(
 
     /** Pick an avatar from the gallery: compress to a JPEG data URL, save immediately (like the PC). */
     fun onAvatarPicked(uri: Uri) {
+        if (_state.value.isGuest) return
         viewModelScope.launch {
             _state.update { it.copy(savingAvatar = true) }
             val dataUrl = with(kotlinx.coroutines.Dispatchers.IO) {
@@ -209,6 +222,7 @@ class ProfileViewModel(
 
     fun save() {
         val s = _state.value
+        if (s.isGuest) return
         val p = s.profile ?: return
         val handle = s.editHandle.trim().lowercase().removePrefix("@")
         if (handle.isNotEmpty() && !handle.matches(Regex("[a-z0-9_]{3,20}"))) {
@@ -248,7 +262,7 @@ class ProfileViewModel(
 
     /** «Опубликовать»: push the local library to the account cloud (like the PC). */
     fun publish() {
-        if (_state.value.publishing) return
+        if (_state.value.publishing || _state.value.isGuest) return
         _state.update { it.copy(publishing = true, publishMsg = null) }
         viewModelScope.launch {
             val acct = settingsRepo.account.first() ?: return@launch
