@@ -85,10 +85,19 @@
 
     if (homeBtn && navHome) homeBtn.addEventListener('click', () => navHome.click());
     if (gearBtn) {
-      gearBtn.addEventListener('click', () => {
-        if (typeof window.openSettings === 'function') window.openSettings();
-        else if (navSettings) navSettings.click();
-      });
+      gearBtn.onclick = function (e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        if (typeof window.toggleSettingsOverlay === 'function') {
+          window.toggleSettingsOverlay();
+        } else if (typeof window.openSettings === 'function') {
+          window.openSettings();
+        } else if (navSettings) {
+          navSettings.click();
+        }
+      };
     }
 
     if (tbSearch && navSearch && searchInput) {
@@ -132,7 +141,15 @@
     }
 
     var friends = byId('tb-friends-btn');
-    if (friends) friends.addEventListener('click', () => setAsideVisible(!asideIsVisible()));
+    if (friends) {
+      friends.addEventListener('click', function () {
+        if (window.VotifyCloud && typeof window.VotifyCloud.openFriendsModal === 'function') {
+          window.VotifyCloud.openFriendsModal();
+        } else if (typeof window.openFriendsModal === 'function') {
+          window.openFriendsModal();
+        }
+      });
+    }
   }
 
   /* ---------- Назад / вперёд ---------- */
@@ -204,16 +221,17 @@
     if (force) lastPinsKey = null;
     var wrap = byId('sidebar-pins');
     if (!wrap) return;
-    var playlists = {};
-    try {
-      playlists = JSON.parse(localStorage.getItem('votify-playlists') || '{}') || {};
-    } catch (e) {
-      /* ignore */
+    var playlists = null;
+    if (window.playlists && typeof window.playlists === 'object' && !Array.isArray(window.playlists)) {
+      playlists = window.playlists;
+    } else {
+      try {
+        playlists = JSON.parse(localStorage.getItem('votify-playlists') || '{}') || {};
+      } catch (e) {
+        playlists = {};
+      }
     }
-    if (window.playlists && typeof window.playlists === 'object') {
-      playlists = Object.assign({}, window.playlists, playlists);
-    }
-    var keys = Object.keys(playlists);
+    var keys = (playlists && typeof playlists === 'object') ? Object.keys(playlists) : [];
     var sig = 'pl:' + keys.join('|');
     if (sig === lastPinsKey) return;
     lastPinsKey = sig;
@@ -248,8 +266,16 @@
         });
         return;
       }
+      var name = pin.getAttribute('data-pl');
+      if (name && name !== 'Избранное' && name !== 'Любимые треки') {
+        pin.addEventListener('contextmenu', function (e) {
+          e.preventDefault();
+          if (typeof window.deletePlaylist === 'function') {
+            window.deletePlaylist(name);
+          }
+        });
+      }
       pin.addEventListener('click', function () {
-        var name = pin.getAttribute('data-pl');
         if (!name) return;
         var targetName = (name === 'Избранное' || name === 'Любимые треки') ? 'Избранное' : name;
         if (typeof window.openPlaylist === 'function') {
@@ -456,53 +482,25 @@
 
   function buildAside() {
     var aside = byId('rz-right-aside');
-    if (!aside) return;
-    var html = '<div class="rz-friends-head"><span style="font-weight:800;font-size:16px;">Активность друзей</span>';
-    html +=
-      '<button class="rz-aside-x" id="rz-aside-close" title="Закрыть" aria-label="Закрыть">✕</button></div>';
-    html += '<div class="rz-friends-list" id="rz-friends-list"></div>';
-    html += '<button class="rz-find-friends" id="rz-find-friends" style="margin-top:12px;width:100%;background:#ffffff;color:#000;border:none;border-radius:9999px;padding:10px;font-weight:700;cursor:pointer;">Найти друзей</button>';
-    aside.innerHTML = html;
-    renderFriendsList();
-
-    var close = byId('rz-aside-close');
-    if (close)
-      close.addEventListener('click', function () {
-        setAsideVisible(false);
-      });
-    var find = byId('rz-find-friends');
-    if (find)
-      find.addEventListener('click', function () {
-        var profile = byId('nav-profile-btn');
-        if (profile) profile.click();
-        var searchInput = byId('friend-search-input');
-        if (searchInput) searchInput.focus();
-      });
+    if (aside) {
+      aside.innerHTML = '';
+      aside.style.display = 'none';
+    }
   }
   function asideIsVisible() {
-    var aside = byId('rz-right-aside');
-    return !!aside && !aside.classList.contains('closed');
+    return false;
   }
   function setAsideVisible(show) {
     var aside = byId('rz-right-aside');
     var main = document.querySelector('.main-content');
-    if (!aside) return;
-    aside.classList.toggle('closed', !show);
-    if (main) main.classList.toggle('rz-right-open', show);
-    try {
-      localStorage.setItem('rooster-aside', show ? 'open' : 'closed');
-    } catch (e) {
-      /* ignore */
+    if (aside) {
+      aside.classList.add('closed');
+      aside.style.display = 'none';
     }
+    if (main) main.classList.remove('rz-right-open');
   }
   function wireAside() {
-    var stored = null;
-    try {
-      stored = localStorage.getItem('rooster-aside');
-    } catch (e) {
-      /* ignore */
-    }
-    setAsideVisible(stored === 'open');
+    setAsideVisible(false);
   }
 
   /* ---------- Клики по обложке и заголовку: открытие полноэкранного плеера ---------- */
@@ -539,7 +537,8 @@
           inner.innerHTML = 'У вас пока нет друзей';
         } else {
           inner.innerHTML = friends.map(function(f) {
-            return '<div class="rz-friend" style="display:flex;align-items:center;gap:10px;padding:6px 0;"><img src="' + (f.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop') + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" /><div style="font-weight:700;color:#fff;">' + f.name + '</div></div>';
+            var ava = (f.avatar && f.avatar.indexOf('unsplash.com') === -1) ? f.avatar : (typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(f.name) : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" rx="64" fill="%23262626"/><path d="M64 28a20 20 0 1 0 0 40 20 20 0 0 0 0-40zm0 48c-22.1 0-40 13.4-40 30v4h80v-4c0-16.6-17.9-30-40-30z" fill="%23888888"/></svg>');
+            return '<div class="rz-friend" style="display:flex;align-items:center;gap:10px;padding:6px 0;"><img src="' + ava + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" /><div style="font-weight:700;color:#fff;">' + f.name + '</div></div>';
           }).join('');
         }
       }).catch(function() {});

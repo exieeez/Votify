@@ -50,3 +50,33 @@ test('For You section on Home uses playlist and listening-history wave seeds', (
   assert.match(main, /function scrollForYou\(direction\)/);
   assert.match(main, /function loadHomeContent\(\)[\s\S]*loadForYouContent\(\)/);
 });
+
+test('player buttons isolate spinner when is-loading class is active', () => {
+  const css = read('src/styles.css');
+  const main = read('src/main.js');
+
+  assert.match(css, /\.is-loading > :not\(\.votify-spinner-wrap\):not\(\.votify-spinner-svg\)/);
+  assert.match(css, /\.is-loading \.icon-play-svg/);
+  assert.match(css, /\.is-loading \.icon-pause-svg/);
+  assert.match(css, /\.is-loading \.votify-spinner-wrap/);
+  assert.match(main, /btn\.classList\.toggle\('is-loading', isLoading\)/);
+});
+
+test('lyrics parser and playback support offsets and timing compensation', () => {
+  const main = read('src/main.js');
+
+  assert.match(main, /function getLyricsPlaybackTime\(time\)/);
+  assert.match(main, /const offsetSec = \(appSettings\.lyricsOffset \|\| 0\) \/ 1000/);
+  assert.match(main, /parseLrcTimings\(lrc/);
+  assert.match(main, /offsetMatch/);
+  assert.match(main, /updateLyricsOffsetUI/);
+});
+
+test('workshop publishing has automatic fallback to core theme schema for live rules', () => {
+  const fb = read('src/firebase-client.js');
+
+  assert.match(fb, /function cleanCoreWorkshopTheme/);
+  assert.match(fb, /permission-denied/);
+  assert.match(fb, /theme: cleanCoreWorkshopTheme\(theme\)/);
+});
+

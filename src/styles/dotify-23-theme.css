@@ -735,27 +735,123 @@ body {
 .pc-profile-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 99999 !important;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
 }
 
 .pc-profile-modal {
   width: 100%;
-  max-width: 680px;
+  max-width: 760px;
   max-height: 90vh;
   background: #121212;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none !important;
   border-radius: 24px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8);
   overflow: hidden;
   animation: pcModalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative !important;
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
+}
+
+.pc-profile-modal * {
+  -webkit-app-region: no-drag !important;
+}
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999 !important;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
+}
+
+.auth-card {
+  position: relative !important;
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
+}
+
+.auth-card * {
+  -webkit-app-region: no-drag !important;
+}
+
+.settings-overlay, #settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999 !important;
+  background: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(18px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
+}
+
+.settings-modal {
+  position: relative !important;
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
+}
+
+.settings-modal * {
+  -webkit-app-region: no-drag !important;
+}
+
+#other-profile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100001 !important;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
+}
+
+/* Explicit display: none overrides for all overlay modals */
+.settings-overlay[style*="display: none"],
+.settings-overlay[style*="display:none"],
+#settings-overlay[style*="display: none"],
+#settings-overlay[style*="display:none"],
+.settings-overlay.hidden,
+#settings-overlay.hidden,
+.pc-profile-overlay[style*="display: none"],
+.pc-profile-overlay[style*="display:none"],
+#profile-overlay[style*="display: none"],
+#profile-overlay[style*="display:none"],
+.pc-profile-overlay.hidden,
+#profile-overlay.hidden,
+#other-profile-overlay[style*="display: none"],
+#other-profile-overlay[style*="display:none"],
+#other-profile-overlay.hidden,
+.auth-overlay[style*="display: none"],
+.auth-overlay[style*="display:none"],
+#auth-overlay[style*="display: none"],
+#auth-overlay[style*="display:none"],
+.auth-overlay.hidden,
+#auth-overlay.hidden,
+#workshop-publish-overlay[style*="display: none"],
+#workshop-publish-overlay[style*="display:none"],
+#workshop-publish-overlay.hidden,
+.rz-right-aside.closed {
+  display: none !important;
 }
 
 @keyframes pcModalPop {
@@ -768,7 +864,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
   background: #141414;
 }
 
@@ -811,7 +907,7 @@ body {
 
 .pc-appbar-action-btn {
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: none;
   color: #ffffff;
   width: 38px;
   height: 38px;
@@ -830,7 +926,6 @@ body {
 .pc-appbar-action-danger:hover {
   background: rgba(239, 68, 68, 0.2);
   color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.4);
 }
 
 .pc-profile-body {
@@ -839,24 +934,66 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  background: #121212;
 }
 
 .pc-profile-hero-card {
   background: #181818;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: none;
   border-radius: 20px;
-  padding: 28px 24px;
+  padding: 36px 24px 24px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* 1. Full Card Height Profile Banner with Bottom Darkening */
+.pc-profile-banner {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #181818;
+  background-image: linear-gradient(135deg, #1e1e24 0%, #2a2b36 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.pc-profile-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(24, 24, 24, 0.55) 35%, rgba(24, 24, 24, 0.92) 80%, #181818 100%);
+  pointer-events: none;
 }
 
 .pc-avatar-wrapper {
   position: relative;
-  width: 104px;
-  height: 104px;
-  margin-bottom: 14px;
+  width: 82px;
+  height: 82px;
+  margin: 0 0 12px 0;
+  z-index: 2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pc-profile-name,
+.pc-profile-handle,
+.pc-btn-edit-profile,
+.pc-profile-edit-form {
+  position: relative;
+  z-index: 2;
 }
 
 .pc-avatar-img {
@@ -864,16 +1001,22 @@ body {
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 3.5px solid #22c55e;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.35);
+  border: 3px solid #181818;
+  background: #181818;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  position: relative;
+  z-index: 2;
+  transition: all 0.25s ease;
 }
+
+/* Clean Avatar (no frames) */
 
 .pc-avatar-badge {
   position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 32px;
-  height: 32px;
+  bottom: 0px;
+  right: 0px;
+  width: 30px;
+  height: 30px;
   background: #ffffff;
   color: #000000;
   border-radius: 50%;
@@ -883,6 +1026,7 @@ body {
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,0.5);
   transition: transform 0.15s ease;
+  z-index: 4;
 }
 
 .pc-avatar-badge:hover {
@@ -890,24 +1034,30 @@ body {
 }
 
 .pc-profile-name {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 800;
   color: #ffffff;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.3px;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.2px;
+  z-index: 2;
+  flex-shrink: 0;
 }
 
 .pc-profile-handle {
   font-family: monospace;
-  font-size: 14px;
+  font-size: 13px;
   color: #a3a3a3;
-  margin-bottom: 2px;
+  margin-bottom: 12px;
+  z-index: 2;
+  flex-shrink: 0;
 }
 
 .pc-profile-role {
-  font-size: 13px;
+  font-size: 12px;
   color: #737373;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
+  z-index: 2;
+  flex-shrink: 0;
 }
 
 .pc-btn-edit-profile {
@@ -915,23 +1065,229 @@ body {
   color: #000000;
   border: none;
   border-radius: 9999px;
-  padding: 10px 48px;
-  font-size: 14px;
+  padding: 8px 32px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
   width: 100%;
-  max-width: 280px;
+  max-width: 220px;
+  z-index: 2;
+  flex-shrink: 0;
+  display: block;
 }
 
 .pc-btn-edit-profile:hover {
   background: #e5e5e5;
   transform: scale(1.02);
+  color: #000000;
+}
+
+/* 2. Steam-style Showcase (Витрина иллюстраций / фото) */
+.pc-showcase-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pc-showcase-wrap {
+  width: 100%;
+  max-height: 280px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.pc-showcase-img {
+  width: 100%;
+  height: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.pc-showcase-img:hover {
+  transform: scale(1.02);
+}
+
+.pc-showcase-text {
+  font-size: 13px;
+  color: #a3a3a3;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 3. Favorite Track Card (Adaptive Cover Color) */
+.pc-fav-track-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: #181818;
+  border: none;
+  border-radius: 20px;
+  padding: 14px 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s ease, background 0.4s ease, box-shadow 0.4s ease;
+  cursor: pointer;
+}
+
+.pc-fav-track-row:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+
+.pc-fav-track-cover-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.pc-fav-track-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pc-fav-track-play-btn {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.pc-fav-track-cover-wrap:hover .pc-fav-track-play-btn,
+.pc-fav-track-play-btn.playing {
+  opacity: 1;
+}
+
+.pc-fav-track-play-btn:hover {
+  background: rgba(36, 129, 204, 0.85);
+}
+
+.pc-fav-track-info {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.pc-fav-track-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.2px;
+}
+
+.pc-fav-track-artist {
+  font-size: 14px;
+  font-weight: 500;
+  color: #8da0b6;
+  margin-top: 4px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-fav-track-album {
+  font-size: 13px;
+  font-weight: 600;
+  color: #5c728c;
+  margin-top: 4px;
+  line-height: 1.25;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Profile Form Elements */
+.pc-form-group {
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.pc-form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a3a3a3;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.pc-form-select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.pc-form-select option {
+  background: #1e1e1e;
+  color: #ffffff;
+}
+
+.pc-form-row-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.pc-form-btn-sm {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pc-form-btn-sm:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
 }
 
 .pc-profile-section-card {
   background: #181818;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: none;
   border-radius: 20px;
   padding: 20px;
 }
@@ -973,18 +1329,21 @@ body {
 .pc-friend-search-input {
   width: 100%;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: none;
   border-radius: 14px;
   padding: 12px 14px 12px 44px;
   color: #ffffff;
   font-size: 14px;
   outline: none;
-  transition: border 0.15s ease, background 0.15s ease;
+  transition: background 0.15s ease;
 }
 
 .pc-friend-search-input:focus {
-  border-color: rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.pc-friend-search-input::placeholder {
+  color: #737373;
 }
 
 .pc-friends-row {
@@ -1034,9 +1393,52 @@ body {
   white-space: nowrap;
 }
 
+#friends-overlay .pc-friends-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  overflow-x: visible;
+  padding-bottom: 0;
+}
+
+#friends-overlay .pc-friend-chip {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  flex: 1 1 calc(50% - 10px);
+  min-width: 170px;
+}
+
+#friends-overlay .pc-friend-chip:hover {
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-2px);
+}
+
+#friends-overlay .pc-friend-ava-shell {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
+#friends-overlay .pc-friend-chip-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pc-btn-publish {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
   color: #ffffff;
   border-radius: 9999px;
   padding: 6px 14px;
@@ -1050,8 +1452,7 @@ body {
 }
 
 .pc-btn-publish:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .pc-playlists-grid {
@@ -1062,7 +1463,7 @@ body {
 
 .pc-playlist-card {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: none;
   border-radius: 16px;
   padding: 10px;
   cursor: pointer;
@@ -2486,10 +2887,15 @@ body:not(.transparency-enabled) #home-screen .track-item:hover {
 .tb-icon-btn,
 .tb-avatar-btn {
   border-radius: 50% !important;
+  -webkit-app-region: no-drag !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
 .tb-search {
   border-radius: 50px !important;
+  -webkit-app-region: no-drag !important;
+  pointer-events: auto !important;
 }
 
 .titlebar-strip .tb-round-sm svg,
@@ -2737,11 +3143,102 @@ body:not(.transparency-enabled) #home-screen .track-item:hover {
 #right-player-volume,
 .player-bar-right input[type="range"],
 .fp-volume input[type="range"],
-.fi-volume-popup input[type="range"] {
+.fi-volume-popup input[type="range"],
+.fs-volume-strip input[type="range"] {
   padding: 0 !important;
   margin: 0 !important;
   box-sizing: border-box !important;
   height: 20px !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  outline: none !important;
+  border: none !important;
+}
+
+/* Universal Volume Sliders Styling with Visible Thumb */
+#fs-sound-volume-slider::-webkit-slider-runnable-track,
+#volume-bar::-webkit-slider-runnable-track,
+#page-player-volume::-webkit-slider-runnable-track,
+#right-player-volume::-webkit-slider-runnable-track,
+.player-bar-right input[type="range"]::-webkit-slider-runnable-track,
+.fp-volume input[type="range"]::-webkit-slider-runnable-track,
+.fi-volume-popup input[type="range"]::-webkit-slider-runnable-track,
+.fs-volume-strip input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(to right, #ffffff 0%, #ffffff var(--r, 80%), rgba(255, 255, 255, 0.25) var(--r, 80%), rgba(255, 255, 255, 0.25) 100%) !important;
+  cursor: pointer !important;
+  border: none !important;
+}
+
+#fs-sound-volume-slider::-webkit-slider-thumb,
+#volume-bar::-webkit-slider-thumb,
+#page-player-volume::-webkit-slider-thumb,
+#right-player-volume::-webkit-slider-thumb,
+.player-bar-right input[type="range"]::-webkit-slider-thumb,
+.fp-volume input[type="range"]::-webkit-slider-thumb,
+.fi-volume-popup input[type="range"]::-webkit-slider-thumb,
+.fs-volume-strip input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 14px !important;
+  height: 14px !important;
+  margin-top: -5px !important; /* (4 - 14)/2 = -5px */
+  background: #ffffff !important;
+  border-radius: 50% !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55) !important;
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+#fs-sound-volume-slider:hover::-webkit-slider-thumb,
+#volume-bar:hover::-webkit-slider-thumb,
+#page-player-volume:hover::-webkit-slider-thumb,
+#right-player-volume:hover::-webkit-slider-thumb,
+.player-bar-right input[type="range"]:hover::-webkit-slider-thumb,
+.fp-volume input[type="range"]:hover::-webkit-slider-thumb,
+.fi-volume-popup input[type="range"]:hover::-webkit-slider-thumb,
+.fs-volume-strip input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.25) !important;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8) !important;
+}
+
+#fs-sound-volume-slider::-moz-range-track,
+#volume-bar::-moz-range-track,
+#page-player-volume::-moz-range-track,
+#right-player-volume::-moz-range-track {
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+  border: none !important;
+}
+
+#fs-sound-volume-slider::-moz-range-progress,
+#volume-bar::-moz-range-progress,
+#page-player-volume::-moz-range-progress,
+#right-player-volume::-moz-range-progress {
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+}
+
+#fs-sound-volume-slider::-moz-range-thumb,
+#volume-bar::-moz-range-thumb,
+#page-player-volume::-moz-range-thumb,
+#right-player-volume::-moz-range-thumb {
+  width: 14px !important;
+  height: 14px !important;
+  background: #ffffff !important;
+  border-radius: 50% !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55) !important;
+  cursor: pointer !important;
 }
 
 /* Base thumb and svg centering for track elements */
@@ -3040,32 +3537,38 @@ body[data-player-slider-type="capsule"] .right-timeline-dot {
    DOTIFY 2.3.6 SETTINGS MODAL (EXACT 1-TO-1 STYLING)
    ============================================================ */
 
-.dotify-23-settings-modal {
-  width: 90%;
-  max-width: 820px;
-  height: 85vh;
-  max-height: 720px;
-  background: var(--bg-surface, #1f1f1f) !important;
+.dotify-23-settings-modal,
+.settings-modal,
+#settings-overlay .settings-modal {
+  width: 90% !important;
+  max-width: 840px !important;
+  height: 85vh !important;
+  max-height: 740px !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 14%, rgba(16, 16, 20, 0.72)) !important;
+  background-color: color-mix(in srgb, var(--accent, #1db954) 14%, rgba(16, 16, 20, 0.72)) !important;
   color: var(--text-primary, #ffffff) !important;
-  backdrop-filter: blur(32px) saturate(1.8) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(1.8) !important;
+  backdrop-filter: blur(40px) saturate(220%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(220%) !important;
   border: none !important;
   outline: none !important;
   border-radius: 24px !important;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7) !important;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.65) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
   padding: 0 !important;
 }
 
-body.transparency-enabled .dotify-23-settings-modal {
-  background: color-mix(in srgb, var(--bg-surface, #1f1f1f) calc(var(--window-opacity, 0.85) * 100%), transparent) !important;
-  backdrop-filter: blur(var(--glass-blur, 10px)) saturate(calc(100% + var(--glass-strength, 15%) * 2)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur, 10px)) saturate(calc(100% + var(--glass-strength, 15%) * 2)) !important;
+body.transparency-enabled .dotify-23-settings-modal,
+body.transparency-enabled .settings-modal {
+  background: color-mix(in srgb, var(--accent, #1db954) 18%, rgba(12, 12, 16, calc(var(--window-opacity, 0.65)))) !important;
+  backdrop-filter: blur(var(--glass-blur, 36px)) saturate(calc(120% + var(--glass-strength, 20%) * 2)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 36px)) saturate(calc(120% + var(--glass-strength, 20%) * 2)) !important;
+  border: none !important;
+  outline: none !important;
 }
 
-/* Ensure inner body, content & sections remain 100% transparent without opaque rectangle boxes */
+/* Ensure inner body, content & sections remain transparent with glass look */
 .dotify-23-settings-modal .settings-modal-body,
 .dotify-23-settings-modal .dotify-settings-body,
 .dotify-23-settings-modal .settings-right-content,
@@ -3082,9 +3585,11 @@ body.transparency-enabled .dotify-23-settings-modal {
 /* Light theme overrides for settings modal */
 body.light-theme .dotify-23-settings-modal,
 body[data-theme-mode="light"] .dotify-23-settings-modal {
-  background: var(--bg-surface, #ffffff) !important;
+  background: color-mix(in srgb, var(--accent, #007aff) 12%, rgba(255, 255, 255, 0.85)) !important;
   color: var(--text-primary, #121212) !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18) !important;
 }
 
 body.light-theme .dotify-section-title,
@@ -3129,8 +3634,10 @@ body.light-theme .dotify-settings-pill-bar,
 body[data-theme-mode="light"] .dotify-settings-pill-bar,
 body.light-theme .dotify-mode-icon-group,
 body[data-theme-mode="light"] .dotify-mode-icon-group {
-  background: rgba(0, 0, 0, 0.05) !important;
+  background: color-mix(in srgb, var(--accent, #007aff) 8%, rgba(0, 0, 0, 0.05)) !important;
   color: var(--text-primary, #121212) !important;
+  border: none !important;
+  outline: none !important;
 }
 
 body.light-theme .dotify-segmented-btn,
@@ -3148,22 +3655,25 @@ body.light-theme .dotify-mode-icon-btn.active,
 body[data-theme-mode="light"] .dotify-mode-icon-btn.active {
   background: #ffffff !important;
   color: #000000 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  box-shadow: none !important;
 }
 
 body.light-theme .dotify-pill-tab.active,
 body[data-theme-mode="light"] .dotify-pill-tab.active {
   background: var(--accent, #000000) !important;
   color: #ffffff !important;
+  box-shadow: none !important;
 }
 
 /* Header & Top Navigation Bar */
-.dotify-settings-header {
+.dotify-settings-header,
+.settings-modal-header {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   padding: 16px 20px 12px 20px !important;
-  background: transparent !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 9%, rgba(255, 255, 255, 0.03)) !important;
+  border: none !important;
   border-bottom: none !important;
 }
 
@@ -3183,10 +3693,14 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   display: inline-flex !important;
   align-items: center !important;
   gap: 3px !important;
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 12%, rgba(0, 0, 0, 0.35)) !important;
   padding: 3px 5px !important;
   border-radius: 999px !important;
-  backdrop-filter: blur(12px) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   width: max-content !important;
   max-width: none !important;
   box-sizing: border-box !important;
@@ -3197,11 +3711,13 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   align-items: center !important;
   gap: 5px !important;
   height: 32px !important;
-  padding: 0 9px !important;
+  padding: 0 12px !important;
   border-radius: 999px !important;
   border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
@@ -3217,15 +3733,18 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 
 .dotify-pill-tab:hover {
   color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.12) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 22%, rgba(255, 255, 255, 0.12)) !important;
 }
 
-.dotify-pill-tab.active {
-  background: rgba(255, 255, 255, 0.22) !important;
+.dotify-pill-tab.active,
+body.transparency-enabled .dotify-pill-tab.active {
+  background: var(--accent, #1db954) !important;
+  background-color: var(--accent, #1db954) !important;
   color: #ffffff !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
 }
 
 .dotify-pill-tab.active i {
@@ -3237,20 +3756,23 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   width: 36px !important;
   height: 36px !important;
   border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: rgba(255, 255, 255, 0.8) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 14%, rgba(255, 255, 255, 0.08)) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: rgba(255, 255, 255, 0.85) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border: none !important;
   cursor: pointer !important;
-  transition: background 0.2s ease !important;
+  transition: background 0.2s ease, transform 0.2s ease !important;
   margin-left: 12px !important;
 }
 
 .dotify-settings-close:hover {
-  background: rgba(255, 255, 255, 0.16) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 30%, rgba(255, 255, 255, 0.18)) !important;
   color: #ffffff !important;
+  transform: scale(1.06) !important;
 }
 
 /* Body & Content */
@@ -3301,10 +3823,11 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 .dotify-segmented-pill-group {
   display: inline-flex !important;
   align-items: center !important;
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 10%, rgba(0, 0, 0, 0.35)) !important;
+  border: none !important;
   padding: 3px !important;
   border-radius: 12px !important;
-  gap: 2px !important;
+  gap: 3px !important;
   max-width: 100% !important;
   overflow-x: auto !important;
 }
@@ -3314,8 +3837,10 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   padding: 0 16px !important;
   border-radius: 9px !important;
   border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
@@ -3328,12 +3853,16 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 
 .dotify-segmented-btn:hover {
   color: #ffffff !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 18%, rgba(255, 255, 255, 0.08)) !important;
 }
 
-.dotify-segmented-btn.active {
-  background: rgba(255, 255, 255, 0.18) !important;
+.dotify-segmented-btn.active,
+body.transparency-enabled .dotify-segmented-btn.active {
+  background: color-mix(in srgb, var(--accent, #1db954) 45%, rgba(255, 255, 255, 0.15)) !important;
+  border: none !important;
+  outline: none !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: none !important;
 }
 
 .dotify-platform-group {
@@ -3349,12 +3878,14 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 .dotify-server-sync-card {
   display: flex !important;
   align-items: center !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 8%, rgba(255, 255, 255, 0.04)) !important;
   border: none !important;
   border-radius: 18px !important;
   padding: 14px 20px !important;
   margin-bottom: 28px !important;
   position: relative !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
 }
 
 .dotify-sync-btn {
@@ -3364,6 +3895,8 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   gap: 14px !important;
   background: transparent !important;
   border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   color: #ffffff !important;
   cursor: pointer !important;
   text-align: left !important;
@@ -3373,7 +3906,7 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 }
 
 .dotify-sync-btn:hover {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 16%, rgba(255, 255, 255, 0.08)) !important;
 }
 
 .dotify-sync-btn span.material-icons {
@@ -3406,8 +3939,18 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding: 12px 0 !important;
-  border-bottom: none !important;
+  padding: 14px 16px !important;
+  margin-bottom: 8px !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 6%, rgba(255, 255, 255, 0.03)) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 14px !important;
+  transition: background 0.2s ease !important;
+}
+
+.dotify-toggle-row:hover {
+  background: color-mix(in srgb, var(--accent, #1db954) 12%, rgba(255, 255, 255, 0.06)) !important;
 }
 
 .dotify-switch {
@@ -3430,6 +3973,9 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   background-color: rgba(255, 255, 255, 0.2) !important;
   transition: 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
   border-radius: 999px !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .dotify-switch-slider:before {
@@ -3446,7 +3992,8 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 }
 
 .dotify-switch input:checked + .dotify-switch-slider {
-  background-color: var(--accent, #ff2d55) !important;
+  background-color: var(--accent, #1db954) !important;
+  box-shadow: none !important;
 }
 
 .dotify-switch input:checked + .dotify-switch-slider:before {
@@ -3462,19 +4009,23 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 .dotify-mini-card {
   flex: 1 !important;
   height: 72px !important;
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 8%, rgba(255, 255, 255, 0.05)) !important;
   border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   border-radius: 14px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 .dotify-mini-card-icon {
@@ -3482,15 +4033,18 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 }
 
 .dotify-mini-card:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 16%, rgba(255, 255, 255, 0.09)) !important;
   color: #ffffff !important;
+  transform: translateY(-1px) !important;
 }
 
-.dotify-mini-card.active {
-  background: rgba(255, 255, 255, 0.18) !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
+.dotify-mini-card.active,
+body.transparency-enabled .dotify-mini-card.active {
+  background: color-mix(in srgb, var(--accent, #1db954) 35%, rgba(255, 255, 255, 0.15)) !important;
+  border: none !important;
+  outline: none !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: none !important;
 }
 
 /* Hotkey Items */
@@ -3504,9 +4058,14 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding: 10px 14px !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 6%, rgba(255, 255, 255, 0.04)) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 14px !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 .dotify-hk-info {
@@ -3517,7 +4076,7 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 
 .dotify-hk-icon {
   font-size: 20px !important;
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
 }
 
 .dotify-hk-title {
@@ -3528,31 +4087,36 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 
 .dotify-hk-desc {
   font-size: 11px !important;
-  color: rgba(255, 255, 255, 0.4) !important;
+  color: rgba(255, 255, 255, 0.45) !important;
   margin-top: 1px !important;
 }
 
 .dotify-hk-assign-btn {
-  background: transparent !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 10%, rgba(255, 255, 255, 0.06)) !important;
   border: none !important;
-  color: rgba(255, 255, 255, 0.4) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: rgba(255, 255, 255, 0.8) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
-  padding: 6px 12px !important;
+  padding: 6px 14px !important;
   border-radius: 8px !important;
   transition: all 0.2s ease !important;
 }
 
 .dotify-hk-assign-btn:hover {
   color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 25%, rgba(255, 255, 255, 0.12)) !important;
 }
 
 /* Mode Icon Buttons (Moon, Sun, Computer) */
 .dotify-mode-icon-group {
   display: inline-flex !important;
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 10%, rgba(0, 0, 0, 0.35)) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   padding: 4px !important;
   border-radius: 12px !important;
   gap: 4px !important;
@@ -3563,8 +4127,10 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   height: 36px !important;
   border-radius: 9px !important;
   border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
   cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
@@ -3574,10 +4140,15 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 
 .dotify-mode-icon-btn:hover {
   color: #ffffff !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 18%, rgba(255, 255, 255, 0.08)) !important;
 }
 
-.dotify-mode-icon-btn.active {
-  background: rgba(255, 255, 255, 0.18) !important;
+.dotify-mode-icon-btn.active,
+body.transparency-enabled .dotify-mode-icon-btn.active {
+  background: color-mix(in srgb, var(--accent, #1db954) 40%, rgba(255, 255, 255, 0.16)) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   color: #ffffff !important;
 }
 
@@ -3590,31 +4161,37 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 
 .dotify-theme-card {
   height: 72px !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 8%, rgba(255, 255, 255, 0.05)) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   border-radius: 12px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 .dotify-theme-card:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: color-mix(in srgb, var(--accent, #1db954) 18%, rgba(255, 255, 255, 0.1)) !important;
   transform: translateY(-2px) !important;
 }
 
-.dotify-theme-card.active {
-  background: rgba(255, 255, 255, 0.18) !important;
-  border: 1px solid var(--accent, #ff2d55) !important;
+.dotify-theme-card.active,
+body.transparency-enabled .dotify-theme-card.active {
+  background: color-mix(in srgb, var(--accent, #1db954) 30%, rgba(255, 255, 255, 0.15)) !important;
+  border: none !important;
+  outline: none !important;
   color: #ffffff !important;
-  box-shadow: 0 0 12px rgba(255, 45, 85, 0.4) !important;
+  box-shadow: none !important;
 }
 
 .dotify-dual-circles {
@@ -3996,15 +4573,15 @@ body.transparency-enabled #fullscreen-player {
 body.transparency-enabled .nav-btn.active,
 body.transparency-enabled .nav-btn:hover,
 body.transparency-enabled .m3-icon-btn,
-body.transparency-enabled .dotify-segmented-btn,
-body.transparency-enabled .dotify-pill-tab,
-body.transparency-enabled .dotify-mode-icon-btn,
-body.transparency-enabled .dotify-mini-card,
-body.transparency-enabled .dotify-theme-card,
+body.transparency-enabled .dotify-segmented-btn:not(.active),
+body.transparency-enabled .dotify-pill-tab:not(.active),
+body.transparency-enabled .dotify-mode-icon-btn:not(.active),
+body.transparency-enabled .dotify-mini-card:not(.active),
+body.transparency-enabled .dotify-theme-card:not(.active),
 body.transparency-enabled .dotify-hotkey-item,
 body.transparency-enabled .dotify-hk-assign-btn,
 body.transparency-enabled .slider-type-card,
-body.transparency-enabled .filter-pill,
+body.transparency-enabled .filter-pill:not(.active),
 body.transparency-enabled .play-track-btn,
 body.transparency-enabled .home-quick-card,
 body.transparency-enabled .lib-item,
@@ -4016,6 +4593,35 @@ body.transparency-enabled .tb-avatar-btn {
   background-color: color-mix(in srgb, var(--bg-surface, #2a2a2a) calc((var(--window-opacity, 0.85) * 0.7 + 0.15) * 100%), transparent) !important;
   backdrop-filter: blur(calc(var(--glass-blur, 10px) * 0.5)) !important;
   -webkit-backdrop-filter: blur(calc(var(--glass-blur, 10px) * 0.5)) !important;
+}
+
+.filter-pill,
+body.transparency-enabled .filter-pill {
+  background: color-mix(in srgb, var(--accent, #1db954) 12%, rgba(255, 255, 255, 0.08)) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 6px 16px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.filter-pill:hover,
+body.transparency-enabled .filter-pill:hover {
+  background: color-mix(in srgb, var(--accent, #1db954) 25%, rgba(255, 255, 255, 0.16)) !important;
+  color: #ffffff !important;
+}
+
+.filter-pill.active,
+body.transparency-enabled .filter-pill.active {
+  background: var(--accent, #1db954) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
 }
 
 /* Player Control Icons: Completely Frameless & Transparent, No Square Background Boxes */
@@ -4184,6 +4790,98 @@ body[data-player-cover-shape="square"] :is(#fi-cover-wrap, .fi-cover-wrap, #fi-c
 .bg-history-del:hover {
   background: #ff5252 !important;
   border-color: #ff5252 !important;
+}
+
+.workshop-card-author {
+  color: #a3a3a3;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color 0.15s ease;
+  width: fit-content;
+}
+
+.workshop-card-author:hover {
+  color: #22c55e;
+  text-decoration: underline;
+}
+
+/* Clean Flat Dark Equalizer (No distracting frames/borders, no background gradients) */
+.fi-eq-popup,
+#fi-eq-popup,
+#right-player-eq,
+.custom-eq {
+  background: #12141a !important;
+  border: none !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8) !important;
+}
+
+.custom-eq-graph {
+  background: #0b0d12 !important;
+  border: none !important;
+  border-radius: 14px !important;
+}
+
+.custom-eq-labels span,
+.custom-eq-db,
+.custom-eq-label {
+  color: #e2e8f0 !important;
+  font-weight: 600 !important;
+}
+
+.custom-eq-preset {
+  background: #1c1f28 !important;
+  border: none !important;
+  color: #e2e8f0 !important;
+  border-radius: 9999px !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-eq-preset:hover {
+  background: #282c39 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.custom-eq-preset.active {
+  background: #22c55e !important;
+  color: #000000 !important;
+  border: none !important;
+  font-weight: 700 !important;
+}
+
+.pc-search-result-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  transform: translateY(-1px);
+}
+
+/* Global Dark Theme for HTML <select> dropdowns & options */
+select,
+select option,
+select optgroup,
+.dotify-select,
+.dotify-select option,
+.dotify-select optgroup,
+.pc-form-select,
+.pc-form-select option,
+.m3-select,
+.m3-select option,
+.settings-select,
+.settings-select option {
+  background-color: #181a22 !important;
+  color: #ffffff !important;
+}
+
+select option:checked,
+.dotify-select option:checked {
+  background-color: #22c55e !important;
+  color: #000000 !important;
+}
+
+select option:hover,
+.dotify-select option:hover {
+  background-color: #262936 !important;
+  color: #ffffff !important;
 }
 
 

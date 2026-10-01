@@ -849,24 +849,10 @@
   padding: 0;
 }
 
-/* ---------- Правая панель «Активность друзей» ---------- */
-.rz-right-aside {
-  position: fixed;
-  right: 8px;
-  top: calc(var(--titlebar-h) + 8px);
-  bottom: 96px;
-  width: 300px;
-  background: #0a0a0a;
-  border: 1px solid #1f1f1f;
-  border-radius: 8px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  z-index: 90;
-}
-.rz-right-aside.closed {
-  display: none;
+/* ---------- Правая панель «Активность друзей» (Удалена) ---------- */
+.rz-right-aside,
+#rz-right-aside {
+  display: none !important;
 }
 .rz-friends-head {
   display: flex;

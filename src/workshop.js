@@ -28,13 +28,9 @@
   function httpsUrl(value) {
     const input = String(value || '').trim();
     if (!input || input.length > 2048) return '';
-    try {
-      const url = new URL(input);
-      if (url.protocol !== 'https:' || url.username || url.password) return '';
-      return url.toString().slice(0, 2048);
-    } catch {
-      return '';
-    }
+    if (typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    return /^https?:\/\//i.test(trimmed) ? trimmed.slice(0, 500) : '';
   }
 
   function cssUrl(value) {
@@ -49,6 +45,9 @@
         ? Math.max(minimum, Math.min(maximum, Math.round(number)))
         : fallback;
     };
+    const boolean = (value, fallback = true) => (typeof value === 'boolean' ? value : (value !== undefined ? !!value : fallback));
+    const str = (value, fallback = '') => (typeof value === 'string' && value.trim() ? value.trim() : fallback);
+
     return {
       primary: color(theme.primary, '#1DB954'),
       background: color(theme.background, '#121212'),
@@ -56,7 +55,7 @@
       cards: color(theme.cards, '#181818'),
       borders: color(theme.borders, '#2A2A2A'),
       focus: color(theme.focus, '#1DB954'),
-      mode: oneOf(theme.mode, ['dark', 'light', 'system'], 'dark'),
+      mode: oneOf(theme.mode, ['dark', 'light', 'system', 'contrast', 'midnight'], 'dark'),
       backgroundPreset: oneOf(
         theme.backgroundPreset,
         [
@@ -73,15 +72,25 @@
         ],
         'default'
       ),
-      backgroundUrl: httpsUrl(theme.backgroundUrl),
+      backgroundUrl: httpsUrl(theme.backgroundUrl || theme.bgUrl || theme.url),
       cornerRadius: integer(theme.cornerRadius, 0, 24, 8),
       uiTransparency: integer(theme.uiTransparency, 10, 100, 45),
+      uiScale: integer(theme.uiScale, 50, 150, 100),
       backgroundBlur: integer(theme.backgroundBlur, 0, 60, 0),
+      dynamicPlayerBg: boolean(theme.dynamicPlayerBg, true),
+      accentGlow: boolean(theme.accentGlow, true),
+      cursorGlow: boolean(theme.cursorGlow, false),
+      animations: boolean(theme.animations, true),
       particles: oneOf(
-        theme.particles,
+        theme.particles || theme.bgParticles,
         ['none', 'snow', 'rain', 'stars', 'dots', 'hearts', 'fireflies', 'sakura', 'network'],
         'none'
       ),
+      particleCount: integer(theme.particleCount, 10, 200, 50),
+      particleSpeed: integer(theme.particleSpeed, 5, 50, 15),
+      particleSize: integer(theme.particleSize, 1, 10, 3),
+      particleParallax: boolean(theme.particleParallax, true),
+      perfParticles: boolean(theme.perfParticles, true),
       fontFamily: oneOf(
         theme.fontFamily,
         [
@@ -96,22 +105,58 @@
           'roboto',
           'helvetica',
           'sf',
+          'jakarta',
+          'default',
         ],
         'inter'
       ),
+      fontSize: str(theme.fontSize, '16px'),
+      cursorPreset: oneOf(
+        theme.cursorPreset,
+        ['none', 'glow', 'trail', 'fire', 'matrix', 'rainbow', 'heart', 'star', 'cat', 'custom'],
+        'none'
+      ),
+      playerStyle: oneOf(
+        theme.playerStyle,
+        ['standard', 'compact', 'vinyl', 'minimal', 'cards', 'full', 'modern', 'glass', 'large', 'neon'],
+        'standard'
+      ),
+      playerTitleAlign: oneOf(theme.playerTitleAlign, ['left', 'center', 'right'], 'center'),
+      playerSliderType: oneOf(theme.playerSliderType, ['normal', 'thin', 'wave', 'ios'], 'normal'),
+      playerCoverShape: str(theme.playerCoverShape, 'Закруглённый квадрат'),
+      coverAnimation: str(theme.coverAnimation, 'none'),
+      coverEffects: str(theme.coverEffects, 'none'),
+      dynamicAccentColor: boolean(theme.dynamicAccentColor, true),
+      coverInPlayer: boolean(theme.coverInPlayer, true),
+      miniBg: oneOf(theme.miniBg, ['theme', 'cover', 'transparent', 'accent', 'dark', 'cover-color'], 'theme'),
+      miniProgress: oneOf(theme.miniProgress, ['line', 'circle', 'hidden', 'wave', 'dots', 'bg', 'cover'], 'line'),
+      miniCover: oneOf(theme.miniCover, ['default', 'hidden', 'circle', 'rounded', 'round', 'square'], 'default'),
+      miniBorder: oneOf(theme.miniBorder, ['default', 'none', 'accent', 'glow', 'capsule'], 'default'),
     };
   }
 
+  const userHandleCache = new Map();
+
   function cleanThemeDocument(item) {
+    const rawTheme = Object.assign({}, item?.theme || {});
+    if (!rawTheme.backgroundUrl && (item?.backgroundUrl || item?.bgUrl || item?.url)) {
+      rawTheme.backgroundUrl = item.backgroundUrl || item.bgUrl || item.url;
+    }
+    const rawAuthor = item?.authorHandle || item?.authorName || 'user';
+    let cleanHandle = String(rawAuthor).trim().replace(/^@/, '');
+    if (cleanHandle.toLowerCase() === 'пользователь' || !cleanHandle) cleanHandle = 'user';
+    const authorHandle = '@' + cleanHandle.toLowerCase();
+
     return {
       id: String(item?.id || '').slice(0, 40),
       title: String(item?.title || '').slice(0, 60),
       description: String(item?.description || '').slice(0, 240),
       ownerId: String(item?.ownerId || '').slice(0, 128),
-      authorName: String(item?.authorName || 'Пользователь').slice(0, 40),
+      authorName: authorHandle,
+      authorHandle: authorHandle,
       downloads: String(item?.downloads != null ? item.downloads : '0'),
       category: String(item?.category || 'themes'),
-      theme: cleanTheme(item?.theme),
+      theme: cleanTheme(rawTheme),
       createdAt: Number(item?.createdAt) || 0,
       builtIn: item?.builtIn === true,
     };
@@ -237,7 +282,23 @@
         const own = !!currentUser && !currentUser.isAnonymous && theme.ownerId === currentUser.uid;
         const installed = installedId === theme.id;
         const bgUrl = theme.theme?.backgroundUrl;
-        const authorHandle = theme.authorName.startsWith('@') ? theme.authorName : `@${theme.authorName}`;
+
+        let authorHandle = theme.authorHandle || theme.authorName;
+        if (userHandleCache.has(theme.ownerId)) {
+          authorHandle = userHandleCache.get(theme.ownerId);
+        } else if (theme.ownerId && window.getUserProfile) {
+          window.getUserProfile(theme.ownerId).then(p => {
+            if (p && p.handle) {
+              userHandleCache.set(theme.ownerId, p.handle);
+              const cardAuthorEl = document.querySelector(`.workshop-card[data-theme-id="${theme.id}"] .workshop-card-author`);
+              if (cardAuthorEl) cardAuthorEl.textContent = p.handle;
+            }
+          }).catch(() => {});
+        }
+        if (!authorHandle.startsWith('@')) {
+          authorHandle = '@' + authorHandle.toLowerCase();
+        }
+
         const showDots = theme.title === 'Состояние' || theme.hasDots;
 
         return `
@@ -277,7 +338,7 @@
                   <span>${escapeHtml(String(theme.downloads != null ? theme.downloads : '0'))}</span>
                 </div>
               </div>
-              <div class="workshop-card-author">${escapeHtml(authorHandle)}</div>
+              <div class="workshop-card-author" ${theme.ownerId ? `style="cursor:pointer;" onclick="event.stopPropagation(); if(window.openUserProfile) window.openUserProfile('${escapeHtml(theme.ownerId)}');"` : ''} title="Открыть профиль автора">${escapeHtml(authorHandle)}</div>
               ${theme.description ? `<div class="workshop-card-desc">${escapeHtml(theme.description)}</div>` : ''}
               <div class="workshop-card-actions">
                 <button class="workshop-install-pill-btn ${installed ? 'installed' : ''}" data-action="install">
@@ -374,14 +435,11 @@
     const cloud = window.VotifyCloud;
     const user = cloud?.getCurrentUser?.();
     const isOffline = cloud && typeof cloud.isAvailable === 'function' && !cloud.isAvailable();
-    if (isOffline) {
-      button.title = user ? 'Опубликовать тему локально (офлайн)' : 'Войдите как гость чтобы публиковать локально';
-      button.disabled = !user;
-      return;
-    }
     button.disabled = false;
+    button.style.pointerEvents = 'auto';
+    button.style.cursor = 'pointer';
     button.title = !user
-      ? 'Сначала войдите в аккаунт'
+      ? 'Войдите в аккаунт для публикации темы'
       : user.isAnonymous
         ? 'Привяжите постоянный аккаунт для публикации в облако'
         : 'Опубликовать текущую тему';
@@ -400,25 +458,39 @@
     const user = cloud?.getCurrentUser?.();
     const isOffline = cloud && typeof cloud.isAvailable === 'function' && !cloud.isAvailable();
     if (!user) {
-      cloud?.openAuth?.('auth-register');
+      if (typeof cloud?.openAuth === 'function') {
+        cloud.openAuth('auth-login');
+      }
       setStatus(isOffline ? 'Войдите как гость чтобы публиковать локально' : 'Зарегистрируйтесь, чтобы публиковать темы', 'error');
+      if (typeof showToast === 'function') {
+        showToast('Войдите в аккаунт, чтобы опубликовать тему в Мастерской');
+      }
       return;
     }
     if (!isOffline && user.isAnonymous) {
-      cloud?.openProfile?.();
+      if (typeof cloud?.openAuth === 'function') {
+        cloud.openAuth('auth-register');
+      } else if (typeof cloud?.openProfile === 'function') {
+        cloud.openProfile();
+      }
       setStatus('Привяжите гостевой профиль к Email или Google для публикации в облако', 'error');
+      if (typeof showToast === 'function') {
+        showToast('Для публикации требуется постоянный аккаунт (Google / Email)');
+      }
       return;
     }
-    const theme = window.VotifyThemeWorkshop?.getCurrentTheme?.();
-    if (!theme) {
-      setStatus('Не удалось получить текущую тему', 'error');
-      return;
-    }
+    const theme =
+      window.VotifyThemeWorkshop?.getCurrentTheme?.() ||
+      (typeof getCurrentWorkshopTheme === 'function' ? getCurrentWorkshopTheme() : null) ||
+      (typeof appSettings !== 'undefined' ? appSettings : {});
     state.publishTheme = cleanTheme(theme);
     const preview = document.getElementById('workshop-publish-preview');
     if (preview) preview.innerHTML = previewMarkup(state.publishTheme, true);
     const overlay = document.getElementById('workshop-publish-overlay');
-    if (overlay) overlay.style.display = 'flex';
+    if (overlay) {
+      overlay.style.display = 'flex';
+      overlay.style.zIndex = '99999';
+    }
     window.setTimeout(() => document.getElementById('workshop-theme-title')?.focus(), 0);
   }
 
@@ -429,10 +501,18 @@
     const description = document.getElementById('workshop-theme-description')?.value.trim() || '';
     if (errorElement) errorElement.textContent = '';
     if (title.length < 3) {
-      if (errorElement) errorElement.textContent = 'Введите название минимум из 3 символов';
+      const msg = 'Введите название минимум из 3 символов';
+      if (errorElement) errorElement.textContent = msg;
+      if (typeof showToast === 'function') showToast(msg);
       return;
     }
-    if (!state.publishTheme) return;
+    if (!state.publishTheme) {
+      const theme =
+        window.VotifyThemeWorkshop?.getCurrentTheme?.() ||
+        (typeof getCurrentWorkshopTheme === 'function' ? getCurrentWorkshopTheme() : null) ||
+        (typeof appSettings !== 'undefined' ? appSettings : {});
+      state.publishTheme = cleanTheme(theme);
+    }
     button.disabled = true;
     button.classList.add('busy');
     try {
@@ -442,15 +522,20 @@
         theme: state.publishTheme,
       });
       closePublishModal();
-      document.getElementById('workshop-theme-title').value = '';
-      document.getElementById('workshop-theme-description').value = '';
+      const tInput = document.getElementById('workshop-theme-title');
+      const dInput = document.getElementById('workshop-theme-description');
+      if (tInput) tInput.value = '';
+      if (dInput) dInput.value = '';
       setStatus('Тема опубликована', 'success');
+      if (typeof showToast === 'function') showToast('Тема успешно опубликована в Мастерской!');
       await loadThemes(true);
     } catch (error) {
+      const friendly =
+        window.VotifyCloud?.friendlyError?.(error) || error.message || 'Ошибка публикации';
       if (errorElement) {
-        errorElement.textContent =
-          window.VotifyCloud?.friendlyError?.(error) || error.message || 'Ошибка публикации';
+        errorElement.textContent = friendly;
       }
+      if (typeof showToast === 'function') showToast(friendly);
     } finally {
       button.disabled = false;
       button.classList.remove('busy');
@@ -458,11 +543,13 @@
   }
 
   async function handleCardAction(event) {
-    const actionButton = event.target.closest('[data-action]');
     const card = event.target.closest('.workshop-card');
-    if (!actionButton || !card) return;
+    if (!card) return;
 
-    if (actionButton.dataset.action === 'install-default') {
+    const actionButton = event.target.closest('[data-action]');
+    const action = actionButton ? actionButton.dataset.action : 'install';
+
+    if (action === 'install-default') {
       resetToDefaultTheme();
       return;
     }
@@ -470,28 +557,9 @@
     const theme = state.themes.find(item => item.id === card.dataset.themeId);
     if (!theme) return;
 
-    if (actionButton.dataset.action === 'install') {
-      window.VotifyThemeWorkshop?.applyTheme?.(theme.theme, {
-        id: theme.id,
-        title: theme.title,
-      });
-      renderThemes();
-      setStatus(`Тема «${theme.title}» установлена и сохранена`, 'success');
-      return;
-    }
-
-    if (actionButton.dataset.action === 'preview') {
-      window.VotifyThemeWorkshop?.applyTheme?.(theme.theme, {
-        id: theme.id,
-        title: theme.title,
-      });
-      setStatus(`Предпросмотр темы «${theme.title}»`, 'success');
-      return;
-    }
-
-    if (actionButton.dataset.action === 'delete') {
+    if (action === 'delete') {
       if (!window.confirm(`Удалить тему «${theme.title}» из мастерской?`)) return;
-      actionButton.disabled = true;
+      if (actionButton) actionButton.disabled = true;
       try {
         await window.VotifyCloud.deleteWorkshopTheme(theme.id);
         state.themes = state.themes.filter(item => item.id !== theme.id);
@@ -499,12 +567,36 @@
         renderThemes();
         setStatus('Тема удалена', 'success');
       } catch (error) {
-        actionButton.disabled = false;
+        if (actionButton) actionButton.disabled = false;
         setStatus(
           window.VotifyCloud?.friendlyError?.(error) || error.message || 'Не удалось удалить тему',
           'error'
         );
       }
+      return;
+    }
+
+    if (action === 'preview') {
+      window.VotifyThemeWorkshop?.applyTheme?.(theme.theme, {
+        id: theme.id,
+        title: theme.title,
+      });
+      setStatus(`Предпросмотр темы «${theme.title}»`, 'success');
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Предпросмотр темы «${theme.title}»`);
+      }
+      return;
+    }
+
+    // Default: install / apply theme (clicking card or install button)
+    window.VotifyThemeWorkshop?.applyTheme?.(theme.theme, {
+      id: theme.id,
+      title: theme.title,
+    });
+    renderThemes();
+    setStatus(`Тема «${theme.title}» установлена и сохранена`, 'success');
+    if (typeof window.showToast === 'function') {
+      window.showToast(`Тема «${theme.title}» установлена`);
     }
   }
 

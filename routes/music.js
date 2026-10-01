@@ -304,28 +304,44 @@ async function handleMusicRoutes(req, res, u) {
       return true;
     }
     try {
+      const normStr = s => (s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
       const lrclibUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`;
       const lyricsData = await httpGet(lrclibUrl, 8000);
-      if (lyricsData && typeof lyricsData === 'object' && !lyricsData.message) {
-        sendJson(res, 200, {
-          syncedLyrics: lyricsData.syncedLyrics || null,
-          plainLyrics: lyricsData.plainLyrics || null,
-          track: lyricsData.trackName || track,
-          artist: lyricsData.artistName || artist,
-        });
-        return true;
+      if (lyricsData && typeof lyricsData === 'object' && !lyricsData.message && (lyricsData.syncedLyrics || lyricsData.plainLyrics)) {
+        const expT = normStr(track);
+        const resT = normStr(lyricsData.trackName);
+        if (resT === expT || (resT.length >= 3 && expT.includes(resT))) {
+          sendJson(res, 200, {
+            syncedLyrics: lyricsData.syncedLyrics || null,
+            plainLyrics: lyricsData.plainLyrics || null,
+            track: lyricsData.trackName || track,
+            artist: lyricsData.artistName || artist,
+          });
+          return true;
+        }
       }
       const searchUrl = `https://lrclib.net/api/search?track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`;
       const searchResults = await httpGet(searchUrl, 8000);
       if (Array.isArray(searchResults) && searchResults.length > 0) {
-        const best = searchResults[0];
-        sendJson(res, 200, {
-          syncedLyrics: best.syncedLyrics || null,
-          plainLyrics: best.plainLyrics || null,
-          track: best.trackName || track,
-          artist: best.artistName || artist,
+        const expT = normStr(track);
+        const expA = normStr(artist);
+        const best = searchResults.find(r => {
+          if (!r || (!r.syncedLyrics && !r.plainLyrics)) return false;
+          const resT = normStr(r.trackName);
+          const resA = normStr(r.artistName);
+          const titleMatch = resT === expT || (resT.length >= 4 && expT.includes(resT)) || (expT.length >= 4 && resT.includes(expT));
+          const artistMatch = !expA || resA === expA || (resA.length >= 3 && expA.includes(resA)) || (expA.length >= 3 && resA.includes(expA));
+          return titleMatch && artistMatch;
         });
-        return true;
+        if (best) {
+          sendJson(res, 200, {
+            syncedLyrics: best.syncedLyrics || null,
+            plainLyrics: best.plainLyrics || null,
+            track: best.trackName || track,
+            artist: best.artistName || artist,
+          });
+          return true;
+        }
       }
       sendJson(res, 200, { syncedLyrics: null, plainLyrics: null, track, artist });
       return true;
@@ -356,163 +372,174 @@ async function handleMusicRoutes(req, res, u) {
   }
 
   // --- PLAYLIST IMPORT (YouTube + Spotify) ---
-  if (u.pathname === '/api/playlist') {
-    const url = u.searchParams.get('url')?.trim();
-    if (!url) {
-      sendJson(res, 400, { error: 'Playlist URL required' });
-      return true;
-    }
+  // --- PLAYLIST EXTRACTION & STREAMING RESOLUTION HELPERS ---
+  async function extractTracksFromUrl(url) {
+    const rawUrl = String(url || '').trim();
+    if (!rawUrl) throw new Error('URL не указан');
 
-    const isSpotify = url.includes('open.spotify.com/playlist/');
+    // 1. SPOTIFY (Playlist / Album / Track)
+    if (rawUrl.includes('spotify.com') || rawUrl.startsWith('spotify:')) {
+      const playlistId = rawUrl.match(/playlist\/([a-zA-Z0-9]+)/)?.[1] || rawUrl.match(/spotify:playlist:([a-zA-Z0-9]+)/)?.[1];
+      const albumId = rawUrl.match(/album\/([a-zA-Z0-9]+)/)?.[1] || rawUrl.match(/spotify:album:([a-zA-Z0-9]+)/)?.[1];
+      const trackId = rawUrl.match(/track\/([a-zA-Z0-9]+)/)?.[1] || rawUrl.match(/spotify:track:([a-zA-Z0-9]+)/)?.[1];
 
-    // --- SPOTIFY PLAYLIST ---
-    if (isSpotify) {
-      try {
-        const playlistId = url.match(/playlist\/([a-zA-Z0-9]+)/)?.[1];
-        if (!playlistId) throw new Error('Invalid Spotify URL');
+      let playlistName = 'Spotify импорт';
+      let playlistCover = '';
+      const items = [];
 
-        const tracks = [];
-
-        // Approach 1: Fetch the embed page and extract __NEXT_DATA__
-        const embedUrl = 'https://open.spotify.com/embed/playlist/' + playlistId;
-        const html = await httpGet(embedUrl, 15000);
-
-        const jsonMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-        if (jsonMatch) {
-          try {
+      if (playlistId || albumId) {
+        const targetType = playlistId ? 'playlist' : 'album';
+        const targetId = playlistId || albumId;
+        const embedUrl = `https://open.spotify.com/embed/${targetType}/${targetId}`;
+        try {
+          const html = await httpGet(embedUrl, 12000);
+          const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+          if (titleMatch && titleMatch[1]) {
+            playlistName = titleMatch[1].replace(/ \| Spotify$/i, '').replace(/^Spotify - /i, '').trim();
+          }
+          const jsonMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+          if (jsonMatch) {
             const nextData = JSON.parse(jsonMatch[1]);
-            // Try all known paths
-            const trackList =
-              nextData?.props?.pageProps?.state?.data?.entity?.trackList ||
-              nextData?.props?.pageProps?.tracks?.items ||
-              nextData?.props?.pageProps?.state?.data?.playlist?.trackList ||
-              nextData?.props?.pageProps?.data?.playlist?.trackList ||
-              nextData?.props?.pageProps?.entity?.trackList ||
-              [];
-            for (const item of trackList) {
-              const track = item.track || item;
-              const title = track.title || track.name || '';
-              const artist = track.subtitle || track.artists?.map(a => a.name).join(', ') || '';
-              const cover =
-                track.coverArt?.sources?.[0]?.url || track.album?.images?.[0]?.url || '';
-              if (title) {
-                tracks.push({ title, artist, cover, id: '', duration: track.duration || 0 });
-              }
+            const entity = nextData?.props?.pageProps?.state?.data?.entity || nextData?.props?.pageProps?.state?.data?.playlist || {};
+            if (entity.name || entity.title) playlistName = entity.name || entity.title;
+            if (entity.coverArt?.sources?.[0]?.url) playlistCover = entity.coverArt.sources[0].url;
+
+            const rawList = entity.trackList || nextData?.props?.pageProps?.tracks?.items || nextData?.props?.pageProps?.data?.playlist?.trackList || [];
+            for (const it of rawList) {
+              const trk = it.track || it;
+              const title = trk.title || trk.name || '';
+              const artist = trk.subtitle || trk.artists?.map(a => a.name).join(', ') || '';
+              const itemCover = (trk.coverArt?.sources?.[0]?.url && trk.coverArt.sources[0].url !== playlistCover)
+                ? trk.coverArt.sources[0].url
+                : (trk.album?.images?.[0]?.url && trk.album.images[0].url !== playlistCover)
+                ? trk.album.images[0].url
+                : '';
+              const duration = trk.duration ? trk.duration / (trk.duration > 1000 ? 1000 : 1) : 0;
+              if (title) items.push({ title, artist, cover: itemCover, duration });
             }
-          } catch (e) {
-            console.error('[spotify] JSON parse error:', e.message);
           }
+        } catch (e) {
+          console.warn('[spotify] Embed parse failed:', e.message);
         }
 
-        // Approach 2: Also try the official oembed + search API
-        if (tracks.length === 0) {
-          // Extract track data from meta tags in the embed page
-          const metaMatches = html.matchAll(
-            /<meta[^>]*property="og:description"[^>]*content="([^"]*)"/gi
-          );
-          for (const m of metaMatches) {
-            const desc = m[1];
-            // Format: "Playlist · Artist · 93 songs"
-            // This doesn't give us individual tracks, skip
-          }
-        }
-
-        // Approach 3: Use Spotify's public web API (no auth needed for public playlists)
-        if (tracks.length === 0 || tracks.length < 10) {
+        if (items.length === 0) {
           try {
-            const apiUrl = `https://open.spotify.com/playlist/${playlistId}`;
-            const mainHtml = await httpGet(apiUrl, 15000);
-            // Extract from the main page's embedded JSON
-            const mainJsonMatch = mainHtml.match(
-              /<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/
-            );
-            if (mainJsonMatch) {
-              const mainData = JSON.parse(mainJsonMatch[1]);
-              const items =
-                mainData?.props?.pageProps?.playlist?.tracks?.items ||
-                mainData?.props?.pageProps?.state?.data?.playlist?.tracks?.items ||
-                mainData?.props?.pageProps?.initialData?.playlist?.tracks?.items ||
-                [];
-              for (const item of items) {
-                const track = item.track || item;
-                const title = track.name || track.title || '';
-                const artist = track.artists?.map(a => a.name).join(', ') || track.subtitle || '';
-                const cover =
-                  track.album?.images?.[0]?.url || track.coverArt?.sources?.[0]?.url || '';
-                if (title && !tracks.find(t => t.title === title && t.artist === artist)) {
-                  tracks.push({
-                    title,
-                    artist,
-                    cover,
-                    id: '',
-                    duration: (track.duration_ms || track.duration || 0) / 1000,
-                  });
+            const mainUrl = `https://open.spotify.com/${targetType}/${targetId}`;
+            const mainHtml = await httpGet(mainUrl, 12000);
+            const mainMatch = mainHtml.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+            if (mainMatch) {
+              const mainData = JSON.parse(mainMatch[1]);
+              const pData = mainData?.props?.pageProps?.playlist || mainData?.props?.pageProps?.state?.data?.playlist || {};
+              if (pData.name) playlistName = pData.name;
+              const rawItems = pData?.tracks?.items || [];
+              for (const it of rawItems) {
+                const trk = it.track || it;
+                const title = trk.name || trk.title || '';
+                const artist = trk.artists?.map(a => a.name).join(', ') || trk.subtitle || '';
+                const itemCover = (trk.album?.images?.[0]?.url && trk.album.images[0].url !== playlistCover)
+                  ? trk.album.images[0].url
+                  : (trk.coverArt?.sources?.[0]?.url && trk.coverArt.sources[0].url !== playlistCover)
+                  ? trk.coverArt.sources[0].url
+                  : '';
+                const duration = (trk.duration_ms || trk.duration || 0) / 1000;
+                if (title && !items.find(x => x.title === title && x.artist === artist)) {
+                  items.push({ title, artist, cover: itemCover, duration });
                 }
               }
             }
           } catch (e) {
-            console.error('[spotify] Main page parse error:', e.message);
+            console.warn('[spotify] Main page parse failed:', e.message);
           }
         }
-
-        if (!tracks.length) {
-          sendJson(res, 502, {
-            error: 'Не удалось извлечь треки из Spotify плейлиста. Попробуйте YouTube ссылку.',
-          });
-          return true;
-        }
-
-        console.log(
-          `[spotify] Extracted ${tracks.length} tracks from metadata, searching YouTube...`
-        );
-
-        // Search each track on YouTube to get IDs — batch 5 at a time
-        const results = [];
-        const { searchTracks } = require('./utils.js');
-        const BATCH = 5;
-        for (let i = 0; i < tracks.length; i += BATCH) {
-          const batch = tracks.slice(i, i + BATCH);
-          const batchResults = await Promise.allSettled(
-            batch.map(async track => {
-              const query = track.artist ? track.artist + ' - ' + track.title : track.title;
-              const ytResults = await searchTracks(query, 1, false);
-              if (ytResults && ytResults.length > 0) {
-                const yt = ytResults[0];
-                return {
-                  id: yt.id,
-                  title: track.title || yt.title,
-                  artist: track.artist || yt.artist || '',
-                  duration: yt.duration || track.duration || 0,
-                  cover:
-                    track.cover ||
-                    yt.cover ||
-                    'https://img.youtube.com/vi/' + yt.id + '/hqdefault.jpg',
-                };
-              }
-              return null;
-            })
-          );
-          for (const r of batchResults) {
-            if (r.status === 'fulfilled' && r.value) results.push(r.value);
+      } else if (trackId) {
+        try {
+          const html = await httpGet(`https://open.spotify.com/embed/track/${trackId}`, 10000);
+          const jsonMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+          if (jsonMatch) {
+            const nextData = JSON.parse(jsonMatch[1]);
+            const entity = nextData?.props?.pageProps?.state?.data?.entity || {};
+            const title = entity.title || entity.name || 'Трек Spotify';
+            const artist = entity.subtitle || entity.artists?.map(a => a.name).join(', ') || '';
+            const cover = entity.coverArt?.sources?.[0]?.url || '';
+            playlistName = `${artist} - ${title}`;
+            items.push({ title, artist, cover, duration: 0 });
           }
-          // Log progress
-          if ((i + BATCH) % 20 === 0 || i + BATCH >= tracks.length) {
-            console.log(
-              `[spotify] YouTube search: ${Math.min(i + BATCH, tracks.length)}/${tracks.length}`
-            );
-          }
-        }
+        } catch (e) {}
+      }
 
-        sendJson(res, 200, { tracks: results });
-        return true;
+      if (items.length === 0) throw new Error('Не удалось извлечь треки из Spotify ссылки');
+      return { name: playlistName, cover: playlistCover, items, isDirect: false };
+    }
+
+    // 2. YANDEX MUSIC (Playlist / Album / Track)
+    if (rawUrl.includes('music.yandex.ru') || rawUrl.includes('music.yandex.com')) {
+      const pMatch = rawUrl.match(/users\/([^\/]+)\/playlists\/([0-9]+)/i);
+      const aMatch = rawUrl.match(/album\/([0-9]+)/i);
+      const items = [];
+      let playlistName = 'Яндекс Музыка';
+
+      if (pMatch) {
+        const [, owner, kinds] = pMatch;
+        try {
+          const json = await httpGet(`https://music.yandex.ru/handlers/playlist.jsx?owner=${encodeURIComponent(owner)}&kinds=${encodeURIComponent(kinds)}`, 12000);
+          const data = JSON.parse(json);
+          const pl = data.playlist || {};
+          playlistName = pl.title || 'Плейлист Яндекс Музыки';
+          const rawTracks = pl.tracks || [];
+          for (const tr of rawTracks) {
+            const title = tr.title || '';
+            const artist = (tr.artists || []).map(a => a.name).join(', ');
+            const ogImg = tr.ogImage ? `https://${tr.ogImage.replace('%%', '400x400')}` : '';
+            const duration = Math.round((tr.durationMs || 0) / 1000);
+            if (title) items.push({ title, artist, cover: ogImg, duration });
+          }
+        } catch (e) {
+          console.warn('[yandex] Playlist handler error:', e.message);
+        }
+      } else if (aMatch) {
+        const albumId = aMatch[1];
+        try {
+          const json = await httpGet(`https://music.yandex.ru/handlers/album.jsx?album=${encodeURIComponent(albumId)}`, 12000);
+          const data = JSON.parse(json);
+          const artist = (data.artists || []).map(a => a.name).join(', ');
+          playlistName = data.title ? `${artist ? artist + ' - ' : ''}${data.title}` : 'Альбом Яндекс Музыки';
+          const ogImg = data.ogImage ? `https://${data.ogImage.replace('%%', '400x400')}` : '';
+          const volumes = data.volumes || [];
+          for (const vol of volumes) {
+            for (const tr of vol) {
+              const title = tr.title || '';
+              const trArtist = (tr.artists || []).map(a => a.name).join(', ') || artist;
+              const duration = Math.round((tr.durationMs || 0) / 1000);
+              if (title) items.push({ title, artist: trArtist, cover: ogImg, duration });
+            }
+          }
+        } catch (e) {
+          console.warn('[yandex] Album handler error:', e.message);
+        }
+      }
+
+      if (items.length === 0) throw new Error('Не удалось извлечь треки из Яндекс Музыки');
+      return { name: playlistName, cover: items[0]?.cover || '', items, isDirect: false };
+    }
+
+    // 3. SOUNDCLOUD
+    if (rawUrl.includes('soundcloud.com')) {
+      try {
+        const result = await scImportPlaylist(rawUrl);
+        if (result && Array.isArray(result.tracks) && result.tracks.length > 0) {
+          return {
+            name: result.name || 'SoundCloud импорт',
+            cover: result.tracks[0]?.cover || '',
+            items: result.tracks,
+            isDirect: true,
+          };
+        }
       } catch (e) {
-        console.error('[spotify] Error:', e.message);
-        sendJson(res, 502, { error: 'Ошибка загрузки Spotify плейлиста: ' + e.message });
-        return true;
+        console.warn('[soundcloud] Import fallback:', e.message);
       }
     }
 
-    // --- YOUTUBE PLAYLIST ---
+    // 4. YOUTUBE & YOUTUBE MUSIC (Default / yt-dlp)
     try {
       const localYtdlpPath = process.env.YT_DLP_PATH || findYtDlp();
       const proc = spawn(
@@ -523,60 +550,288 @@ async function handleMusicRoutes(req, res, u) {
           '--quiet',
           '--flat-playlist',
           '--print',
-          '%(id)s\t%(title)s\t%(duration)s\t%(thumbnail)s',
+          '%(playlist_title)s\t%(id)s\t%(title)s\t%(duration)s\t%(thumbnail)s\t%(uploader)s',
           '--playlist-end',
           '200',
-          url,
+          rawUrl,
         ],
         { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }
       );
       const result = await new Promise((resolve, reject) => {
         let out = '';
-        proc.stdout.on('data', d => {
-          out += d;
-        });
-        proc.stderr.on('data', d => {
-          console.error('[playlist]', d.toString().trim());
-        });
+        proc.stdout.on('data', d => { out += d; });
+        proc.stderr.on('data', d => { console.error('[playlist]', d.toString().trim()); });
         proc.on('error', reject);
         proc.on('close', code => {
           if (out.trim()) resolve(out.trim());
-          else reject(new Error('exit ' + code));
+          else reject(new Error('Код завершения ' + code));
         });
         setTimeout(() => {
           proc.kill();
-          reject(new Error('timeout'));
-        }, 120000);
+          reject(new Error('Таймаут загрузки плейлиста'));
+        }, 60000);
       });
 
-      const tracks = result
-        .split('\n')
-        .filter(Boolean)
-        .map(line => {
-          const [id, title, duration, thumbnail] = line.split('\t');
-          if (!id || id === 'NA') return null;
-          return {
-            id: id.trim(),
-            title: (title || '').trim() || 'Unknown',
-            duration: parseInt(duration) || 0,
-            cover: thumbnail
-              ? thumbnail.trim()
-              : 'https://img.youtube.com/vi/' + id.trim() + '/hqdefault.jpg',
-            artist: '',
-          };
-        })
-        .filter(Boolean);
+      let detectedTitle = 'YouTube импорт';
+      const tracks = [];
+      for (const line of result.split('\n')) {
+        if (!line.trim()) continue;
+        const parts = line.split('\t');
+        let plTitle = '', id = '', title = '', duration = 0, thumbnail = '', uploader = '';
+        if (parts.length >= 6) {
+          [plTitle, id, title, duration, thumbnail, uploader] = parts;
+        } else if (parts.length >= 4) {
+          [id, title, duration, thumbnail] = parts;
+        }
+        if (plTitle && plTitle !== 'NA') detectedTitle = plTitle.trim();
+        if (!id || id === 'NA') continue;
+        const cleanId = id.trim();
+        // Guarantee unique video cover per YouTube track rather than shared playlist thumbnail
+        let trackCover = `https://img.youtube.com/vi/${cleanId}/hqdefault.jpg`;
+        if (thumbnail && thumbnail !== 'NA' && thumbnail.includes(cleanId)) {
+          trackCover = thumbnail.trim();
+        }
+        tracks.push({
+          id: cleanId,
+          title: (title || '').trim() || 'Трек',
+          artist: (uploader && uploader !== 'NA') ? uploader.trim() : '',
+          duration: parseInt(duration) || 0,
+          cover: trackCover,
+        });
+      }
 
-      sendJson(res, 200, { tracks });
+      if (tracks.length === 0) throw new Error('В плейлисте не найдено треков');
+      return { name: detectedTitle, cover: tracks[0]?.cover || '', items: tracks, isDirect: true };
+    } catch (e) {
+      throw new Error(`Ошибка извлечения плейлиста: ${e.message}`);
+    }
+  }
+
+  // --- STREAMING PLAYLIST IMPORT ENDPOINT (SSE) ---
+  if (u.pathname === '/api/playlist/stream') {
+    const url = u.searchParams.get('url')?.trim();
+    if (!url) {
+      sendJson(res, 400, { error: 'Не указан URL плейлиста' });
+      return true;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    const sendEvent = (event, data) => {
+      try {
+        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      } catch (e) {}
+    };
+
+    try {
+      sendEvent('status', { step: 'extracting', message: 'Анализ ссылки и получение треков...' });
+      const { name, cover, items, isDirect } = await extractTracksFromUrl(url);
+
+      sendEvent('metadata', { name, cover, total: items.length, isDirect });
+
+      if (isDirect) {
+        // Direct YouTube / SoundCloud items with IDs already resolved
+        const resolved = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          resolved.push(item);
+          sendEvent('progress', {
+            current: i + 1,
+            total: items.length,
+            percent: Math.round(((i + 1) / items.length) * 100),
+            track: item,
+          });
+        }
+        sendEvent('complete', { name, total: resolved.length, tracks: resolved });
+        res.end();
+        return true;
+      }
+
+      // External metadata (Spotify, Yandex, Apple Music) — resolve audio on YouTube
+      const resolved = [];
+      const BATCH = 4;
+      for (let i = 0; i < items.length; i += BATCH) {
+        const batch = items.slice(i, i + BATCH);
+        const batchResults = await Promise.allSettled(
+          batch.map(async trk => {
+            const query = trk.artist ? `${trk.artist} - ${trk.title}` : trk.title;
+            const ytResults = await searchTracks(query, 1, false);
+            if (ytResults && ytResults.length > 0) {
+              const yt = ytResults[0];
+              const uniqueCover = yt.cover || `https://img.youtube.com/vi/${yt.id}/hqdefault.jpg`;
+              const trackCover = (trk.cover && trk.cover !== cover && !trk.cover.includes('default_playlist'))
+                ? trk.cover
+                : uniqueCover;
+              return {
+                id: yt.id,
+                title: trk.title || yt.title,
+                artist: trk.artist || yt.artist || '',
+                duration: yt.duration || trk.duration || 0,
+                cover: trackCover,
+              };
+            }
+            return null;
+          })
+        );
+
+        for (let j = 0; j < batchResults.length; j++) {
+          const r = batchResults[j];
+          const currIdx = i + j + 1;
+          const trkObj = r.status === 'fulfilled' && r.value ? r.value : null;
+          if (trkObj) resolved.push(trkObj);
+
+          sendEvent('progress', {
+            current: currIdx,
+            total: items.length,
+            percent: Math.round((currIdx / items.length) * 100),
+            track: trkObj || batch[j],
+          });
+        }
+      }
+
+      sendEvent('complete', { name, total: resolved.length, tracks: resolved });
+      res.end();
       return true;
     } catch (e) {
-      console.error('[playlist] Error:', e.message);
-      sendJson(res, 502, { error: 'Failed to load playlist: ' + e.message });
+      console.error('[import-stream] Error:', e.message);
+      sendEvent('error', { error: e.message || 'Ошибка импорта' });
+      res.end();
       return true;
     }
   }
 
-  // --- SOUNDCLOUD IMPORT ---
+  // --- BATCH RESOLVE FROM TEXT / FILE ITEMS (SSE) ---
+  if (u.pathname === '/api/playlist/resolve-stream' && req.method === 'POST') {
+    let payload;
+    try {
+      payload = await parseBody(req);
+    } catch (e) {
+      sendJson(res, 400, { error: 'Неверное тело запроса' });
+      return true;
+    }
+
+    const playlistName = payload?.name || 'Импортированный список';
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+
+    if (items.length === 0) {
+      sendJson(res, 400, { error: 'Список треков пуст' });
+      return true;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    const sendEvent = (event, data) => {
+      try {
+        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      } catch (e) {}
+    };
+
+    sendEvent('metadata', { name: playlistName, total: items.length });
+
+    const resolved = [];
+    const BATCH = 4;
+    for (let i = 0; i < items.length; i += BATCH) {
+      const batch = items.slice(i, i + BATCH);
+      const batchResults = await Promise.allSettled(
+        batch.map(async trk => {
+          const query = trk.artist ? `${trk.artist} - ${trk.title}` : (trk.title || String(trk));
+          const ytResults = await searchTracks(query, 1, false);
+          if (ytResults && ytResults.length > 0) {
+            const yt = ytResults[0];
+            const uniqueCover = yt.cover || `https://img.youtube.com/vi/${yt.id}/hqdefault.jpg`;
+            const trackCover = trk.cover || uniqueCover;
+            return {
+              id: yt.id,
+              title: trk.title || yt.title,
+              artist: trk.artist || yt.artist || '',
+              duration: yt.duration || trk.duration || 0,
+              cover: trackCover,
+            };
+          }
+          return null;
+        })
+      );
+
+      for (let j = 0; j < batchResults.length; j++) {
+        const r = batchResults[j];
+        const currIdx = i + j + 1;
+        const trkObj = r.status === 'fulfilled' && r.value ? r.value : null;
+        if (trkObj) resolved.push(trkObj);
+
+        sendEvent('progress', {
+          current: currIdx,
+          total: items.length,
+          percent: Math.round((currIdx / items.length) * 100),
+          track: trkObj || batch[j],
+        });
+      }
+    }
+
+    sendEvent('complete', { name: playlistName, total: resolved.length, tracks: resolved });
+    res.end();
+    return true;
+  }
+
+  // --- FALLBACK PLAYLIST ENDPOINT ---
+  if (u.pathname === '/api/playlist') {
+    const url = u.searchParams.get('url')?.trim();
+    if (!url) {
+      sendJson(res, 400, { error: 'Playlist URL required' });
+      return true;
+    }
+    try {
+      const { name, cover, items, isDirect } = await extractTracksFromUrl(url);
+      if (isDirect) {
+        sendJson(res, 200, { name, cover, tracks: items });
+        return true;
+      }
+      const results = [];
+      const BATCH = 5;
+      for (let i = 0; i < items.length; i += BATCH) {
+        const batch = items.slice(i, i + BATCH);
+        const batchResults = await Promise.allSettled(
+          batch.map(async trk => {
+            const query = trk.artist ? `${trk.artist} - ${trk.title}` : trk.title;
+            const ytResults = await searchTracks(query, 1, false);
+            if (ytResults && ytResults.length > 0) {
+              const yt = ytResults[0];
+              const uniqueCover = yt.cover || `https://img.youtube.com/vi/${yt.id}/hqdefault.jpg`;
+              const trackCover = (trk.cover && trk.cover !== cover) ? trk.cover : uniqueCover;
+              return {
+                id: yt.id,
+                title: trk.title || yt.title,
+                artist: trk.artist || yt.artist || '',
+                duration: yt.duration || trk.duration || 0,
+                cover: trackCover,
+              };
+            }
+            return null;
+          })
+        );
+        for (const r of batchResults) {
+          if (r.status === 'fulfilled' && r.value) results.push(r.value);
+        }
+      }
+      sendJson(res, 200, { name, cover, tracks: results });
+      return true;
+    } catch (e) {
+      console.error('[playlist] Error:', e.message);
+      sendJson(res, 502, { error: e.message || 'Ошибка загрузки плейлиста' });
+      return true;
+    }
+  }
+
+  // --- SOUNDCLOUD IMPORT (LEGACY) ---
   if (u.pathname === '/api/soundcloud/import') {
     const url = u.searchParams.get('url')?.trim();
     if (!url) {

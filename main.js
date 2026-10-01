@@ -1,4 +1,10 @@
-const { app, BrowserWindow, shell, ipcMain, Tray, Menu } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen, globalShortcut } = require('electron');
+
+app.setName('Votify');
+if (process.platform === 'win32') {
+  app.setAppUserModelId('app.votify.desktop');
+}
+
 let autoUpdater = null;
 try {
   autoUpdater = require('electron-updater').autoUpdater;
@@ -353,6 +359,9 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  try {
+    globalShortcut.unregisterAll();
+  } catch (e) {}
   void discordPresence.stop();
   if (serverProcess) {
     serverProcess.kill();
@@ -497,3 +506,5 @@ ipcMain.handle('install-soundpad-driver', async () => {
     return { success: false, message: e.message };
   }
 });
+
+

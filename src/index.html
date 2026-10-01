@@ -50,7 +50,11 @@
   <body>
     <!-- Фоновый слой: пресеты/картинки из настроек и мастерской рисуются здесь
          inline-стилем, чтобы никакие каскадные правила не могли его перебить -->
-    <div id="app-bg-layer" aria-hidden="true"></div>
+    <div id="app-bg-layer" aria-hidden="true">
+      <div id="app-bg-media"></div>
+      <canvas id="app-bg-gif-canvas" style="display:none;"></canvas>
+      <div id="app-bg-dim-layer"></div>
+    </div>
     <!-- SPLASH -->
     <!-- Cursor glow spotlight -->
     <div id="cursor-glow"></div>
@@ -206,6 +210,9 @@
             <h2 class="pc-appbar-title">Профиль</h2>
           </div>
           <div class="pc-appbar-actions">
+            <button class="pc-appbar-action-btn" id="profile-friends-btn" title="Друзья" aria-label="Друзья">
+              <i class="material-icons">group</i>
+            </button>
             <button class="pc-appbar-action-btn" id="profile-copy-id-btn" title="Скопировать юзернейм" aria-label="Скопировать юзернейм">
               <i class="material-icons">content_copy</i>
             </button>
@@ -222,29 +229,116 @@
         <div class="pc-profile-body">
           <!-- 1. Hero User Profile Card -->
           <div class="pc-profile-hero-card">
-            <div class="pc-avatar-wrapper">
+            <div class="pc-profile-banner" id="profile-banner-bg">
+              <div class="pc-profile-banner-overlay"></div>
+            </div>
+            <div class="pc-avatar-wrapper" id="profile-avatar-wrapper" data-frame="none">
               <img class="pc-avatar-img" id="profile-avatar-image" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><rect width='128' height='128' rx='64' fill='%23262626'/><path d='M64 28a20 20 0 1 0 0 40 20 20 0 0 0 0-40zm0 48c-22.1 0-40 13.4-40 30v4h80v-4c0-16.6-17.9-30-40-30z' fill='%23888888'/></svg>" alt="Аватар" />
               <label class="pc-avatar-badge" for="profile-avatar-input" title="Сменить аватар">
                 <i class="material-icons" style="font-size:16px;">edit</i>
               </label>
               <input type="file" id="profile-avatar-input" accept="image/*" hidden />
             </div>
-            <h1 class="pc-profile-name" id="profile-display-name-text">exieeez</h1>
-            <div class="pc-profile-handle" id="profile-handle-text">@exieeez</div>
-            <div class="pc-profile-role" id="profile-role-text">Пользователь</div>
-            <button class="pc-btn-edit-profile" id="profile-edit-toggle-btn">Редактировать</button>
+            <h1 class="pc-profile-name" id="profile-display-name-text">Гость</h1>
+            <div class="pc-profile-handle" id="profile-handle-text">@guest</div>
+            <button class="pc-btn-edit-profile" id="profile-edit-toggle-btn" type="button" onclick="if(window.toggleProfileEditForm) window.toggleProfileEditForm('profile-edit-form');">Редактировать</button>
 
             <!-- Edit Form (Hidden by default, toggled on Edit click) -->
             <div class="pc-profile-edit-form" id="profile-edit-form" style="display:none; width:100%; margin-top:16px;">
-              <input type="text" class="pc-friend-search-input" id="profile-display-name" placeholder="Имя профиля" value="" style="margin-bottom:8px; padding-left:14px;" />
-              <input type="text" class="pc-friend-search-input" id="profile-about" placeholder="О себе..." value="" style="margin-bottom:12px; padding-left:14px;" />
-              <button class="pc-btn-edit-profile" id="profile-save-btn" style="background:#22c55e; color:#fff;">Сохранить</button>
+              <div class="pc-form-group">
+                <label class="pc-form-label">Имя профиля</label>
+                <input type="text" class="pc-friend-search-input" id="profile-display-name" placeholder="Имя профиля (ник)" style="padding-left:14px;" />
+              </div>
+              <div class="pc-form-group">
+                <label class="pc-form-label">Юзернейм (@юз)</label>
+                <input type="text" class="pc-friend-search-input" id="profile-handle" placeholder="god, exieeez..." style="padding-left:14px;" />
+              </div>
+              <div class="pc-form-group">
+                <label class="pc-form-label">О себе</label>
+                <input type="text" class="pc-friend-search-input" id="profile-about" placeholder="Любитель хорошей музыки..." style="padding-left:14px;" />
+              </div>
+              <div class="pc-form-group">
+                <label class="pc-form-label">Баннер профиля (URL или файл с затемнением снизу)</label>
+                <input type="text" class="pc-friend-search-input" id="profile-banner-url" placeholder="https://... или загрузите фото" style="padding-left:14px;" />
+                <div class="pc-form-row-btns">
+                  <label class="pc-form-btn-sm" for="profile-banner-file-input">
+                    <i class="material-icons" style="font-size:14px;">upload</i> Загрузить фото
+                  </label>
+                  <input type="file" id="profile-banner-file-input" accept="image/*" hidden />
+                  <button type="button" class="pc-form-btn-sm" id="profile-banner-clear-btn">Сбросить</button>
+                </div>
+              </div>
+              <div class="pc-form-group">
+                <label class="pc-form-label">Любимый трек</label>
+                <div class="pc-form-row-btns">
+                  <button type="button" class="pc-form-btn-sm" id="profile-fav-track-set-current-btn" style="background:#22c55e; color:#fff; border-color:#22c55e;">
+                    <i class="material-icons" style="font-size:14px;">music_note</i> Поставить текущий трек
+                  </button>
+                  <button type="button" class="pc-form-btn-sm" id="profile-fav-track-clear-btn">Очистить</button>
+                </div>
+                <div id="profile-fav-track-selected-preview" style="font-size:12px; color:#22c55e; margin-top:6px; font-weight:600;"></div>
+              </div>
+              <button class="pc-btn-edit-profile" id="profile-save-btn" style="background:#22c55e; color:#fff; margin-top:8px;">Сохранить</button>
             </div>
           </div>
 
-          <!-- 2. "Найти друзей" Card -->
+          <!-- Favorite Track Card (Telegram style) -->
+          <div class="pc-profile-section-card pc-fav-track-section" id="profile-fav-track-section" style="display:none; padding:0; background:transparent; border:none; box-shadow:none;">
+            <div class="pc-fav-track-row" id="profile-fav-track-content">
+              <div class="pc-fav-track-cover-wrap">
+                <img class="pc-fav-track-cover" id="profile-fav-track-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='%231b2836'><rect width='72' height='72'/></svg>" alt="Cover" />
+                <button class="pc-fav-track-play-btn" id="profile-fav-track-play-btn" title="Слушать">
+                  <i class="material-icons">play_arrow</i>
+                </button>
+              </div>
+              <div class="pc-fav-track-info">
+                <div class="pc-fav-track-title" id="profile-fav-track-title">Трек не выбран</div>
+                <div class="pc-fav-track-artist" id="profile-fav-track-artist">&lt;unknown&gt;</div>
+                <div class="pc-fav-track-album" id="profile-fav-track-album">Любимый трек</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. "Плейлисты" Card -->
           <div class="pc-profile-section-card">
-            <h3 class="pc-card-title">Найти друзей</h3>
+            <div class="pc-card-header-row">
+              <div>
+                <h3 class="pc-card-title" style="margin:0;">Плейлисты</h3>
+                <div class="pc-card-sub" id="pc-playlists-sync-sub">Все изменения сохранены</div>
+              </div>
+              <button class="pc-btn-publish" id="pc-publish-btn">
+                <i class="material-icons" style="font-size:16px;">refresh</i> Опубликовать
+              </button>
+            </div>
+
+            <!-- Desktop Playlist Cards Grid (Dynamically Populated) -->
+            <div class="pc-playlists-grid" id="pc-user-playlists-grid">
+              <div style="font-size:12px; color:#737373; padding:12px 0;">Загрузка плейлистов...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FRIENDS MODAL OVERLAY -->
+    <div class="pc-profile-overlay" id="friends-overlay" style="display:none; z-index:100000;">
+      <div class="pc-profile-modal" style="max-width:540px;">
+        <div class="pc-profile-appbar">
+          <div class="pc-appbar-left">
+            <button class="pc-appbar-btn" id="friends-modal-close-btn" title="Назад" aria-label="Назад">
+              <i class="material-icons">arrow_back</i>
+            </button>
+            <div>
+              <h2 class="pc-appbar-title" style="margin:0; font-size:18px;">Друзья</h2>
+              <div class="pc-card-sub" id="pc-friends-count" style="font-size:12px; color:#a3a3a3; margin-top:2px;">0 друзей</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pc-profile-body" style="padding:20px; gap:16px;">
+          <!-- 1. Search Friends Card -->
+          <div class="pc-profile-section-card" style="margin:0; padding:16px;">
+            <h3 class="pc-card-title" style="margin-bottom:10px; font-size:14px;">Поиск друзей</h3>
             <div class="pc-search-box">
               <i class="material-icons pc-search-icon">search</i>
               <input type="text" class="pc-friend-search-input" id="friend-search-input" placeholder="Юзернейм или @юзернейм" autocomplete="off" />
@@ -252,47 +346,13 @@
             <div class="pc-friend-search-results" id="friend-search-results" style="margin-top:10px;"></div>
           </div>
 
-          <!-- 3. "Друзья" Card -->
-          <div class="pc-profile-section-card">
-            <div class="pc-card-header-row">
-              <h3 class="pc-card-title" style="margin:0;">Друзья</h3>
-              <span class="pc-card-sub" id="pc-friends-count">0 друзей</span>
+          <!-- 2. Friends List Card -->
+          <div class="pc-profile-section-card" style="margin:0; padding:16px;">
+            <div class="pc-card-header-row" style="margin-bottom:12px;">
+              <h3 class="pc-card-title" style="margin:0; font-size:14px;">Список друзей</h3>
             </div>
             <div class="pc-friends-row" id="pc-friends-list">
               <div style="font-size:12px; color:#737373; padding:8px 0;">У вас пока нет друзей</div>
-            </div>
-          </div>
-
-          <!-- 4. "Плейлисты" Card -->
-          <div class="pc-profile-section-card">
-            <div class="pc-card-header-row">
-              <div>
-                <h3 class="pc-card-title" style="margin:0;">Плейлисты</h3>
-                <div class="pc-card-sub" id="pc-playlists-sync-sub">Есть неопубликованные изменения</div>
-              </div>
-              <button class="pc-btn-publish" id="pc-publish-btn">
-                <i class="material-icons" style="font-size:16px;">refresh</i> Опубликовать
-              </button>
-            </div>
-
-            <!-- Desktop Playlist Cards Grid -->
-            <div class="pc-playlists-grid" id="pc-user-playlists-grid">
-              <div class="pc-playlist-card" data-pl="exieeez">
-                <div class="pc-pl-cover-wrap" style="background:#990000;">
-                  <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop" alt="exieeez" />
-                  <button class="pc-pl-play-btn"><i class="material-icons">play_arrow</i></button>
-                </div>
-                <div class="pc-pl-name">exieeez</div>
-                <div class="pc-pl-count">93 трека</div>
-              </div>
-              <div class="pc-playlist-card" data-pl="Избранное">
-                <div class="pc-pl-cover-wrap" style="background:#990000;">
-                  <img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop" alt="exieeez" />
-                  <button class="pc-pl-play-btn"><i class="material-icons">play_arrow</i></button>
-                </div>
-                <div class="pc-pl-name">exieeez</div>
-                <div class="pc-pl-count">93 трека</div>
-              </div>
             </div>
           </div>
         </div>
@@ -301,7 +361,7 @@
 
     <!-- OTHER USER PROFILE OVERLAY -->
     <div class="pc-profile-overlay" id="other-profile-overlay" style="display:none;">
-      <div class="pc-profile-modal" style="max-width:440px;">
+      <div class="pc-profile-modal" style="max-width:680px;">
         <div class="pc-profile-appbar">
           <div class="pc-appbar-left">
             <button class="pc-appbar-close-btn" id="other-profile-close-btn" title="Закрыть" aria-label="Закрыть">
@@ -310,20 +370,42 @@
             <span class="pc-appbar-title">Профиль пользователя</span>
           </div>
         </div>
-        <div class="pc-profile-body" style="padding:28px 24px; text-align:center;">
-          <div class="pc-avatar-wrapper" style="margin:0 auto 16px auto; width:100px; height:100px; border-radius:50%; overflow:hidden; border:2px solid rgba(255,255,255,0.12);">
-            <img id="other-profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><rect width='128' height='128' rx='64' fill='%23262626'/><path d='M64 28a20 20 0 1 0 0 40 20 20 0 0 0 0-40zm0 48c-22.1 0-40 13.4-40 30v4h80v-4c0-16.6-17.9-30-40-30z' fill='%23888888'/></svg>" style="width:100%; height:100%; object-fit:cover;" alt="Аватар" />
-          </div>
-          <h2 id="other-profile-name" style="font-size:22px; font-weight:800; color:#ffffff; margin:0 0 4px 0;">Пользователь</h2>
-          <div id="other-profile-handle" style="font-size:14px; color:#a3a3a3; font-weight:600; margin-bottom:12px;">@user</div>
-          <div id="other-profile-about" style="font-size:13px; color:#a3a3a3; margin-bottom:24px; line-height:1.4;">Информация о себе отсутствует</div>
+        <div class="pc-profile-body">
+          <div class="pc-profile-hero-card">
+            <div class="pc-profile-banner" id="other-profile-banner-bg">
+              <div class="pc-profile-banner-overlay"></div>
+            </div>
+            <div class="pc-avatar-wrapper" id="other-profile-avatar-wrapper" data-frame="none">
+              <img id="other-profile-avatar" class="pc-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><rect width='128' height='128' rx='64' fill='%23262626'/><path d='M64 28a20 20 0 1 0 0 40 20 20 0 0 0 0-40zm0 48c-22.1 0-40 13.4-40 30v4h80v-4c0-16.6-17.9-30-40-30z' fill='%23888888'/></svg>" alt="Аватар" />
+            </div>
+            <h2 class="pc-profile-name" id="other-profile-name" style="font-size:20px; font-weight:800; color:#ffffff; margin:0 0 2px 0;">Пользователь</h2>
+            <div class="pc-profile-handle" id="other-profile-handle">@user</div>
+            <div id="other-profile-about" style="position:relative; z-index:2; font-size:13px; color:#a3a3a3; margin-bottom:16px; line-height:1.4;">Информация о себе отсутствует</div>
 
-          <div style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
-            <button class="pc-btn-publish" id="other-profile-add-btn" style="padding:10px 24px; font-weight:700; font-size:13px;">+ Добавить в друзья</button>
+            <div style="position:relative; z-index:2; display:flex; justify-content:center; gap:12px; margin-bottom:0;">
+              <button class="pc-btn-publish" id="other-profile-add-btn" style="padding:10px 24px; font-weight:700; font-size:13px;">+ Добавить в друзья</button>
+            </div>
+          </div>
+
+          <!-- OTHER USER FAVORITE TRACK (Telegram style) -->
+          <div class="pc-profile-section-card pc-fav-track-section" id="other-profile-fav-track-section" style="display:none; text-align:left; margin-bottom:16px; padding:0; background:transparent; border:none; box-shadow:none;">
+            <div class="pc-fav-track-row" id="other-profile-fav-track-content">
+              <div class="pc-fav-track-cover-wrap">
+                <img class="pc-fav-track-cover" id="other-profile-fav-track-cover" src="" alt="Cover" />
+                <button class="pc-fav-track-play-btn" id="other-profile-fav-track-play-btn" title="Слушать">
+                  <i class="material-icons">play_arrow</i>
+                </button>
+              </div>
+              <div class="pc-fav-track-info">
+                <div class="pc-fav-track-title" id="other-profile-fav-track-title"></div>
+                <div class="pc-fav-track-artist" id="other-profile-fav-track-artist"></div>
+                <div class="pc-fav-track-album" id="other-profile-fav-track-album"></div>
+              </div>
+            </div>
           </div>
 
           <!-- USER PLAYLISTS SECTION -->
-          <div class="pc-profile-section-card" style="text-align:left; background:#181818; padding:16px; border-radius:16px; border:1px solid rgba(255,255,255,0.06);">
+          <div class="pc-profile-section-card" style="text-align:left; background:#212328; padding:16px; border-radius:16px; border:none;">
             <div class="pc-card-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
               <h3 class="pc-card-title" style="margin:0; font-size:15px; font-weight:800; color:#ffffff;">Плейлисты</h3>
               <span class="pc-card-sub" id="other-profile-playlists-count" style="font-size:12px; color:#a3a3a3;">0 плейлистов</span>
@@ -897,10 +979,13 @@
 
         <!-- PROFILE SCREEN (PAGE VIEW INSIDE MAIN CONTENT) -->
         <section id="profile-screen" class="screen hidden" style="display:none">
-          <div class="pc-profile-body" style="padding: 24px;">
+          <div class="pc-profile-body" style="padding: 0 24px 28px 24px;">
             <!-- Hero User Profile Card -->
             <div class="pc-profile-hero-card">
-              <div class="pc-avatar-wrapper">
+              <div class="pc-profile-banner" id="page-profile-banner-bg">
+                <div class="pc-profile-banner-overlay"></div>
+              </div>
+              <div class="pc-avatar-wrapper" id="page-profile-avatar-wrapper" data-frame="none">
                 <img class="pc-avatar-img" id="page-profile-avatar-image" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><rect width='128' height='128' rx='64' fill='%23262626'/><path d='M64 28a20 20 0 1 0 0 40 20 20 0 0 0 0-40zm0 48c-22.1 0-40 13.4-40 30v4h80v-4c0-16.6-17.9-30-40-30z' fill='%23888888'/></svg>" alt="Аватар" />
                 <label class="pc-avatar-badge" for="page-profile-avatar-input" title="Сменить аватар">
                   <i class="material-icons" style="font-size:16px;">edit</i>
@@ -909,14 +994,61 @@
               </div>
               <h1 class="pc-profile-name" id="page-profile-display-name-text">Гость</h1>
               <div class="pc-profile-handle" id="page-profile-handle-text">@guest</div>
-              <div class="pc-profile-role" id="page-profile-role-text">Пользователь</div>
-              <button class="pc-btn-edit-profile" id="page-profile-edit-toggle-btn">Редактировать</button>
+              <button class="pc-btn-edit-profile" id="page-profile-edit-toggle-btn" type="button" onclick="if(window.toggleProfileEditForm) window.toggleProfileEditForm('page-profile-edit-form');">Редактировать</button>
 
               <!-- Edit Form -->
               <div class="pc-profile-edit-form" id="page-profile-edit-form" style="display:none; width:100%; margin-top:16px;">
-                <input type="text" class="pc-friend-search-input" id="page-profile-display-name" placeholder="Имя профиля" value="" style="margin-bottom:8px; padding-left:14px;" />
-                <input type="text" class="pc-friend-search-input" id="page-profile-about" placeholder="О себе..." value="" style="margin-bottom:12px; padding-left:14px;" />
-                <button class="pc-btn-edit-profile" id="page-profile-save-btn" style="background:#22c55e; color:#fff;">Сохранить</button>
+                <div class="pc-form-group">
+                  <label class="pc-form-label">Имя профиля</label>
+                  <input type="text" class="pc-friend-search-input" id="page-profile-display-name" placeholder="Имя профиля (ник)" style="padding-left:14px;" />
+                </div>
+                <div class="pc-form-group">
+                  <label class="pc-form-label">Юзернейм (@юз)</label>
+                  <input type="text" class="pc-friend-search-input" id="page-profile-handle" placeholder="god, exieeez..." style="padding-left:14px;" />
+                </div>
+                <div class="pc-form-group">
+                  <label class="pc-form-label">О себе</label>
+                  <input type="text" class="pc-friend-search-input" id="page-profile-about" placeholder="Любитель хорошей музыки..." style="padding-left:14px;" />
+                </div>
+                <div class="pc-form-group">
+                  <label class="pc-form-label">Баннер профиля (URL или файл с затемнением снизу)</label>
+                  <input type="text" class="pc-friend-search-input" id="page-profile-banner-url" placeholder="https://... или загрузите фото" style="padding-left:14px;" />
+                  <div class="pc-form-row-btns">
+                    <label class="pc-form-btn-sm" for="page-profile-banner-file-input">
+                      <i class="material-icons" style="font-size:14px;">upload</i> Загрузить фото
+                    </label>
+                    <input type="file" id="page-profile-banner-file-input" accept="image/*" hidden />
+                    <button type="button" class="pc-form-btn-sm" id="page-profile-banner-clear-btn">Сбросить</button>
+                  </div>
+                </div>
+                <div class="pc-form-group">
+                  <label class="pc-form-label">Любимый трек</label>
+                  <div class="pc-form-row-btns">
+                    <button type="button" class="pc-form-btn-sm" id="page-profile-fav-track-set-current-btn" style="background:#22c55e; color:#fff; border-color:#22c55e;">
+                      <i class="material-icons" style="font-size:14px;">music_note</i> Поставить текущий трек
+                    </button>
+                    <button type="button" class="pc-form-btn-sm" id="page-profile-fav-track-clear-btn">Очистить</button>
+                  </div>
+                  <div id="page-profile-fav-track-selected-preview" style="font-size:12px; color:#22c55e; margin-top:6px; font-weight:600;"></div>
+                </div>
+                <button class="pc-btn-edit-profile" id="page-profile-save-btn" style="background:#22c55e; color:#fff; margin-top:8px;">Сохранить</button>
+              </div>
+            </div>
+
+            <!-- Favorite Track Card (Telegram style) -->
+            <div class="pc-profile-section-card pc-fav-track-section" id="page-profile-fav-track-section" style="display:none; margin-top:20px; padding:0; background:transparent; border:none; box-shadow:none;">
+              <div class="pc-fav-track-row" id="page-profile-fav-track-content">
+                <div class="pc-fav-track-cover-wrap">
+                  <img class="pc-fav-track-cover" id="page-profile-fav-track-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='%231b2836'><rect width='72' height='72'/></svg>" alt="Cover" />
+                  <button class="pc-fav-track-play-btn" id="page-profile-fav-track-play-btn" title="Слушать">
+                    <i class="material-icons">play_arrow</i>
+                  </button>
+                </div>
+                <div class="pc-fav-track-info">
+                  <div class="pc-fav-track-title" id="page-profile-fav-track-title">Трек не выбран</div>
+                  <div class="pc-fav-track-artist" id="page-profile-fav-track-artist">&lt;unknown&gt;</div>
+                  <div class="pc-fav-track-album" id="page-profile-fav-track-album">Любимый трек</div>
+                </div>
               </div>
             </div>
 
@@ -1402,15 +1534,15 @@
           </div>
 
           <!-- SIMPLE VOLUME SLIDER (BOTTOM OF FULLSCREEN PLAYER) -->
-          <div class="fs-volume-strip" id="fs-sound-settings-bar" style="margin-top: 24px; width: 100%; max-width: 440px; display: flex; align-items: center; gap: 12px; padding: 0 4px; box-sizing: border-box;">
-            <button class="fs-icon-btn-sm" id="fs-sound-mute-btn" title="Выключить/включить звук" style="background: transparent; border: none; color: rgba(255,255,255,0.7); cursor: pointer; padding: 4px; display: flex; align-items: center;">
+          <div class="fs-volume-strip" id="fs-sound-settings-bar" style="margin-top: 24px; width: 100%; max-width: 440px; display: flex; align-items: center; gap: 12px; padding: 0 4px; box-sizing: border-box; position: relative; z-index: 20; pointer-events: auto;">
+            <button class="fs-icon-btn-sm" id="fs-sound-mute-btn" title="Выключить/включить звук" style="background: transparent; border: none; color: rgba(255,255,255,0.7); cursor: pointer; padding: 4px; display: flex; align-items: center; position: relative; z-index: 21; pointer-events: auto;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="fs-sound-mute-icon">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
               </svg>
             </button>
-            <input type="range" id="fs-sound-volume-slider" min="0" max="100" value="80" style="flex: 1; accent-color: var(--accent, #1db954); cursor: pointer;" />
-            <span id="fs-sound-vol-value" style="color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600; min-width: 36px; text-align: right;">80%</span>
+            <input type="range" id="fs-sound-volume-slider" min="0" max="100" value="80" style="flex: 1; accent-color: var(--accent, #1db954); cursor: pointer; position: relative; z-index: 21; pointer-events: auto;" />
+            <span id="fs-sound-vol-value" style="color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600; min-width: 36px; text-align: right; position: relative; z-index: 21;">80%</span>
           </div>
 
           <!-- HIDDEN VOLUME BAR FOR STATE SYNC -->
@@ -1498,6 +1630,40 @@
                   <button class="dotify-segmented-btn active" data-startup-restore="none">✕ Ничего</button>
                   <button class="dotify-segmented-btn" data-startup-restore="track">♫ Трек</button>
                   <button class="dotify-segmented-btn" data-startup-restore="queue">≡ Очередь</button>
+                </div>
+              </div>
+
+              <!-- Звуки интерфейса -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Звуки интерфейса</h3>
+                  <div class="dotify-section-subtitle">Звуковые эффекты кликов, кнопок и запуска</div>
+                </div>
+
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Звуковые эффекты</span>
+                    <span class="setting-toggle-desc">Озвучивать клики, кнопки и переключатели</span>
+                  </div>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-ui-sounds" checked /><span class="dotify-switch-slider"></span></label>
+                </div>
+
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Звук запуска</span>
+                    <span class="setting-toggle-desc">Воспроизводить звук при открытии приложения</span>
+                  </div>
+                  <label class="dotify-switch"><input type="checkbox" id="toggle-loading-sound" checked /><span class="dotify-switch-slider"></span></label>
+                </div>
+
+                <div class="setting-toggle-item dotify-toggle-row" id="row-ui-sound-volume">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Громкость звуков</span>
+                    <span class="setting-toggle-desc" id="label-ui-sound-volume">30%</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px; width: 140px;">
+                    <input type="range" id="range-ui-sound-volume" min="5" max="100" value="30" class="settings-range" style="width: 100%;" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1969,6 +2135,39 @@
                   <label class="dotify-switch"><input type="checkbox" id="toggle-normalize" /><span class="dotify-switch-slider"></span></label>
                 </div>
               </div>
+
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Синхронизация текста песни</h3>
+                  <span class="dotify-section-desc">Точная подстройка таймингов караоке и текста (горячие клавиши: [ и ])</span>
+                </div>
+                <div class="setting-toggle-item dotify-toggle-row">
+                  <div class="setting-toggle-info">
+                    <span class="setting-toggle-label">Смещение тайминга текста</span>
+                    <span class="setting-toggle-desc" id="lyrics-offset-val-desc">Текущее смещение: 0 мс (текст вовремя)</span>
+                  </div>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <button class="settings-btn" id="btn-lyrics-offset-minus" title="Текст спешит (-200мс)" style="padding:6px 12px; font-size:12px; border-radius:6px; background:rgba(255,255,255,0.08); color:var(--text-primary); border:none; cursor:pointer;">-200мс</button>
+                    <button class="settings-btn" id="btn-lyrics-offset-reset" title="Сбросить (0мс)" style="padding:6px 12px; font-size:12px; border-radius:6px; background:rgba(255,255,255,0.08); color:var(--text-primary); border:none; cursor:pointer;">0мс</button>
+                    <button class="settings-btn" id="btn-lyrics-offset-plus" title="Текст отстает (+200мс)" style="padding:6px 12px; font-size:12px; border-radius:6px; background:rgba(255,255,255,0.08); color:var(--text-primary); border:none; cursor:pointer;">+200мс</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Локальные MP3 треки -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap" style="display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <h3 class="dotify-section-title">Локальные MP3 треки</h3>
+                    <div class="dotify-section-subtitle">Добавьте собственные аудиофайлы с компьютера</div>
+                  </div>
+                  <button class="settings-btn" id="settings-add-mp3-btn" style="display:inline-flex; align-items:center; gap:6px; padding:8px 14px; font-weight:600; font-size:12px; background:rgba(34,197,94,0.18); color:#22c55e; border:1px solid rgba(34,197,94,0.35); border-radius:10px; cursor:pointer;">
+                    <i class="material-icons" style="font-size:16px;">add</i> Добавить треки
+                  </button>
+                  <input type="file" id="settings-mp3-file-input" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" multiple style="display:none;" />
+                </div>
+                <div class="settings-local-tracks-list" id="settings-local-tracks-list" style="margin-top:12px; display:flex; flex-direction:column; gap:8px;"></div>
+              </div>
             </div>
 
 
@@ -2152,6 +2351,83 @@
                 </div>
               </div>
 
+              <!-- Эффекты фона: Блюр и Затемнение -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Эффекты фона</h3>
+                  <div class="dotify-section-subtitle">Размытие и затемнение фонового слоя для комфортного чтения</div>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Размытие фона (Блюр)</div>
+                    <div class="dotify-slider-desc">Степень размытия фонового изображения или GIF</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range" id="slider-bg-blur" min="0" max="40" value="0" />
+                    <span class="dotify-range-val" id="val-bg-blur">0px</span>
+                  </div>
+                </div>
+
+                <div class="dotify-slider-row">
+                  <div class="dotify-slider-info">
+                    <div class="dotify-slider-label">Затемнение фона</div>
+                    <div class="dotify-slider-desc">Интенсивность тёмного фильтра поверх фона</div>
+                  </div>
+                  <div class="dotify-slider-control-wrap">
+                    <input type="range" class="dotify-red-range" id="slider-bg-dim" min="0" max="90" value="0" />
+                    <span class="dotify-range-val" id="val-bg-dim">0%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Отображение, кадрирование и GIF-анимации -->
+              <div class="settings-section dotify-section">
+                <div class="dotify-section-title-wrap">
+                  <h3 class="dotify-section-title">Отображение и GIF-анимации</h3>
+                  <div class="dotify-section-subtitle">Кадрирование, качество рендеринга и скорость GIF</div>
+                </div>
+
+                <!-- Кадрирование -->
+                <div style="margin-bottom: 16px;">
+                  <div class="dotify-slider-label" style="margin-bottom: 4px; font-weight:600; font-size:13px; color:#fff;">Кадрирование фона</div>
+                  <div class="dotify-slider-desc" style="margin-bottom: 8px; font-size:12px; color:#a3a3a3;">Способ заполнения экрана изображением или GIF</div>
+                  <div class="dotify-segmented-pill-group" id="bg-fit-group">
+                    <button class="dotify-segmented-btn active" data-bg-fit="cover">Заполнение</button>
+                    <button class="dotify-segmented-btn" data-bg-fit="contain">Вписать</button>
+                    <button class="dotify-segmented-btn" data-bg-fit="center">По центру</button>
+                    <button class="dotify-segmented-btn" data-bg-fit="repeat">Плитка</button>
+                    <button class="dotify-segmented-btn" data-bg-fit="stretch">Растянуть</button>
+                  </div>
+                </div>
+
+                <!-- Качество и сглаживание -->
+                <div style="margin-bottom: 16px;">
+                  <div class="dotify-slider-label" style="margin-bottom: 4px; font-weight:600; font-size:13px; color:#fff;">Качество и сглаживание</div>
+                  <div class="dotify-slider-desc" style="margin-bottom: 8px; font-size:12px; color:#a3a3a3;">Рендеринг пикселей для обычных и Pixel Art гифок</div>
+                  <div class="dotify-segmented-pill-group" id="bg-quality-group">
+                    <button class="dotify-segmented-btn active" data-bg-quality="auto">Сглаженное (Авто)</button>
+                    <button class="dotify-segmented-btn" data-bg-quality="pixelated">Pixel Art (Чёткие пиксели)</button>
+                    <button class="dotify-segmented-btn" data-bg-quality="crisp">Резкое (Crisp)</button>
+                  </div>
+                </div>
+
+                <!-- Скорость воспроизведения GIF -->
+                <div>
+                  <div class="dotify-slider-label" style="margin-bottom: 4px; font-weight:600; font-size:13px; color:#fff;">Скорость GIF-анимации</div>
+                  <div class="dotify-slider-desc" style="margin-bottom: 8px; font-size:12px; color:#a3a3a3;">Скорость проигрывания живых обоев и гифок</div>
+                  <div class="dotify-segmented-pill-group" id="bg-speed-group">
+                    <button class="dotify-segmented-btn" data-bg-speed="0.25">0.25×</button>
+                    <button class="dotify-segmented-btn" data-bg-speed="0.5">0.5×</button>
+                    <button class="dotify-segmented-btn" data-bg-speed="0.75">0.75×</button>
+                    <button class="dotify-segmented-btn active" data-bg-speed="1">1×</button>
+                    <button class="dotify-segmented-btn" data-bg-speed="1.25">1.25×</button>
+                    <button class="dotify-segmented-btn" data-bg-speed="1.5">1.5×</button>
+                    <button class="dotify-segmented-btn" data-bg-speed="2">2×</button>
+                  </div>
+                </div>
+              </div>
+
               <!-- Прошлые фоны (квадратные фото с рамкой) -->
               <div class="settings-section dotify-section" id="bg-history-section">
                 <div class="dotify-section-title-wrap">
@@ -2314,6 +2590,142 @@
         <div class="votify-modal-footer">
           <button class="votify-modal-btn votify-modal-cancel" id="votify-modal-cancel" data-i18n="back-btn">Отмена</button>
           <button class="votify-modal-btn votify-modal-ok" id="votify-modal-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADVANCED IMPORT MODAL OVERLAY -->
+    <div class="import-modal-overlay hidden" id="import-modal-overlay">
+      <div class="import-modal-card">
+        <!-- Header -->
+        <div class="import-modal-header">
+          <div class="import-header-title-wrap">
+            <i class="material-icons import-header-icon">cloud_download</i>
+            <div>
+              <h2 class="import-modal-title">Импорт плейлиста</h2>
+              <p class="import-modal-subtitle">Spotify, YouTube, SoundCloud, Яндекс Музыка, файлы и списки</p>
+            </div>
+          </div>
+          <button class="import-modal-close" id="import-modal-close-btn" title="Закрыть">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+
+        <!-- 1. FORM VIEW -->
+        <div class="import-view" id="import-form-view">
+          <!-- Source Tabs -->
+          <div class="import-tabs">
+            <button class="import-tab-btn active" data-import-tab="link">
+              <i class="material-icons">link</i> По ссылке
+            </button>
+            <button class="import-tab-btn" data-import-tab="file">
+              <i class="material-icons">upload_file</i> Из файла
+            </button>
+            <button class="import-tab-btn" data-import-tab="text">
+              <i class="material-icons">format_list_bulleted</i> Текстом
+            </button>
+          </div>
+
+          <!-- Link Tab Content -->
+          <div class="import-tab-pane active" id="import-pane-link">
+            <div class="import-input-wrap">
+              <input type="text" id="import-link-input" class="import-input" placeholder="Вставьте ссылку на плейлист, альбом или трек..." autofocus />
+              <button class="import-paste-btn" id="import-paste-btn" title="Вставить из буфера">Вставить</button>
+            </div>
+            <div class="import-service-badges">
+              <span class="import-badge"><i class="material-icons">music_note</i> Spotify</span>
+              <span class="import-badge"><i class="material-icons">smart_display</i> YouTube / Music</span>
+              <span class="import-badge"><i class="material-icons">graphic_eq</i> SoundCloud</span>
+              <span class="import-badge"><i class="material-icons">album</i> Яндекс Музыка</span>
+              <span class="import-badge"><i class="material-icons">headphones</i> Apple Music</span>
+            </div>
+          </div>
+
+          <!-- File Tab Content -->
+          <div class="import-tab-pane" id="import-pane-file" style="display:none;">
+            <div class="import-dropzone" id="import-dropzone">
+              <i class="material-icons import-dropzone-icon">file_upload</i>
+              <p class="import-dropzone-text">Перетащите сюда файл плейлиста или <span class="import-browse-link">выберите файл</span></p>
+              <p class="import-dropzone-formats">Поддерживаются форматы .m3u, .m3u8, .json, .csv, .txt, .mp3, .flac, .wav, .m4a, .ogg</p>
+              <input type="file" id="import-file-input" accept=".m3u,.m3u8,.json,.csv,.txt,.mp3,.wav,.flac,.m4a,.ogg,.aac" multiple style="display:none;" />
+            </div>
+            <div class="import-file-selected" id="import-file-selected" style="display:none;">
+              <i class="material-icons">check_circle</i>
+              <span id="import-file-name">filename.m3u</span>
+              <button id="import-file-remove" class="import-file-clear" title="Удалить">&times;</button>
+            </div>
+          </div>
+
+          <!-- Text Tab Content -->
+          <div class="import-tab-pane" id="import-pane-text" style="display:none;">
+            <p class="import-text-hint">Вставьте список треков построчно (например: <code>Исполнитель — Название</code>):</p>
+            <textarea id="import-text-input" class="import-textarea" placeholder="Queen - Bohemian Rhapsody&#10;The Weeknd - Blinding Lights&#10;Linkin Park - Numb"></textarea>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="import-modal-footer">
+            <button class="import-btn-cancel" id="import-btn-cancel">Отмена</button>
+            <button class="import-btn-submit" id="import-btn-start">
+              <i class="material-icons">play_arrow</i> Импортировать
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. LIVE PROGRESS & LOADING VIEW -->
+        <div class="import-view" id="import-progress-view" style="display:none;">
+          <div class="import-progress-body">
+            <div class="import-spinner-wrap">
+              <div class="import-spinner-ring"></div>
+              <i class="material-icons import-spinner-icon">sync</i>
+            </div>
+            <h3 class="import-progress-title" id="import-progress-title">Импорт плейлиста...</h3>
+            <p class="import-progress-subtitle" id="import-progress-subtitle">Получение информации о треках...</p>
+            
+            <div class="import-progress-bar-wrap">
+              <div class="import-progress-bar-fill" id="import-progress-bar-fill" style="width: 0%;"></div>
+            </div>
+
+            <div class="import-progress-stats">
+              <span id="import-progress-counter">0 / 0 треков</span>
+              <span id="import-progress-percent">0%</span>
+            </div>
+
+            <div class="import-current-track" id="import-current-track" style="display:none;">
+              <i class="material-icons">music_note</i>
+              <span id="import-current-track-name">Поиск трека...</span>
+            </div>
+          </div>
+          <div class="import-modal-footer">
+            <button class="import-btn-cancel" id="import-btn-abort">Прервать</button>
+          </div>
+        </div>
+
+        <!-- 3. RESULTS & PREVIEW VIEW -->
+        <div class="import-view" id="import-results-view" style="display:none;">
+          <div class="import-results-header">
+            <div class="import-name-input-wrap">
+              <label for="import-playlist-name-input">Название плейлиста:</label>
+              <input type="text" id="import-playlist-name-input" class="import-input" value="Импортированный плейлист" />
+            </div>
+            <div class="import-results-meta">
+              <span id="import-results-count">0 треков найдено</span>
+              <button class="import-link-btn" id="import-toggle-all-btn">Снять все</button>
+            </div>
+          </div>
+
+          <div class="import-track-list-scroll" id="import-track-list-scroll">
+            <!-- Dynamically populated track preview items -->
+          </div>
+
+          <div class="import-modal-footer">
+            <button class="import-btn-cancel" id="import-results-cancel">Отмена</button>
+            <button class="import-btn-secondary" id="import-btn-play-now">
+              <i class="material-icons">play_arrow</i> Слушать сейчас
+            </button>
+            <button class="import-btn-submit" id="import-btn-save">
+              <i class="material-icons">check</i> Сохранить плейлист
+            </button>
+          </div>
         </div>
       </div>
     </div>
