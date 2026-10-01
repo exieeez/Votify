@@ -186,6 +186,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     BackHandler(enabled = playerExpanded) { playerExpanded = false }
 
     val snackbar = remember { SnackbarHostState() }
+    val snackbarScope = androidx.compose.runtime.rememberCoroutineScope()
     LaunchedEffect(playerState.error) {
         playerState.error?.let {
             snackbar.showSnackbar(it)
@@ -612,15 +613,15 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                             contentPadding = contentPadding,
                             onBack = { navController.popBackStack() },
                             onOpenFriends = { navController.navigate(Routes.FRIENDS) },
-                            onToast = { snackbar.showSnackbar(it) },
+                            onToast = { snackbarScope.launch { snackbar.showSnackbar(it) } },
                             onPlayFav = { fav ->
                                 val id = Regex("[?&]v=([a-zA-Z0-9_-]{11})")
                                     .find(fav.id)?.groupValues?.get(1)
-                                    ?: Regex("youtu\.be/([a-zA-Z0-9_-]{11})")
+                                    ?: Regex("""youtu\.be/([a-zA-Z0-9_-]{11})""")
                                         .find(fav.id)?.groupValues?.get(1)
                                     ?: fav.id
                                 if (id.length == 11) {
-                                    player.playTrack(app.votify.mobile.data.Track(id, fav.title, fav.artist, fav.cover, "", fav.duration))
+                                    player.playTrack(Track(id, fav.title, fav.artist, fav.cover, "", fav.duration))
                                 }
                             },
                             onLogout = { accountVm.logout() },
@@ -653,7 +654,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                                 .find(fav.id)?.groupValues?.get(1)
                                 ?: fav.id
                             if (id.length == 11) {
-                                player.playTrack(app.votify.mobile.data.Track(id, fav.title, fav.artist, fav.cover, "", fav.duration))
+                                player.playTrack(Track(id, fav.title, fav.artist, fav.cover, "", fav.duration))
                             }
                         },
                     )

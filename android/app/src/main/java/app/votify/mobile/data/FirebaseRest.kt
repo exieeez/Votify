@@ -613,8 +613,8 @@ class FirebaseRest(private val config: FirebaseConfig) {
             val profDoc = httpGetJsonOrNull(docUrl("profiles/$uid"))?.jsonObject?.get("fields")?.jsonObject
             if (userDoc == null && profDoc == null) return@withContext null
             val merged = buildJsonObject {
-                userDoc.keys.forEach { put(it, userDoc[it]) }
-                profDoc.keys.forEach { put(it, profDoc[it]) }
+                if (userDoc != null) userDoc.keys.forEach { k -> put(k, userDoc[k]) }
+                if (profDoc != null) profDoc.keys.forEach { k -> put(k, profDoc[k]) }
             }
             var info = profileFromFields(uid, merged)
             if (info.playlists.isEmpty()) {

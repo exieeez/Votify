@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -483,5 +484,8 @@ fun UserScreen(
 
 // local alias (composable: stringResource требует composable-контекста)
 @androidx.compose.runtime.Composable
-private fun stringRes(id: Int, vararg args: Any?): String =
-    androidx.compose.ui.res.stringResource(id, *args)
+private fun stringRes(id: Int, vararg args: Any?): String {
+    val nonNull = args.filterNotNull()
+    return if (nonNull.isEmpty()) androidx.compose.ui.res.stringResource(id)
+    else androidx.compose.ui.res.stringResource(id, *nonNull)
+}
