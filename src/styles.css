@@ -3047,18 +3047,15 @@ body[data-track-card-style="flat"] .track-item {
 }
 .player-track-lyrics {
   font-size: 13px;
-  color: var(--text-subdued);
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
-  opacity: 0.85;
+  opacity: 0.95;
+  font-weight: 600;
   min-height: 18px;
-}
-.player-track-lyrics .lyrics-word.w-active {
-  color: #fff;
-  opacity: 1;
-  font-weight: 700;
+  transition: opacity 0.2s ease;
 }
 
 .player-bar-center {
@@ -3753,22 +3750,6 @@ body[data-theme-mode="light"] .toggle-switch:hover .toggle-slider {
 }
 .lyrics-line.past { color: rgba(255,255,255,0.2); }
 
-/* === Караоке по словам (2026-09-02): подсветка бежит по словам, а не по строкам === */
-.lyrics-word {
-  display: inline-block;
-  margin-right: 0.3em;
-  opacity: 0.5;
-  transition: color 0.18s ease, opacity 0.18s ease, transform 0.18s ease, text-shadow 0.18s ease;
-}
-.lyrics-line.active .lyrics-word { opacity: 0.55; }
-.lyrics-line.active .lyrics-word.w-past { opacity: 0.85; }
-.lyrics-line.active .lyrics-word.w-active {
-  opacity: 1;
-  color: #fff;
-  transform: scale(1.14);
-  font-weight: 800;
-  text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.5);
-}
 .lyrics-translation {
   color: var(--text-subdued);
   font-size: 0.8em;
@@ -10672,67 +10653,41 @@ body[data-mini-border="capsule"] #floating-island,
 
 #fs-lyrics-body .lyrics-line {
   width: 100% !important;
-  max-width: 760px !important;
+  max-width: 820px !important;
   text-align: center !important;
   justify-content: center !important;
-  font-size: clamp(22px, 2.6vw, 34px) !important;
-  line-height: 1.6 !important;
-  color: rgba(255, 255, 255, 0.3) !important;
+  font-size: clamp(22px, 2.5vw, 32px) !important;
+  line-height: 1.5 !important;
+  color: rgba(255, 255, 255, 0.38) !important;
+  font-weight: 600 !important;
   cursor: pointer !important;
-  transition: color 0.3s ease, transform 0.3s cubic-bezier(0.2, 0, 0, 1), font-size 0.3s ease, opacity 0.3s ease !important;
+  transition: color 0.25s ease, transform 0.25s cubic-bezier(0.2, 0, 0, 1), font-size 0.25s ease, opacity 0.25s ease, text-shadow 0.25s ease !important;
   margin: 0 auto !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
+  padding: 10px 20px !important;
+  border-radius: 14px !important;
+  display: block !important;
 }
 
 #fs-lyrics-body .lyrics-line:hover {
-  color: rgba(255, 255, 255, 0.75) !important;
-  background: transparent !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
 }
 
 #fs-lyrics-body .lyrics-line.active {
   color: #ffffff !important;
   font-weight: 800 !important;
-  font-size: clamp(26px, 3.2vw, 42px) !important;
-  text-shadow: 0 0 28px rgba(var(--accent-rgb, 29, 185, 84), 0.7), 0 0 55px rgba(255, 255, 255, 0.35) !important;
-  transform: scale(1.04) !important;
+  font-size: clamp(28px, 3.2vw, 42px) !important;
+  line-height: 1.4 !important;
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.45), 0 0 45px rgba(var(--accent-rgb, 29, 185, 84), 0.35) !important;
+  transform: scale(1.03) !important;
   opacity: 1 !important;
 }
 
 #fs-lyrics-body .lyrics-line.past {
   color: rgba(255, 255, 255, 0.22) !important;
-  opacity: 0.7 !important;
-}
-
-/* Fix lyrics words: no overlapping, clean spacing, natural glow */
-#fs-lyrics-body .lyrics-word,
-.lyrics-word {
-  display: inline-block !important;
-  margin: 0 0.16em !important;
-  opacity: 0.45 !important;
-  transform-origin: center bottom !important;
-  transform: scale(1) !important;
-  transition: color 0.14s ease, opacity 0.14s ease, text-shadow 0.14s ease, transform 0.14s cubic-bezier(0.2, 0, 0, 1) !important;
-}
-
-#fs-lyrics-body .lyrics-line.active .lyrics-word,
-.lyrics-line.active .lyrics-word {
-  opacity: 0.55 !important;
-}
-
-#fs-lyrics-body .lyrics-line.active .lyrics-word.w-past,
-.lyrics-line.active .lyrics-word.w-past {
-  opacity: 0.88 !important;
-  color: #ffffff !important;
-}
-
-#fs-lyrics-body .lyrics-line.active .lyrics-word.w-active,
-.lyrics-line.active .lyrics-word.w-active {
-  opacity: 1 !important;
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  transform: scale(1.06) !important;
-  text-shadow: 0 0 16px rgba(var(--accent-rgb, 29, 185, 84), 0.8), 0 0 28px rgba(255, 255, 255, 0.4) !important;
+  opacity: 0.6 !important;
+  font-size: clamp(20px, 2.3vw, 28px) !important;
+  transform: scale(0.98) !important;
 }
 
 

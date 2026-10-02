@@ -419,7 +419,6 @@ async function loadLyricsForTrack(title, artist) {
       return;
     }
     currentLyricsLines = parseLrcTimings(lrc, state.duration || audio.duration);
-    attachWordTimings(currentLyricsLines);
     if (el && currentLyricsLines.length > 0) updateLyricsLine();
   } catch (e) {
     /* ignore */
@@ -446,8 +445,7 @@ function updateLyricsLine() {
   if (idx !== currentLyricIndex) {
     currentLyricIndex = idx;
     const text = idx >= 0 ? currentLyricsLines[idx].text : '';
-    el.innerHTML = idx >= 0 ? lyricsWordsHtml(currentLyricsLines[idx]) : '';
-    highlightLyricsWords(el, currentLyricsLines[idx], t);
+    el.textContent = text;
     if (text && appSettings.translateLyrics) {
       translateLyricLine(text).then(translated => {
         if (translated && currentLyricIndex === idx) {
@@ -458,8 +456,6 @@ function updateLyricsLine() {
         }
       });
     }
-  } else if (idx >= 0) {
-    highlightLyricsWords(el, currentLyricsLines[idx], t);
   }
 }
 
@@ -635,7 +631,6 @@ function updateFullscreenLyrics(time) {
       scrollToActiveFullscreenLyric(true);
     }
   }
-  if (idx >= 0 && lines[idx]) highlightLyricsWords(lines[idx], fsLyricsData[idx], t);
 }
 
 
@@ -10623,10 +10618,9 @@ async function loadFsLyrics(title, artist) {
     }
     setFsLyricsState(true);
     fsLyricsData = parseLrcTimings(lrc, state.duration || audio.duration);
-    attachWordTimings(fsLyricsData);
     if (body) {
       body.innerHTML = fsLyricsData
-        .map((l, i) => `<div class="lyrics-line" data-idx="${i}">${lyricsWordsHtml(l)}</div>`)
+        .map((l, i) => `<div class="lyrics-line" data-idx="${i}">${escapeHtml(l.text || '♪') || '♪'}</div>`)
         .join('');
       body.querySelectorAll('.lyrics-line').forEach(el => {
         el.addEventListener('click', e => {
