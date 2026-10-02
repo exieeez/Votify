@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -179,6 +180,38 @@ fun WorkshopThemeDetails(
                     }
                     Spacer(Modifier.width(8.dp))
                     Text(doc.authorName, style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                }
+            }
+
+            // ---- Кнопка «Применить» ----
+            val isApplied = (spec.backgroundUrl == doc.theme.backgroundUrl && doc.theme.backgroundUrl.isNotBlank()) ||
+                (spec.primary.equals(doc.theme.primary, ignoreCase = true) && spec.background.equals(doc.theme.background, ignoreCase = true))
+
+            Surface(
+                onClick = { viewModel.applyTheme(doc) },
+                shape = RoundedCornerShape(16.dp),
+                color = if (isApplied) Color.White.copy(alpha = 0.15f) else runCatching { Color(android.graphics.Color.parseColor(doc.theme.primary)) }.getOrDefault(VotifyColors.Primary),
+                contentColor = if (isApplied) Color.White else Color.Black,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+            ) {
+                Row(
+                    Modifier.padding(vertical = 14.dp, horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (isApplied) stringResource(R.string.workshop_applied) else stringResource(R.string.workshop_apply),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
 

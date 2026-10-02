@@ -583,6 +583,14 @@ class SettingsViewModel(
         viewModelScope.launch {
             val clean = url.trim()
             settingsRepo.setBackgroundUrl(clean)
+            if (clean.isNotBlank()) {
+                updatePrefs { cur ->
+                    cur.copy(
+                        themeApplyBackground = true,
+                        backgrounds = (cur.backgrounds + clean).distinct(),
+                    )
+                }
+            }
             // Keep the workshop-spec mirror in sync (cloud sync carries customTheme).
             val cur = settingsRepo.settings.first()
             if (cur.customTheme.isNotBlank()) {

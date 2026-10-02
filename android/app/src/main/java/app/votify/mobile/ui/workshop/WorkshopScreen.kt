@@ -24,7 +24,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Collections
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.CircularProgressIndicator
@@ -71,6 +73,8 @@ fun WorkshopScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val prefs by viewModel.prefs.collectAsStateWithLifecycle()
+    val activeSpec by viewModel.activeSpec.collectAsStateWithLifecycle()
+    val appBg by viewModel.appBackgroundUrl.collectAsStateWithLifecycle()
     var publishDialog by rememberSaveable { mutableStateOf(false) }
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -192,7 +196,15 @@ fun WorkshopScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             rowDocs.forEach { doc ->
-                                ThemeCard(doc = doc, modifier = Modifier.weight(1f)) { selectedDoc = doc }
+                                val isApplied = (doc.theme.backgroundUrl.isNotBlank() && doc.theme.backgroundUrl == appBg) ||
+                                    (activeSpec.primary.equals(doc.theme.primary, ignoreCase = true) && activeSpec.background.equals(doc.theme.background, ignoreCase = true))
+                                ThemeCard(
+                                    doc = doc,
+                                    isApplied = isApplied,
+                                    modifier = Modifier.weight(1f),
+                                    onApply = { viewModel.applyTheme(doc) },
+                                    onClick = { selectedDoc = doc },
+                                )
                             }
                             if (rowDocs.size == 1) Spacer(Modifier.weight(1f))
                         }
@@ -237,7 +249,13 @@ fun WorkshopScreen(
 
 /** Catalog card: square cover (image or placeholder) + #1A1A1A footer with title & author. */
 @Composable
-private fun ThemeCard(doc: WorkshopThemeDoc, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun ThemeCard(
+    doc: WorkshopThemeDoc,
+    isApplied: Boolean = false,
+    modifier: Modifier = Modifier,
+    onApply: () -> Unit = {},
+    onClick: () -> Unit,
+) {
     Column(
         modifier
             .clip(RoundedCornerShape(18.dp))
@@ -262,6 +280,26 @@ private fun ThemeCard(doc: WorkshopThemeDoc, modifier: Modifier = Modifier, onCl
                 )
             } else {
                 Icon(Icons.Outlined.Collections, null, tint = VotifyColors.TextMuted.copy(alpha = 0.4f), modifier = Modifier.size(40.dp))
+            }
+
+            // Quick Apply / Download button
+            Surface(
+                onClick = onApply,
+                shape = CircleShape,
+                color = if (isApplied) Color.White else Color.Black.copy(alpha = 0.65f),
+                contentColor = if (isApplied) Color.Black else Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(32.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        if (isApplied) Icons.Filled.Check else Icons.Outlined.Download,
+                        contentDescription = stringResource(R.string.workshop_apply),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
         Column(Modifier.fillMaxWidth().padding(12.dp)) {

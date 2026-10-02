@@ -479,6 +479,8 @@
     <string name="workshop_project">Проект: %1$s</string>
     <string name="workshop_empty">Пока никто не публиковал темы. Станьте первым!</string>
     <string name="workshop_apply">Применить</string>
+    <string name="workshop_applied">Применено</string>
+    <string name="workshop_apply_theme">Применить тему</string>
     <string name="workshop_publish">Опубликовать свою тему</string>
 
     <string name="toast_theme_applied">Тема «%1$s» применена</string>

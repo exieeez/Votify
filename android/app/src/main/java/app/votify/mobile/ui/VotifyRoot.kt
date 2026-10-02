@@ -345,15 +345,18 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
 
     // App background: any image URL (incl. animated GIF/WebP) behind the whole app.
     // Independent of the theme — changing any setting must never wipe the background.
-    // (Legacy fallback: backgrounds used to live inside the workshop spec only.)
+    val bgPrefs = parseCustomPrefs(settings.customPrefs)
     val bgSpec = parseWorkshopSpec(settings.customTheme)
-    val workshopBgUrl = settings.backgroundUrl.ifBlank {
-        if (settings.theme == AppTheme.Workshop) bgSpec.backgroundUrl else ""
+    val workshopBgUrl = if (settings.theme == AppTheme.Workshop && !bgPrefs.themeApplyBackground) {
+        ""
+    } else if (settings.theme == AppTheme.Workshop && bgSpec.backgroundUrl.isNotBlank()) {
+        bgSpec.backgroundUrl
+    } else {
+        settings.backgroundUrl
     }
     // Fine-tuning: Настройки → Фон («затемнение»/«размытие», prefs.bgDim/bgBlur).
     // Defaults (dim 35, blur 0) match the previous hard-coded look; the workshop
     // spec sliders were the only tuning before and are now overridden here.
-    val bgPrefs = parseCustomPrefs(settings.customPrefs)
     val bgBlurDp = bgPrefs.bgBlur.coerceIn(0, 60)
     val bgDimAlpha = bgPrefs.bgDim.coerceIn(0, 92) / 100f
     // Как широкий ПК-фон ложится на экран телефона: обрезать по экрану, показать

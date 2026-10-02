@@ -198,6 +198,22 @@ class WorkshopViewModel(
     }
 
     private suspend fun applyThemeNow(doc: WorkshopThemeDoc) {
+        val bgUrl = doc.theme.backgroundUrl.trim()
+        val cur = settingsRepo.settings.first()
+        val curPrefs = parseCustomPrefs(cur.customPrefs)
+        val updatedBackgrounds = if (bgUrl.isNotBlank()) {
+            (curPrefs.backgrounds + bgUrl).distinct()
+        } else {
+            curPrefs.backgrounds
+        }
+        val updatedPrefs = curPrefs.copy(
+            themeApplyBackground = bgUrl.isNotBlank() || curPrefs.themeApplyBackground,
+            backgrounds = updatedBackgrounds,
+        )
+        settingsRepo.setCustomPrefs(updatedPrefs.toJson())
+        if (bgUrl.isNotBlank()) {
+            settingsRepo.setBackgroundUrl(bgUrl)
+        }
         settingsRepo.setCustomTheme(json.encodeToString(WorkshopThemeSpec.serializer(), doc.theme.toSpec()))
         settingsRepo.setTheme(AppTheme.Workshop)
         _events.tryEmit(WorkshopEvent.Applied(doc.title))
@@ -208,15 +224,29 @@ class WorkshopViewModel(
      * slider accent. Each writes its pref and applies (or clears) immediately.
      */
     fun setThemeBackground(doc: WorkshopThemeDoc, on: Boolean) {
-        updatePrefs { it.copy(themeApplyBackground = on) }
+        val bgUrl = doc.theme.backgroundUrl.trim()
         viewModelScope.launch {
+            val cur = settingsRepo.settings.first()
+            val curPrefs = parseCustomPrefs(cur.customPrefs)
+            val updatedBackgrounds = if (on && bgUrl.isNotBlank()) {
+                (curPrefs.backgrounds + bgUrl).distinct()
+            } else {
+                curPrefs.backgrounds
+            }
+            val updatedPrefs = curPrefs.copy(
+                themeApplyBackground = on,
+                backgrounds = updatedBackgrounds,
+            )
+            settingsRepo.setCustomPrefs(updatedPrefs.toJson())
             if (on) {
-                settingsRepo.setBackgroundUrl(doc.theme.backgroundUrl)
+                if (bgUrl.isNotBlank()) {
+                    settingsRepo.setBackgroundUrl(bgUrl)
+                }
                 applyThemeNow(doc)
             } else {
                 settingsRepo.setBackgroundUrl("")
-                settingsRepo.setCustomTheme("")
-                settingsRepo.setTheme(AppTheme.OledBlack)
+                val curSpec = if (cur.customTheme.isNotBlank()) parseWorkshopSpec(cur.customTheme) else doc.theme.toSpec()
+                settingsRepo.setCustomTheme(json.encodeToString(WorkshopThemeSpec.serializer(), curSpec.copy(backgroundUrl = "")))
             }
         }
     }
@@ -289,11 +319,24 @@ class WorkshopViewModel(
     /** Set an app-wide background image (any image URL, incl. animated GIF/WebP). */
     fun applyBackground(url: String) {
         val clean = url.trim().take(2048)
-        if (clean.isNotEmpty() && !clean.startsWith("http://") && !clean.startsWith("https://")) {
+        if (clean.isNotEmpty() && !clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
             _events.tryEmit(WorkshopEvent.BadUrl)
             return
         }
         viewModelScope.launch {
+            val cur = settingsRepo.settings.first()
+            val curPrefs = parseCustomPrefs(cur.customPrefs)
+            val updatedBackgrounds = if (clean.isNotBlank()) {
+                (curPrefs.backgrounds + clean).distinct()
+            } else {
+                curPrefs.backgrounds
+            }
+            val updatedPrefs = curPrefs.copy(
+                themeApplyBackground = clean.isNotBlank(),
+                backgrounds = updatedBackgrounds,
+            )
+            settingsRepo.setCustomPrefs(updatedPrefs.toJson())
+            settingsRepo.setBackgroundUrl(clean)
             val spec = currentSpecModel().copy(backgroundUrl = clean)
             settingsRepo.setCustomTheme(json.encodeToString(WorkshopThemeSpec.serializer(), spec))
             settingsRepo.setTheme(AppTheme.Workshop)

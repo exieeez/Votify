@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Upload
@@ -77,9 +79,26 @@ fun BackgroundsScreen(
     onBack: () -> Unit,
 ) {
     val prefs by viewModel.prefs.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val activeBg = settings.backgroundUrl
     var urlDialog by remember { mutableStateOf(false) }
     // Тап по плитке: фон применяется сразу и открывается окно его настройки (как в Мастерской).
     var tuneBackground by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // Все фоны (включая активный фон из Мастерской, чтобы никогда не терялся)
+    val backgroundsList = remember(prefs.backgrounds, activeBg) {
+        val list = prefs.backgrounds.toMutableList()
+        if (activeBg.isNotBlank() && !list.contains(activeBg)) {
+            list.add(0, activeBg)
+        }
+        list
+    }
+
+    LaunchedEffect(activeBg) {
+        if (activeBg.isNotBlank() && activeBg !in prefs.backgrounds) {
+            viewModel.addBackground(activeBg)
+        }
+    }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         uri?.let(viewModel::importBackgroundFile)
@@ -89,7 +108,7 @@ fun BackgroundsScreen(
         SettingsScaffold(stringResource(R.string.settings_backgrounds), contentPadding, onBack) {
             Column(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    if (prefs.backgrounds.isEmpty()) {
+                    if (backgroundsList.isEmpty()) {
                         Box(Modifier.fillMaxWidth().padding(top = 80.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
@@ -114,15 +133,16 @@ fun BackgroundsScreen(
                     } else {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
-                            modifier = Modifier.fillMaxWidth().height((((prefs.backgrounds.size + 1) / 2) * 190).dp),
+                            modifier = Modifier.fillMaxWidth().height((((backgroundsList.size + 1) / 2) * 190).dp),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             userScrollEnabled = false,
                         ) {
-                            items(prefs.backgrounds) { bg ->
+                            items(backgroundsList) { bg ->
                                 BackgroundTile(
                                     url = bg,
+                                    isSelected = (bg == activeBg),
                                     // Tap = apply it right away and open the tuning window.
                                     onClick = {
                                         viewModel.applyBackground(bg)
@@ -218,12 +238,24 @@ fun BackgroundsScreen(
 }
 
 @Composable
-private fun BackgroundTile(url: String, onClick: () -> Unit, onDelete: () -> Unit) {
+private fun BackgroundTile(
+    url: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Box(
         Modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(18.dp))
             .background(VotifyColors.SurfaceContainerHigh)
+            .then(
+                if (isSelected) {
+                    Modifier.border(2.dp, VotifyColors.Primary, RoundedCornerShape(18.dp))
+                } else {
+                    Modifier
+                }
+            )
             .clickable(onClick = onClick),
     ) {
         coil.compose.AsyncImage(
@@ -235,6 +267,18 @@ private fun BackgroundTile(url: String, onClick: () -> Unit, onDelete: () -> Uni
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
+        if (isSelected) {
+            Surface(
+                shape = CircleShape,
+                color = VotifyColors.Primary,
+                contentColor = androidx.compose.ui.graphics.Color.Black,
+                modifier = Modifier.align(Alignment.TopStart).padding(8.dp).size(26.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.Check, null, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
         Surface(
             onClick = onDelete,
             shape = CircleShape,
