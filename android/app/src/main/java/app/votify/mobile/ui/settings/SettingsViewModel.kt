@@ -450,9 +450,8 @@ class SettingsViewModel(
                     return@launch
                 }
                 val (client, token) = pair
-                runCatching { client.pullUserSync(token, acct.uid) }
-                    .onSuccess { raw ->
-                        val blob = raw?.let { sync.fromJson(it) }
+                runCatching { client.pullFullCloudSync(token, acct.uid) ?: client.pullUserSync(token, acct.uid)?.let { sync.fromJson(it) } }
+                    .onSuccess { blob ->
                         if (blob != null) {
                             sync.importBlob(blob)
                             _events.tryEmit(SettingsEvent.Message(appContext.getString(app.votify.mobile.R.string.sync_pulled)))
