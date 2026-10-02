@@ -127,6 +127,27 @@ class PlayerController(
         }
     }
 
+    /** Stop playback and clear the active track/queue (e.g. when mini-player is swiped down). */
+    fun dismiss() {
+        val c = controller
+        c?.stop()
+        c?.clearMediaItems()
+        queueTracks = emptyList()
+        lastReportedId = null
+        _state.update {
+            it.copy(
+                current = null,
+                queue = emptyList(),
+                currentIndex = -1,
+                isPlaying = false,
+                isBuffering = false,
+                positionMs = 0,
+                durationMs = 0,
+                error = null,
+            )
+        }
+    }
+
     fun next() {
         controller?.takeIf { it.hasNextMediaItem() }?.seekToNextMediaItem()
     }

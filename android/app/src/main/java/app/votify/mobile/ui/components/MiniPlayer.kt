@@ -32,7 +32,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -57,6 +67,8 @@ data class MiniStyle(
     val artworkTint: Boolean = false,
 )
 
+private enum class MiniDragDirection { NONE, HORIZONTAL, VERTICAL_DOWN, VERTICAL_UP }
+
 /**
  * Docked mini-player from the design: 64dp tall, 8dp side margins, #1E1E1E @ 90% with a
  * #383838 hairline, 44dp artwork, title/artist, ♥ and a 36dp white play/pause disc,
@@ -71,6 +83,7 @@ fun MiniPlayer(
     onToggleFavorite: () -> Unit,
     onSwipeLeft: () -> Unit = {},
     onSwipeRight: () -> Unit = {},
+    onDismiss: () -> Unit = {},
     style: MiniStyle = MiniStyle(),
     modifier: Modifier = Modifier,
 ) {
@@ -78,26 +91,83 @@ fun MiniPlayer(
     val shape = if (style.pillShape) RoundedCornerShape(24.dp) else RoundedCornerShape(14.dp)
     val tint = if (style.artworkTint) rememberDominantTint(track.cover) else null
 
+    val density = LocalDensity.current
+    val scope = rememberCoroutineScope()
+    val offsetY = remember { Animatable(0f) }
+    val dismissThresholdPx = with(density) { 44.dp.toPx() }
+
     Box(
         modifier
             .padding(horizontal = 8.dp)
             .fillMaxWidth()
             .height(64.dp)
+            .graphicsLayer {
+                translationY = offsetY.value
+                alpha = (1f - (offsetY.value / 180f)).coerceIn(0.1f, 1f)
+            }
             .clip(shape)
             .background(tint?.copy(alpha = 0.92f) ?: VotifyColors.SurfaceContainer.copy(alpha = 0.92f))
             .border(1.dp, VotifyColors.SurfaceContainerHighest, shape)
             .clickable(onClick = onClick)
-            .pointerInput(onSwipeLeft, onSwipeRight) {
-                var total = 0f
-                detectHorizontalDragGestures(
-                    onDragStart = { total = 0f },
+            .pointerInput(onSwipeLeft, onSwipeRight, onDismiss) {
+                var totalX = 0f
+                var totalY = 0f
+                var direction = MiniDragDirection.NONE
+
+                detectDragGestures(
+                    onDragStart = {
+                        totalX = 0f
+                        totalY = 0f
+                        direction = MiniDragDirection.NONE
+                    },
                     onDragEnd = {
-                        when {
-                            total < -120f -> onSwipeLeft()
-                            total > 120f -> onSwipeRight()
+                        if (direction == MiniDragDirection.VERTICAL_DOWN && totalY > dismissThresholdPx) {
+                            scope.launch {
+                                offsetY.animateTo(120f, tween(120))
+                                onDismiss()
+                            }
+                        } else {
+                            if (offsetY.value > 0f) {
+                                scope.launch {
+                                    offsetY.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+                                }
+                            }
+                            if (direction == MiniDragDirection.HORIZONTAL || (abs(totalX) > abs(totalY) && abs(totalX) > 100f)) {
+                                when {
+                                    totalX < -110f -> onSwipeLeft()
+                                    totalX > 110f -> onSwipeRight()
+                                }
+                            } else if (direction == MiniDragDirection.VERTICAL_UP && totalY < -70f) {
+                                onClick()
+                            }
                         }
                     },
-                ) { _, dragAmount -> total += dragAmount }
+                    onDragCancel = {
+                        scope.launch {
+                            offsetY.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+                        }
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        totalX += dragAmount.x
+                        totalY += dragAmount.y
+
+                        if (direction == MiniDragDirection.NONE) {
+                            if (totalY > 12f && totalY > abs(totalX) * 1.1f) {
+                                direction = MiniDragDirection.VERTICAL_DOWN
+                            } else if (totalY < -15f && abs(totalY) > abs(totalX) * 1.1f) {
+                                direction = MiniDragDirection.VERTICAL_UP
+                            } else if (abs(totalX) > 15f && abs(totalX) > abs(totalY)) {
+                                direction = MiniDragDirection.HORIZONTAL
+                            }
+                        }
+
+                        if (direction == MiniDragDirection.VERTICAL_DOWN) {
+                            val clamped = totalY.coerceAtLeast(0f)
+                            scope.launch { offsetY.snapTo(clamped) }
+                        }
+                    },
+                )
             },
     ) {
         Row(

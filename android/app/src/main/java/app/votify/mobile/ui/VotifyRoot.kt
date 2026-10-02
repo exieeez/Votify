@@ -421,6 +421,9 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                                     else -> player.previous()
                                 }
                             },
+                            onDismiss = {
+                                player.dismiss()
+                            },
                             style = MiniStyle(
                                 pillShape = cp.miniCorners != "rounded",
                                 roundCover = cp.miniCoverShape == "circle",
