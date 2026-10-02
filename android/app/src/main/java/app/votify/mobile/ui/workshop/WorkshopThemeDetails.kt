@@ -30,7 +30,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -41,11 +44,13 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.votify.mobile.R
 import app.votify.mobile.data.CustomPrefs
@@ -129,14 +134,49 @@ fun WorkshopThemeDetails(
                 }
             }
 
+            var scale by remember { mutableFloatStateOf(prefs.bgScale.coerceIn(1f, 5f)) }
+            var offsetX by remember { mutableFloatStateOf(prefs.bgOffsetX.coerceIn(-1f, 1f)) }
+            var offsetY by remember { mutableFloatStateOf(prefs.bgOffsetY.coerceIn(-1f, 1f)) }
+            LaunchedEffect(prefs.bgScale, prefs.bgOffsetX, prefs.bgOffsetY) {
+                scale = prefs.bgScale.coerceIn(1f, 5f)
+                offsetX = prefs.bgOffsetX.coerceIn(-1f, 1f)
+                offsetY = prefs.bgOffsetY.coerceIn(-1f, 1f)
+            }
+            LaunchedEffect(scale, offsetX, offsetY) {
+                delay(150)
+                if (scale != prefs.bgScale || offsetX != prefs.bgOffsetX || offsetY != prefs.bgOffsetY) {
+                    viewModel.updatePrefs { it.copy(bgScale = scale, bgOffsetX = offsetX, bgOffsetY = offsetY) }
+                }
+            }
+            DisposableEffect(Unit) {
+                onDispose {
+                    viewModel.updatePrefs { it.copy(bgScale = scale, bgOffsetX = offsetX, bgOffsetY = offsetY) }
+                }
+            }
+
             // ---- 1. Theme preview ----
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(190.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .height(220.dp)
+                    .clip(RoundedCornerShape(22.dp))
                     .background(
                         runCatching { Color(android.graphics.Color.parseColor(doc.theme.background)) }.getOrDefault(Color(0xFF121212)),
+                    )
+                    .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(22.dp))
+                    .then(
+                        if (doc.theme.backgroundUrl.isNotBlank()) {
+                            Modifier.pointerInput(Unit) {
+                                detectTransformGestures { _, pan, zoom, _ ->
+                                    val nextScale = (scale * zoom).coerceIn(1f, 5f)
+                                    val width = size.width.coerceAtLeast(1)
+                                    val height = size.height.coerceAtLeast(1)
+                                    scale = nextScale
+                                    offsetX = (offsetX - (pan.x / width) * 2f / nextScale).coerceIn(-1f, 1f)
+                                    offsetY = (offsetY - (pan.y / height) * 2f / nextScale).coerceIn(-1f, 1f)
+                                }
+                            }
+                        } else Modifier
                     ),
             ) {
                 if (doc.theme.backgroundUrl.isNotBlank()) {
@@ -150,13 +190,39 @@ fun WorkshopThemeDetails(
                             else -> ContentScale.Crop
                         },
                         alignment = androidx.compose.ui.BiasAlignment(
-                            prefs.bgOffsetX.coerceIn(-1f, 1f),
-                            prefs.bgOffsetY.coerceIn(-1f, 1f),
+                            offsetX.coerceIn(-1f, 1f),
+                            offsetY.coerceIn(-1f, 1f),
                         ),
                         modifier = Modifier
                             .fillMaxSize()
-                            .scale(prefs.bgScale.coerceIn(1f, 5f)),
+                            .scale(scale.coerceIn(1f, 5f)),
                     )
+                    // Сетка кадрирования 3x3
+                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                        val w = size.width
+                        val h = size.height
+                        val lineColor = Color.White.copy(alpha = 0.12f)
+                        val stroke = 1.dp.toPx()
+                        drawLine(lineColor, androidx.compose.ui.geometry.Offset(0f, h / 3f), androidx.compose.ui.geometry.Offset(w, h / 3f), stroke)
+                        drawLine(lineColor, androidx.compose.ui.geometry.Offset(0f, h * 2f / 3f), androidx.compose.ui.geometry.Offset(w, h * 2f / 3f), stroke)
+                        drawLine(lineColor, androidx.compose.ui.geometry.Offset(w / 3f, 0f), androidx.compose.ui.geometry.Offset(w / 3f, h), stroke)
+                        drawLine(lineColor, androidx.compose.ui.geometry.Offset(w * 2f / 3f, 0f), androidx.compose.ui.geometry.Offset(w * 2f / 3f, h), stroke)
+                    }
+                    if (scale > 1.05f) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.65f),
+                            modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
+                        ) {
+                            Text(
+                                text = "%.1fx".format(scale),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
                 }
                 Row(
                     Modifier.align(Alignment.BottomStart).padding(12.dp),
@@ -283,24 +349,6 @@ fun WorkshopThemeDetails(
                             }
                         }
                     }
-                    SliderRow(
-                        label = stringResource(R.string.settings_bg_scale),
-                        value = prefs.bgScale,
-                        range = 1f..5f,
-                        onApply = { v -> viewModel.updatePrefs { it.copy(bgScale = v.coerceIn(1f, 5f)) } },
-                    )
-                    SliderRow(
-                        label = stringResource(R.string.settings_bg_offset_x),
-                        value = prefs.bgOffsetX,
-                        range = -1f..1f,
-                        onApply = { v -> viewModel.updatePrefs { it.copy(bgOffsetX = v.coerceIn(-1f, 1f)) } },
-                    )
-                    SliderRow(
-                        label = stringResource(R.string.settings_bg_offset_y),
-                        value = prefs.bgOffsetY,
-                        range = -1f..1f,
-                        onApply = { v -> viewModel.updatePrefs { it.copy(bgOffsetY = v.coerceIn(-1f, 1f)) } },
-                    )
                     Text(
                         stringResource(R.string.settings_bg_reset),
                         style = MaterialTheme.typography.bodySmall,
@@ -308,7 +356,12 @@ fun WorkshopThemeDetails(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.updatePrefs { it.copy(bgScale = 1f, bgOffsetX = 0f, bgOffsetY = 0f) } }
+                            .clickable {
+                                scale = 1f
+                                offsetX = 0f
+                                offsetY = 0f
+                                viewModel.updatePrefs { it.copy(bgScale = 1f, bgOffsetX = 0f, bgOffsetY = 0f) }
+                            }
                             .padding(vertical = 12.dp),
                     )
                 }

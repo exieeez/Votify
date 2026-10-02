@@ -311,11 +311,24 @@ fun BackgroundTuneScreen(
     var scale by remember { mutableFloatStateOf(prefs.bgScale.coerceIn(1f, 5f)) }
     var offsetX by remember { mutableFloatStateOf(prefs.bgOffsetX.coerceIn(-1f, 1f)) }
     var offsetY by remember { mutableFloatStateOf(prefs.bgOffsetY.coerceIn(-1f, 1f)) }
-    // Ползунок (и сброс) меняет настройки — подтягиваем их в локальный кадр.
     LaunchedEffect(prefs.bgScale, prefs.bgOffsetX, prefs.bgOffsetY) {
         scale = prefs.bgScale.coerceIn(1f, 5f)
         offsetX = prefs.bgOffsetX.coerceIn(-1f, 1f)
         offsetY = prefs.bgOffsetY.coerceIn(-1f, 1f)
+    }
+    // Debounce save to DataStore to keep 60/120fps touch gestures butter smooth
+    LaunchedEffect(scale, offsetX, offsetY) {
+        kotlinx.coroutines.delay(150)
+        if (scale != prefs.bgScale) viewModel.setBackgroundScale(scale)
+        if (offsetX != prefs.bgOffsetX) viewModel.setBackgroundOffsetX(offsetX)
+        if (offsetY != prefs.bgOffsetY) viewModel.setBackgroundOffsetY(offsetY)
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            viewModel.setBackgroundScale(scale)
+            viewModel.setBackgroundOffsetX(offsetX)
+            viewModel.setBackgroundOffsetY(offsetY)
+        }
     }
     // Локальные файлы хранятся путём («/data/…»), остальное — URL.
     val model = remember(url) {
@@ -368,28 +381,24 @@ fun BackgroundTuneScreen(
                 )
             }
 
-            // Превью: затемнение, размытие и кадрирование видны на нём сразу.
-            // Щипок меняет масштаб, перетаскивание двигает кадр — прямо как в редакторе фото.
+            // Превью: как в кружке аватарки — щипком зумим, пальцем перетаскиваем прямо на экране
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(190.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .height(240.dp)
+                    .clip(RoundedCornerShape(22.dp))
                     .background(VotifyColors.SurfaceContainerHigh)
+                    .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(22.dp))
                     .pointerInput(Unit) {
-                        // detectTransformGestures висит, пока палец на экране, и
-                        // возвращается, когда жест закончен — вот тогда и сохраняем.
                         detectTransformGestures { _, pan, zoom, _ ->
                             val nextScale = (scale * zoom).coerceIn(1f, 5f)
                             val width = size.width.coerceAtLeast(1)
                             val height = size.height.coerceAtLeast(1)
                             scale = nextScale
-                            offsetX = (offsetX + (pan.x / width) * 2f / nextScale).coerceIn(-1f, 1f)
-                            offsetY = (offsetY + (pan.y / height) * 2f / nextScale).coerceIn(-1f, 1f)
+                            // 1:1 прямое перемещение пальцем: тянем вправо — картинка идёт вправо
+                            offsetX = (offsetX - (pan.x / width) * 2f / nextScale).coerceIn(-1f, 1f)
+                            offsetY = (offsetY - (pan.y / height) * 2f / nextScale).coerceIn(-1f, 1f)
                         }
-                        viewModel.setBackgroundScale(scale)
-                        viewModel.setBackgroundOffsetX(offsetX)
-                        viewModel.setBackgroundOffsetY(offsetY)
                     },
             ) {
                 coil.compose.AsyncImage(
@@ -411,6 +420,32 @@ fun BackgroundTuneScreen(
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = prefs.bgDim.coerceIn(0, 92) / 100f)),
                 )
+                // Сетка кадрирования 3x3 как в фоторедакторе/аватарке
+                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                    val w = size.width
+                    val h = size.height
+                    val lineColor = Color.White.copy(alpha = 0.12f)
+                    val stroke = 1.dp.toPx()
+                    drawLine(lineColor, androidx.compose.ui.geometry.Offset(0f, h / 3f), androidx.compose.ui.geometry.Offset(w, h / 3f), stroke)
+                    drawLine(lineColor, androidx.compose.ui.geometry.Offset(0f, h * 2f / 3f), androidx.compose.ui.geometry.Offset(w, h * 2f / 3f), stroke)
+                    drawLine(lineColor, androidx.compose.ui.geometry.Offset(w / 3f, 0f), androidx.compose.ui.geometry.Offset(w / 3f, h), stroke)
+                    drawLine(lineColor, androidx.compose.ui.geometry.Offset(w * 2f / 3f, 0f), androidx.compose.ui.geometry.Offset(w * 2f / 3f, h), stroke)
+                }
+                if (scale > 1.05f) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.Black.copy(alpha = 0.65f),
+                        modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
+                    ) {
+                        Text(
+                            text = "%.1fx".format(scale),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                }
             }
 
             TuneSection(stringResource(R.string.settings_bg_crop)) {
@@ -447,24 +482,6 @@ fun BackgroundTuneScreen(
                         }
                     }
                 }
-                TuneSliderRow(
-                    label = stringResource(R.string.settings_bg_scale),
-                    value = prefs.bgScale,
-                    range = 1f..5f,
-                    onApply = { v -> viewModel.setBackgroundScale(v) },
-                )
-                TuneSliderRow(
-                    label = stringResource(R.string.settings_bg_offset_x),
-                    value = prefs.bgOffsetX,
-                    range = -1f..1f,
-                    onApply = { v -> viewModel.setBackgroundOffsetX(v) },
-                )
-                TuneSliderRow(
-                    label = stringResource(R.string.settings_bg_offset_y),
-                    value = prefs.bgOffsetY,
-                    range = -1f..1f,
-                    onApply = { v -> viewModel.setBackgroundOffsetY(v) },
-                )
                 Text(
                     stringResource(R.string.settings_bg_reset),
                     style = MaterialTheme.typography.bodySmall,
@@ -472,16 +489,15 @@ fun BackgroundTuneScreen(
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { viewModel.resetBackgroundCrop() }
+                        .clickable {
+                            scale = 1f
+                            offsetX = 0f
+                            offsetY = 0f
+                            viewModel.resetBackgroundCrop()
+                        }
                         .padding(vertical = 12.dp),
                 )
             }
-            Text(
-                stringResource(R.string.settings_bg_crop_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = VotifyColors.TextMuted,
-                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
-            )
 
             TuneSection(stringResource(R.string.workshop_adjust)) {
                 TuneSliderRow(
