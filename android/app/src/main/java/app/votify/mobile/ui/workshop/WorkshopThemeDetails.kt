@@ -144,66 +144,16 @@ fun WorkshopThemeDetails(
                     .background(
                         runCatching { Color(android.graphics.Color.parseColor(doc.theme.background)) }.getOrDefault(Color(0xFF121212)),
                     )
-                    .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(22.dp))
-                    .then(
-                        if (doc.theme.backgroundUrl.isNotBlank()) {
-                            Modifier.pointerInput(Unit) {
-                                detectTransformGestures { _, pan, zoom, _ ->
-                                    val nextScale = (scale * zoom).coerceIn(1f, 5f)
-                                    val width = size.width.coerceAtLeast(1)
-                                    val height = size.height.coerceAtLeast(1)
-                                    scale = nextScale
-                                    offsetX = (offsetX - (pan.x / width) * 2f / nextScale).coerceIn(-1f, 1f)
-                                    offsetY = (offsetY - (pan.y / height) * 2f / nextScale).coerceIn(-1f, 1f)
-                                }
-                            }
-                        } else Modifier
-                    ),
+                    .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(22.dp)),
             ) {
                 if (doc.theme.backgroundUrl.isNotBlank()) {
-                    // ПК-темы часто с широкими обоями — здесь видно, как они кадрируются.
                     coil.compose.AsyncImage(
                         model = doc.theme.backgroundUrl,
                         contentDescription = doc.title,
-                        contentScale = when (prefs.bgFit) {
-                            1 -> ContentScale.Fit
-                            2 -> ContentScale.FillBounds
-                            else -> ContentScale.Crop
-                        },
-                        alignment = androidx.compose.ui.BiasAlignment(
-                            offsetX.coerceIn(-1f, 1f),
-                            offsetY.coerceIn(-1f, 1f),
-                        ),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .scale(scale.coerceIn(1f, 5f)),
+                        contentScale = ContentScale.Crop,
+                        alignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
                     )
-                    // Сетка кадрирования 3x3
-                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                        val w = size.width
-                        val h = size.height
-                        val lineColor = Color.White.copy(alpha = 0.12f)
-                        val stroke = 1.dp.toPx()
-                        drawLine(lineColor, androidx.compose.ui.geometry.Offset(0f, h / 3f), androidx.compose.ui.geometry.Offset(w, h / 3f), stroke)
-                        drawLine(lineColor, androidx.compose.ui.geometry.Offset(0f, h * 2f / 3f), androidx.compose.ui.geometry.Offset(w, h * 2f / 3f), stroke)
-                        drawLine(lineColor, androidx.compose.ui.geometry.Offset(w / 3f, 0f), androidx.compose.ui.geometry.Offset(w / 3f, h), stroke)
-                        drawLine(lineColor, androidx.compose.ui.geometry.Offset(w * 2f / 3f, 0f), androidx.compose.ui.geometry.Offset(w * 2f / 3f, h), stroke)
-                    }
-                    if (scale > 1.05f) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.Black.copy(alpha = 0.65f),
-                            modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
-                        ) {
-                            Text(
-                                text = "%.1fx".format(scale),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            )
-                        }
-                    }
                 }
                 Row(
                     Modifier.align(Alignment.BottomStart).padding(12.dp),
