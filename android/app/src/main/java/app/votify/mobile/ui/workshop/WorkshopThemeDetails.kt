@@ -134,25 +134,6 @@ fun WorkshopThemeDetails(
                 }
             }
 
-            var scale by remember { mutableFloatStateOf(prefs.bgScale.coerceIn(1f, 5f)) }
-            var offsetX by remember { mutableFloatStateOf(prefs.bgOffsetX.coerceIn(-1f, 1f)) }
-            var offsetY by remember { mutableFloatStateOf(prefs.bgOffsetY.coerceIn(-1f, 1f)) }
-            LaunchedEffect(prefs.bgScale, prefs.bgOffsetX, prefs.bgOffsetY) {
-                scale = prefs.bgScale.coerceIn(1f, 5f)
-                offsetX = prefs.bgOffsetX.coerceIn(-1f, 1f)
-                offsetY = prefs.bgOffsetY.coerceIn(-1f, 1f)
-            }
-            LaunchedEffect(scale, offsetX, offsetY) {
-                delay(150)
-                if (scale != prefs.bgScale || offsetX != prefs.bgOffsetX || offsetY != prefs.bgOffsetY) {
-                    viewModel.updatePrefs { it.copy(bgScale = scale, bgOffsetX = offsetX, bgOffsetY = offsetY) }
-                }
-            }
-            DisposableEffect(Unit) {
-                onDispose {
-                    viewModel.updatePrefs { it.copy(bgScale = scale, bgOffsetX = offsetX, bgOffsetY = offsetY) }
-                }
-            }
 
             // ---- 1. Theme preview ----
             Box(
@@ -314,58 +295,6 @@ fun WorkshopThemeDetails(
                 ) { v -> viewModel.updatePrefs { it.copy(themeArtworkAlways = !v) } }
             }
 
-            // ---- 4. Кадрирование: широкую ПК-тему кладём на экран телефона ----
-            if (doc.theme.backgroundUrl.isNotBlank()) {
-                DetailSection(stringResource(R.string.settings_bg_crop)) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        val labels = listOf(
-                            stringResource(R.string.settings_bg_fit_fill),
-                            stringResource(R.string.settings_bg_fit_whole),
-                            stringResource(R.string.settings_bg_fit_stretch),
-                        )
-                        labels.forEachIndexed { index, label ->
-                            val selected = prefs.bgFit == index
-                            Surface(
-                                onClick = { viewModel.updatePrefs { it.copy(bgFit = index) } },
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
-                                contentColor = if (selected) Color.Black else Color.White,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Box(Modifier.padding(vertical = 9.dp), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        label,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Text(
-                        stringResource(R.string.settings_bg_reset),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF8AB4F8),
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                scale = 1f
-                                offsetX = 0f
-                                offsetY = 0f
-                                viewModel.updatePrefs { it.copy(bgScale = 1f, bgOffsetX = 0f, bgOffsetY = 0f) }
-                            }
-                            .padding(vertical = 12.dp),
-                    )
-                }
-            }
 
             // ---- 5. Тонкая подгонка ----
             DetailSection(stringResource(R.string.workshop_adjust)) {
