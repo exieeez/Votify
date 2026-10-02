@@ -75,15 +75,15 @@ object CloudSyncAuto {
         try {
             val cfg = FirebaseRest.effectiveConfig(app.settings.settings.first().firebaseConfig) ?: return
             val client = FirebaseRest(cfg)
-            val blob = CloudSync(app.database, app.settings).toJson(CloudSync(app.database, app.settings).exportBlob())
+            val blobObj = CloudSync(app.database, app.settings).exportBlob()
             try {
-                client.pushUserSync(token(client, acct), acct.uid, blob)
+                client.publishLibrary(token(client, acct), acct.uid, blobObj)
             } catch (e: FirebaseRestException) {
                 if (e.code == "HTTP 401") {
                     // Token expired mid-flight — refresh once and retry.
                     cachedToken = null
                     try {
-                        client.pushUserSync(token(client, acct), acct.uid, blob)
+                        client.publishLibrary(token(client, acct), acct.uid, blobObj)
                     } catch (ignored: Exception) {
                     }
                 }

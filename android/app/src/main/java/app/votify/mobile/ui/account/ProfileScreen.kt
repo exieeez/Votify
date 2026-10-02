@@ -3,6 +3,7 @@ package app.votify.mobile.ui.account
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,11 +49,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -784,15 +787,36 @@ private fun BannerChip(stops: List<Color>, selected: Boolean, onClick: () -> Uni
 
 @Composable
 fun BannerBox(banner: String, modifier: Modifier = Modifier) {
+    val cleanBanner = banner.trim()
+    val base64Bitmap = remember(cleanBanner) {
+        if (cleanBanner.startsWith("data:image/") && cleanBanner.contains("base64,")) {
+            runCatching {
+                val b64 = cleanBanner.substringAfter("base64,")
+                val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            }.getOrNull()
+        } else null
+    }
+
     Box(modifier) {
-        val preset = banner.removePrefix("grad-").toIntOrNull()
+        val preset = cleanBanner.removePrefix("grad-").toIntOrNull()
         when {
-            banner.startsWith("http") || banner.startsWith("data:") -> AsyncImage(
-                model = banner,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
+            base64Bitmap != null -> {
+                Image(
+                    bitmap = base64Bitmap,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            cleanBanner.startsWith("http://") || cleanBanner.startsWith("https://") -> {
+                AsyncImage(
+                    model = cleanBanner,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             preset != null && preset in 1..9 -> Box(
                 Modifier
                     .fillMaxSize()
@@ -836,27 +860,58 @@ private val BANNER_GRADIENTS: List<List<Color>> = listOf(
 @Composable
 fun AvatarBox(url: String, size: androidx.compose.ui.unit.Dp, border: Boolean = false) {
     val shape = CircleShape
+    val cleanUrl = url.trim()
+
+    val base64Bitmap = remember(cleanUrl) {
+        if (cleanUrl.startsWith("data:image/") && cleanUrl.contains("base64,")) {
+            runCatching {
+                val b64 = cleanUrl.substringAfter("base64,")
+                val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            }.getOrNull()
+        } else null
+    }
+
     Surface(
         shape = shape,
-        color = Color(0xFF181818),
+        color = Color(0xFF242730),
         border = if (border) androidx.compose.foundation.BorderStroke(3.dp, Color(0xFF181818)) else null,
         modifier = Modifier.size(size),
         content = {
             Box(Modifier.fillMaxSize().clip(shape), contentAlignment = Alignment.Center) {
-                if (url.isBlank()) {
-                    Icon(
-                        Icons.Outlined.Person,
-                        null,
-                        tint = Color(0xFF737373),
-                        modifier = Modifier.size(size * 0.6f),
-                    )
-                } else {
-                    SubcomposeAsyncImage(
-                        model = url,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize().clip(shape),
-                    )
+                when {
+                    base64Bitmap != null -> {
+                        Image(
+                            bitmap = base64Bitmap,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().clip(shape),
+                        )
+                    }
+                    cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://") -> {
+                        SubcomposeAsyncImage(
+                            model = cleanUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().clip(shape),
+                            error = {
+                                Icon(
+                                    Icons.Outlined.Person,
+                                    null,
+                                    tint = Color(0xFF7D8494),
+                                    modifier = Modifier.size(size * 0.55f),
+                                )
+                            },
+                        )
+                    }
+                    else -> {
+                        Icon(
+                            Icons.Outlined.Person,
+                            null,
+                            tint = Color(0xFF7D8494),
+                            modifier = Modifier.size(size * 0.55f),
+                        )
+                    }
                 }
             }
         },

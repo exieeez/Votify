@@ -826,19 +826,34 @@ class FirebaseRest(private val config: FirebaseConfig) {
                     .build()
                 http.newCall(request).execute().use { }
             }
-            // Веб-формат библиотеки: {name: {cover, tracks: [{id,title,artist,cover,duration}]}}
+            // Веб-формат библиотеки: {playlists: {name: {cover, tracks: [{id,title,artist,cover,duration}]}}}
+            val allPlaylistsMap = mutableMapOf<String, Pair<String, List<SyncTrack>>>()
+            if (blob.favorites.isNotEmpty()) {
+                allPlaylistsMap["Избранное"] = Pair(
+                    blob.favorites.firstOrNull()?.track?.c ?: "",
+                    blob.favorites.map { it.track },
+                )
+            }
+            blob.playlists.forEach { pl ->
+                allPlaylistsMap[pl.name] = Pair(
+                    pl.tracks.firstOrNull()?.c ?: "",
+                    pl.tracks,
+                )
+            }
+
             val libMap = buildJsonObject {
                 put("mapValue", buildJsonObject {
                     put("fields", buildJsonObject {
-                        blob.playlists.forEach { pl ->
-                            put(pl.name, buildJsonObject {
+                        allPlaylistsMap.forEach { (plName, pair) ->
+                            val (plCover, plTracks) = pair
+                            put(plName, buildJsonObject {
                                 put("mapValue", buildJsonObject {
                                     put("fields", buildJsonObject {
-                                        put("cover", str(pl.tracks.firstOrNull()?.c ?: ""))
+                                        put("cover", str(plCover))
                                         put("tracks", buildJsonObject {
                                             put("arrayValue", buildJsonObject {
                                                 put("arrayValue", buildJsonArray {
-                                                    pl.tracks.forEach { t ->
+                                                    plTracks.forEach { t ->
                                                         add(buildJsonObject {
                                                             put("mapValue", buildJsonObject {
                                                                 put("fields", buildJsonObject {
@@ -872,6 +887,28 @@ class FirebaseRest(private val config: FirebaseConfig) {
                 .patch(libBody.toString().toRequestBody(JSON))
                 .build()
             http.newCall(libRequest).execute().use { }
+
+            // Веб-формат настроек: users/{uid}/sync/settings
+            val setFields = buildJsonObject {
+                put("theme", str(blob.theme))
+                put("customTheme", str(blob.customTheme))
+                put("backgroundUrl", str(blob.backgroundUrl))
+            }
+            val setBody = buildJsonObject {
+                put("fields", buildJsonObject {
+                    put("value", buildJsonObject {
+                        put("mapValue", buildJsonObject {
+                            put("fields", setFields)
+                        })
+                    })
+                    put("updatedAt", serverTs())
+                })
+            }
+            val setRequest = Request.Builder().url(docUrl("users/$uid/sync/settings"))
+                .header("Authorization", "Bearer $idToken")
+                .patch(setBody.toString().toRequestBody(JSON))
+                .build()
+            http.newCall(setRequest).execute().use { }
         }
 
     /** Поиск публичных пользователей: profiles + users (первые 40) и точный юзернейм. */

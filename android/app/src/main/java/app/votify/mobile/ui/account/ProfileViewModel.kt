@@ -134,6 +134,15 @@ class ProfileViewModel(
                 null
             }
         }.onSuccess { profile ->
+            if (profile != null && profile.name.isNotBlank() && profile.name != acct.username) {
+                settingsRepo.setAccount(
+                    email = acct.email,
+                    username = profile.name,
+                    token = acct.token,
+                    uid = acct.uid,
+                    refreshToken = acct.refreshToken,
+                )
+            }
             _state.update { it.copy(loading = false, isGuest = false, profile = profile, error = null) }
         }.onFailure { e ->
             // Аккаунт есть, но профиль не загрузился: герой остаётся (как на ПК),
@@ -312,6 +321,13 @@ class ProfileViewModel(
                     favTrack = fav,
                 )
             }.onSuccess {
+                settingsRepo.setAccount(
+                    email = acct.email,
+                    username = s.editName.ifBlank { acct.username },
+                    token = acct.token,
+                    uid = acct.uid,
+                    refreshToken = acct.refreshToken,
+                )
                 _state.update { it.copy(saving = false, editing = false) }
                 _events.tryEmit(ProfileEvent.Message(appContext.getString(R.string.profile_saved)))
                 load()
