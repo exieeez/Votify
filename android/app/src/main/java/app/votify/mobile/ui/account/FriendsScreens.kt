@@ -371,39 +371,25 @@ fun UserScreen(
                     color = Color(0xFF181818),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Column(
-                        Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        // Banner
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(130.dp),
-                        ) {
-                            BannerBox(
-                                banner = p.banner,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
+                    Box(Modifier.fillMaxWidth()) {
+                        BannerBox(
+                            banner = p.banner,
+                            modifier = Modifier.matchParentSize(),
+                        )
 
-                        // Avatar
-                        Box(
-                            Modifier
-                                .offset(y = (-42).dp)
-                                .size(84.dp),
-                        ) {
-                            AvatarBox(p.avatar, size = 84.dp, border = true)
-                        }
-
-                        // Info
                         Column(
                             Modifier
-                                .offset(y = (-32).dp)
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
+                                .padding(top = 36.dp, bottom = 24.dp, start = 20.dp, end = 20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
+                            // Avatar
+                            Box(Modifier.size(84.dp)) {
+                                AvatarBox(p.avatar, size = 84.dp, border = true)
+                            }
+
+                            Spacer(Modifier.height(14.dp))
+
                             Text(
                                 p.name,
                                 style = MaterialTheme.typography.titleLarge,
@@ -497,69 +483,10 @@ fun UserScreen(
                 // 2. Favorite track
                 val fav = p.favTrack
                 if (fav != null) {
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFF181818),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onPlayFav(fav) },
-                    ) {
-                        Row(
-                            Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(64.dp)
-                                    .clip(RoundedCornerShape(16.dp)),
-                            ) {
-                                Artwork(fav.cover, modifier = Modifier.fillMaxSize(), size = 64.dp)
-                                Box(
-                                    Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.35f)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        Icons.Outlined.PlayArrow,
-                                        contentDescription = stringRes(R.string.profile_play),
-                                        tint = Color.White,
-                                        modifier = Modifier.size(30.dp),
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.width(16.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    fav.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    fontSize = 17.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Spacer(Modifier.height(3.dp))
-                                Text(
-                                    fav.artist,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color(0xFF8DA0B6),
-                                    fontSize = 14.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Spacer(Modifier.height(3.dp))
-                                Text(
-                                    stringRes(R.string.profile_fav_label).uppercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF5C728C),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    letterSpacing = 0.5.sp,
-                                )
-                            }
-                        }
-                    }
+                    FavoriteTrackCard(
+                        fav = fav,
+                        onPlay = onPlayFav,
+                    )
                 }
 
                 // 3. Playlists

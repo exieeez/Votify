@@ -68,6 +68,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.graphics.drawable.toBitmap
+import androidx.palette.graphics.Palette
+import coil.imageLoader
+import coil.request.ImageRequest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import app.votify.mobile.R
 import app.votify.mobile.data.FavTrackInfo
 import app.votify.mobile.data.local.PlaylistSummary
@@ -207,90 +218,78 @@ fun ProfileScreen(
                     color = Color(0xFF181818),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Column(
-                        Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        // Banner with overlay
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(140.dp),
-                        ) {
-                            BannerBox(
-                                banner = if (state.editBanner.isNotBlank()) state.editBanner else p?.banner.orEmpty(),
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                            if (!guest) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.Black.copy(alpha = 0.55f),
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(10.dp)
-                                        .size(32.dp)
-                                        .clickable {
-                                            bannerPicker.launch(
-                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                            )
-                                        },
-                                ) {
-                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Outlined.Edit,
-                                            contentDescription = "Сменить баннер",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(15.dp),
+                    Box(Modifier.fillMaxWidth()) {
+                        // Full Card Height Profile Banner with Bottom Darkening
+                        BannerBox(
+                            banner = if (state.editBanner.isNotBlank()) state.editBanner else p?.banner.orEmpty(),
+                            modifier = Modifier.matchParentSize(),
+                        )
+
+                        if (!guest) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.55f),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(12.dp)
+                                    .size(32.dp)
+                                    .clickable {
+                                        bannerPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                         )
-                                    }
+                                    },
+                            ) {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Outlined.Edit,
+                                        contentDescription = "Сменить баннер",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(15.dp),
+                                    )
                                 }
                             }
                         }
 
-                        // Avatar overlapping banner
-                        Box(
-                            Modifier
-                                .offset(y = (-42).dp)
-                                .size(84.dp),
-                        ) {
-                            AvatarBox(
-                                url = state.stagedAvatar ?: (p?.avatar ?: "").takeIf { it.isNotBlank() } ?: "",
-                                size = 84.dp,
-                                border = true,
-                            )
-                            if (!guest) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.White,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .size(28.dp)
-                                        .clickable {
-                                            avatarPicker.launch(
-                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                            )
-                                        },
-                                ) {
-                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Outlined.Edit,
-                                            contentDescription = "Сменить аватар",
-                                            tint = Color.Black,
-                                            modifier = Modifier.size(15.dp),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Profile Info
                         Column(
                             Modifier
-                                .offset(y = (-32).dp)
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
+                                .padding(top = 36.dp, bottom = 24.dp, start = 20.dp, end = 20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
+                            // Avatar
+                            Box(Modifier.size(84.dp)) {
+                                AvatarBox(
+                                    url = state.stagedAvatar ?: (p?.avatar ?: "").takeIf { it.isNotBlank() } ?: "",
+                                    size = 84.dp,
+                                    border = true,
+                                )
+                                if (!guest) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color.White,
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .size(28.dp)
+                                            .clickable {
+                                                avatarPicker.launch(
+                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                )
+                                            },
+                                    ) {
+                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                Icons.Outlined.Edit,
+                                                contentDescription = "Сменить аватар",
+                                                tint = Color.Black,
+                                                modifier = Modifier.size(15.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(14.dp))
+
                             Text(
                                 profName,
                                 style = MaterialTheme.typography.titleLarge,
@@ -399,69 +398,10 @@ fun ProfileScreen(
                 } else p?.favTrack
 
                 if (fav != null) {
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFF181818),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onPlayFav(fav) },
-                    ) {
-                        Row(
-                            Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(64.dp)
-                                    .clip(RoundedCornerShape(16.dp)),
-                            ) {
-                                Artwork(fav.cover, modifier = Modifier.fillMaxSize(), size = 64.dp)
-                                Box(
-                                    Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.35f)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        Icons.Outlined.PlayArrow,
-                                        contentDescription = stringResource(R.string.profile_play),
-                                        tint = Color.White,
-                                        modifier = Modifier.size(30.dp),
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.width(16.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    fav.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    fontSize = 17.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Spacer(Modifier.height(3.dp))
-                                Text(
-                                    fav.artist,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color(0xFF8DA0B6),
-                                    fontSize = 14.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Spacer(Modifier.height(3.dp))
-                                Text(
-                                    stringResource(R.string.profile_fav_label).uppercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF5C728C),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    letterSpacing = 0.5.sp,
-                                )
-                            }
-                        }
-                    }
+                    FavoriteTrackCard(
+                        fav = fav,
+                        onPlay = onPlayFav,
+                    )
                 }
 
                 // --- 3. Playlists Card (pc-profile-section-card) ---
@@ -810,6 +750,206 @@ private fun BannerChip(stops: List<Color>, selected: Boolean, onClick: () -> Uni
 }
 
 @Composable
+fun rememberFavTrackBrush(coverUrl: String?): Brush {
+    val context = LocalContext.current
+    var dominantColor by remember(coverUrl) { mutableStateOf<Color?>(null) }
+
+    LaunchedEffect(coverUrl) {
+        val cleanUrl = coverUrl?.trim().orEmpty()
+        if (cleanUrl.isBlank() || cleanUrl.startsWith("data:image/svg")) {
+            dominantColor = null
+            return@LaunchedEffect
+        }
+        withContext(Dispatchers.IO) {
+            try {
+                val bitmap: Bitmap? = if (cleanUrl.startsWith("data:image/") && cleanUrl.contains("base64,")) {
+                    val b64 = cleanUrl.substringAfter("base64,")
+                    val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                } else {
+                    val loader = context.imageLoader
+                    val request = ImageRequest.Builder(context)
+                        .data(cleanUrl)
+                        .size(64)
+                        .allowHardware(false)
+                        .build()
+                    loader.execute(request).drawable?.toBitmap()
+                }
+
+                if (bitmap != null) {
+                    val palette = Palette.from(bitmap).maximumColorCount(16).generate()
+                    val domSwatch = palette.dominantSwatch
+                        ?: palette.vibrantSwatch
+                        ?: palette.mutedSwatch
+                    val rgb = domSwatch?.rgb
+                    if (rgb != null) {
+                        dominantColor = Color(rgb)
+                    } else {
+                        val scaled = Bitmap.createScaledBitmap(bitmap, 24, 24, false)
+                        var rAcc = 0L
+                        var gAcc = 0L
+                        var bAcc = 0L
+                        var count = 0
+                        for (x in 0 until scaled.width) {
+                            for (y in 0 until scaled.height) {
+                                val pixel = scaled.getPixel(x, y)
+                                val pr = android.graphics.Color.red(pixel)
+                                val pg = android.graphics.Color.green(pixel)
+                                val pb = android.graphics.Color.blue(pixel)
+                                val brightness = (pr * 299 + pg * 587 + pb * 114) / 1000
+                                if (brightness in 19..234) {
+                                    rAcc += pr
+                                    gAcc += pg
+                                    bAcc += pb
+                                    count++
+                                }
+                            }
+                        }
+                        if (count > 0) {
+                            dominantColor = Color(
+                                (rAcc / count).toInt(),
+                                (gAcc / count).toInt(),
+                                (bAcc / count).toInt(),
+                            )
+                        }
+                    }
+                }
+            } catch (_: Throwable) {
+                // Ignore fallback to null
+            }
+        }
+    }
+
+    return remember(dominantColor) {
+        val dom = dominantColor
+        if (dom != null) {
+            val r = dom.red
+            val g = dom.green
+            val b = dom.blue
+            val r1 = r * 0.55f
+            val g1 = g * 0.55f
+            val b1 = b * 0.55f
+            val r2 = r * 0.22f
+            val g2 = g * 0.22f
+            val b2 = b * 0.22f
+
+            Brush.linearGradient(
+                colorStops = arrayOf(
+                    0.0f to Color(red = r1, green = g1, blue = b1, alpha = 0.72f),
+                    0.75f to Color(red = r2, green = g2, blue = b2, alpha = 0.95f),
+                    1.0f to Color(0xFF121216),
+                ),
+            )
+        } else {
+            Brush.linearGradient(
+                listOf(Color(0xFF181818), Color(0xFF181818)),
+            )
+        }
+    }
+}
+
+/**
+ * 1:1 match with PC version's `.pc-fav-track-row`:
+ * - Dynamic cover background tint (Palette/sampling -> linear-gradient(135deg, rgba(r1, g1, b1, 0.72) 0%, rgba(r2, g2, b2, 0.95) 75%, #121216 100%))
+ * - 72dp cover with 16dp rounded corners and translucent play icon overlay
+ * - Full title "<Artist> - <Title>", subtitle "<Artist>", label "ЛЮБИМЫЙ ТРЕК"
+ */
+@Composable
+fun FavoriteTrackCard(
+    fav: FavTrackInfo,
+    onPlay: (FavTrackInfo) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val brush = rememberFavTrackBrush(fav.cover)
+    val rawArtist = if (fav.artist.isNotBlank() && fav.artist != "Unknown" && fav.artist != "Неизвестный исполнитель") fav.artist else ""
+    val hasArtistInTitle = rawArtist.isNotBlank() && fav.title.contains(rawArtist, ignoreCase = true)
+    val displayTitle = if (rawArtist.isNotBlank() && !hasArtistInTitle) "$rawArtist - ${fav.title}" else fav.title
+    val displayArtist = if (rawArtist.isNotBlank()) "<$rawArtist>" else "<unknown>"
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(brush)
+            .clickable(onClick = { onPlay(fav) })
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+            ) {
+                Artwork(
+                    url = fav.cover,
+                    size = 72.dp,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxSize(),
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.28f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.Black.copy(alpha = 0.40f),
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Outlined.PlayArrow,
+                                contentDescription = stringResource(R.string.profile_play),
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = displayTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 17.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    letterSpacing = (-0.2).sp,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = displayArtist,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8DA0B6),
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.profile_fav_label).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF5C728C),
+                    fontSize = 12.sp,
+                    letterSpacing = 0.3.sp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun BannerBox(banner: String, modifier: Modifier = Modifier) {
     val cleanBanner = banner.trim()
     val base64Bitmap = remember(cleanBanner) {
@@ -852,28 +992,21 @@ fun BannerBox(banner: String, modifier: Modifier = Modifier) {
                     .background(Brush.linearGradient(listOf(Color(0xFF1E1E24), Color(0xFF2A2B36)))),
             )
         }
-        val isImage = base64Bitmap != null || cleanBanner.startsWith("http://") || cleanBanner.startsWith("https://")
+
+        // Overlay matching PC .pc-profile-banner-overlay:
+        // linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(24, 24, 24, 0.55) 35%, rgba(24, 24, 24, 0.92) 80%, #181818 100%)
         Box(
             Modifier
                 .fillMaxSize()
                 .background(
-                    if (isImage) {
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0.0f to Color.Transparent,
-                                0.6f to Color.Transparent,
-                                1.0f to Color(0xFF181818).copy(alpha = 0.6f),
-                            ),
-                        )
-                    } else {
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0.0f to Color.Transparent,
-                                0.7f to Color(0xFF181818).copy(alpha = 0.4f),
-                                1.0f to Color(0xFF181818),
-                            ),
-                        )
-                    },
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0.0f to Color.Black.copy(alpha = 0.10f),
+                            0.35f to Color(0xFF181818).copy(alpha = 0.55f),
+                            0.80f to Color(0xFF181818).copy(alpha = 0.92f),
+                            1.0f to Color(0xFF181818),
+                        ),
+                    ),
                 ),
         )
     }
