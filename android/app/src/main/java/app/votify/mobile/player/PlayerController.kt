@@ -60,13 +60,7 @@ class PlayerController(
     private var controller: MediaController? = null
     private var queueTracks: List<Track> = emptyList()
 
-    private val listener = object : MediaController.Listener {
-        override fun onDisconnected(controller: MediaController) {
-            if (this@PlayerController.controller == controller) {
-                this@PlayerController.controller = null
-            }
-        }
-
+    private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             syncFromPlayer(player)
             if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED)) {
@@ -102,7 +96,15 @@ class PlayerController(
             controller = null
         }
         val token = SessionToken(appContext, ComponentName(appContext, PlaybackService::class.java))
-        val future = MediaController.Builder(appContext, token).buildAsync()
+        val future = MediaController.Builder(appContext, token)
+            .setListener(object : MediaController.Listener {
+                override fun onDisconnected(controller: MediaController) {
+                    if (this@PlayerController.controller == controller) {
+                        this@PlayerController.controller = null
+                    }
+                }
+            })
+            .buildAsync()
         future.addListener({
             runCatching { future.get() }.onSuccess { c ->
                 controller = c
