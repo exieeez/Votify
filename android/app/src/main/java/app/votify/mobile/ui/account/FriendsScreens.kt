@@ -1,5 +1,6 @@
 package app.votify.mobile.ui.account
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,28 +16,39 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,11 +59,10 @@ import app.votify.mobile.R
 import app.votify.mobile.data.FavTrackInfo
 import app.votify.mobile.data.ProfileInfo
 import app.votify.mobile.ui.components.Artwork
-import app.votify.mobile.ui.components.VotifyCard
 import app.votify.mobile.ui.components.VotifyTextField
 import app.votify.mobile.ui.theme.VotifyColors
 
-/** «Друзья» — поиск по юзернейму + список друзей (как модалка на ПК, один экран на телефоне). */
+/** «Друзья» — поиск по юзернейму + список друзей (стилизация под ПК Votify). */
 @Composable
 fun FriendsScreen(
     viewModel: FriendsViewModel,
@@ -60,11 +71,12 @@ fun FriendsScreen(
     onOpenUser: (uid: String) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var removeTarget by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<ProfileInfo?>(null) }
+    var removeTarget by remember { mutableStateOf<ProfileInfo?>(null) }
 
     Column(
         Modifier
             .fillMaxSize()
+            .background(Color(0xFF121212))
             .padding(
                 top = contentPadding.calculateTopPadding(),
                 bottom = contentPadding.calculateBottomPadding() + 24.dp,
@@ -72,24 +84,30 @@ fun FriendsScreen(
     ) {
         // Header
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF141414))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringRes(R.string.nav_back), tint = VotifyColors.TextPrimary)
+            IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringRes(R.string.nav_back), tint = Color.White)
             }
+            Spacer(Modifier.width(8.dp))
             Column {
                 Text(
                     stringRes(R.string.friends_title),
                     style = MaterialTheme.typography.titleLarge,
-                    color = VotifyColors.TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
                 )
                 if (!state.loading) {
                     Text(
                         stringRes(R.string.friends_count, state.friends.size),
                         style = MaterialTheme.typography.labelSmall,
-                        color = VotifyColors.TextMuted,
+                        color = Color(0xFFA3A3A3),
+                        fontSize = 12.sp,
                     )
                 }
             }
@@ -100,18 +118,26 @@ fun FriendsScreen(
                 CircularProgressIndicator(color = VotifyColors.Primary)
             }
         } else {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                // 1. Search
-                VotifyCard(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(16.dp),
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // 1. Search Friends Card
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFF181818),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Column {
+                    Column(Modifier.padding(16.dp)) {
                         Text(
                             stringRes(R.string.friends_search),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = VotifyColors.TextPrimary,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 15.sp,
                             modifier = Modifier.padding(bottom = 10.dp),
                         )
                         VotifyTextField(
@@ -128,7 +154,7 @@ fun FriendsScreen(
                                 Text(
                                     stringRes(R.string.friends_search_empty),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = VotifyColors.TextMuted,
+                                    color = Color(0xFF737373),
                                     modifier = Modifier.padding(vertical = 10.dp),
                                 )
                             } else {
@@ -139,13 +165,18 @@ fun FriendsScreen(
                                             if (state.addingUid == r.uid) {
                                                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = VotifyColors.Primary)
                                             } else {
-                                                OutlinedButton(
+                                                Button(
                                                     onClick = { viewModel.addFriend(r) },
-                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = Color(0xFF22C55E),
+                                                        contentColor = Color.White,
+                                                    ),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                                 ) {
                                                     Icon(Icons.Outlined.Add, null, modifier = Modifier.size(16.dp))
                                                     Spacer(Modifier.width(4.dp))
-                                                    Text(stringRes(R.string.friends_add), fontSize = 13.sp)
+                                                    Text(stringRes(R.string.friends_add), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                                 }
                                             }
                                         },
@@ -157,25 +188,26 @@ fun FriendsScreen(
                     }
                 }
 
-                // 2. Friends list
-                Spacer(Modifier.height(12.dp))
-                VotifyCard(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(16.dp),
+                // 2. Friends List Card
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFF181818),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Column {
+                    Column(Modifier.padding(16.dp)) {
                         Text(
                             stringRes(R.string.friends_list),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = VotifyColors.TextPrimary,
-                            modifier = Modifier.padding(bottom = 4.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            modifier = Modifier.padding(bottom = 8.dp),
                         )
                         if (state.friends.isEmpty()) {
                             Text(
                                 stringRes(R.string.friends_empty),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = VotifyColors.TextMuted,
+                                color = Color(0xFF737373),
                                 modifier = Modifier.padding(vertical = 8.dp),
                             )
                         } else {
@@ -191,21 +223,15 @@ fun FriendsScreen(
                                                 Icon(
                                                     Icons.Outlined.Delete,
                                                     contentDescription = stringRes(R.string.friends_remove),
-                                                    tint = VotifyColors.TextMuted,
+                                                    tint = Color(0xFF737373),
                                                     modifier = Modifier.size(18.dp),
                                                 )
                                             }
                                         }
                                     },
-                                    modifier = Modifier.padding(top = 10.dp),
+                                    modifier = Modifier.padding(top = 6.dp),
                                 )
                             }
-                            Text(
-                                stringRes(R.string.friends_remove_hint),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = VotifyColors.TextMuted,
-                                modifier = Modifier.padding(top = 12.dp),
-                            )
                         }
                     }
                 }
@@ -245,30 +271,33 @@ private fun FriendRow(
     Row(
         modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
             .then(
                 when {
                     onClick != null -> Modifier.clickable(onClick = onClick)
                     else -> Modifier
                 }
             )
-            .padding(vertical = 2.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AvatarBox(profile.avatar, size = 48.dp)
+        AvatarBox(profile.avatar, size = 44.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 profile.name,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = VotifyColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                fontSize = 15.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 "@" + profile.handle,
                 style = MaterialTheme.typography.labelSmall,
-                color = VotifyColors.TextMuted,
+                color = Color(0xFFA3A3A3),
+                fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -287,27 +316,35 @@ fun UserScreen(
     onPlayFav: (FavTrackInfo) -> Unit,
 ) {
     val state by viewModel.userState.collectAsStateWithLifecycle()
+    val clipboard = LocalClipboardManager.current
 
     Column(
         Modifier
             .fillMaxSize()
+            .background(Color(0xFF121212))
             .padding(
                 top = contentPadding.calculateTopPadding(),
                 bottom = contentPadding.calculateBottomPadding() + 24.dp,
             ),
     ) {
+        // App Bar
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF141414))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringRes(R.string.nav_back), tint = VotifyColors.TextPrimary)
+            IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringRes(R.string.nav_back), tint = Color.White)
             }
+            Spacer(Modifier.width(8.dp))
             Text(
                 stringRes(R.string.friend_profile),
                 style = MaterialTheme.typography.titleLarge,
-                color = VotifyColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
             )
         }
 
@@ -316,153 +353,266 @@ fun UserScreen(
                 CircularProgressIndicator(color = VotifyColors.Primary)
             }
         } else state.profile?.let { p ->
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                Box {
-                    BannerBox(
-                        banner = p.banner,
-                        modifier = Modifier.fillMaxWidth().height(150.dp),
-                    )
-                    Box(
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .offset(y = 48.dp),
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // 1. Hero Card
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFF181818),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        AvatarBox(p.avatar, size = 96.dp, border = true)
-                    }
-                }
-                Spacer(Modifier.height(64.dp))
-                Text(
-                    p.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = VotifyColors.TextPrimary,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    "@" + p.handle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = VotifyColors.Primary,
-                    modifier = Modifier.padding(vertical = 2.dp),
-                )
-                if (p.about.isNotBlank()) {
-                    Text(
-                        p.about,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = VotifyColors.TextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 6.dp),
-                    )
-                }
-
-                // Add / remove
-                Box(Modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {
-                    if (state.isFriend) {
-                        OutlinedButton(
-                            onClick = viewModel::removeCurrentFriend,
-                            enabled = !state.removing,
-                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = VotifyColors.Error),
+                        // Banner
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(130.dp),
                         ) {
-                            if (state.removing) {
-                                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 1.5.dp, color = VotifyColors.Error)
-                                Spacer(Modifier.width(6.dp))
-                            }
-                            Text(stringRes(R.string.friends_remove))
+                            BannerBox(
+                                banner = p.banner,
+                                modifier = Modifier.fillMaxSize(),
+                            )
                         }
-                    } else {
-                        OutlinedButton(
-                            onClick = viewModel::addCurrentFriend,
-                            enabled = !state.adding,
+
+                        // Avatar
+                        Box(
+                            Modifier
+                                .offset(y = (-42).dp)
+                                .size(84.dp),
                         ) {
-                            if (state.adding) {
-                                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 1.5.dp, color = VotifyColors.Primary)
-                                Spacer(Modifier.width(6.dp))
+                            AvatarBox(p.avatar, size = 84.dp, border = true)
+                        }
+
+                        // Info
+                        Column(
+                            Modifier
+                                .offset(y = (-32).dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                p.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White,
+                                textAlign = TextAlign.Center,
+                                fontSize = 20.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "@" + p.handle,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontFamily = FontFamily.Monospace,
+                                color = Color(0xFFA3A3A3),
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .clickable {
+                                        clipboard.setText(AnnotatedString("@" + p.handle))
+                                    }
+                                    .padding(vertical = 2.dp),
+                            )
+                            Text(
+                                stringRes(R.string.profile_role_user),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF737373),
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(top = 2.dp, bottom = 6.dp),
+                            )
+                            if (p.about.isNotBlank()) {
+                                Text(
+                                    p.about,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFFA3A3A3),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                )
+                            }
+
+                            // Add / remove friend action button
+                            if (state.isFriend) {
+                                OutlinedButton(
+                                    onClick = viewModel::removeCurrentFriend,
+                                    enabled = !state.removing,
+                                    shape = CircleShape,
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color(0x1AEF4444),
+                                        contentColor = Color(0xFFEF4444),
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                                    modifier = Modifier
+                                        .width(200.dp)
+                                        .height(38.dp),
+                                ) {
+                                    if (state.removing) {
+                                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 1.5.dp, color = Color(0xFFEF4444))
+                                        Spacer(Modifier.width(6.dp))
+                                    }
+                                    Text(stringRes(R.string.friends_remove), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
                             } else {
-                                Icon(Icons.Outlined.Add, null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(4.dp))
+                                Button(
+                                    onClick = viewModel::addCurrentFriend,
+                                    enabled = !state.adding,
+                                    shape = CircleShape,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF22C55E),
+                                        contentColor = Color.White,
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                                    modifier = Modifier
+                                        .width(200.dp)
+                                        .height(38.dp),
+                                ) {
+                                    if (state.adding) {
+                                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 1.5.dp, color = Color.White)
+                                        Spacer(Modifier.width(6.dp))
+                                    } else {
+                                        Icon(Icons.Outlined.Add, null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                    }
+                                    Text(stringRes(R.string.friends_add_btn), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
                             }
-                            Text(stringRes(R.string.friends_add_btn))
                         }
                     }
                 }
 
-                // Favorite track
+                // 2. Favorite track
                 val fav = p.favTrack
                 if (fav != null) {
-                    Spacer(Modifier.height(16.dp))
-                    VotifyCard(
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        contentPadding = PaddingValues(12.dp),
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color(0xFF181818),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPlayFav(fav) },
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Artwork(fav.cover, modifier = Modifier.size(56.dp), size = 56.dp)
-                            Spacer(Modifier.width(12.dp))
+                        Row(
+                            Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(64.dp)
+                                    .clip(RoundedCornerShape(16.dp)),
+                            ) {
+                                Artwork(fav.cover, modifier = Modifier.fillMaxSize(), size = 64.dp)
+                                Box(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.35f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.PlayArrow,
+                                        contentDescription = stringRes(R.string.profile_play),
+                                        tint = Color.White,
+                                        modifier = Modifier.size(30.dp),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.width(16.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(
                                     fav.title,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = VotifyColors.TextPrimary,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    fontSize = 17.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
+                                Spacer(Modifier.height(3.dp))
                                 Text(
                                     fav.artist,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = VotifyColors.TextSecondary,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF8DA0B6),
+                                    fontSize = 14.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
+                                Spacer(Modifier.height(3.dp))
                                 Text(
-                                    stringRes(R.string.profile_fav_label),
+                                    stringRes(R.string.profile_fav_label).uppercase(),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = VotifyColors.TextMuted,
+                                    color = Color(0xFF5C728C),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    letterSpacing = 0.5.sp,
                                 )
-                            }
-                            IconButton(onClick = { onPlayFav(fav) }) {
-                                Icon(Icons.Outlined.PlayArrow, contentDescription = stringRes(R.string.profile_play), tint = VotifyColors.Primary)
                             }
                         }
                     }
                 }
 
-                // Playlists
+                // 3. Playlists
                 if (p.playlists.isNotEmpty()) {
-                    Spacer(Modifier.height(16.dp))
-                    VotifyCard(
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        contentPadding = PaddingValues(12.dp),
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color(0xFF181818),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Column {
-                            Text(
-                                stringRes(R.string.profile_playlists),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = VotifyColors.TextPrimary,
-                                modifier = Modifier.padding(bottom = 8.dp),
-                            )
+                        Column(Modifier.padding(16.dp)) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        stringRes(R.string.profile_playlists),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        fontSize = 17.sp,
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        stringRes(R.string.profile_tracks_count, p.playlists.size),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF737373),
+                                        fontSize = 12.sp,
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+
                             p.playlists.forEach { pl ->
                                 Row(
                                     Modifier
                                         .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
                                         .padding(vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Artwork(pl.cover, modifier = Modifier.size(40.dp), size = 40.dp)
+                                    Artwork(pl.cover, modifier = Modifier.size(44.dp), size = 44.dp)
                                     Spacer(Modifier.width(12.dp))
                                     Column(Modifier.weight(1f)) {
                                         Text(
                                             pl.name,
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = VotifyColors.TextPrimary,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color.White,
+                                            fontSize = 15.sp,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                         Text(
                                             stringRes(R.string.profile_tracks_count, pl.count),
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = VotifyColors.TextMuted,
+                                            color = Color(0xFF737373),
+                                            fontSize = 12.sp,
                                         )
                                     }
                                 }
@@ -475,7 +625,7 @@ fun UserScreen(
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     state.error ?: stringRes(R.string.profile_load_error),
-                    color = VotifyColors.TextSecondary,
+                    color = Color(0xFFA3A3A3),
                 )
             }
         }
@@ -483,9 +633,10 @@ fun UserScreen(
 }
 
 // local alias (composable: stringResource требует composable-контекста)
-@androidx.compose.runtime.Composable
+@Composable
 private fun stringRes(id: Int, vararg args: Any?): String {
     val nonNull = args.filterNotNull().toTypedArray()
-    return if (nonNull.isEmpty()) androidx.compose.ui.res.stringResource(id)
-    else androidx.compose.ui.res.stringResource(id, *nonNull)
+    return if (nonNull.isEmpty()) stringResource(id)
+    else stringResource(id, *nonNull)
 }
+

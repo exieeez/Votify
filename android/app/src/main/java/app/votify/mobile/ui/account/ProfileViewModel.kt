@@ -181,7 +181,38 @@ class ProfileViewModel(
 
     fun clearFavorite() = _state.update { it.copy(stagedFav = null, favCleared = true) }
 
-    /** Pick an avatar from the gallery: compress to a JPEG data URL, save immediately (like the PC). */
+    /** Pick a banner from the gallery: compress to a JPEG data URL. */
+    fun onBannerPicked(uri: Uri) {
+        if (_state.value.isGuest) return
+        viewModelScope.launch {
+            val dataUrl = with(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    appContext.contentResolver.openInputStream(uri)?.use { input ->
+                        val bmp = BitmapFactory.decodeStream(input) ?: return@runCatching null
+                        val maxW = 1024
+                        val maxH = 512
+                        val scale = minOf(1f, maxW / bmp.width.toFloat(), maxH / bmp.height.toFloat())
+                        val scaled = if (scale < 1f) {
+                            Bitmap.createScaledBitmap(
+                                bmp,
+                                (bmp.width * scale).toInt().coerceAtLeast(1),
+                                (bmp.height * scale).toInt().coerceAtLeast(1),
+                                true,
+                            )
+                        } else bmp
+                        val out = java.io.ByteArrayOutputStream()
+                        scaled.compress(Bitmap.CompressFormat.JPEG, 75, out)
+                        "data:image/jpeg;base64," + android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
+                    }
+                }.getOrNull()
+            }
+            if (dataUrl != null) {
+                _state.update { it.copy(editBanner = dataUrl) }
+            }
+        }
+    }
+
+    /** Pick an avatar from the gallery: compress to a JPEG data URL. */
     fun onAvatarPicked(uri: Uri) {
         if (_state.value.isGuest) return
         viewModelScope.launch {
@@ -209,6 +240,11 @@ class ProfileViewModel(
             if (dataUrl == null) {
                 _state.update { it.copy(savingAvatar = false) }
                 _events.tryEmit(ProfileEvent.Message(appContext.getString(R.string.profile_avatar_failed)))
+                return@launch
+            }
+            if (_state.value.editing) {
+                _state.update { it.copy(savingAvatar = false, stagedAvatar = dataUrl) }
+                _events.tryEmit(ProfileEvent.Message(appContext.getString(R.string.profile_avatar_saved)))
                 return@launch
             }
             val acct = settingsRepo.account.first()

@@ -620,6 +620,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         contentPadding = contentPadding,
                         onBack = { navController.popBackStack() },
                         onOpenFriends = { navController.navigate(Routes.FRIENDS) },
+                        onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
                         onToast = { snackbarScope.launch { snackbar.showSnackbar(it) } },
                         onPlayFav = { fav ->
                             val id = Regex("[?&]v=([a-zA-Z0-9_-]{11})")
