@@ -31,11 +31,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -43,6 +57,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -292,9 +307,8 @@ private fun BackgroundTile(
 }
 
 /**
- * Окно настройки фона — открывается по тапу на плитку (фон к этому моменту уже применён).
- * Сделано по образцу Мастерской: размытый фон окна, превью с живым затемнением/размытием,
- * секция «Тонкая подгонка» с ползунками и красная «Удалить фон» внизу.
+ * Полноэкранный режим настройки фона (как страница главной, где фон на весь экран
+ * и управляется пальцами: зум щипком, сдвиг перетаскиванием).
  */
 @Composable
 fun BackgroundTuneScreen(
@@ -304,18 +318,19 @@ fun BackgroundTuneScreen(
 ) {
     val prefs by viewModel.prefs.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    // Кадр: во время жеста значения меняются десятки раз в секунду, поэтому держим их
-    // локально (превью обновляется мгновенно), а в настройки пишем, когда палец отпущен.
-    // remember без ключа: указатель на состояние не пересоздаётся при перекомпозиции,
-    // иначе жест работал бы с устаревшей копией.
+
     var scale by remember { mutableFloatStateOf(prefs.bgScale.coerceIn(1f, 5f)) }
     var offsetX by remember { mutableFloatStateOf(prefs.bgOffsetX.coerceIn(-1f, 1f)) }
     var offsetY by remember { mutableFloatStateOf(prefs.bgOffsetY.coerceIn(-1f, 1f)) }
+    var showUiPreview by remember { mutableStateOf(true) }
+    var showAdjustSliders by remember { mutableStateOf(false) }
+
     LaunchedEffect(prefs.bgScale, prefs.bgOffsetX, prefs.bgOffsetY) {
         scale = prefs.bgScale.coerceIn(1f, 5f)
         offsetX = prefs.bgOffsetX.coerceIn(-1f, 1f)
         offsetY = prefs.bgOffsetY.coerceIn(-1f, 1f)
     }
+
     // Debounce save to DataStore to keep 60/120fps touch gestures butter smooth
     LaunchedEffect(scale, offsetX, offsetY) {
         kotlinx.coroutines.delay(150)
@@ -323,6 +338,7 @@ fun BackgroundTuneScreen(
         if (offsetX != prefs.bgOffsetX) viewModel.setBackgroundOffsetX(offsetX)
         if (offsetY != prefs.bgOffsetY) viewModel.setBackgroundOffsetY(offsetY)
     }
+
     androidx.compose.runtime.DisposableEffect(Unit) {
         onDispose {
             viewModel.setBackgroundScale(scale)
@@ -330,7 +346,7 @@ fun BackgroundTuneScreen(
             viewModel.setBackgroundOffsetY(offsetY)
         }
     }
-    // Локальные файлы хранятся путём («/data/…»), остальное — URL.
+
     val model = remember(url) {
         coil.request.ImageRequest.Builder(context)
             .data(if (url.startsWith("/")) File(url) else url)
@@ -340,207 +356,416 @@ fun BackgroundTuneScreen(
 
     BackHandler { onClose() }
 
-    Box(Modifier.fillMaxSize().background(VotifyColors.SurfaceBase)) {
-        // Подложка окна — та же картинка, размытая.
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    val nextScale = (scale * zoom).coerceIn(1f, 5f)
+                    val width = size.width.coerceAtLeast(1)
+                    val height = size.height.coerceAtLeast(1)
+                    scale = nextScale
+                    // 1:1 прямое перемещение пальцем по всему экрану
+                    offsetX = (offsetX - (pan.x / width) * 2f / nextScale).coerceIn(-1f, 1f)
+                    offsetY = (offsetY - (pan.y / height) * 2f / nextScale).coerceIn(-1f, 1f)
+                }
+            },
+    ) {
+        // --- 1. ПОЛНОЭКРАННЫЙ ФОН НА ВЕСЬ ДИСПЛЕЙ ---
         coil.compose.AsyncImage(
             model = model,
             contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().blur(24.dp),
+            contentScale = when (prefs.bgFit) {
+                1 -> ContentScale.Fit
+                2 -> ContentScale.FillBounds
+                else -> ContentScale.Crop
+            },
+            alignment = androidx.compose.ui.BiasAlignment(offsetX, offsetY),
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(scale)
+                .blur(prefs.bgBlur.coerceIn(0, 60).dp),
         )
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)))
 
-        Column(
+        // Затемнение фона
+        Box(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp),
+                .background(Color.Black.copy(alpha = prefs.bgDim.coerceIn(0, 92) / 100f)),
+        )
+
+        // --- 2. МАКЕТ СТРАНИЦЫ ГЛАВНОЙ (ПРЕВЬЮ ИНТЕРФЕЙСА) ---
+        AnimatedVisibility(
+            visible = showUiPreview,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(200)),
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            HomeMockupOverlay()
+        }
+
+        // --- 3. ВЕРХНЯЯ ПАНЕЛЬ ---
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                onClick = onClose,
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.6f),
+                contentColor = Color.White,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                modifier = Modifier.size(40.dp),
             ) {
-                CircleIconButton(onClick = onClose, size = 40.dp) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowBack,
                         stringResource(R.string.nav_back),
-                        tint = VotifyColors.TextPrimary,
                         modifier = Modifier.size(20.dp),
                     )
                 }
-                Spacer(Modifier.width(12.dp))
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.Black.copy(alpha = 0.6f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+            ) {
                 Text(
                     stringResource(R.string.settings_bg_tune),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                 )
             }
 
-            // Превью: как в кружке аватарки — щипком зумим, пальцем перетаскиваем прямо на экране
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(240.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(VotifyColors.SurfaceContainerHigh)
-                    .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(22.dp))
-                    .pointerInput(Unit) {
-                        detectTransformGestures { _, pan, zoom, _ ->
-                            val nextScale = (scale * zoom).coerceIn(1f, 5f)
-                            val width = size.width.coerceAtLeast(1)
-                            val height = size.height.coerceAtLeast(1)
-                            scale = nextScale
-                            // 1:1 прямое перемещение пальцем: тянем вправо — картинка идёт вправо
-                            offsetX = (offsetX - (pan.x / width) * 2f / nextScale).coerceIn(-1f, 1f)
-                            offsetY = (offsetY - (pan.y / height) * 2f / nextScale).coerceIn(-1f, 1f)
-                        }
-                    },
-            ) {
-                coil.compose.AsyncImage(
-                    model = model,
-                    contentDescription = stringResource(R.string.settings_bg_tune),
-                    contentScale = when (prefs.bgFit) {
-                        1 -> ContentScale.Fit
-                        2 -> ContentScale.FillBounds
-                        else -> ContentScale.Crop
-                    },
-                    alignment = androidx.compose.ui.BiasAlignment(offsetX, offsetY),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .scale(scale)
-                        .blur(prefs.bgBlur.coerceIn(0, 60).dp),
-                )
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = prefs.bgDim.coerceIn(0, 92) / 100f)),
-                )
-                // Сетка кадрирования 3x3 как в фоторедакторе/аватарке
-                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                    val w = size.width
-                    val h = size.height
-                    val lineColor = Color.White.copy(alpha = 0.12f)
-                    val stroke = 1.dp.toPx()
-                    drawLine(lineColor, androidx.compose.ui.geometry.Offset(0f, h / 3f), androidx.compose.ui.geometry.Offset(w, h / 3f), stroke)
-                    drawLine(lineColor, androidx.compose.ui.geometry.Offset(0f, h * 2f / 3f), androidx.compose.ui.geometry.Offset(w, h * 2f / 3f), stroke)
-                    drawLine(lineColor, androidx.compose.ui.geometry.Offset(w / 3f, 0f), androidx.compose.ui.geometry.Offset(w / 3f, h), stroke)
-                    drawLine(lineColor, androidx.compose.ui.geometry.Offset(w * 2f / 3f, 0f), androidx.compose.ui.geometry.Offset(w * 2f / 3f, h), stroke)
-                }
-                if (scale > 1.05f) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.65f),
-                        modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
-                    ) {
-                        Text(
-                            text = "%.1fx".format(scale),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
-                }
-            }
+            Spacer(Modifier.weight(1f))
 
-            TuneSection(stringResource(R.string.settings_bg_crop)) {
-                // Режим: как широкий ПК-фон ложится на узкий экран телефона.
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    val labels = listOf(
-                        stringResource(R.string.settings_bg_fit_fill),
-                        stringResource(R.string.settings_bg_fit_whole),
-                        stringResource(R.string.settings_bg_fit_stretch),
-                    )
-                    labels.forEachIndexed { index, label ->
-                        val selected = prefs.bgFit == index
-                        Surface(
-                            onClick = { viewModel.setBackgroundFit(index) },
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
-                            contentColor = if (selected) Color.Black else Color.White,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Box(Modifier.padding(vertical = 9.dp), contentAlignment = Alignment.Center) {
-                                Text(
-                                    label,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
-                }
-                Text(
-                    stringResource(R.string.settings_bg_reset),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = VotifyColors.Primary,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            scale = 1f
-                            offsetX = 0f
-                            offsetY = 0f
-                            viewModel.resetBackgroundCrop()
-                        }
-                        .padding(vertical = 12.dp),
-                )
-            }
-
-            TuneSection(stringResource(R.string.workshop_adjust)) {
-                TuneSliderRow(
-                    label = stringResource(R.string.settings_bg_dim),
-                    value = prefs.bgDim.toFloat(),
-                    range = 0f..92f,
-                    onApply = { v -> viewModel.setBackgroundDim(v.toInt()) },
-                )
-                TuneSliderRow(
-                    label = stringResource(R.string.settings_bg_blur),
-                    value = prefs.bgBlur.toFloat(),
-                    range = 0f..60f,
-                    onApply = { v -> viewModel.setBackgroundBlur(v.toInt()) },
-                )
-            }
-            Text(
-                stringResource(R.string.settings_bg_tune_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = VotifyColors.TextMuted,
-                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
-            )
-
-            // Удаление фона из галереи — как красная «Удалить» в Мастерской.
+            // Переключатель отображения интерфейса главной (глазок)
             Surface(
-                onClick = {
-                    viewModel.deleteBackground(url)
-                    onClose()
-                },
-                shape = RoundedCornerShape(18.dp),
-                color = Color.White.copy(alpha = 0.06f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE4574C).copy(alpha = 0.6f)),
-                modifier = Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 24.dp),
+                onClick = { showUiPreview = !showUiPreview },
+                shape = CircleShape,
+                color = if (showUiPreview) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.6f),
+                contentColor = Color.White,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                modifier = Modifier.size(40.dp),
             ) {
-                Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        if (showUiPreview) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                        contentDescription = "Превью интерфейса главной",
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Кнопка «Готово»
+            Surface(
+                onClick = onClose,
+                shape = RoundedCornerShape(20.dp),
+                color = VotifyColors.Primary,
+                contentColor = Color.Black,
+                modifier = Modifier.height(40.dp),
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.Check, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
-                        stringResource(R.string.backgrounds_delete),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color(0xFFE4574C),
-                        fontWeight = FontWeight.SemiBold,
+                        stringResource(R.string.action_save),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
         }
+
+        // Индикатор зума
+        if (scale > 1.05f) {
+            Surface(
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.7f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 70.dp),
+            ) {
+                Text(
+                    text = "%.1fx".format(scale),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                )
+            }
+        }
+
+        // --- 4. НИЖНЯЯ ПАНЕЛЬ УПРАВЛЕНИЯ ---
+        Column(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xF2181818),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val labels = listOf(
+                            stringResource(R.string.settings_bg_fit_fill),
+                            stringResource(R.string.settings_bg_fit_whole),
+                            stringResource(R.string.settings_bg_fit_stretch),
+                        )
+                        labels.forEachIndexed { index, label ->
+                            val selected = prefs.bgFit == index
+                            Surface(
+                                onClick = { viewModel.setBackgroundFit(index) },
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (selected) Color.White else Color.White.copy(alpha = 0.1f),
+                                contentColor = if (selected) Color.Black else Color.White,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Box(Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        label,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
+                        }
+
+                        // Сбросить положение и масштаб
+                        Surface(
+                            onClick = {
+                                scale = 1f
+                                offsetX = 0f
+                                offsetY = 0f
+                                viewModel.resetBackgroundCrop()
+                            },
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.1f),
+                            contentColor = Color.White,
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Filled.Refresh, stringResource(R.string.settings_bg_reset), modifier = Modifier.size(18.dp))
+                            }
+                        }
+
+                        // Открыть/закрыть ползунки затемнения и размытия
+                        Surface(
+                            onClick = { showAdjustSliders = !showAdjustSliders },
+                            shape = CircleShape,
+                            color = if (showAdjustSliders) VotifyColors.Primary else Color.White.copy(alpha = 0.1f),
+                            contentColor = if (showAdjustSliders) Color.Black else Color.White,
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Outlined.Tune, stringResource(R.string.workshop_adjust), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+
+                    AnimatedVisibility(visible = showAdjustSliders) {
+                        Column(Modifier.padding(top = 10.dp)) {
+                            TuneSliderRow(
+                                label = stringResource(R.string.settings_bg_dim),
+                                value = prefs.bgDim.toFloat(),
+                                range = 0f..92f,
+                                onApply = { v -> viewModel.setBackgroundDim(v.toInt()) },
+                            )
+                            TuneSliderRow(
+                                label = stringResource(R.string.settings_bg_blur),
+                                value = prefs.bgBlur.toFloat(),
+                                range = 0f..60f,
+                                onApply = { v -> viewModel.setBackgroundBlur(v.toInt()) },
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            // Удалить фон
+                            Surface(
+                                onClick = {
+                                    viewModel.deleteBackground(url)
+                                    onClose()
+                                },
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.White.copy(alpha = 0.06f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE4574C).copy(alpha = 0.6f)),
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            ) {
+                                Box(Modifier.padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        stringResource(R.string.backgrounds_delete),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFFE4574C),
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Макет интерфейса страницы главной (полупрозрачный поверх фона). */
+@Composable
+private fun HomeMockupOverlay() {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp),
+    ) {
+        Spacer(Modifier.height(56.dp))
+
+        // Хедер Votify + поиск/настройки
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.14f),
+            ) {
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Image(painter = painterResource(R.drawable.ic_votify_logo), contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Votify", style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            Box(Modifier.size(32.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Search, null, tint = Color.White, modifier = Modifier.size(16.dp))
+            }
+            Spacer(Modifier.width(8.dp))
+            Box(Modifier.size(32.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Settings, null, tint = Color.White, modifier = Modifier.size(16.dp))
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        // «Моя волна» — большая центральная плашка
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(190.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.White.copy(alpha = 0.1f))
+                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    modifier = Modifier.size(60.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.PlayArrow, null, tint = Color.Black, modifier = Modifier.size(32.dp))
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    stringResource(R.string.home_wave_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    stringResource(R.string.home_wave_generic),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.7f),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Карточка «Любимые треки»
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.White.copy(alpha = 0.1f))
+                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp))
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(VotifyColors.Primary.copy(alpha = 0.35f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.Favorite, null, tint = VotifyColors.Primary, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.home_favorites), style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.favorites_empty), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+            }
+            Icon(Icons.Outlined.ChevronRight, null, tint = Color.White.copy(alpha = 0.4f))
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        // Нижняя панель навигации (Главная / Поиск / Моя музыка)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 86.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.Black.copy(alpha = 0.5f))
+                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(22.dp))
+                .padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MockNavTab(painterResource(R.drawable.ic_nav_home_filled), stringResource(R.string.nav_home), selected = true)
+            MockNavTab(painterResource(R.drawable.ic_nav_search_outline), stringResource(R.string.nav_search), selected = false)
+            MockNavTab(painterResource(R.drawable.ic_nav_library_outline), stringResource(R.string.nav_library), selected = false)
+        }
+    }
+}
+
+@Composable
+private fun MockNavTab(painter: androidx.compose.ui.graphics.painter.Painter, label: String, selected: Boolean) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(
+            painter = painter,
+            contentDescription = null,
+            tint = if (selected) VotifyColors.Primary else Color.White.copy(alpha = 0.5f),
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.height(3.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) Color.White else Color.White.copy(alpha = 0.5f),
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        )
     }
 }
 
