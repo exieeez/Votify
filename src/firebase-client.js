@@ -288,10 +288,12 @@
 
       let profileUnsub = null;
       let usersUnsub = null;
+      let libraryUnsub = null;
 
       state.auth.onAuthStateChanged(async user => {
         if (profileUnsub) { profileUnsub(); profileUnsub = null; }
         if (usersUnsub) { usersUnsub(); usersUnsub = null; }
+        if (libraryUnsub) { libraryUnsub(); libraryUnsub = null; }
 
         state.user = user || null;
         state.profile = user ? await ensureProfile(user).catch(() => null) : null;
@@ -332,6 +334,13 @@
           try {
             profileUnsub = profileRef(user.uid).onSnapshot(onDocUpdate, () => {});
             usersUnsub = firestoreProfileRef(user.uid).onSnapshot(onDocUpdate, () => {});
+            libraryUnsub = syncRef(user.uid, 'library').onSnapshot(snap => {
+              if (!snap || !snap.exists) return;
+              const d = snap.data() || {};
+              window.dispatchEvent(new CustomEvent('votify:cloud-library-updated', {
+                detail: { playlists: d.playlists, updatedAt: d.updatedAt }
+              }));
+            }, () => {});
           } catch (e) {}
         }
 
@@ -992,16 +1001,51 @@
 
   async function pullState() {
     const user = await requireUser();
-    const [settingsDoc, libraryDoc, historyDoc] = await Promise.all([
-      syncRef(user.uid, 'settings').get(),
-      syncRef(user.uid, 'library').get(),
-      syncRef(user.uid, 'history').get(),
+    const [settingsDoc, libraryDoc, historyDoc, userDoc] = await Promise.all([
+      syncRef(user.uid, 'settings').get().catch(() => null),
+      syncRef(user.uid, 'library').get().catch(() => null),
+      syncRef(user.uid, 'history').get().catch(() => null),
+      profileRef(user.uid).get().catch(() => null),
     ]);
+    let playlists = libraryDoc?.exists ? libraryDoc.data()?.playlists || null : null;
+    // Fallback to Android SyncBlob in users/{uid}.sync if libraryDoc is absent/empty
+    if ((!playlists || Object.keys(playlists).length === 0) && userDoc?.exists) {
+      const syncStr = userDoc.data()?.sync;
+      if (syncStr) {
+        try {
+          const blob = JSON.parse(syncStr);
+          const restored = { 'Избранное': [] };
+          if (Array.isArray(blob.favorites)) {
+            restored['Избранное'] = blob.favorites.map(f => ({
+              id: f.track?.id,
+              title: f.track?.t,
+              artist: f.track?.a,
+              cover: f.track?.c,
+              duration: f.track?.d,
+            }));
+          }
+          if (Array.isArray(blob.playlists)) {
+            blob.playlists.forEach(p => {
+              if (p && p.name) {
+                restored[p.name] = (p.tracks || []).map(t => ({
+                  id: t.id,
+                  title: t.t,
+                  artist: t.a,
+                  cover: t.c,
+                  duration: t.d,
+                }));
+              }
+            });
+          }
+          playlists = restored;
+        } catch (e) {}
+      }
+    }
     return {
-      settings: settingsDoc.exists ? settingsDoc.data()?.value || null : null,
-      playlists: libraryDoc.exists ? libraryDoc.data()?.playlists || null : null,
-      history: historyDoc.exists ? historyDoc.data()?.history || null : null,
-      exists: settingsDoc.exists || libraryDoc.exists || historyDoc.exists,
+      settings: settingsDoc?.exists ? settingsDoc.data()?.value || null : null,
+      playlists,
+      history: historyDoc?.exists ? historyDoc.data()?.history || null : null,
+      exists: (settingsDoc && settingsDoc.exists) || (libraryDoc && libraryDoc.exists) || (historyDoc && historyDoc.exists) || !!playlists,
     };
   }
 
@@ -1028,7 +1072,54 @@
       };
     });
     batch.set(firestoreProfileRef(user.uid), { playlists: playlistSummaries, updatedAt }, { merge: true });
-    batch.set(profileRef(user.uid), { playlists: playlistSummaries, updatedAt }, { merge: true });
+
+    // Also serialize Android-compatible syncBlob string so Android syncs seamlessly
+    try {
+      const favList = Array.isArray(playlists?.['Избранное'])
+        ? playlists['Избранное']
+        : (playlists?.['Избранное']?.tracks || []);
+      const androidFavorites = favList.map(t => ({
+        addedAt: Date.now(),
+        track: {
+          id: String(t.id || ''),
+          t: String(t.title || t.name || t.t || 'Трек'),
+          a: String(t.artist || t.artistName || t.a || 'Неизвестный исполнитель'),
+          c: String(t.cover || t.thumbnail || t.c || ''),
+          d: Number(t.duration || t.d || 180),
+        },
+      }));
+      const androidPlaylists = Object.keys(playlists || {})
+        .filter(k => k !== 'Избранное' && k !== 'Любимые треки')
+        .map(name => {
+          const list = Array.isArray(playlists[name]) ? playlists[name] : (playlists[name]?.tracks || []);
+          return {
+            name,
+            createdAt: Date.now(),
+            tracks: list.map(t => ({
+              id: String(t.id || ''),
+              t: String(t.title || t.name || t.t || 'Трек'),
+              a: String(t.artist || t.artistName || t.a || 'Неизвестный исполнитель'),
+              c: String(t.cover || t.thumbnail || t.c || ''),
+              d: Number(t.duration || t.d || 180),
+            })),
+          };
+        });
+      const androidSyncBlob = JSON.stringify({
+        v: 1,
+        theme: settings?.theme || '',
+        customTheme: settings?.accent || '',
+        backgroundUrl: settings?.bgUrl || '',
+        favorites: androidFavorites,
+        playlists: androidPlaylists,
+      });
+      batch.set(profileRef(user.uid), {
+        playlists: playlistSummaries,
+        sync: androidSyncBlob,
+        updatedAt,
+      }, { merge: true });
+    } catch (e) {
+      batch.set(profileRef(user.uid), { playlists: playlistSummaries, updatedAt }, { merge: true });
+    }
 
     await batch.commit();
   }

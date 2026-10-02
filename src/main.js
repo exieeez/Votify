@@ -784,10 +784,28 @@ let shuffleHistory = [];
 let recommendationsLoaded = false;
 let loadingOperations = 0;
 let loadingAudioContext = null;
-let playlists = readStoredJson('votify-playlists', { Избранное: [] });
-if (!playlists || typeof playlists !== 'object' || Array.isArray(playlists)) {
-  playlists = { Избранное: [] };
+function normalizePlaylists(source) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) {
+    return { 'Избранное': [] };
+  }
+  const clean = {};
+  for (const [name, val] of Object.entries(source)) {
+    if (Array.isArray(val)) {
+      clean[name] = val.map(t => (typeof normalizeTrackObject === 'function' ? normalizeTrackObject(t) : t)).filter(Boolean);
+    } else if (val && typeof val === 'object' && Array.isArray(val.tracks)) {
+      const arr = val.tracks.map(t => (typeof normalizeTrackObject === 'function' ? normalizeTrackObject(t) : t)).filter(Boolean);
+      if (val.cover) arr.cover = val.cover;
+      clean[name] = arr;
+    } else {
+      clean[name] = [];
+    }
+  }
+  if (!clean['Избранное']) clean['Избранное'] = [];
+  return clean;
 }
+window.normalizePlaylists = normalizePlaylists;
+
+let playlists = normalizePlaylists(readStoredJson('votify-playlists', { Избранное: [] }));
 window.playlists = playlists;
 let appSettings = readStoredJson('votify-settings', {
   lang: 'ru',
@@ -1091,8 +1109,9 @@ function restoreCachedCloudState(uid) {
     localStorage.setItem('votify-settings', JSON.stringify(appSettings));
   }
   if (cached.playlists && typeof cached.playlists === 'object') {
-    playlists = cached.playlists;
+    playlists = normalizePlaylists(cached.playlists);
     if (!playlists['Избранное']) playlists['Избранное'] = [];
+    window.playlists = playlists;
     localStorage.setItem('votify-playlists', JSON.stringify(playlists));
   }
   if (Array.isArray(cached.history)) {
@@ -1103,6 +1122,7 @@ function restoreCachedCloudState(uid) {
 
 function clearPersonalCloudState() {
   playlists = { Избранное: [] };
+  window.playlists = playlists;
   localStorage.setItem('votify-playlists', JSON.stringify(playlists));
   localStorage.setItem('listeningHistory', '[]');
   renderSidebarPlaylists();
@@ -1129,12 +1149,14 @@ async function syncWithCloud(direction = 'pull') {
           applyLanguage(appSettings.lang || 'ru');
         }
         if (data.playlists && typeof data.playlists === 'object') {
-          playlists = data.playlists;
+          playlists = normalizePlaylists(data.playlists);
           if (!playlists['Избранное']) playlists['Избранное'] = [];
+          window.playlists = playlists;
           localStorage.setItem('votify-playlists', JSON.stringify(playlists));
           renderSidebarPlaylists();
           const foldersScreen = document.getElementById('folders-screen');
           if (foldersScreen && foldersScreen.style.display !== 'none') renderPlaylists();
+          if (typeof refreshFavoriteStates === 'function') refreshFavoriteStates();
         }
         if (Array.isArray(data.history)) {
           localStorage.setItem('listeningHistory', JSON.stringify(data.history));
@@ -1167,6 +1189,75 @@ async function syncWithCloud(direction = 'pull') {
     setCloudSyncLabel('Ошибка сохранения в облако');
   }
 }
+
+function refreshFavoriteStates() {
+  const curTrack = window.currentTrack;
+  if (curTrack && typeof isTrackFavorite === 'function') {
+    const liked = isTrackFavorite(curTrack);
+    const fiLike = document.getElementById('fi-like');
+    if (fiLike) {
+      fiLike.classList.toggle('is-liked', liked);
+      const iconEl = fiLike.querySelector('.material-icons');
+      if (iconEl) iconEl.textContent = liked ? 'favorite' : 'favorite_border';
+    }
+    const ppLike = document.getElementById('pp-like');
+    if (ppLike) {
+      ppLike.classList.toggle('is-liked', liked);
+      const iconEl = ppLike.querySelector('.material-icons');
+      if (iconEl) iconEl.textContent = liked ? 'favorite' : 'favorite_border';
+    }
+  }
+  document.querySelectorAll('.fav-btn, .ptr-fav-btn, .fav-track-btn').forEach(btn => {
+    const trItem = btn.closest('[data-track-id]');
+    const trackId = trItem?.getAttribute('data-track-id');
+    if (trackId && typeof isTrackFavorite === 'function') {
+      const isFav = (playlists['Избранное'] || []).some(t => t && t.id === trackId);
+      btn.classList.toggle('is-fav', isFav);
+      btn.classList.toggle('active', isFav);
+      const icon = btn.querySelector('.material-icons');
+      if (icon) icon.textContent = isFav ? 'favorite' : 'favorite_border';
+    }
+  });
+}
+window.refreshFavoriteStates = refreshFavoriteStates;
+
+// Real-time listener for cloud library changes (e.g. from Mobile app)
+window.addEventListener('votify:cloud-library-updated', event => {
+  if (cloudSyncApplying) return;
+  const rawPlaylists = event.detail?.playlists;
+  if (rawPlaylists && typeof rawPlaylists === 'object') {
+    const normalized = normalizePlaylists(rawPlaylists);
+    const currentJson = JSON.stringify(playlists);
+    const newJson = JSON.stringify(normalized);
+    if (currentJson !== newJson) {
+      cloudSyncApplying = true;
+      try {
+        playlists = normalized;
+        window.playlists = playlists;
+        localStorage.setItem('votify-playlists', JSON.stringify(playlists));
+        renderSidebarPlaylists();
+        const foldersScreen = document.getElementById('folders-screen');
+        if (foldersScreen && foldersScreen.style.display !== 'none') {
+          renderPlaylists();
+        }
+        refreshFavoriteStates();
+        if (typeof currentActiveLibItem !== 'undefined' && currentActiveLibItem && typeof openPlaylist === 'function') {
+          const detailPane = document.getElementById('lib-detail-pane');
+          if (detailPane && detailPane.style.display !== 'none') {
+            openPlaylist(currentActiveLibItem);
+          }
+        }
+        if (typeof window.renderPins === 'function') {
+          try { window.renderPins(true); } catch (e) {}
+        }
+        setCloudSyncLabel('Синхронизация завершена');
+        window.dispatchEvent(new CustomEvent('votify:playlists-updated', { detail: { playlists } }));
+      } finally {
+        cloudSyncApplying = false;
+      }
+    }
+  }
+});
 
 window.addEventListener('votify:auth-changed', event => {
   const uid = event.detail?.user?.uid || null;
@@ -2449,10 +2540,12 @@ function normalizeTrackObject(item) {
   let title = 'Трек';
   if (typeof track.title === 'string' && track.title) title = track.title;
   else if (typeof track.name === 'string' && track.name) title = track.name;
+  else if (typeof track.t === 'string' && track.t) title = track.t;
 
   let artist = 'Неизвестный исполнитель';
   if (typeof track.artist === 'string' && track.artist) artist = track.artist;
   else if (typeof track.artistName === 'string' && track.artistName) artist = track.artistName;
+  else if (typeof track.a === 'string' && track.a) artist = track.a;
   else if (Array.isArray(track.artists) && track.artists.length > 0) {
     artist = track.artists.map(a => (typeof a === 'string' ? a : a?.name || '')).filter(Boolean).join(', ') || artist;
   } else if (track.artist && typeof track.artist === 'object' && track.artist.name) {
@@ -2467,10 +2560,15 @@ function normalizeTrackObject(item) {
   let cover = '';
   if (typeof track.cover === 'string' && track.cover) cover = track.cover;
   else if (typeof track.thumbnail === 'string' && track.thumbnail) cover = track.thumbnail;
+  else if (typeof track.c === 'string' && track.c) cover = track.c;
   else if (typeof track.albumCover === 'string' && track.albumCover) cover = track.albumCover;
   else if (typeof track.img === 'string' && track.img) cover = track.img;
   else if (track.album && typeof track.album === 'object' && typeof track.album.cover === 'string') cover = track.album.cover;
   else if (Array.isArray(track.album?.images) && track.album.images[0]?.url) cover = track.album.images[0].url;
+
+  const duration = typeof track.duration === 'number' && !isNaN(track.duration) && track.duration > 0
+    ? track.duration
+    : (typeof track.d === 'number' && !isNaN(track.d) && track.d > 0 ? track.d : 180);
 
   return {
     ...track,
@@ -2479,6 +2577,7 @@ function normalizeTrackObject(item) {
     artist,
     album,
     cover: cover || 'assets/logo.png',
+    duration,
   };
 }
 
@@ -4215,29 +4314,6 @@ window.addEventListener('mouseup', e => {
 
 navigationHistory.updateButtons();
 
-
-// Settings overlay toggle
-const toggleSettingsOverlay = () => {
-  const overlay = document.getElementById('settings-overlay');
-  if (overlay) {
-    const isOpen = overlay.style.display !== 'none';
-    overlay.style.display = isOpen ? 'none' : 'flex';
-    if (!isOpen) {
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      const settingsNavBtn = document.getElementById('nav-settings-btn');
-      if (settingsNavBtn) settingsNavBtn.classList.add('active');
-      if (typeof initRangeSliderTracks === 'function') initRangeSliderTracks();
-      if (typeof renderSavedColorSchemes === 'function') renderSavedColorSchemes();
-      if (typeof renderSettingsLocalTracks === 'function') renderSettingsLocalTracks();
-      if (typeof syncSettingsModalUI === 'function') syncSettingsModalUI();
-      if (typeof renderWallpaperHistory === 'function') renderWallpaperHistory();
-    } else {
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      const btn = document.getElementById(previousActiveBtnId);
-      if (btn) btn.classList.add('active');
-    }
-  }
-};
 
 // Settings overlay management
 const openSettings = () => {
