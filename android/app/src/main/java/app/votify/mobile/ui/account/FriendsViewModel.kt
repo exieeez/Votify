@@ -155,10 +155,15 @@ class FriendsViewModel(
                 profile to isFriend
             }.onSuccess { (profile, isFriend) ->
                 _userState.update {
-                    it.copy(loading = false, profile = profile, isFriend = isFriend)
+                    it.copy(
+                        loading = false,
+                        profile = profile,
+                        isFriend = isFriend,
+                        error = if (profile == null) "Профиль пользователя не найден" else null,
+                    )
                 }
             }.onFailure { e ->
-                _userState.update { it.copy(loading = false, error = e.message) }
+                _userState.update { it.copy(loading = false, error = e.message ?: "Ошибка загрузки") }
             }
         }
     }

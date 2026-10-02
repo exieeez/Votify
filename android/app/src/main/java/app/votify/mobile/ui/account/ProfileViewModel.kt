@@ -123,16 +123,7 @@ class ProfileViewModel(
                     sync.importBlob(cloud)
                 }
             }
-            val profile = client.getProfile(token, acct.uid)
-            profile ?: if (acct.uid.isNotBlank()) {
-                // Документа профиля нет — создаём его (тот самый, что читает и
-                // пишет ПК): с этого момента имя/аватар/баннер синхронизированы
-                // в обе стороны между устройствами.
-                client.saveProfile(token, acct.uid, fbName, fbHandle, "", "", "", null)
-                client.getProfile(token, acct.uid)
-            } else {
-                null
-            }
+            client.getProfile(token, acct.uid)
         }.onSuccess { profile ->
             if (profile != null && profile.name.isNotBlank() && profile.name != acct.username) {
                 settingsRepo.setAccount(

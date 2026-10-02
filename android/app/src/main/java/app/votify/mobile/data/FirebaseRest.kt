@@ -726,7 +726,7 @@ class FirebaseRest(private val config: FirebaseConfig) {
 
     /**
      * Сохранить публичный профиль в profiles/{uid} и users/{uid} (как веб-версия).
-     * Смена handle: резервируется новый, старый освобождается.
+     * Не затирает существующие поля (баннер, аватар, плейлисты) пустыми строками.
      */
     suspend fun saveProfile(
         idToken: String,
@@ -739,11 +739,9 @@ class FirebaseRest(private val config: FirebaseConfig) {
         favTrack: FavTrackInfo? = null,
     ): Unit = withContext(Dispatchers.IO) {
         val handleLower = handle.trim().lowercase().removePrefix("@")
-        val oldHandle = fStr(
-            httpGetJsonOrNull(docUrl("profiles/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject
-                ?: httpGetJsonOrNull(docUrl("users/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject,
-            "handle",
-        )
+        val existingDoc = httpGetJsonOrNull(docUrl("profiles/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject
+            ?: httpGetJsonOrNull(docUrl("users/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject
+        val oldHandle = fStr(existingDoc, "handle")
         if (handleLower.isNotBlank() && handleLower != oldHandle) {
             if (oldHandle.isNotBlank()) {
                 val oldDoc = httpGetJsonOrNull(docUrl("usernames/$oldHandle"), idToken)?.jsonObject?.get("fields")?.jsonObject
@@ -751,15 +749,42 @@ class FirebaseRest(private val config: FirebaseConfig) {
             }
             if (handleLower.length in 3..20) runCatching { reserveUsername(idToken, uid, handleLower) }
         }
+
+        val effDisplayName = displayName.trim().take(40).ifBlank { fStr(existingDoc, "displayName") }
+        val effHandle = handleLower.ifBlank { oldHandle }
+        val effPhoto = photoUrl.ifBlank { fStr(existingDoc, "avatar").ifBlank { fStr(existingDoc, "photoUrl") } }
+        val effBio = bio.trim().take(300).ifBlank { fStr(existingDoc, "about").ifBlank { fStr(existingDoc, "bio") } }
+        val effBanner = banner.trim().ifBlank { fStr(existingDoc, "banner") }
+
+        val maskParams = mutableListOf<String>()
         val fields = buildJsonObject {
-            put("displayName", str(displayName.trim().take(40)))
-            put("handle", str(handleLower))
-            put("avatar", str(photoUrl))
-            put("photoUrl", str(photoUrl))
-            put("about", str(bio.trim().take(300)))
-            put("bio", str(bio.trim().take(300)))
-            put("banner", str(banner.trim()))
+            if (effDisplayName.isNotBlank()) {
+                put("displayName", str(effDisplayName))
+                maskParams.add("updateMask.fieldPaths=displayName")
+            }
+            if (effHandle.isNotBlank()) {
+                put("handle", str(effHandle))
+                maskParams.add("updateMask.fieldPaths=handle")
+            }
+            if (effPhoto.isNotBlank()) {
+                put("avatar", str(effPhoto))
+                put("photoUrl", str(effPhoto))
+                maskParams.add("updateMask.fieldPaths=avatar")
+                maskParams.add("updateMask.fieldPaths=photoUrl")
+            }
+            if (effBio.isNotBlank()) {
+                put("about", str(effBio))
+                put("bio", str(effBio))
+                maskParams.add("updateMask.fieldPaths=about")
+                maskParams.add("updateMask.fieldPaths=bio")
+            }
+            if (effBanner.isNotBlank()) {
+                put("banner", str(effBanner))
+                maskParams.add("updateMask.fieldPaths=banner")
+            }
             put("updatedAt", serverTs())
+            maskParams.add("updateMask.fieldPaths=updatedAt")
+
             if (favTrack != null) {
                 put("favTrack", buildJsonObject {
                     put("mapValue", buildJsonObject {
@@ -772,11 +797,14 @@ class FirebaseRest(private val config: FirebaseConfig) {
                         })
                     })
                 })
+                maskParams.add("updateMask.fieldPaths=favTrack")
             }
         }
+        val maskQuery = maskParams.joinToString("&")
         for (path in listOf("profiles/$uid", "users/$uid")) {
+            val url = docUrl(path) + (if (maskQuery.isNotBlank()) "&$maskQuery" else "")
             val body = buildJsonObject { put("fields", fields) }
-            val request = Request.Builder().url(docUrl(path))
+            val request = Request.Builder().url(url)
                 .header("Authorization", "Bearer $idToken")
                 .patch(body.toString().toRequestBody(JSON))
                 .build()
@@ -799,7 +827,7 @@ class FirebaseRest(private val config: FirebaseConfig) {
             val summaries = blob.playlists.map { PlaylistInfo(it.name, it.tracks.size, it.tracks.firstOrNull()?.c ?: "") }
             val summariesJson = buildJsonObject {
                 put("arrayValue", buildJsonObject {
-                    put("arrayValue", buildJsonArray {
+                    put("values", buildJsonArray {
                         summaries.forEach { p ->
                             add(buildJsonObject {
                                 put("mapValue", buildJsonObject {
@@ -820,7 +848,7 @@ class FirebaseRest(private val config: FirebaseConfig) {
             }
             for (path in listOf("profiles/$uid", "users/$uid")) {
                 val body = buildJsonObject { put("fields", profileFields) }
-                val request = Request.Builder().url(docUrl(path))
+                val request = Request.Builder().url("${docUrl(path)}&updateMask.fieldPaths=playlists&updateMask.fieldPaths=updatedAt")
                     .header("Authorization", "Bearer $idToken")
                     .patch(body.toString().toRequestBody(JSON))
                     .build()
@@ -852,7 +880,7 @@ class FirebaseRest(private val config: FirebaseConfig) {
                                         put("cover", str(plCover))
                                         put("tracks", buildJsonObject {
                                             put("arrayValue", buildJsonObject {
-                                                put("arrayValue", buildJsonArray {
+                                                put("values", buildJsonArray {
                                                     plTracks.forEach { t ->
                                                         add(buildJsonObject {
                                                             put("mapValue", buildJsonObject {
@@ -954,7 +982,7 @@ class FirebaseRest(private val config: FirebaseConfig) {
                         put("fields", buildJsonObject {
                             put("users", buildJsonObject {
                                 put("arrayValue", buildJsonObject {
-                                    put("arrayValue", buildJsonArray {
+                                    put("values", buildJsonArray {
                                         add(buildJsonObject { put("stringValue", myUid) })
                                         add(buildJsonObject { put("stringValue", targetUid) })
                                     })
