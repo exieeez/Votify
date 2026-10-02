@@ -96,6 +96,10 @@ fun MiniPlayer(
     val offsetY = remember { Animatable(0f) }
     val dismissThresholdPx = with(density) { 44.dp.toPx() }
 
+    LaunchedEffect(track.id) {
+        offsetY.snapTo(0f)
+    }
+
     Box(
         modifier
             .padding(horizontal = 8.dp)
@@ -125,6 +129,7 @@ fun MiniPlayer(
                             scope.launch {
                                 offsetY.animateTo(120f, tween(120))
                                 onDismiss()
+                                offsetY.snapTo(0f)
                             }
                         } else {
                             if (offsetY.value > 0f) {

@@ -60,7 +60,13 @@ class PlayerController(
     private var controller: MediaController? = null
     private var queueTracks: List<Track> = emptyList()
 
-    private val listener = object : Player.Listener {
+    private val listener = object : MediaController.Listener {
+        override fun onDisconnected(controller: MediaController) {
+            if (this@PlayerController.controller == controller) {
+                this@PlayerController.controller = null
+            }
+        }
+
         override fun onEvents(player: Player, events: Player.Events) {
             syncFromPlayer(player)
             if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED)) {
@@ -76,14 +82,25 @@ class PlayerController(
     private val ticker = object : Runnable {
         override fun run() {
             controller?.let { p ->
-                if (p.isPlaying) _state.update { it.copy(positionMs = p.currentPosition, durationMs = p.duration.coerceAtLeast(0)) }
+                if (p.isConnected && p.isPlaying) {
+                    _state.update { it.copy(positionMs = p.currentPosition, durationMs = p.duration.coerceAtLeast(0)) }
+                }
             }
             handler.postDelayed(this, 500)
         }
     }
 
-    fun connect() {
-        if (controller != null) return
+    fun connect(onConnected: ((MediaController) -> Unit)? = null) {
+        val existing = controller
+        if (existing != null && existing.isConnected) {
+            onConnected?.invoke(existing)
+            return
+        }
+        if (existing != null) {
+            runCatching { existing.removeListener(listener) }
+            runCatching { existing.release() }
+            controller = null
+        }
         val token = SessionToken(appContext, ComponentName(appContext, PlaybackService::class.java))
         val future = MediaController.Builder(appContext, token).buildAsync()
         future.addListener({
@@ -92,6 +109,9 @@ class PlayerController(
                 c.addListener(listener)
                 syncFromPlayer(c)
                 handler.post(ticker)
+                onConnected?.invoke(c)
+            }.onFailure {
+                controller = null
             }
         }, MoreExecutors.directExecutor())
     }
@@ -107,20 +127,32 @@ class PlayerController(
 
     /** Replace the queue with [tracks] and start from [startIndex]. */
     fun play(tracks: List<Track>, startIndex: Int = 0) {
-        val c = controller ?: return
         if (tracks.isEmpty()) return
         queueTracks = tracks
         lastReportedId = null // a fresh start always counts as a new listen
         _state.update { it.copy(error = null, isBuffering = true) }
-        c.setMediaItems(tracks.map(::toMediaItem), startIndex.coerceIn(0, tracks.lastIndex), 0L)
-        c.prepare()
-        c.play()
+        val c = controller
+        if (c != null && c.isConnected) {
+            c.setMediaItems(tracks.map(::toMediaItem), startIndex.coerceIn(0, tracks.lastIndex), 0L)
+            c.prepare()
+            c.play()
+        } else {
+            connect { connected ->
+                connected.setMediaItems(tracks.map(::toMediaItem), startIndex.coerceIn(0, tracks.lastIndex), 0L)
+                connected.prepare()
+                connected.play()
+            }
+        }
     }
 
     fun playTrack(track: Track) = play(listOf(track))
 
     fun togglePlayPause() {
-        val c = controller ?: return
+        val c = controller
+        if (c == null || !c.isConnected) {
+            connect { it.play() }
+            return
+        }
         if (c.isPlaying) c.pause() else {
             if (c.playbackState == Player.STATE_IDLE) c.prepare()
             c.play()
@@ -130,8 +162,10 @@ class PlayerController(
     /** Stop playback and clear the active track/queue (e.g. when mini-player is swiped down). */
     fun dismiss() {
         val c = controller
-        c?.stop()
-        c?.clearMediaItems()
+        runCatching {
+            c?.pause()
+            c?.clearMediaItems()
+        }
         queueTracks = emptyList()
         lastReportedId = null
         _state.update {
@@ -149,29 +183,29 @@ class PlayerController(
     }
 
     fun next() {
-        controller?.takeIf { it.hasNextMediaItem() }?.seekToNextMediaItem()
+        controller?.takeIf { it.isConnected && it.hasNextMediaItem() }?.seekToNextMediaItem()
     }
 
     fun previous() {
-        val c = controller ?: return
+        val c = controller?.takeIf { it.isConnected } ?: return
         // Standard behaviour: restart the track if we're past 3s, otherwise go back.
         if (c.currentPosition > 3_000 || !c.hasPreviousMediaItem()) c.seekTo(0) else c.seekToPreviousMediaItem()
     }
 
     fun seekTo(fraction: Float) {
-        val c = controller ?: return
+        val c = controller?.takeIf { it.isConnected } ?: return
         val d = c.duration
         if (d > 0) c.seekTo((d * fraction.coerceIn(0f, 1f)).toLong())
     }
 
     fun seekToMs(positionMs: Long) {
-        val c = controller ?: return
+        val c = controller?.takeIf { it.isConnected } ?: return
         c.seekTo(positionMs.coerceAtLeast(0))
         if (!c.isPlaying) c.play()
     }
 
     fun toggleShuffle() {
-        controller?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
+        controller?.takeIf { it.isConnected }?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
     }
 
     fun cycleRepeat() {
