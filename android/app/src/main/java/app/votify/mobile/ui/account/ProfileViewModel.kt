@@ -152,14 +152,18 @@ class ProfileViewModel(
 
     fun startEdit() {
         if (_state.value.isGuest) return
-        val p = _state.value.profile ?: return
+        val s = _state.value
+        val curName = s.profile?.name?.ifBlank { null } ?: s.fallbackName
+        val curHandle = s.profile?.handle?.ifBlank { null } ?: s.fallbackHandle
+        val curAbout = s.profile?.about.orEmpty()
+        val curBanner = s.profile?.banner.orEmpty()
         _state.update {
             it.copy(
                 editing = true,
-                editName = p.name,
-                editHandle = p.handle,
-                editAbout = p.about,
-                editBanner = p.banner,
+                editName = curName,
+                editHandle = curHandle,
+                editAbout = curAbout,
+                editBanner = curBanner,
                 stagedAvatar = null,
                 stagedFav = null,
                 favCleared = false,
@@ -194,12 +198,12 @@ class ProfileViewModel(
     fun onBannerPicked(uri: Uri) {
         if (_state.value.isGuest) return
         viewModelScope.launch {
-            val dataUrl = with(kotlinx.coroutines.Dispatchers.IO) {
+            val dataUrl = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 runCatching {
                     appContext.contentResolver.openInputStream(uri)?.use { input ->
                         val bmp = BitmapFactory.decodeStream(input) ?: return@runCatching null
-                        val maxW = 1024
-                        val maxH = 512
+                        val maxW = 1280
+                        val maxH = 720
                         val scale = minOf(1f, maxW / bmp.width.toFloat(), maxH / bmp.height.toFloat())
                         val scaled = if (scale < 1f) {
                             Bitmap.createScaledBitmap(
@@ -210,13 +214,36 @@ class ProfileViewModel(
                             )
                         } else bmp
                         val out = java.io.ByteArrayOutputStream()
-                        scaled.compress(Bitmap.CompressFormat.JPEG, 75, out)
+                        scaled.compress(Bitmap.CompressFormat.JPEG, 82, out)
                         "data:image/jpeg;base64," + android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
                     }
                 }.getOrNull()
             }
             if (dataUrl != null) {
                 _state.update { it.copy(editBanner = dataUrl) }
+                if (!_state.value.editing) {
+                    val acct = settingsRepo.account.first() ?: return@launch
+                    val p = _state.value.profile
+                    runCatching {
+                        val client = client() ?: error("no config")
+                        val token = validToken(client, acct)
+                        val curName = p?.name?.ifBlank { null } ?: acct.username.ifBlank { "Пользователь" }
+                        val curHandle = p?.handle?.ifBlank { null } ?: acct.username.substringBefore('@')
+                        client.saveProfile(
+                            idToken = token,
+                            uid = acct.uid,
+                            displayName = curName,
+                            handle = curHandle,
+                            photoUrl = p?.avatar.orEmpty(),
+                            bio = p?.about.orEmpty(),
+                            banner = dataUrl,
+                            favTrack = p?.favTrack,
+                        )
+                    }.onSuccess {
+                        _events.tryEmit(ProfileEvent.Message("Баннер сохранен"))
+                        load()
+                    }
+                }
             }
         }
     }
@@ -226,11 +253,11 @@ class ProfileViewModel(
         if (_state.value.isGuest) return
         viewModelScope.launch {
             _state.update { it.copy(savingAvatar = true) }
-            val dataUrl = with(kotlinx.coroutines.Dispatchers.IO) {
+            val dataUrl = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 runCatching {
                     appContext.contentResolver.openInputStream(uri)?.use { input ->
                         val bmp = BitmapFactory.decodeStream(input) ?: return@runCatching null
-                        val max = 384
+                        val max = 512
                         val scale = minOf(1f, max / maxOf(bmp.width, bmp.height).toFloat())
                         val scaled = if (scale < 1f) {
                             Bitmap.createScaledBitmap(
@@ -241,7 +268,7 @@ class ProfileViewModel(
                             )
                         } else bmp
                         val out = java.io.ByteArrayOutputStream()
-                        scaled.compress(Bitmap.CompressFormat.JPEG, 72, out)
+                        scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
                         "data:image/jpeg;base64," + android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
                     }
                 }.getOrNull()
@@ -251,26 +278,29 @@ class ProfileViewModel(
                 _events.tryEmit(ProfileEvent.Message(appContext.getString(R.string.profile_avatar_failed)))
                 return@launch
             }
+            _state.update { it.copy(stagedAvatar = dataUrl) }
             if (_state.value.editing) {
-                _state.update { it.copy(savingAvatar = false, stagedAvatar = dataUrl) }
+                _state.update { it.copy(savingAvatar = false) }
                 _events.tryEmit(ProfileEvent.Message(appContext.getString(R.string.profile_avatar_saved)))
                 return@launch
             }
             val acct = settingsRepo.account.first()
             val p = _state.value.profile
             runCatching {
-                if (acct == null || p == null) error("no account")
+                if (acct == null) error("no account")
                 val client = client() ?: error("no config")
                 val token = validToken(client, acct)
+                val curName = p?.name?.ifBlank { null } ?: acct.username.ifBlank { "Пользователь" }
+                val curHandle = p?.handle?.ifBlank { null } ?: acct.username.substringBefore('@')
                 client.saveProfile(
                     idToken = token,
                     uid = acct.uid,
-                    displayName = p.name,
-                    handle = p.handle,
+                    displayName = curName,
+                    handle = curHandle,
                     photoUrl = dataUrl,
-                    bio = p.about,
-                    banner = p.banner,
-                    favTrack = p.favTrack,
+                    bio = p?.about.orEmpty(),
+                    banner = p?.banner.orEmpty(),
+                    favTrack = p?.favTrack,
                 )
                 dataUrl
             }.onSuccess { saved ->
@@ -287,7 +317,6 @@ class ProfileViewModel(
     fun save() {
         val s = _state.value
         if (s.isGuest) return
-        val p = s.profile ?: return
         val handle = s.editHandle.trim().lowercase().removePrefix("@")
         if (handle.isNotEmpty() && !handle.matches(Regex("[a-z0-9_]{3,20}"))) {
             _state.update { it.copy(handleError = appContext.getString(R.string.profile_handle_invalid)) }
@@ -299,12 +328,12 @@ class ProfileViewModel(
             runCatching {
                 val client = client() ?: error("no config")
                 val token = validToken(client, acct)
-                val fav = if (s.favCleared) null else (s.stagedFav ?: p.favTrack)
-                val avatar = s.stagedAvatar ?: p.avatar
+                val fav = if (s.favCleared) null else (s.stagedFav ?: s.profile?.favTrack)
+                val avatar = s.stagedAvatar ?: s.profile?.avatar.orEmpty()
                 client.saveProfile(
                     idToken = token,
                     uid = acct.uid,
-                    displayName = s.editName,
+                    displayName = s.editName.ifBlank { acct.username },
                     handle = handle,
                     photoUrl = avatar,
                     bio = s.editAbout,

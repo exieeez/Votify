@@ -249,30 +249,36 @@ class AccountViewModel(
 
     private fun onFirebaseAccount(email: String, username: String, idToken: String, uid: String, refreshToken: String) {
         viewModelScope.launch {
-            settingsRepo.setAccount(email, username, idToken, uid, refreshToken)
-        }
-        _events.tryEmit(AccountEvent.LoggedIn(username.ifBlank { email }))
-        // Auto cloud sync right after signing in:
-        //  - pull PC and mobile playlists/favorites/settings and restore if local library is empty.
-        viewModelScope.launch {
-            val cfg = FirebaseRest.effectiveConfig(settingsRepo.settings.first().firebaseConfig) ?: return@launch
-            val client = FirebaseRest(cfg)
-            val sync = CloudSync(app.votify.mobile.VotifyApp.instance.database, settingsRepo)
-            val token = runCatching { client.refreshIdToken(refreshToken) }.getOrNull() ?: idToken
-            runCatching {
-                val cloud = client.pullFullCloudSync(token, uid)
-                val localEmpty = !sync.hasLocalData()
-                when {
-                    cloud != null && localEmpty -> {
-                        if (cloud.favorites.isNotEmpty() || cloud.playlists.isNotEmpty() || cloud.customPrefs.isNotBlank()) {
-                            CloudSyncAuto.suppressFor(20000)
-                            sync.importBlob(cloud)
-                            _events.tryEmit(AccountEvent.DataRestored)
+            val cfg = FirebaseRest.effectiveConfig(settingsRepo.settings.first().firebaseConfig)
+            val client = cfg?.let { FirebaseRest(it) }
+            val prof = client?.let { runCatching { it.getProfile(idToken, uid) }.getOrNull() }
+            val realName = prof?.name?.ifBlank { null }
+                ?: prof?.handle?.ifBlank { null }
+                ?: username.ifBlank { email.substringBefore('@') }
+
+            settingsRepo.setAccount(email, realName, idToken, uid, refreshToken)
+            _events.tryEmit(AccountEvent.LoggedIn(realName))
+
+            // Auto cloud sync right after signing in:
+            //  - pull PC and mobile playlists/favorites/settings and restore if local library is empty.
+            if (client != null) {
+                val sync = CloudSync(app.votify.mobile.VotifyApp.instance.database, settingsRepo)
+                val token = runCatching { client.refreshIdToken(refreshToken) }.getOrNull() ?: idToken
+                runCatching {
+                    val cloud = client.pullFullCloudSync(token, uid)
+                    val localEmpty = !sync.hasLocalData()
+                    when {
+                        cloud != null && localEmpty -> {
+                            if (cloud.favorites.isNotEmpty() || cloud.playlists.isNotEmpty() || cloud.customPrefs.isNotBlank()) {
+                                CloudSyncAuto.suppressFor(20000)
+                                sync.importBlob(cloud)
+                                _events.tryEmit(AccountEvent.DataRestored)
+                            }
                         }
-                    }
-                    cloud == null && !localEmpty -> {
-                        client.publishLibrary(token, uid, sync.exportBlob())
-                        _events.tryEmit(AccountEvent.DataSaved)
+                        cloud == null && !localEmpty -> {
+                            client.publishLibrary(token, uid, sync.exportBlob())
+                            _events.tryEmit(AccountEvent.DataSaved)
+                        }
                     }
                 }
             }

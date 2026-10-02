@@ -599,23 +599,53 @@ class FirebaseRest(private val config: FirebaseConfig) {
     }
 
     /** Профиль из полей документов (users + profiles уже слиты). */
-    private fun profileFromFields(uid: String, fields: JsonObject?): ProfileInfo {
+    private fun profileFromFields(uid: String, fields: JsonObject?, secondaryFields: JsonObject? = null): ProfileInfo {
         val name = fStr(fields, "displayName").ifBlank {
-            fStr(fields, "username").ifBlank { "Пользователь" }
+            fStr(fields, "name").ifBlank {
+                fStr(secondaryFields, "displayName").ifBlank {
+                    fStr(secondaryFields, "name").ifBlank {
+                        fStr(fields, "username").ifBlank {
+                            fStr(secondaryFields, "username").ifBlank { "Пользователь" }
+                        }
+                    }
+                }
+            }
         }
-        val handle = (fStr(fields, "handle").ifBlank { fStr(fields, "username") })
-            .trim().removePrefix("@").lowercase().ifBlank { uid.take(8) }
-        val avatar = fStr(fields, "avatar").ifBlank { fStr(fields, "photoUrl") }
+        val handle = (fStr(fields, "handle").ifBlank {
+            fStr(secondaryFields, "handle").ifBlank {
+                fStr(fields, "username").ifBlank {
+                    fStr(secondaryFields, "username")
+                }
+            }
+        }).trim().removePrefix("@").lowercase().ifBlank { uid.take(8) }
+
+        val avatar = fStr(fields, "avatar").ifBlank {
+            fStr(fields, "photoUrl").ifBlank {
+                fStr(secondaryFields, "avatar").ifBlank {
+                    fStr(secondaryFields, "photoUrl")
+                }
+            }
+        }
+        val about = fStr(fields, "about").ifBlank {
+            fStr(fields, "bio").ifBlank {
+                fStr(secondaryFields, "about").ifBlank {
+                    fStr(secondaryFields, "bio")
+                }
+            }
+        }
+        val banner = fStr(fields, "banner").ifBlank {
+            fStr(secondaryFields, "banner")
+        }
         return ProfileInfo(
             uid = uid,
             name = name,
             handle = handle,
             avatar = avatar,
-            about = fStr(fields, "about").ifBlank { fStr(fields, "bio") },
-            banner = fStr(fields, "banner"),
-            frame = fStr(fields, "frame").ifBlank { "none" },
-            favTrack = parseFavTrack(fields),
-            playlists = parsePlaylists(fields),
+            about = about,
+            banner = banner,
+            frame = fStr(fields, "frame").ifBlank { fStr(secondaryFields, "frame").ifBlank { "none" } },
+            favTrack = parseFavTrack(fields) ?: parseFavTrack(secondaryFields),
+            playlists = parsePlaylists(fields).ifEmpty { parsePlaylists(secondaryFields) },
         )
     }
 
@@ -629,7 +659,7 @@ class FirebaseRest(private val config: FirebaseConfig) {
                 userDoc?.let { u -> u.keys.forEach { k -> put(k, u.getValue(k)) } }
                 profDoc?.let { pr -> pr.keys.forEach { k -> put(k, pr.getValue(k)) } }
             }
-            var info = profileFromFields(uid, merged)
+            var info = profileFromFields(uid, profDoc, userDoc)
             if (info.playlists.isEmpty()) {
                 val webLib = httpGetJsonOrNull(docUrl("users/$uid/sync/library"), idToken)
                     ?.jsonObject?.get("fields")?.jsonObject
@@ -750,40 +780,37 @@ class FirebaseRest(private val config: FirebaseConfig) {
             if (handleLower.length in 3..20) runCatching { reserveUsername(idToken, uid, handleLower) }
         }
 
-        val effDisplayName = displayName.trim().take(40).ifBlank { fStr(existingDoc, "displayName") }
+        val effDisplayName = displayName.trim().take(40).ifBlank {
+            fStr(existingDoc, "displayName").ifBlank { fStr(existingDoc, "name") }
+        }
         val effHandle = handleLower.ifBlank { oldHandle }
         val effPhoto = photoUrl.ifBlank { fStr(existingDoc, "avatar").ifBlank { fStr(existingDoc, "photoUrl") } }
         val effBio = bio.trim().take(300).ifBlank { fStr(existingDoc, "about").ifBlank { fStr(existingDoc, "bio") } }
         val effBanner = banner.trim().ifBlank { fStr(existingDoc, "banner") }
 
-        val maskParams = mutableListOf<String>()
         val fields = buildJsonObject {
+            existingDoc?.keys?.forEach { k ->
+                put(k, existingDoc.getValue(k))
+            }
             if (effDisplayName.isNotBlank()) {
                 put("displayName", str(effDisplayName))
-                maskParams.add("updateMask.fieldPaths=displayName")
+                put("name", str(effDisplayName))
             }
             if (effHandle.isNotBlank()) {
                 put("handle", str(effHandle))
-                maskParams.add("updateMask.fieldPaths=handle")
             }
             if (effPhoto.isNotBlank()) {
                 put("avatar", str(effPhoto))
                 put("photoUrl", str(effPhoto))
-                maskParams.add("updateMask.fieldPaths=avatar")
-                maskParams.add("updateMask.fieldPaths=photoUrl")
             }
             if (effBio.isNotBlank()) {
                 put("about", str(effBio))
                 put("bio", str(effBio))
-                maskParams.add("updateMask.fieldPaths=about")
-                maskParams.add("updateMask.fieldPaths=bio")
             }
             if (effBanner.isNotBlank()) {
                 put("banner", str(effBanner))
-                maskParams.add("updateMask.fieldPaths=banner")
             }
             put("updatedAt", serverTs())
-            maskParams.add("updateMask.fieldPaths=updatedAt")
 
             if (favTrack != null) {
                 put("favTrack", buildJsonObject {
@@ -797,23 +824,35 @@ class FirebaseRest(private val config: FirebaseConfig) {
                         })
                     })
                 })
-                maskParams.add("updateMask.fieldPaths=favTrack")
             }
         }
-        val maskQuery = maskParams.joinToString("&")
+
+        var savedAny = false
+        var lastErr = ""
         for (path in listOf("profiles/$uid", "users/$uid")) {
-            val url = docUrl(path) + (if (maskQuery.isNotBlank()) "&$maskQuery" else "")
+            val url = docUrl(path)
             val body = buildJsonObject { put("fields", fields) }
             val request = Request.Builder().url(url)
                 .header("Authorization", "Bearer $idToken")
                 .patch(body.toString().toRequestBody(JSON))
                 .build()
-            http.newCall(request).execute().use { resp ->
-                if (!resp.isSuccessful) {
+            runCatching {
+                http.newCall(request).execute().use { resp ->
                     val text = resp.body?.string().orEmpty()
-                    throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
+                    if (resp.isSuccessful) {
+                        savedAny = true
+                    } else {
+                        lastErr = "HTTP ${resp.code}: $text"
+                        android.util.Log.e("FirebaseRest", "saveProfile $path error: $lastErr")
+                    }
                 }
+            }.onFailure { e ->
+                lastErr = e.message ?: "network error"
+                android.util.Log.e("FirebaseRest", "saveProfile $path exception: $lastErr")
             }
+        }
+        if (!savedAny && lastErr.isNotBlank()) {
+            throw FirebaseRestException("SAVE_FAILED", lastErr)
         }
     }
 

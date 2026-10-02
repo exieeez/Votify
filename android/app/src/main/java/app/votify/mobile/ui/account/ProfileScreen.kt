@@ -215,12 +215,36 @@ fun ProfileScreen(
                         Box(
                             Modifier
                                 .fillMaxWidth()
-                                .height(130.dp),
+                                .height(140.dp),
                         ) {
                             BannerBox(
-                                banner = if (state.editing && state.editBanner.isNotBlank()) state.editBanner else p?.banner.orEmpty(),
+                                banner = if (state.editBanner.isNotBlank()) state.editBanner else p?.banner.orEmpty(),
                                 modifier = Modifier.fillMaxSize(),
                             )
+                            if (!guest) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color.Black.copy(alpha = 0.55f),
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(10.dp)
+                                        .size(32.dp)
+                                        .clickable {
+                                            bannerPicker.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        },
+                                ) {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Outlined.Edit,
+                                            contentDescription = "Сменить баннер",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(15.dp),
+                                        )
+                                    }
+                                }
+                            }
                         }
 
                         // Avatar overlapping banner
@@ -828,18 +852,28 @@ fun BannerBox(banner: String, modifier: Modifier = Modifier) {
                     .background(Brush.linearGradient(listOf(Color(0xFF1E1E24), Color(0xFF2A2B36)))),
             )
         }
+        val isImage = base64Bitmap != null || cleanBanner.startsWith("http://") || cleanBanner.startsWith("https://")
         Box(
             Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            Color(0xFF181818).copy(alpha = 0.45f),
-                            Color(0xFF181818).copy(alpha = 0.85f),
-                            Color(0xFF181818),
-                        ),
-                    ),
+                    if (isImage) {
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0.0f to Color.Transparent,
+                                0.6f to Color.Transparent,
+                                1.0f to Color(0xFF181818).copy(alpha = 0.6f),
+                            ),
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0.0f to Color.Transparent,
+                                0.7f to Color(0xFF181818).copy(alpha = 0.4f),
+                                1.0f to Color(0xFF181818),
+                            ),
+                        )
+                    },
                 ),
         )
     }
