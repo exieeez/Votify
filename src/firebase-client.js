@@ -286,10 +286,55 @@
       await state.auth.setPersistence(window.firebase.auth.Auth.Persistence.LOCAL);
       state.available = true;
 
+      let profileUnsub = null;
+      let usersUnsub = null;
+
       state.auth.onAuthStateChanged(async user => {
+        if (profileUnsub) { profileUnsub(); profileUnsub = null; }
+        if (usersUnsub) { usersUnsub(); usersUnsub = null; }
+
         state.user = user || null;
         state.profile = user ? await ensureProfile(user).catch(() => null) : null;
         dispatchAuthState();
+        updateAccountUi();
+
+        if (user && !user.isAnonymous) {
+          const onDocUpdate = (snap) => {
+            if (!snap || !snap.exists) return;
+            const d = snap.data() || {};
+            const cur = state.profile || {};
+            const effDisplayName = d.displayName || d.name || cur.displayName || user.displayName || 'Пользователь';
+            const effHandle = d.handle || d.username || cur.handle || 'user';
+            const effAvatar = d.avatar || d.photoUrl || cur.avatar || '';
+            const effAbout = d.about || d.bio || cur.about || '';
+            const effBanner = d.banner !== undefined ? d.banner : (cur.banner || '');
+            const effFavTrack = d.favTrack !== undefined ? d.favTrack : (cur.favTrack || null);
+
+            state.profile = {
+              ...cur,
+              displayName: effDisplayName,
+              name: effDisplayName,
+              handle: String(effHandle).trim().replace(/^@/, '').toLowerCase(),
+              avatar: effAvatar,
+              photoUrl: effAvatar,
+              about: effAbout,
+              bio: effAbout,
+              banner: effBanner,
+              favTrack: effFavTrack,
+            };
+            try {
+              localStorage.setItem('votifyLocalProfile', JSON.stringify(state.profile));
+            } catch (e) {}
+            dispatchAuthState();
+            updateAccountUi();
+          };
+
+          try {
+            profileUnsub = profileRef(user.uid).onSnapshot(onDocUpdate, () => {});
+            usersUnsub = firestoreProfileRef(user.uid).onSnapshot(onDocUpdate, () => {});
+          } catch (e) {}
+        }
+
         if (!initialAuthStateHandled) {
           initialAuthStateHandled = true;
           if (!user) window.setTimeout(() => openAuth('auth-login'), 0);
@@ -611,7 +656,21 @@
   }
 
   async function saveProfile(profile) {
-    const safe = cleanProfile(profile);
+    const existing = state.profile || {};
+    const merged = {
+      displayName: profile.displayName !== undefined ? profile.displayName : (existing.displayName || existing.name || ''),
+      handle: profile.handle !== undefined ? profile.handle : existing.handle,
+      avatar: profile.avatar !== undefined ? profile.avatar : (existing.avatar || existing.photoUrl || ''),
+      about: profile.about !== undefined ? profile.about : (existing.about || existing.bio || ''),
+      banner: profile.banner !== undefined ? profile.banner : (existing.banner || ''),
+      frame: profile.frame !== undefined ? profile.frame : (existing.frame || 'none'),
+      favTrack: profile.favTrack !== undefined ? profile.favTrack : (existing.favTrack || null),
+      cursor: profile.cursor !== undefined ? profile.cursor : (existing.cursor || ''),
+      showcaseImage: profile.showcaseImage !== undefined ? profile.showcaseImage : (existing.showcaseImage || ''),
+      showcaseTitle: profile.showcaseTitle !== undefined ? profile.showcaseTitle : (existing.showcaseTitle || ''),
+      showcaseText: profile.showcaseText !== undefined ? profile.showcaseText : (existing.showcaseText || ''),
+    };
+    const safe = cleanProfile(merged);
     const user = state.auth?.currentUser;
     if (user) {
       const uid = user.uid;
@@ -1697,7 +1756,7 @@
         const newHandle = document.getElementById('profile-handle')?.value?.trim();
         const newAbout = document.getElementById('profile-about')?.value?.trim();
         const bannerUrlVal = document.getElementById('profile-banner-url')?.value?.trim() || '';
-        const newBanner = pendingProfileBanner !== undefined ? pendingProfileBanner : bannerUrlVal;
+        const newBanner = pendingProfileBanner !== undefined ? pendingProfileBanner : (bannerUrlVal || state.profile?.banner || '');
         const newFavTrack = pendingProfileFavTrack !== undefined ? pendingProfileFavTrack : (state.profile?.favTrack || null);
 
         await saveProfile({
@@ -1729,7 +1788,7 @@
         const newHandle = document.getElementById('page-profile-handle')?.value?.trim();
         const newAbout = document.getElementById('page-profile-about')?.value?.trim();
         const bannerUrlVal = document.getElementById('page-profile-banner-url')?.value?.trim() || '';
-        const newBanner = pendingProfileBanner !== undefined ? pendingProfileBanner : bannerUrlVal;
+        const newBanner = pendingProfileBanner !== undefined ? pendingProfileBanner : (bannerUrlVal || state.profile?.banner || '');
         const newFavTrack = pendingProfileFavTrack !== undefined ? pendingProfileFavTrack : (state.profile?.favTrack || null);
 
         await saveProfile({
