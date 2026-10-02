@@ -20,9 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -89,7 +88,7 @@ fun UpdateBanner(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.SystemUpdate,
+                                    imageVector = Icons.Outlined.Download,
                                     contentDescription = null,
                                     tint = Color(0xFF1DB954),
                                     modifier = Modifier.size(20.dp)
@@ -152,7 +151,7 @@ fun UpdateBanner(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Download,
+                                        imageVector = Icons.Outlined.Download,
                                         contentDescription = null,
                                         tint = Color(0xFF1DB954),
                                         modifier = Modifier.size(20.dp)

@@ -17,11 +17,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
+import app.votify.mobile.ui.common.UpdateBanner
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
@@ -385,7 +387,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 Column {
-                    app.votify.mobile.ui.common.UpdateBanner(
+                    UpdateBanner(
                         updateManager = app.updateManager,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                     )

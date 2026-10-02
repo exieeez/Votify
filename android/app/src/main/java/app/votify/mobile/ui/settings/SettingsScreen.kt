@@ -14,10 +14,10 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.DesktopWindows
 import androidx.compose.material.icons.outlined.Image
@@ -107,7 +107,7 @@ fun SettingsScreen(
         SettingsSectionLabel("Обновление")
         SettingsCard {
             SettingsNavRow(
-                androidx.compose.material.icons.Icons.Outlined.SystemUpdate,
+                Icons.Outlined.Refresh,
                 "Проверить обновления",
                 "Версия ${app.votify.mobile.BuildConfig.VERSION_NAME} (${app.votify.mobile.BuildConfig.BUILD_SHA.take(7)})",
             ) {
