@@ -253,30 +253,25 @@ class AccountViewModel(
         }
         _events.tryEmit(AccountEvent.LoggedIn(username.ifBlank { email }))
         // Auto cloud sync right after signing in:
-        //  - fresh install / wiped app + cloud data exists  → restore everything;
-        //  - local data exists + nothing in the cloud yet    → save it to the account.
-        //  Both sides non-empty → leave the choice to the manual push/pull buttons.
+        //  - pull PC and mobile playlists/favorites/settings and restore if local library is empty.
         viewModelScope.launch {
             val cfg = FirebaseRest.effectiveConfig(settingsRepo.settings.first().firebaseConfig) ?: return@launch
             val client = FirebaseRest(cfg)
             val sync = CloudSync(app.votify.mobile.VotifyApp.instance.database, settingsRepo)
             val token = runCatching { client.refreshIdToken(refreshToken) }.getOrNull() ?: idToken
             runCatching {
-                val cloud = client.pullUserSync(token, uid)
+                val cloud = client.pullFullCloudSync(token, uid)
                 val localEmpty = !sync.hasLocalData()
                 when {
                     cloud != null && localEmpty -> {
-                        val blob = sync.fromJson(cloud)
-                        if (blob != null && (blob.favorites.isNotEmpty() || blob.playlists.isNotEmpty() || blob.customPrefs.isNotBlank())) {
-                            // Mute the auto-backup watcher while the restore writes rows,
-                            // so importing does not immediately push the same data back.
+                        if (cloud.favorites.isNotEmpty() || cloud.playlists.isNotEmpty() || cloud.customPrefs.isNotBlank()) {
                             CloudSyncAuto.suppressFor(20000)
-                            sync.importBlob(blob)
+                            sync.importBlob(cloud)
                             _events.tryEmit(AccountEvent.DataRestored)
                         }
                     }
                     cloud == null && !localEmpty -> {
-                        client.pushUserSync(token, uid, sync.toJson(sync.exportBlob()))
+                        client.publishLibrary(token, uid, sync.exportBlob())
                         _events.tryEmit(AccountEvent.DataSaved)
                     }
                 }

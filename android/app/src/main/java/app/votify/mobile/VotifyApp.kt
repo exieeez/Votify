@@ -77,6 +77,23 @@ class VotifyApp : Application(), coil.ImageLoaderFactory {
             scope = appScope,
             onTrackStarted = { track -> library.recordPlay(track) },
         )
+
+        // Initial restore check if signed in and local library is empty
+        appScope.launch(Dispatchers.IO) {
+            val acct = boot.account ?: settings.account.first() ?: return@launch
+            if (!acct.isFirebase) return@launch
+            val sync = app.votify.mobile.data.CloudSync(database, settings)
+            if (!sync.hasLocalData()) {
+                val cfg = app.votify.mobile.data.FirebaseRest.effectiveConfig(settings.settings.first().firebaseConfig) ?: return@launch
+                val client = app.votify.mobile.data.FirebaseRest(cfg)
+                val token = runCatching { client.refreshIdToken(acct.refreshToken) }.getOrNull() ?: acct.token
+                val cloud = client.pullFullCloudSync(token, acct.uid)
+                if (cloud != null && (cloud.favorites.isNotEmpty() || cloud.playlists.isNotEmpty())) {
+                    CloudSyncAuto.suppressFor(20000)
+                    sync.importBlob(cloud)
+                }
+            }
+        }
     }
 
     /**

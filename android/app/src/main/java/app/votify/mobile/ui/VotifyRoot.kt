@@ -608,11 +608,35 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                     )
                 }
                 composable(Routes.ACCOUNT) {
-                    AccountScreen(
-                        viewModel = accountVm,
-                        contentPadding = contentPadding,
-                        onBack = { navController.popBackStack() },
-                    )
+                    val acct by accountVm.account.collectAsStateWithLifecycle()
+                    if (acct != null) {
+                        ProfileScreen(
+                            viewModel = profileVm,
+                            contentPadding = contentPadding,
+                            onBack = { navController.popBackStack() },
+                            onOpenFriends = { navController.navigate(Routes.FRIENDS) },
+                            onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
+                            onToast = { snackbarScope.launch { snackbar.showSnackbar(it) } },
+                            onPlayFav = { fav ->
+                                val id = Regex("[?&]v=([a-zA-Z0-9_-]{11})")
+                                    .find(fav.id)?.groupValues?.get(1)
+                                    ?: Regex("""youtu\.be/([a-zA-Z0-9_-]{11})""")
+                                        .find(fav.id)?.groupValues?.get(1)
+                                        ?: fav.id
+                                if (id.length == 11) {
+                                    player.playTrack(Track(id, fav.title, fav.artist, fav.cover, "", fav.duration))
+                                }
+                            },
+                            onOpenLogin = { navController.navigate(Routes.ACCOUNT) },
+                            onLogout = { accountVm.logout() },
+                        )
+                    } else {
+                        AccountScreen(
+                            viewModel = accountVm,
+                            contentPadding = contentPadding,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
                 }
                 composable(Routes.PROFILE) {
                     ProfileScreen(

@@ -114,6 +114,15 @@ class ProfileViewModel(
         runCatching {
             val client = client() ?: error(appContext.getString(R.string.profile_no_backend))
             val token = validToken(client, acct)
+            // If local library is empty, restore from cloud (PC library & backup)
+            val sync = CloudSync(database, settingsRepo)
+            if (!sync.hasLocalData()) {
+                val cloud = client.pullFullCloudSync(token, acct.uid)
+                if (cloud != null && (cloud.favorites.isNotEmpty() || cloud.playlists.isNotEmpty())) {
+                    app.votify.mobile.data.CloudSyncAuto.suppressFor(20000)
+                    sync.importBlob(cloud)
+                }
+            }
             val profile = client.getProfile(token, acct.uid)
             profile ?: if (acct.uid.isNotBlank()) {
                 // Документа профиля нет — создаём его (тот самый, что читает и

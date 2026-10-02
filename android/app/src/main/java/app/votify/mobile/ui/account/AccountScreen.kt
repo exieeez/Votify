@@ -55,10 +55,11 @@ fun AccountScreen(
     onBack: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val account by viewModel.account.collectAsStateWithLifecycle()
 
     // Successful login/register leaves the screen automatically.
-    androidx.compose.runtime.LaunchedEffect(viewModel) {
-        viewModel.events.collect { if (it is AccountEvent.LoggedIn) onBack() }
+    androidx.compose.runtime.LaunchedEffect(account) {
+        if (account != null) onBack()
     }
 
     var googleIdDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -74,6 +75,13 @@ fun AccountScreen(
     var password by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var newPassword by rememberSaveable { mutableStateOf("") }
+
+    if (account != null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = VotifyColors.Primary)
+        }
+        return
+    }
 
     Column(
         Modifier
@@ -95,67 +103,6 @@ fun AccountScreen(
                 color = VotifyColors.TextPrimary,
                 fontWeight = FontWeight.SemiBold,
             )
-        }
-
-        // Signed in: profile card instead of the login form.
-        val account by viewModel.account.collectAsStateWithLifecycle()
-        if (account != null) {
-            val acct = account!!
-            VotifyCard(Modifier.padding(horizontal = 16.dp).fillMaxWidth(), contentPadding = PaddingValues(20.dp)) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Surface(
-                        shape = CircleShape,
-                        color = VotifyColors.SurfaceContainer,
-                        modifier = Modifier.size(72.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                (acct.username.ifBlank { acct.email }).firstOrNull()?.uppercase() ?: "?",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = VotifyColors.TextPrimary,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        acct.username.ifBlank { acct.email },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = VotifyColors.TextPrimary,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        acct.email,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = VotifyColors.TextMuted,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(20.dp))
-                    PrimaryButton(
-                        text = stringResource(R.string.settings_account_logout),
-                        loading = false,
-                        enabled = true,
-                    ) { viewModel.logout() }
-                }
-            }
-            Text(
-                stringResource(R.string.account_logged_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = VotifyColors.TextMuted,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-            )
-            Text(
-                "Сборка: " + app.votify.mobile.BuildConfig.BUILD_SHA.take(7) +
-                    " · " + app.votify.mobile.BuildConfig.VERSION_NAME + " (v" + app.votify.mobile.BuildConfig.VERSION_CODE + ")",
-                style = MaterialTheme.typography.labelSmall,
-                color = VotifyColors.TextMuted,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 24.dp),
-            )
-            return@Column
         }
 
         // Login / register tabs (hidden inside the recovery wizard)

@@ -494,11 +494,14 @@ class FirebaseRest(private val config: FirebaseConfig) {
     //   usernames/{handle}       — handle → uid
 
     private fun docUrl(path: String) =
-        "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/$path"
+        "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/$path?key=${config.apiKey}"
 
-    private fun httpGetJsonOrNull(url: String): JsonObject? = runCatching {
-        val request = Request.Builder().url(url).get().build()
-        http.newCall(request).execute().use { resp ->
+    private fun httpGetJsonOrNull(url: String, idToken: String? = null): JsonObject? = runCatching {
+        val req = Request.Builder().url(url)
+        if (!idToken.isNullOrBlank()) {
+            req.header("Authorization", "Bearer $idToken")
+        }
+        http.newCall(req.build()).execute().use { resp ->
             val text = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) null else json.parseToJsonElement(text).jsonObject
         }
@@ -525,12 +528,12 @@ class FirebaseRest(private val config: FirebaseConfig) {
 
     private fun listDocs(idToken: String, path: String, pageSize: Int): List<Pair<String, JsonObject>> {
         val resp = runCatching {
-            val request = Request.Builder().url("${docUrl(path)}?pageSize=$pageSize")
+            val request = Request.Builder().url("${docUrl(path)}&pageSize=$pageSize")
                 .header("Authorization", "Bearer $idToken").get().build()
             http.newCall(request).execute().use { r ->
                 val text = r.body?.string().orEmpty()
                 if (!r.isSuccessful) null
-                else json.parseToJsonElement(text).jsonObject["documents"]?.jsonArray?.jsonArray?.mapNotNull { d ->
+                else json.parseToJsonElement(text).jsonObject["documents"]?.jsonArray?.mapNotNull { d ->
                     val obj = d.jsonObject
                     val name = obj["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
                     Triple(name.substringAfterLast('/'), obj, obj["fields"]?.jsonObject ?: JsonObject(emptyMap()))
@@ -566,7 +569,8 @@ class FirebaseRest(private val config: FirebaseConfig) {
 
     /** Плейлисты из поля profiles/users-документа: [{name, count, cover}] (их пишет «Опубликовать»). */
     private fun parsePlaylists(fields: JsonObject?): List<PlaylistInfo> {
-        val arr = fields?.get("playlists")?.jsonObject?.get("arrayValue")?.jsonArray?.jsonArray
+        val arr = fields?.get("playlists")?.jsonObject?.get("arrayValue")?.jsonObject?.get("values")?.jsonArray
+            ?: fields?.get("playlists")?.jsonObject?.get("arrayValue")?.jsonArray
             ?: return emptyList()
         return arr.mapNotNull { item ->
             val m = item.jsonObject["mapValue"]?.jsonObject?.get("fields")?.jsonObject ?: return@mapNotNull null
@@ -581,14 +585,16 @@ class FirebaseRest(private val config: FirebaseConfig) {
         val map = fields?.get("playlists")?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
             ?: return emptyList()
         return map.keys.mapNotNull { name ->
-            val pl = map[name]?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
-                ?: return@mapNotNull null
-            val tracks = pl["tracks"]?.jsonObject?.get("arrayValue")?.jsonArray?.jsonArray ?: emptyList()
-            val cover = fStr(pl, "cover").ifBlank {
-                tracks.firstOrNull()?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
+            val plVal = map[name]?.jsonObject
+            val plFields = plVal?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
+            val tracksArr = (plFields?.get("tracks") ?: plVal)?.jsonObject?.get("arrayValue")?.jsonObject?.get("values")?.jsonArray
+                ?: (plFields?.get("tracks") ?: plVal)?.jsonObject?.get("arrayValue")?.jsonArray
+                ?: emptyList()
+            val cover = fStr(plFields, "cover").ifBlank {
+                tracksArr.firstOrNull()?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
                     ?.let { fStr(it, "cover") } ?: ""
             }
-            PlaylistInfo(name, tracks.size, cover)
+            PlaylistInfo(name, tracksArr.size, cover)
         }
     }
 
@@ -616,8 +622,8 @@ class FirebaseRest(private val config: FirebaseConfig) {
     /** Публичный профиль пользователя (для своей страницы и для друзей). */
     suspend fun getProfile(idToken: String, uid: String): ProfileInfo? = withContext(Dispatchers.IO) {
         runCatching {
-            val userDoc = httpGetJsonOrNull(docUrl("users/$uid"))?.jsonObject?.get("fields")?.jsonObject
-            val profDoc = httpGetJsonOrNull(docUrl("profiles/$uid"))?.jsonObject?.get("fields")?.jsonObject
+            val userDoc = httpGetJsonOrNull(docUrl("users/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject
+            val profDoc = httpGetJsonOrNull(docUrl("profiles/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject
             if (userDoc == null && profDoc == null) return@withContext null
             val merged = buildJsonObject {
                 userDoc?.let { u -> u.keys.forEach { k -> put(k, u.getValue(k)) } }
@@ -625,7 +631,7 @@ class FirebaseRest(private val config: FirebaseConfig) {
             }
             var info = profileFromFields(uid, merged)
             if (info.playlists.isEmpty()) {
-                val webLib = httpGetJsonOrNull(docUrl("users/$uid/sync/library"))
+                val webLib = httpGetJsonOrNull(docUrl("users/$uid/sync/library"), idToken)
                     ?.jsonObject?.get("fields")?.jsonObject
                 val pl = playlistsFromWebLibrary(webLib)
                 if (pl.isNotEmpty()) info = info.copy(playlists = pl)
@@ -640,6 +646,81 @@ class FirebaseRest(private val config: FirebaseConfig) {
                 if (pl.isNotEmpty()) info = info.copy(playlists = pl)
             }
             info
+        }.getOrNull()
+    }
+
+    /** Полная синхронизация: читает как Android-формат (users/$uid.sync), так и ПК-формат (users/$uid/sync/library). */
+    suspend fun pullFullCloudSync(idToken: String, uid: String): SyncBlob? = withContext(Dispatchers.IO) {
+        runCatching {
+            var blob: SyncBlob? = null
+            // 1. Android sync blob from users/$uid
+            val userDoc = httpGetJsonOrNull(docUrl("users/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject
+            val syncStr = fStr(userDoc, "sync")
+            if (syncStr.isNotBlank()) {
+                blob = runCatching { json.decodeFromString(SyncBlob.serializer(), syncStr) }.getOrNull()
+            }
+
+            // 2. PC sync library from users/$uid/sync/library
+            val libDoc = httpGetJsonOrNull(docUrl("users/$uid/sync/library"), idToken)?.jsonObject?.get("fields")?.jsonObject
+            val pcPlaylistsMap = libDoc?.get("playlists")?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
+
+            val favs = mutableListOf<SyncFavorite>()
+            val pls = mutableListOf<SyncPlaylist>()
+
+            if (pcPlaylistsMap != null) {
+                val now = System.currentTimeMillis()
+                pcPlaylistsMap.keys.forEach { name ->
+                    val plVal = pcPlaylistsMap[name]?.jsonObject
+                    val plFields = plVal?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
+                    val rawTracksArr = (plFields?.get("tracks") ?: plVal)?.jsonObject?.get("arrayValue")?.jsonObject?.get("values")?.jsonArray
+                        ?: (plFields?.get("tracks") ?: plVal)?.jsonObject?.get("arrayValue")?.jsonArray
+
+                    val tracks = rawTracksArr?.mapNotNull { item ->
+                        val tf = item.jsonObject["mapValue"]?.jsonObject?.get("fields")?.jsonObject ?: return@mapNotNull null
+                        val id = fStr(tf, "id")
+                        val title = fStr(tf, "title").ifBlank { fStr(tf, "t") }
+                        val artist = fStr(tf, "artist").ifBlank { fStr(tf, "a") }
+                        val cover = fStr(tf, "cover").ifBlank { fStr(tf, "c") }
+                        val duration = fInt(tf, "duration").let { if (it > 0) it else fInt(tf, "d") }
+                        if (id.isBlank() && title.isBlank()) null else SyncTrack(id, title, artist, cover, duration)
+                    } ?: emptyList()
+
+                    if (name.equals("Избранное", ignoreCase = true) || name.equals("Favorites", ignoreCase = true)) {
+                        tracks.forEach { t -> favs.add(SyncFavorite(now, t)) }
+                    } else {
+                        pls.add(SyncPlaylist(name, now, tracks))
+                    }
+                }
+            }
+
+            // 3. PC sync settings from users/$uid/sync/settings
+            val setDoc = httpGetJsonOrNull(docUrl("users/$uid/sync/settings"), idToken)?.jsonObject?.get("fields")?.jsonObject
+            val setVal = setDoc?.get("value")?.jsonObject?.get("mapValue")?.jsonObject?.get("fields")?.jsonObject
+            val themeStr = fStr(setVal, "theme").ifBlank { blob?.theme ?: "" }
+            val customThemeStr = fStr(setVal, "customTheme").ifBlank { blob?.customTheme ?: "" }
+            val bgUrlStr = fStr(setVal, "backgroundUrl").ifBlank { blob?.backgroundUrl ?: "" }
+
+            if (blob != null) {
+                val mergedFavs = (blob.favorites + favs).distinctBy { it.track.id }
+                val mergedPls = (blob.playlists + pls).distinctBy { it.name }
+                SyncBlob(
+                    v = blob.v,
+                    theme = themeStr.ifBlank { blob.theme },
+                    customTheme = customThemeStr.ifBlank { blob.customTheme },
+                    customPrefs = blob.customPrefs,
+                    backgroundUrl = bgUrlStr.ifBlank { blob.backgroundUrl },
+                    favorites = mergedFavs,
+                    playlists = mergedPls,
+                )
+            } else if (favs.isNotEmpty() || pls.isNotEmpty()) {
+                SyncBlob(
+                    theme = themeStr,
+                    customTheme = customThemeStr,
+                    backgroundUrl = bgUrlStr,
+                    favorites = favs,
+                    playlists = pls,
+                )
+            } else null
         }.getOrNull()
     }
 
@@ -659,13 +740,13 @@ class FirebaseRest(private val config: FirebaseConfig) {
     ): Unit = withContext(Dispatchers.IO) {
         val handleLower = handle.trim().lowercase().removePrefix("@")
         val oldHandle = fStr(
-            httpGetJsonOrNull(docUrl("profiles/$uid"))?.jsonObject?.get("fields")?.jsonObject
-                ?: httpGetJsonOrNull(docUrl("users/$uid"))?.jsonObject?.get("fields")?.jsonObject,
+            httpGetJsonOrNull(docUrl("profiles/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject
+                ?: httpGetJsonOrNull(docUrl("users/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject,
             "handle",
         )
         if (handleLower.isNotBlank() && handleLower != oldHandle) {
             if (oldHandle.isNotBlank()) {
-                val oldDoc = httpGetJsonOrNull(docUrl("usernames/$oldHandle"))?.jsonObject?.get("fields")?.jsonObject
+                val oldDoc = httpGetJsonOrNull(docUrl("usernames/$oldHandle"), idToken)?.jsonObject?.get("fields")?.jsonObject
                 if (fStr(oldDoc, "uid") == uid) runCatching { httpDelete(idToken, "usernames/$oldHandle") }
             }
             if (handleLower.length in 3..20) runCatching { reserveUsername(idToken, uid, handleLower) }
@@ -809,7 +890,7 @@ class FirebaseRest(private val config: FirebaseConfig) {
                     .lowercase()
                 if (hay.contains(q)) found[uid] = profileFromFields(uid, fields)
             }
-            val byHandle = httpGetJsonOrNull(docUrl("usernames/$q"))?.jsonObject?.get("fields")?.jsonObject
+            val byHandle = httpGetJsonOrNull(docUrl("usernames/$q"), idToken)?.jsonObject?.get("fields")?.jsonObject
             val handleUid = fStr(byHandle, "uid")
             if (handleUid.isNotBlank() && handleUid !in found) {
                 runCatching { getProfile(idToken, handleUid) }.getOrNull()?.let { found[handleUid] = it }
