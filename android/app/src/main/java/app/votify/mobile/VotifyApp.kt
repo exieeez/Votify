@@ -42,6 +42,9 @@ class VotifyApp : Application(), coil.ImageLoaderFactory {
     lateinit var player: PlayerController
         private set
 
+    lateinit var updateManager: app.votify.mobile.data.AppUpdateManager
+        private set
+
     /** Animated GIF / WebP support for backgrounds (ImageDecoder on 28+, GifDecoder below). */
     override fun newImageLoader(): coil.ImageLoader =
         coil.ImageLoader.Builder(this)
@@ -78,6 +81,8 @@ class VotifyApp : Application(), coil.ImageLoaderFactory {
             scope = appScope,
             onTrackStarted = { track -> library.recordPlay(track) },
         )
+        updateManager = app.votify.mobile.data.AppUpdateManager(this, appScope)
+        updateManager.checkForUpdate()
 
         // Initial restore check if signed in and local library is empty
         appScope.launch(Dispatchers.IO) {

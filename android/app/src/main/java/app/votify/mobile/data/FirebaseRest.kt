@@ -185,28 +185,6 @@ class FirebaseRest(private val config: FirebaseConfig) {
         handleLower
     }
 
-    /** Create or update profiles/{uid} document */
-    suspend fun saveProfile(idToken: String, uid: String, displayName: String, handle: String, photoUrl: String = "", bio: String = ""): Unit = withContext(Dispatchers.IO) {
-        val url = "https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/profiles/$uid"
-        val fields = buildJsonObject {
-            put("displayName", buildJsonObject { put("stringValue", displayName) })
-            put("handle", buildJsonObject { put("stringValue", handle) })
-            put("photoUrl", buildJsonObject { put("stringValue", photoUrl) })
-            put("bio", buildJsonObject { put("stringValue", bio) })
-        }
-        val body = buildJsonObject { put("fields", fields) }
-        val request = Request.Builder().url(url)
-            .header("Authorization", "Bearer $idToken")
-            .patch(body.toString().toRequestBody(JSON))
-            .build()
-        http.newCall(request).execute().use { resp ->
-            if (!resp.isSuccessful) {
-                val text = resp.body?.string().orEmpty()
-                throw FirebaseRestException("HTTP ${resp.code}", firebaseError(text, resp.code))
-            }
-        }
-    }
-
 
     suspend fun login(email: String, password: String): FirebaseAccount = withContext(Dispatchers.IO) {
         val body = postJson(
@@ -763,10 +741,11 @@ class FirebaseRest(private val config: FirebaseConfig) {
         uid: String,
         displayName: String,
         handle: String,
-        photoUrl: String = "",
-        bio: String = "",
-        banner: String = "",
+        photoUrl: String? = null,
+        bio: String? = null,
+        banner: String? = null,
         favTrack: FavTrackInfo? = null,
+        clearFavTrack: Boolean = false,
     ): Unit = withContext(Dispatchers.IO) {
         val handleLower = handle.trim().lowercase().removePrefix("@")
         val existingDoc = httpGetJsonOrNull(docUrl("profiles/$uid"), idToken)?.jsonObject?.get("fields")?.jsonObject
@@ -784,9 +763,9 @@ class FirebaseRest(private val config: FirebaseConfig) {
             fStr(existingDoc, "displayName").ifBlank { fStr(existingDoc, "name") }
         }
         val effHandle = handleLower.ifBlank { oldHandle }
-        val effPhoto = photoUrl.ifBlank { fStr(existingDoc, "avatar").ifBlank { fStr(existingDoc, "photoUrl") } }
-        val effBio = bio.trim().take(300).ifBlank { fStr(existingDoc, "about").ifBlank { fStr(existingDoc, "bio") } }
-        val effBanner = banner.trim().ifBlank { fStr(existingDoc, "banner") }
+        val effPhoto = photoUrl ?: fStr(existingDoc, "avatar").ifBlank { fStr(existingDoc, "photoUrl") }
+        val effBio = bio ?: fStr(existingDoc, "about").ifBlank { fStr(existingDoc, "bio") }
+        val effBanner = banner ?: fStr(existingDoc, "banner")
 
         val fields = buildJsonObject {
             existingDoc?.keys?.forEach { k ->
@@ -799,17 +778,11 @@ class FirebaseRest(private val config: FirebaseConfig) {
             if (effHandle.isNotBlank()) {
                 put("handle", str(effHandle))
             }
-            if (effPhoto.isNotBlank()) {
-                put("avatar", str(effPhoto))
-                put("photoUrl", str(effPhoto))
-            }
-            if (effBio.isNotBlank()) {
-                put("about", str(effBio))
-                put("bio", str(effBio))
-            }
-            if (effBanner.isNotBlank()) {
-                put("banner", str(effBanner))
-            }
+            put("avatar", str(effPhoto))
+            put("photoUrl", str(effPhoto))
+            put("about", str(effBio))
+            put("bio", str(effBio))
+            put("banner", str(effBanner))
             put("updatedAt", serverTs())
 
             if (favTrack != null) {
@@ -827,10 +800,18 @@ class FirebaseRest(private val config: FirebaseConfig) {
             }
         }
 
+        val maskFields = mutableListOf(
+            "displayName", "name", "handle", "avatar", "photoUrl", "about", "bio", "banner", "updatedAt"
+        )
+        if (favTrack != null || clearFavTrack) {
+            maskFields.add("favTrack")
+        }
+        val maskQuery = maskFields.joinToString("") { "&updateMask.fieldPaths=$it" }
+
         var savedAny = false
         var lastErr = ""
         for (path in listOf("profiles/$uid", "users/$uid")) {
-            val url = docUrl(path)
+            val url = "${docUrl(path)}$maskQuery"
             val body = buildJsonObject { put("fields", fields) }
             val request = Request.Builder().url(url)
                 .header("Authorization", "Bearer $idToken")

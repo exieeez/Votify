@@ -202,8 +202,8 @@ class ProfileViewModel(
                 runCatching {
                     appContext.contentResolver.openInputStream(uri)?.use { input ->
                         val bmp = BitmapFactory.decodeStream(input) ?: return@runCatching null
-                        val maxW = 1280
-                        val maxH = 720
+                        val maxW = 800
+                        val maxH = 400
                         val scale = minOf(1f, maxW / bmp.width.toFloat(), maxH / bmp.height.toFloat())
                         val scaled = if (scale < 1f) {
                             Bitmap.createScaledBitmap(
@@ -214,7 +214,7 @@ class ProfileViewModel(
                             )
                         } else bmp
                         val out = java.io.ByteArrayOutputStream()
-                        scaled.compress(Bitmap.CompressFormat.JPEG, 82, out)
+                        scaled.compress(Bitmap.CompressFormat.JPEG, 75, out)
                         "data:image/jpeg;base64," + android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
                     }
                 }.getOrNull()
@@ -234,8 +234,8 @@ class ProfileViewModel(
                             uid = acct.uid,
                             displayName = curName,
                             handle = curHandle,
-                            photoUrl = p?.avatar.orEmpty(),
-                            bio = p?.about.orEmpty(),
+                            photoUrl = p?.avatar,
+                            bio = p?.about,
                             banner = dataUrl,
                             favTrack = p?.favTrack,
                         )
@@ -268,7 +268,7 @@ class ProfileViewModel(
                             )
                         } else bmp
                         val out = java.io.ByteArrayOutputStream()
-                        scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                        scaled.compress(Bitmap.CompressFormat.JPEG, 80, out)
                         "data:image/jpeg;base64," + android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
                     }
                 }.getOrNull()
@@ -298,8 +298,8 @@ class ProfileViewModel(
                     displayName = curName,
                     handle = curHandle,
                     photoUrl = dataUrl,
-                    bio = p?.about.orEmpty(),
-                    banner = p?.banner.orEmpty(),
+                    bio = p?.about,
+                    banner = p?.banner,
                     favTrack = p?.favTrack,
                 )
                 dataUrl
@@ -329,7 +329,7 @@ class ProfileViewModel(
                 val client = client() ?: error("no config")
                 val token = validToken(client, acct)
                 val fav = if (s.favCleared) null else (s.stagedFav ?: s.profile?.favTrack)
-                val avatar = s.stagedAvatar ?: s.profile?.avatar.orEmpty()
+                val avatar = s.stagedAvatar ?: s.profile?.avatar
                 client.saveProfile(
                     idToken = token,
                     uid = acct.uid,
@@ -339,6 +339,7 @@ class ProfileViewModel(
                     bio = s.editAbout,
                     banner = s.editBanner.trim(),
                     favTrack = fav,
+                    clearFavTrack = s.favCleared,
                 )
             }.onSuccess {
                 settingsRepo.setAccount(

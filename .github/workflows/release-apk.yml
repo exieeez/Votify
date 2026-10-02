@@ -64,6 +64,19 @@ jobs:
             echo
             echo "Сборка: ${GITHUB_SHA}"
           } > README.md
+          V_CODE=$(grep -oE 'versionCode\s*=\s*[0-9]+' "$GITHUB_WORKSPACE/android/app/build.gradle.kts" | grep -oE '[0-9]+' || echo "1")
+          V_NAME=$(grep -oE 'versionName\s*=\s*"[^"]+"' "$GITHUB_WORKSPACE/android/app/build.gradle.kts" | cut -d'"' -f2 || echo "1.0.0")
+          cat <<EOF > version.json
+          {
+            "versionCode": $V_CODE,
+            "versionName": "$V_NAME",
+            "sha": "${GITHUB_SHA}",
+            "shortSha": "${GITHUB_SHA:0:7}",
+            "downloadUrl": "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/apk/Votify-debug.apk",
+            "cdnUrl": "https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@apk/Votify-debug.apk",
+            "releaseUrl": "https://github.com/${GITHUB_REPOSITORY}/releases/download/android-debug/Votify-debug.apk"
+          }
+          EOF
           git add -A
           git commit -q -m "APK: сборка ${GITHUB_SHA:0:8}"
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git"

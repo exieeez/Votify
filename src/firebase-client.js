@@ -57,11 +57,11 @@
         .slice(0, 40),
       ...(handleRaw !== undefined ? { handle: handleRaw } : {}),
       avatar: String(profile.avatar || '').startsWith('data:image/') || String(profile.avatar || '').startsWith('https://')
-        ? String(profile.avatar).slice(0, 150000)
+        ? String(profile.avatar).slice(0, 300000)
         : '',
       about: String(profile.about || '').trim().slice(0, 300),
       banner: bannerRaw.startsWith('data:image/')
-        ? bannerRaw.slice(0, 200000)
+        ? bannerRaw.slice(0, 500000)
         : (bannerRaw.startsWith('http://') || bannerRaw.startsWith('https://'))
           ? bannerRaw.slice(0, 1000)
           : oneOf(bannerRaw, ['grad-1','grad-2','grad-3','grad-4','grad-5','grad-6','grad-7','grad-8','grad-9',''], ''),
@@ -449,16 +449,19 @@
     if (userSnap && userSnap.exists) data = { ...data, ...(userSnap.data() || {}) };
     if (profSnap && profSnap.exists) data = { ...data, ...(profSnap.data() || {}) };
 
-    const effectiveDisplayName = data.displayName || user.displayName || (user.email ? user.email.split('@')[0] : 'Гость');
+    const effectiveDisplayName = data.displayName || data.name || user.displayName || (user.email ? user.email.split('@')[0] : 'Гость');
     const effectiveHandle = data.handle || data.username || (user.email ? user.email.split('@')[0] : 'guest');
 
     const profile = {
       displayName: effectiveDisplayName,
+      name: effectiveDisplayName,
       handle: String(effectiveHandle).trim().replace(/^@/, '').toLowerCase(),
       email: user.email || '',
       isAnonymous: !!user.isAnonymous,
       avatar: data.avatar || data.photoUrl || '',
+      photoUrl: data.avatar || data.photoUrl || '',
       about: data.about || data.bio || '',
+      bio: data.about || data.bio || '',
       banner: data.banner || '',
       frame: data.frame || 'none',
       cursor: data.cursor || '',
@@ -476,6 +479,10 @@
         fsProfRef.set(profile, { merge: true }).catch(() => {}),
       ]);
     }
+
+    try {
+      localStorage.setItem('votifyLocalProfile', JSON.stringify(profile));
+    } catch (e) {}
 
     return profile;
   }
@@ -633,6 +640,12 @@
       }
       const payload = {
         ...safe,
+        name: safe.displayName,
+        displayName: safe.displayName,
+        avatar: safe.avatar,
+        photoUrl: safe.avatar,
+        about: safe.about,
+        bio: safe.about,
         email: user.email || '',
         isAnonymous: !!user.isAnonymous,
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
@@ -643,10 +656,13 @@
       ]).catch(() => {});
     }
     const currentLocal = JSON.parse(localStorage.getItem('votifyLocalProfile') || '{}');
-    const updatedLocal = { ...currentLocal, ...safe };
-    localStorage.setItem('votifyLocalProfile', JSON.stringify(updatedLocal));
+    const updatedLocal = { ...currentLocal, ...safe, name: safe.displayName };
+    try {
+      localStorage.setItem('votifyLocalProfile', JSON.stringify(updatedLocal));
+    } catch (e) {}
     state.profile = { ...(state.profile || {}), ...updatedLocal };
     dispatchAuthState();
+    updateAccountUi();
     return state.profile;
   }
 
@@ -1264,10 +1280,23 @@
     const bannerBg = document.getElementById('profile-banner-bg');
     const pageBannerBg = document.getElementById('page-profile-banner-bg');
     const bannerVal = profile.banner || '';
+    const bannerGradients = {
+      'grad-1': 'linear-gradient(135deg, #7928ca 0%, #ff0080 50%, #11101d 100%)',
+      'grad-2': 'linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #050b14 100%)',
+      'grad-3': 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)',
+      'grad-4': 'linear-gradient(135deg, #10b981 0%, #059669 50%, #022c22 100%)',
+      'grad-5': 'linear-gradient(135deg, #ff416c 0%, #ff4b2b 50%, #1a0505 100%)',
+      'grad-6': 'linear-gradient(135deg, #00c6ff 0%, #0072ff 50%, #030f26 100%)',
+      'grad-7': 'linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #0f172a 100%)',
+      'grad-8': 'linear-gradient(135deg, #f43f5e 0%, #fb7185 50%, #1e050c 100%)',
+      'grad-9': 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
+    };
     const applyBanner = (el, val) => {
       if (!el) return;
       if (val && (val.startsWith('http') || val.startsWith('data:image/'))) {
         el.style.backgroundImage = `url("${val.replace(/"/g, '\\"')}")`;
+      } else if (val && bannerGradients[val]) {
+        el.style.backgroundImage = bannerGradients[val];
       } else {
         el.style.backgroundImage = 'none';
         el.style.backgroundColor = '#14161f';

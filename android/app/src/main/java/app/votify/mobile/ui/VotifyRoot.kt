@@ -385,6 +385,10 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 Column {
+                    app.votify.mobile.ui.common.UpdateBanner(
+                        updateManager = app.updateManager,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
                     AnimatedVisibility(visible = hasMini, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
                         val cp = parseCustomPrefs(settings.customPrefs)
                         MiniPlayer(
@@ -527,7 +531,6 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         onOpenGeneral = { navController.navigate(Routes.GENERAL) { launchSingleTop = true } },
                         onOpenAudio = { navController.navigate(Routes.AUDIO) { launchSingleTop = true } },
                         onOpenStorage = { navController.navigate(Routes.STORAGE) { launchSingleTop = true } },
-                        onOpenSwipe = { navController.navigate(Routes.SWIPES) { launchSingleTop = true } },
                         onOpenInterface = { navController.navigate(Routes.INTERFACE) { launchSingleTop = true } },
                         onOpenPlayer = { navController.navigate(Routes.PLAYER) { launchSingleTop = true } },
                         onOpenArtwork = { navController.navigate(Routes.ARTWORK) { launchSingleTop = true } },
@@ -550,9 +553,6 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 }
                 composable(Routes.STORAGE) {
                     StorageSettingsScreen(settingsVm, contentPadding, onBack = { navController.popBackStack() })
-                }
-                composable(Routes.SWIPES) {
-                    SwipeSettingsScreen(settingsVm, contentPadding, onBack = { navController.popBackStack() })
                 }
                 composable(Routes.INTERFACE) {
                     InterfaceSettingsScreen(settingsVm, contentPadding, onBack = { navController.popBackStack() })

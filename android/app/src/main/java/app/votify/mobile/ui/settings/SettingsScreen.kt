@@ -46,7 +46,6 @@ fun SettingsScreen(
     onOpenGeneral: () -> Unit,
     onOpenAudio: () -> Unit,
     onOpenStorage: () -> Unit,
-    onOpenSwipe: () -> Unit,
     onOpenInterface: () -> Unit,
     onOpenPlayer: () -> Unit,
     onOpenArtwork: () -> Unit,
@@ -80,8 +79,6 @@ fun SettingsScreen(
             SettingsNavRow(Icons.Outlined.MusicNote, stringResource(R.string.settings_audio), null, onOpenAudio)
             SettingsDivider()
             SettingsNavRow(Icons.Outlined.Storage, stringResource(R.string.settings_storage), null, onOpenStorage)
-            SettingsDivider()
-            SettingsNavRow(Icons.Outlined.SwapHoriz, stringResource(R.string.settings_swipes), null, onOpenSwipe)
         }
 
         SettingsSectionLabel(stringResource(R.string.settings_cat_appearance))
@@ -105,6 +102,17 @@ fun SettingsScreen(
         SettingsSectionLabel(stringResource(R.string.settings_cat_integrations))
         SettingsCard {
             SettingsNavRow(Icons.Outlined.Security, stringResource(R.string.settings_proxy), null, onOpenProxy)
+        }
+
+        SettingsSectionLabel("Обновление")
+        SettingsCard {
+            SettingsNavRow(
+                androidx.compose.material.icons.Icons.Outlined.SystemUpdate,
+                "Проверить обновления",
+                "Версия ${app.votify.mobile.BuildConfig.VERSION_NAME} (${app.votify.mobile.BuildConfig.BUILD_SHA.take(7)})",
+            ) {
+                app.votify.mobile.VotifyApp.instance.updateManager.checkForUpdate(force = true)
+            }
         }
     }
 }
