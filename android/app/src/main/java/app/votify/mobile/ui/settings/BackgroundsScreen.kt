@@ -690,7 +690,7 @@ private fun HomeMockupOverlay() {
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    stringResource(R.string.home_wave_title),
+                    stringResource(R.string.home_my_wave),
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
@@ -724,7 +724,7 @@ private fun HomeMockupOverlay() {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.home_favorites), style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.SemiBold)
-                Text(stringResource(R.string.favorites_empty), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                Text(stringResource(R.string.library_favorites_empty), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
             }
             Icon(Icons.Outlined.ChevronRight, null, tint = Color.White.copy(alpha = 0.4f))
         }
