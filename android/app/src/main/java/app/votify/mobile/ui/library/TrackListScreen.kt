@@ -565,7 +565,11 @@ fun PlaylistScreen(
 
     val isCurrentPlaylist = tracks.any { it.id == currentTrackId }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0c0d10))
+    ) {
         // Heavily blurred background cover image
         val bgModel = remember(coverUrl) { resolveCoverModel(coverUrl) }
         if (bgModel != null) {
@@ -576,7 +580,7 @@ fun PlaylistScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .blur(50.dp)
-                    .alpha(0.45f),
+                    .alpha(0.40f),
             )
         }
 
@@ -587,9 +591,9 @@ fun PlaylistScreen(
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color.Black.copy(alpha = 0.45f),
-                            Color.Black.copy(alpha = 0.8f),
-                            Color(0xFF0c0d10).copy(alpha = 0.96f),
+                            Color.Black.copy(alpha = 0.5f),
+                            Color(0xFF0c0d10).copy(alpha = 0.85f),
+                            Color(0xFF0c0d10),
                             Color(0xFF0c0d10),
                         )
                     )
