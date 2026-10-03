@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -242,26 +244,57 @@ fun PillChip(
     }
 }
 
-/** Level-2 card: #1E1E1E surface with a 1px #2A2A2A border and 16dp corners. */
+/**
+ * Liquid Glass modifier: translucent frosted glass with specular highlight border,
+ * subtle gradient surface and glassy shine.
+ */
+fun Modifier.liquidGlass(
+    shape: Shape = RoundedCornerShape(16.dp),
+    backgroundColor: Color = Color.White.copy(alpha = 0.08f),
+    borderColor: Color = Color.White.copy(alpha = 0.20f),
+    borderWidth: Dp = 1.dp,
+): Modifier = this
+    .clip(shape)
+    .background(
+        Brush.verticalGradient(
+            colors = listOf(
+                backgroundColor.copy(alpha = (backgroundColor.alpha * 1.35f).coerceAtMost(1f)),
+                backgroundColor.copy(alpha = (backgroundColor.alpha * 0.70f).coerceAtMost(1f)),
+            )
+        )
+    )
+    .border(
+        width = borderWidth,
+        brush = Brush.verticalGradient(
+            colors = listOf(
+                borderColor,
+                borderColor.copy(alpha = (borderColor.alpha * 0.25f).coerceAtMost(1f)),
+            )
+        ),
+        shape = shape,
+    )
+
+/** Level-2 card: Liquid glass surface with subtle specular border and rounded corners. */
 @Composable
 fun VotifyCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     shape: RoundedCornerShape = RoundedCornerShape(16.dp),
-    color: Color = VotifyColors.SurfaceContainer,
+    color: Color = Color.White.copy(alpha = 0.08f),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     content: @Composable () -> Unit,
 ) {
-    val base = modifier
-        .clip(shape)
-        .background(color)
-        .border(1.dp, VotifyColors.BorderSubtle, shape)
+    val base = modifier.liquidGlass(
+        shape = shape,
+        backgroundColor = if (color == VotifyColors.SurfaceContainer) Color.White.copy(alpha = 0.08f) else color,
+        borderColor = Color.White.copy(alpha = 0.20f),
+    )
     Box(
         (if (onClick != null) base.clickable(onClick = onClick) else base).padding(contentPadding),
     ) { content() }
 }
 
-/** Circular 40dp icon action button on a #1E1E1E disc. */
+/** Circular 40dp icon action button on a liquid glass disc. */
 @Composable
 fun CircleIconButton(
     onClick: () -> Unit,
@@ -278,8 +311,12 @@ fun CircleIconButton(
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = fillColor ?: if (filled) VotifyColors.Primary else VotifyColors.SurfaceContainer,
+        color = fillColor ?: if (filled) VotifyColors.Primary else Color.White.copy(alpha = 0.09f),
         contentColor = tintColor ?: if (filled) VotifyColors.OnPrimary else VotifyColors.TextPrimary,
+        border = if (filled) null else BorderStroke(
+            1.dp,
+            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.24f), Color.White.copy(alpha = 0.05f)))
+        ),
         modifier = modifier.size(size),
     ) {
         Box(contentAlignment = Alignment.Center) { icon() }

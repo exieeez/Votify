@@ -23,12 +23,40 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        enableHighRefreshRate()
         requestNotificationPermissionIfNeeded()
         setContent {
             // VotifyRoot applies VotifyTheme itself (the palette comes from user settings).
             VotifyRoot()
         }
         reconcileAppIcon()
+    }
+
+    /**
+     * Enables 120Hz / high refresh rate display mode on devices that support it,
+     * ensuring ultra-smooth scrolling and animations across the entire UI.
+     */
+    private fun enableHighRefreshRate() {
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val modes = display?.supportedModes.orEmpty()
+                val maxRefreshRateMode = modes.maxByOrNull { it.refreshRate }
+                if (maxRefreshRateMode != null && maxRefreshRateMode.refreshRate >= 90f) {
+                    val params = window.attributes
+                    params.preferredDisplayModeId = maxRefreshRateMode.modeId
+                    window.attributes = params
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                @Suppress("DEPRECATION")
+                val modes = window.windowManager.defaultDisplay.supportedModes
+                val maxRefreshRateMode = modes?.maxByOrNull { it.refreshRate }
+                if (maxRefreshRateMode != null && maxRefreshRateMode.refreshRate >= 90f) {
+                    val params = window.attributes
+                    params.preferredDisplayModeId = maxRefreshRateMode.modeId
+                    window.attributes = params
+                }
+            }
+        }
     }
 
     override fun onStart() {

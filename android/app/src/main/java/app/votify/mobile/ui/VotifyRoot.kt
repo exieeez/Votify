@@ -444,7 +444,15 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 }
             },
         ) { _ ->
-            NavHost(navController, startDestination = Tab.Home.route, modifier = Modifier.fillMaxSize()) {
+            NavHost(
+                navController,
+                startDestination = Tab.Home.route,
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) },
+                exitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(120)) },
+                popEnterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) },
+                popExitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(120)) },
+            ) {
                 composable(Tab.Home.route) {
                     HomeScreen(
                         viewModel = homeVm,
@@ -460,6 +468,8 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         onOpenAccount = { navController.navigate(Routes.PROFILE) { launchSingleTop = true } },
                         onOpenTrending = { navController.navigate(Routes.TRENDING) { launchSingleTop = true } },
                         onOpenSite = { openSite(context) },
+                        onOpenPlaylist = { id -> navController.navigate("playlist/$id") { launchSingleTop = true } },
+                        onOpenArtist = { name -> navController.navigate("artist/${android.net.Uri.encode(name)}") { launchSingleTop = true } },
                     )
                 }
                 composable(Tab.Search.route) {

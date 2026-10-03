@@ -15,9 +15,34 @@ import kotlinx.coroutines.launch
 
 enum class WaveSource { Personal, Generic }
 
+data class HomePlaylistItem(
+    val id: Long = 0,
+    val name: String,
+    val subtitle: String,
+    val cover: String?,
+    val isLocal: Boolean = false,
+)
+
+data class HomeArtistItem(
+    val name: String,
+    val followers: String,
+    val avatarUrl: String?,
+)
+
+data class HomeReleaseItem(
+    val title: String,
+    val artist: String,
+    val cover: String?,
+    val track: Track? = null,
+)
+
 data class HomeUiState(
     /** Tracks shown as orbit bubbles around the big Play and used as the wave queue. */
     val wave: List<Track> = emptyList(),
+    val forYouTracks: List<Track> = emptyList(),
+    val forYouPlaylists: List<HomePlaylistItem> = emptyList(),
+    val forYouArtists: List<HomeArtistItem> = emptyList(),
+    val forYouReleases: List<HomeReleaseItem> = emptyList(),
     /** Whether the wave was built from the user's history or from generic recommendations. */
     val waveSource: WaveSource = WaveSource.Generic,
     /** The artists the wave was seeded with (for the caption under the hero). */
@@ -108,11 +133,49 @@ class HomeViewModel(
                     } else {
                         tracks
                     }
+
+                    // For You tracks: recommended tracks
+                    val forYouTracks = if (wave.size > 8) wave.drop(8) else wave
+
+                    // Playlists: user playlists from DB + curated aesthetic playlists
+                    val localPlaylists = runCatching { library.playlists.first() }.getOrDefault(emptyList())
+                    val playlistItems = localPlaylists.map { pl ->
+                        HomePlaylistItem(
+                            id = pl.id,
+                            name = pl.name,
+                            subtitle = "${pl.trackCount} треков",
+                            cover = pl.cover,
+                            isLocal = true,
+                        )
+                    } + curatedPlaylists
+
+                    // Artists: user top artists + underground favorites
+                    val userArtists = artistSeeds.map { name ->
+                        HomeArtistItem(
+                            name = name,
+                            followers = "В вашей медиатеке",
+                            avatarUrl = wave.firstOrNull { it.artist.contains(name, true) }?.cover,
+                        )
+                    }
+                    val allArtists = (userArtists + curatedArtists).distinctBy { it.name.lowercase() }
+
+                    // Releases: derive from wave tracks or curated
+                    val releaseItems = wave.take(6).map { t ->
+                        HomeReleaseItem(
+                            title = t.title,
+                            artist = t.artist,
+                            cover = t.cover,
+                            track = t,
+                        )
+                    }.ifEmpty { curatedReleases }
+
                     _state.update {
                         it.copy(
-                            // Персональную волну не перемешиваем: она уже отранжирована
-                            // по похожести. Общие рекомендации мешаем — там порядок случаен.
                             wave = if (personal && wave.isNotEmpty()) wave else wave.shuffled(),
+                            forYouTracks = forYouTracks,
+                            forYouPlaylists = playlistItems,
+                            forYouArtists = allArtists,
+                            forYouReleases = releaseItems,
                             waveSource = if (personal && wave.isNotEmpty()) WaveSource.Personal else WaveSource.Generic,
                             seeds = artistSeeds,
                             isLoading = false,
@@ -121,8 +184,116 @@ class HomeViewModel(
                     music.preload(wave.take(2).map { t -> t.id })
                 }
                 .onFailure { e ->
-                    _state.update { it.copy(isLoading = false, error = e.message ?: "error") }
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = e.message ?: "error",
+                            forYouPlaylists = curatedPlaylists,
+                            forYouArtists = curatedArtists,
+                            forYouReleases = curatedReleases,
+                        )
+                    }
                 }
         }
+    }
+
+    fun playSearch(query: String, onPlay: (List<Track>, Int) -> Unit) {
+        viewModelScope.launch {
+            val tracks = runCatching { music.search(query, limit = 16) }.getOrDefault(emptyList())
+            if (tracks.isNotEmpty()) {
+                onPlay(tracks, 0)
+            }
+        }
+    }
+
+    companion object {
+        private val curatedPlaylists = listOf(
+            HomePlaylistItem(
+                name = "🤍🖤🤍",
+                subtitle = "homie",
+                cover = "https://i.scdn.co/image/ab67616d0000b2738a0f9b6b801a61c56b7c9360",
+            ),
+            HomePlaylistItem(
+                name = "Магнит",
+                subtitle = "курящих нет",
+                cover = "https://i.scdn.co/image/ab67616d0000b273d6b0521e1d3550e5033c46e3",
+            ),
+            HomePlaylistItem(
+                name = "жост...",
+                subtitle = "Milly",
+                cover = "https://i.scdn.co/image/ab67616d0000b27361be526c8b9d31198fb9622d",
+            ),
+            HomePlaylistItem(
+                name = "DARK DRIFT",
+                subtitle = "Votify",
+                cover = "https://i.scdn.co/image/ab67616d0000b27376c764a2c5b367fc9b03ef88",
+            ),
+        )
+
+        private val curatedArtists = listOf(
+            HomeArtistItem(
+                name = "ONDA ANDAR",
+                followers = "59.8K подписчиков",
+                avatarUrl = "https://i.scdn.co/image/ab6761610000e5ebc1fbf0465a3c1a851bb8d929",
+            ),
+            HomeArtistItem(
+                name = "zhanulka",
+                followers = "48.1K подписчиков",
+                avatarUrl = "https://i.scdn.co/image/ab6761610000e5eb1d279cfbb6e300170a75d506",
+            ),
+            HomeArtistItem(
+                name = "madk1d",
+                followers = "72.4K подписчиков",
+                avatarUrl = "https://i.scdn.co/image/ab6761610000e5ebb6b95b8d0cbbcfcb92a2a01d",
+            ),
+            HomeArtistItem(
+                name = "ICEGERGERT",
+                followers = "125K подписчиков",
+                avatarUrl = "https://i.scdn.co/image/ab6761610000e5ebff2dbe2cfa3065a319409893",
+            ),
+            HomeArtistItem(
+                name = "Friendly Thug 52",
+                followers = "210K подписчиков",
+                avatarUrl = "https://i.scdn.co/image/ab6761610000e5ebcb53aeb3f76023253b27b9ef",
+            ),
+            HomeArtistItem(
+                name = "Toxi$",
+                followers = "315K подписчиков",
+                avatarUrl = "https://i.scdn.co/image/ab6761610000e5ebd74f514b7410313a96898d9a",
+            ),
+            HomeArtistItem(
+                name = "VILLIAN",
+                followers = "38.2K подписчиков",
+                avatarUrl = "https://i.scdn.co/image/ab6761610000e5eb6046e7f77f0d0ecceb6e147e",
+            ),
+        )
+
+        private val curatedReleases = listOf(
+            HomeReleaseItem(
+                title = "Мало",
+                artist = "AVICH",
+                cover = "https://i.scdn.co/image/ab67616d0000b273ba95a32ec484dfce047c32e5",
+            ),
+            HomeReleaseItem(
+                title = "БУНКЕР",
+                artist = "ktsukoma",
+                cover = "https://i.scdn.co/image/ab67616d0000b273f608f654b4231b2682976d8b",
+            ),
+            HomeReleaseItem(
+                title = "VIP",
+                artist = "ARTEM SHILOVETS",
+                cover = "https://i.scdn.co/image/ab67616d0000b273415cf2aeaf5513fa096dfc8e",
+            ),
+            HomeReleaseItem(
+                title = "HEAVY METAL 2",
+                artist = "163ONMYNECK",
+                cover = "https://i.scdn.co/image/ab67616d0000b2734e56598586f1eef811559ee5",
+            ),
+            HomeReleaseItem(
+                title = "GLORY HILL",
+                artist = "Bushido Zho",
+                cover = "https://i.scdn.co/image/ab67616d0000b273ef3ec3a06ad3776602c114f0",
+            ),
+        )
     }
 }

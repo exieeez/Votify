@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +27,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,6 +53,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -63,6 +73,7 @@ import app.votify.mobile.ui.components.Artwork
 import app.votify.mobile.ui.components.CircleIconButton
 import app.votify.mobile.ui.components.PillChip
 import app.votify.mobile.ui.components.VotifyCard
+import app.votify.mobile.ui.components.liquidGlass
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
@@ -86,6 +97,8 @@ fun HomeScreen(
     onOpenAccount: () -> Unit,
     onOpenTrending: () -> Unit,
     onOpenSite: () -> Unit,
+    onOpenPlaylist: (Long) -> Unit = {},
+    onOpenArtist: (String) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val recent by viewModel.recent.collectAsStateWithLifecycle()
@@ -168,56 +181,90 @@ fun HomeScreen(
             )
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
 
-        // --- Recent (listening history) ---
-        VotifyCard(
-            Modifier
+        // --- "Недавние" card with liquid glass and stacked artwork covers ---
+        Box(
+            modifier = Modifier
                 .padding(horizontal = 16.dp)
-                .fillMaxWidth(),
-            onClick = onOpenHistory,
-            contentPadding = PaddingValues(12.dp),
+                .fillMaxWidth()
+                .liquidGlass(
+                    shape = RoundedCornerShape(18.dp),
+                    backgroundColor = Color.White.copy(alpha = 0.08f),
+                    borderColor = Color.White.copy(alpha = 0.22f),
+                )
+                .clickable(onClick = onOpenHistory)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(48.dp)) {
+                // Stacked covers
+                Box(Modifier.size(52.dp), contentAlignment = Alignment.CenterStart) {
                     val second = recent.getOrNull(1)?.cover.orEmpty()
                     if (second.isNotBlank()) {
                         Artwork(
                             url = second,
                             size = 40.dp,
-                            modifier = Modifier.align(Alignment.TopEnd).graphicsLayer { rotationZ = 6f },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .offset(x = 8.dp)
+                                .graphicsLayer { rotationZ = 8f },
                         )
                     } else {
                         Box(
                             Modifier
-                                .align(Alignment.TopEnd)
+                                .align(Alignment.CenterStart)
+                                .offset(x = 8.dp)
                                 .size(40.dp)
-                                .graphicsLayer { rotationZ = 6f }
-                                .clip(RoundedCornerShape(8.dp))
+                                .graphicsLayer { rotationZ = 8f }
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(VotifyColors.SurfaceContainerHighest),
                         )
                     }
                     Artwork(
                         url = recent.firstOrNull()?.cover.orEmpty(),
-                        size = 40.dp,
-                        modifier = Modifier.align(Alignment.TopStart).border(1.dp, VotifyColors.BorderProminent, RoundedCornerShape(8.dp)),
+                        size = 44.dp,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .border(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.08f))
+                                ),
+                                RoundedCornerShape(10.dp),
+                            ),
                     )
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.home_recent), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.home_recent),
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(2.dp))
                     Text(
                         if (recent.isEmpty()) stringResource(R.string.home_recent_empty)
-                        else recent.first().title + " · " + recent.first().artist,
-                        style = MaterialTheme.typography.bodySmall,
+                        else pluralTracks(recent.size),
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                         color = VotifyColors.TextMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 if (recent.isNotEmpty()) {
-                    CircleIconButton(onClick = { onPlay(recent, 0) }, size = 36.dp, contentDescription = stringResource(R.string.player_play)) {
-                        Icon(Icons.Filled.PlayArrow, null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(20.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                            .clickable { onPlay(recent, 0) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(20.dp))
                     }
                     Spacer(Modifier.width(4.dp))
                 }
@@ -225,9 +272,116 @@ fun HomeScreen(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        // --- Main Section: "Для вас" (replacing "Популярное") ---
+        Text(
+            text = "Для вас",
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 6.dp),
+        )
 
-        // --- Quick tiles: Favorites / Trending ---
+        // 1. "Треки"
+        Text(
+            text = "Треки",
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+            color = VotifyColors.TextMuted,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp),
+        )
+        val forYouTracks = state.forYouTracks.ifEmpty { state.wave }
+        if (forYouTracks.isNotEmpty()) {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                itemsIndexed(forYouTracks) { index, track ->
+                    TrackCard(
+                        track = track,
+                        onClick = { onPlay(forYouTracks, index) },
+                    )
+                }
+            }
+        }
+
+        // 2. "Плейлисты"
+        Text(
+            text = "Плейлисты",
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+            color = VotifyColors.TextMuted,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 10.dp),
+        )
+        if (state.forYouPlaylists.isNotEmpty()) {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                items(state.forYouPlaylists) { pl ->
+                    PlaylistCard(
+                        playlist = pl,
+                        onClick = {
+                            if (pl.isLocal) {
+                                onOpenPlaylist(pl.id)
+                            } else {
+                                viewModel.playSearch("${pl.name} ${pl.subtitle}", onPlay)
+                            }
+                        },
+                    )
+                }
+            }
+        }
+
+        // 3. "Артисты"
+        Text(
+            text = "Артисты",
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+            color = VotifyColors.TextMuted,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 10.dp),
+        )
+        if (state.forYouArtists.isNotEmpty()) {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                items(state.forYouArtists) { artist ->
+                    ArtistCard(
+                        artist = artist,
+                        onClick = { onOpenArtist(artist.name) },
+                    )
+                }
+            }
+        }
+
+        // 4. "Релизы"
+        Text(
+            text = "Релизы",
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 10.dp),
+        )
+        if (state.forYouReleases.isNotEmpty()) {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                items(state.forYouReleases) { release ->
+                    ReleaseCard(
+                        release = release,
+                        onClick = {
+                            if (release.track != null) {
+                                onPlay(listOf(release.track), 0)
+                            } else {
+                                viewModel.playSearch("${release.artist} ${release.title}", onPlay)
+                            }
+                        },
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // Quick tiles: Favorites / Trending
         Row(
             Modifier
                 .padding(horizontal = 16.dp)
@@ -269,8 +423,13 @@ private fun HomeHeader(
         Surface(
             onClick = onOpenSite,
             shape = CircleShape,
-            color = VotifyColors.SurfaceContainer,
-            border = BorderStroke(1.dp, VotifyColors.BorderSubtle),
+            color = Color.White.copy(alpha = 0.08f),
+            border = BorderStroke(
+                1.dp,
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))
+                ),
+            ),
         ) {
             Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Image(
@@ -279,7 +438,7 @@ private fun HomeHeader(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Votify", style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text("Votify", style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.SemiBold)
             }
         }
         Spacer(Modifier.weight(1f))
@@ -315,8 +474,7 @@ private fun homeLyricLine(
 
 /**
  * The hero of the home screen: a 72dp white Play disc in the centre with up to 8 artwork
- * bubbles scattered on an orbit around it. The orbit slowly drifts; tapping a bubble plays
- * that track, tapping Play starts the whole wave.
+ * squircle bubbles scattered on an orbit around it.
  */
 @Composable
 private fun WaveOrbit(
@@ -328,33 +486,38 @@ private fun WaveOrbit(
     val drift by rememberInfiniteTransition(label = "orbit").animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(90_000, easing = LinearEasing), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(tween(70_000, easing = LinearEasing), RepeatMode.Restart),
         label = "drift",
     )
 
-    Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(310.dp), contentAlignment = Alignment.Center) {
         bubbles.forEachIndexed { i, track ->
-            // One round orbit for every bubble (user request); sizes still vary a little.
-            val radius: Dp = 118.dp
+            val radius: Dp = 120.dp
             val size: Dp = if (i % 2 == 0) 56.dp else 48.dp
             val angle = Math.toRadians((i * (360.0 / bubbles.size)) - 90 + drift)
             val dx = (radius.value * cos(angle)).toFloat().dp
             val dy = (radius.value * sin(angle)).toFloat().dp
+            val shape = RoundedCornerShape(16.dp)
             Box(
                 Modifier
                     .offset(x = dx, y = dy)
                     .size(size)
-                    .clip(CircleShape)
-                    .border(1.dp, VotifyColors.BorderProminent.copy(alpha = 0.6f), CircleShape)
+                    .clip(shape)
+                    .border(
+                        1.dp,
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.08f))
+                        ),
+                        shape,
+                    )
                     .clickable { onPlayTrack(i) },
             ) {
-                Artwork(track.cover, size = size, shape = RoundedCornerShape(50), contentDescription = track.title)
+                Artwork(track.cover, size = size, shape = shape, contentDescription = track.title)
             }
         }
 
-        // При смене акцента кнопка перекрашивается плавно, а не «щёлкает» цветом.
-        val heroFill by animateColorAsState(VotifyColors.AccentFill, tween(260), label = "heroFill")
-        val heroContent by animateColorAsState(VotifyColors.AccentContent, tween(260), label = "heroContent")
+        val heroFill by animateColorAsState(VotifyColors.AccentFill, tween(160), label = "heroFill")
+        val heroContent by animateColorAsState(VotifyColors.AccentContent, tween(160), label = "heroContent")
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(
@@ -363,6 +526,7 @@ private fun WaveOrbit(
                 color = heroFill,
                 contentColor = heroContent,
                 shadowElevation = 0.dp,
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                 modifier = Modifier.size(72.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -376,10 +540,311 @@ private fun WaveOrbit(
             Spacer(Modifier.height(10.dp))
             Text(
                 stringResource(R.string.home_my_wave),
-                style = MaterialTheme.typography.titleMedium,
-                color = VotifyColors.TextSecondary,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                color = Color.White,
                 fontWeight = FontWeight.Medium,
             )
+        }
+    }
+}
+
+@Composable
+private fun TrackCard(
+    track: Track,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(135.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(135.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(
+                    1.dp,
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.05f))
+                    ),
+                    RoundedCornerShape(16.dp),
+                ),
+        ) {
+            Artwork(
+                url = track.cover,
+                size = 135.dp,
+                shape = RoundedCornerShape(16.dp),
+                contentDescription = track.title,
+                modifier = Modifier.fillMaxSize(),
+            )
+            SpotifyBadge(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = track.title,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = track.artist,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+            color = VotifyColors.TextMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun PlaylistCard(
+    playlist: HomePlaylistItem,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(135.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(135.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(
+                    1.dp,
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.05f))
+                    ),
+                    RoundedCornerShape(16.dp),
+                ),
+        ) {
+            Artwork(
+                url = playlist.cover,
+                size = 135.dp,
+                shape = RoundedCornerShape(16.dp),
+                contentDescription = playlist.name,
+                modifier = Modifier.fillMaxSize(),
+            )
+            PlaylistBadge(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = playlist.name,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = playlist.subtitle,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+            color = VotifyColors.TextMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun ArtistCard(
+    artist: HomeArtistItem,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(112.dp)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(112.dp)
+                .clip(CircleShape)
+                .border(
+                    1.5.dp,
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.08f))
+                    ),
+                    CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Artwork(
+                url = artist.avatarUrl,
+                size = 112.dp,
+                shape = CircleShape,
+                contentDescription = artist.name,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = artist.name,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = artist.followers,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+            color = VotifyColors.TextMuted,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun ReleaseCard(
+    release: HomeReleaseItem,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(135.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(135.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(
+                    1.dp,
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.05f))
+                    ),
+                    RoundedCornerShape(16.dp),
+                ),
+        ) {
+            Artwork(
+                url = release.cover,
+                size = 135.dp,
+                shape = RoundedCornerShape(16.dp),
+                contentDescription = release.title,
+                modifier = Modifier.fillMaxSize(),
+            )
+            ReleaseBadge(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = release.title,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = release.artist,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+            color = VotifyColors.TextMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** Spotify green circular badge for tracks. */
+@Composable
+private fun SpotifyBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF1DB954))
+            .border(0.5.dp, Color.White.copy(alpha = 0.25f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.size(14.dp)) {
+            val stroke = Stroke(
+                width = 1.8.dp.toPx(),
+                cap = StrokeCap.Round,
+            )
+            val w = size.width
+            val h = size.height
+            // Top arc
+            val p1 = Path().apply {
+                moveTo(w * 0.18f, h * 0.38f)
+                quadraticTo(w * 0.52f, h * 0.22f, w * 0.82f, h * 0.32f)
+            }
+            drawPath(p1, Color.Black, style = stroke)
+            // Middle arc
+            val p2 = Path().apply {
+                moveTo(w * 0.24f, h * 0.56f)
+                quadraticTo(w * 0.52f, h * 0.44f, w * 0.76f, h * 0.52f)
+            }
+            drawPath(p2, Color.Black, style = stroke)
+            // Bottom arc
+            val p3 = Path().apply {
+                moveTo(w * 0.30f, h * 0.74f)
+                quadraticTo(w * 0.52f, h * 0.64f, w * 0.70f, h * 0.70f)
+            }
+            drawPath(p3, Color.Black, style = stroke)
+        }
+    }
+}
+
+/** Playlist badge (3 horizontal queue lines). */
+@Composable
+private fun PlaylistBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF181818))
+            .border(0.5.dp, Color.White.copy(alpha = 0.25f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.size(12.dp)) {
+            val stroke = Stroke(
+                width = 1.6.dp.toPx(),
+                cap = StrokeCap.Round,
+            )
+            val w = size.width
+            val h = size.height
+            drawLine(Color.White, Offset(w * 0.15f, h * 0.25f), Offset(w * 0.85f, h * 0.25f), strokeWidth = stroke.width, cap = stroke.cap)
+            drawLine(Color.White, Offset(w * 0.15f, h * 0.50f), Offset(w * 0.85f, h * 0.50f), strokeWidth = stroke.width, cap = stroke.cap)
+            drawLine(Color.White, Offset(w * 0.15f, h * 0.75f), Offset(w * 0.60f, h * 0.75f), strokeWidth = stroke.width, cap = stroke.cap)
+        }
+    }
+}
+
+/** Release badge (vinyl disc icon). */
+@Composable
+private fun ReleaseBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF181818))
+            .border(0.5.dp, Color.White.copy(alpha = 0.25f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.size(13.dp)) {
+            val stroke = Stroke(width = 1.2.dp.toPx())
+            drawCircle(Color.White, radius = size.minDimension * 0.45f, style = stroke)
+            drawCircle(Color.White, radius = size.minDimension * 0.15f)
         }
     }
 }
