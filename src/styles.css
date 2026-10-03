@@ -11359,25 +11359,7 @@ body {
 }
 
 #playlist-screen .pl-screen-backdrop {
-  position: absolute;
-  top: -40px;
-  left: -40px;
-  right: -40px;
-  bottom: -40px;
-  background-size: cover;
-  background-position: center;
-  filter: blur(50px) saturate(160%) brightness(0.75);
-  opacity: 0.95;
-  pointer-events: none;
-  z-index: 0;
-  transition: background-image 0.4s ease;
-}
-
-#playlist-screen .pl-screen-backdrop::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(10, 10, 14, 0.12) 0%, rgba(10, 10, 14, 0.45) 45%, #0a0a0e 85%, #0a0a0e 100%);
+  display: none !important;
 }
 
 #playlist-screen .library-modern-wrap {

@@ -580,18 +580,18 @@ fun PlaylistScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .blur(45.dp)
-                    .alpha(0.85f),
+                    .alpha(0.55f),
             )
         } else {
-            // Ambient vivid fallback gradient when no cover is present
+            // Ambient subtle fallback gradient when no cover is present
             Box(
                 Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                Color(0xFF3b2361),
-                                Color(0xFF1a172e),
+                                Color(0xFF281944),
+                                Color(0xFF141224),
                                 Color(0xFF0c0d10),
                                 Color(0xFF0c0d10),
                             )
@@ -606,10 +606,10 @@ fun PlaylistScreen(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0.0f to Color.Black.copy(alpha = 0.15f),
-                        0.25f to Color.Transparent,
-                        0.52f to Color(0xFF0c0d10).copy(alpha = 0.40f),
-                        0.74f to Color(0xFF0c0d10).copy(alpha = 0.90f),
+                        0.0f to Color.Black.copy(alpha = 0.40f),
+                        0.22f to Color.Black.copy(alpha = 0.20f),
+                        0.48f to Color(0xFF0c0d10).copy(alpha = 0.65f),
+                        0.72f to Color(0xFF0c0d10).copy(alpha = 0.92f),
                         0.88f to Color(0xFF0c0d10),
                         1.0f to Color(0xFF0c0d10),
                     )
