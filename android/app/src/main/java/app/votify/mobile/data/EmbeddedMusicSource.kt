@@ -11,6 +11,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request as OkHttpRequest
@@ -686,20 +687,37 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
      */
     fun resolveAudioUrl(trackId: String, quality: AudioQuality): String {
         ensureInit()
-        if (trackId.startsWith("sc_")) {
-            // Legacy id format produced by the PC server — resolvable only through that server.
-            throw IOException("SoundCloud id «$trackId» требует сервер Votify")
-        }
         val cacheKey = "$trackId|${quality.key}"
         val cached = streamCache[cacheKey]
         if (cached != null && System.currentTimeMillis() - cached.at < STREAM_TTL_MS) return cached.url
 
+        if (trackId.startsWith("sc_")) {
+            val scStream = resolveSoundcloudStreamDirect(trackId.removePrefix("sc_"))
+                ?: throw IOException("Не удалось получить аудиопоток SoundCloud")
+            streamCache[cacheKey] = CachedUrl(scStream, System.currentTimeMillis())
+            return scStream
+        }
+
         val pageUrl = if (trackId.startsWith("http")) trackId else "https://www.youtube.com/watch?v=$trackId"
-        val info = StreamInfo.getInfo(NewPipe.getServiceByUrl(pageUrl), pageUrl)
-        val url = pickAudioStream(info.audioStreams, quality)?.getContent()
-            ?: throw IOException("Не удалось получить аудиопоток")
-        streamCache[cacheKey] = CachedUrl(url, System.currentTimeMillis())
-        return url
+        val npStream = runCatching {
+            val info = StreamInfo.getInfo(NewPipe.getServiceByUrl(pageUrl), pageUrl)
+            pickAudioStream(info.audioStreams, quality)?.getContent()
+        }.getOrNull()
+
+        if (npStream != null) {
+            streamCache[cacheKey] = CachedUrl(npStream, System.currentTimeMillis())
+            return npStream
+        }
+
+        if ("soundcloud.com" in pageUrl) {
+            val scStream = resolveSoundcloudStreamByPageUrl(pageUrl)
+            if (scStream != null) {
+                streamCache[cacheKey] = CachedUrl(scStream, System.currentTimeMillis())
+                return scStream
+            }
+        }
+
+        throw IOException("Не удалось получить аудиопоток")
     }
 
     /**
@@ -766,12 +784,13 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
     // ------------------------------------------------------------------ playlist import
 
     /** YouTube / SoundCloud playlists via NewPipe, Spotify playlists via its embed page. */
-    suspend fun importPlaylist(url: String): ImportedTracks {
+    suspend fun importPlaylist(url: String): ImportedTracks = withContext(Dispatchers.IO) {
         ensureInit()
-        return when {
-            "soundcloud.com" in url -> withContext(Dispatchers.IO) { importSoundcloud(url) }
-            "spotify.com" in url -> importSpotify(url)
-            else -> withContext(Dispatchers.IO) { importYoutube(url) }
+        val resolvedUrl = resolveUrlRedirects(url.trim())
+        when {
+            "soundcloud.com" in resolvedUrl -> importSoundcloud(resolvedUrl)
+            "spotify.com" in resolvedUrl -> importSpotify(resolvedUrl)
+            else -> importYoutube(resolvedUrl)
         }
     }
 
@@ -784,11 +803,19 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
     }
 
     private fun importSoundcloud(url: String): ImportedTracks {
-        val info = PlaylistInfo.getInfo(ServiceList.SoundCloud, url)
-        val items = allPlaylistPages(ServiceList.SoundCloud, url, info.relatedItems, info.nextPage)
-        val tracks = items.mapNotNull { it.toTrack() }
-        if (tracks.isEmpty()) throw IOException("Плейлист пуст или недоступен")
-        return ImportedTracks(name = info.name, tracks = tracks)
+        val cleanUrl = url.substringBefore('?')
+        val npResult = runCatching {
+            val info = PlaylistInfo.getInfo(ServiceList.SoundCloud, cleanUrl)
+            val items = allPlaylistPages(ServiceList.SoundCloud, cleanUrl, info.relatedItems, info.nextPage)
+            val tracks = items.mapNotNull { it.toTrack() }
+            if (tracks.isNotEmpty()) {
+                ImportedTracks(name = info.name, tracks = tracks)
+            } else null
+        }.getOrNull()
+
+        if (npResult != null) return npResult
+
+        return importSoundcloudDirect(cleanUrl)
     }
 
     /** The first page holds ~100 items — walk every next page so long playlists import fully. */
@@ -921,6 +948,146 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
             if (!resp.isSuccessful) return null
             return resp.body?.string()
         }
+    }
+
+    private fun resolveUrlRedirects(rawUrl: String): String {
+        var currentUrl = rawUrl.trim()
+        if (!currentUrl.startsWith("http://") && !currentUrl.startsWith("https://")) {
+            currentUrl = "https://$currentUrl"
+        }
+        return runCatching {
+            val request = OkHttpRequest.Builder()
+                .url(currentUrl)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .build()
+            http.newCall(request).execute().use { resp ->
+                resp.request.url.toString()
+            }
+        }.getOrDefault(currentUrl)
+    }
+
+    @Volatile
+    private var scClientId: String? = null
+    @Volatile
+    private var scClientIdExpiry: Long = 0
+
+    private fun getSoundcloudClientId(): String? {
+        if (!scClientId.isNullOrBlank() && System.currentTimeMillis() < scClientIdExpiry) {
+            return scClientId
+        }
+        return runCatching {
+            val html = httpGetString("https://soundcloud.com") ?: return null
+            val scriptUrls = Regex("""(?:src|href)="((?:https?:)?//[^" ]+\.js[^" ]*)"""", RegexOption.IGNORE_CASE)
+                .findAll(html)
+                .map { m ->
+                    val u = m.groupValues[1]
+                    if (u.startsWith("//")) "https:$u" else u
+                }
+                .toList()
+            val scripts = listOf(html) + scriptUrls.takeLast(10).mapNotNull { runCatching { httpGetString(it) }.getOrNull() }
+            for (script in scripts) {
+                val match = Regex("""client_id["']?\s*[:=]\s*["']([a-zA-Z0-9_-]{16,})["']""").find(script)
+                    ?: Regex("""client_id(?:=|%3D|["':])([a-zA-Z0-9_-]{16,})""", RegexOption.IGNORE_CASE).find(script)
+                if (match != null) {
+                    val id = match.groupValues[1]
+                    scClientId = id
+                    scClientIdExpiry = System.currentTimeMillis() + 3600_000L
+                    return id
+                }
+            }
+            null
+        }.getOrNull()
+    }
+
+    private fun importSoundcloudDirect(cleanUrl: String): ImportedTracks {
+        val clientId = getSoundcloudClientId() ?: throw IOException("SoundCloud недоступен (не удалось получить client_id)")
+        val resolveUrl = "https://api-v2.soundcloud.com/resolve?url=" + encode(cleanUrl) + "&client_id=" + clientId
+        val jsonStr = httpGetString(resolveUrl) ?: throw IOException("Плейлист SoundCloud не найден или недоступен")
+        val root = runCatching { json.parseToJsonElement(jsonStr).jsonObject }.getOrNull()
+            ?: throw IOException("Ошибка разбора данных SoundCloud")
+
+        val kind = root["kind"]?.jsonPrimitive?.contentOrNull
+        val title = root["title"]?.jsonPrimitive?.contentOrNull ?: "SoundCloud Playlist"
+        val tracksList = mutableListOf<Track>()
+
+        if (kind == "playlist") {
+            val tracksArray = root["tracks"]?.jsonArray ?: kotlinx.serialization.json.JsonArray(emptyList())
+            for (elem in tracksArray) {
+                val obj = elem.jsonObject
+                val permalink = obj["permalink_url"]?.jsonPrimitive?.contentOrNull
+                val tTitle = obj["title"]?.jsonPrimitive?.contentOrNull ?: continue
+                val artist = obj["user"]?.jsonObject?.get("username")?.jsonPrimitive?.contentOrNull ?: "Unknown"
+                val artwork = obj["artwork_url"]?.jsonPrimitive?.contentOrNull?.replace("-large", "-t500x500") ?: ""
+                val duration = ((obj["duration"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L) / 1000L).toInt()
+                val id = permalink ?: obj["id"]?.jsonPrimitive?.contentOrNull?.let { "sc_$it" } ?: continue
+                tracksList.add(
+                    Track(
+                        id = id,
+                        title = tTitle,
+                        artist = artist,
+                        cover = artwork,
+                        url = permalink ?: cleanUrl,
+                        duration = duration,
+                    )
+                )
+            }
+        } else if (kind == "track") {
+            val permalink = root["permalink_url"]?.jsonPrimitive?.contentOrNull
+            val tTitle = root["title"]?.jsonPrimitive?.contentOrNull ?: "Unknown Track"
+            val artist = root["user"]?.jsonObject?.get("username")?.jsonPrimitive?.contentOrNull ?: "Unknown"
+            val artwork = root["artwork_url"]?.jsonPrimitive?.contentOrNull?.replace("-large", "-t500x500") ?: ""
+            val duration = ((root["duration"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L) / 1000L).toInt()
+            val id = permalink ?: root["id"]?.jsonPrimitive?.contentOrNull?.let { "sc_$it" } ?: cleanUrl
+            tracksList.add(
+                Track(
+                    id = id,
+                    title = tTitle,
+                    artist = artist,
+                    cover = artwork,
+                    url = permalink ?: cleanUrl,
+                    duration = duration,
+                )
+            )
+        }
+
+        if (tracksList.isEmpty()) throw IOException("Плейлист SoundCloud пуст или недоступен")
+        return ImportedTracks(name = title, tracks = tracksList)
+    }
+
+    private fun resolveSoundcloudStreamDirect(numericId: String): String? {
+        val clientId = getSoundcloudClientId() ?: return null
+        val trackUrl = "https://api-v2.soundcloud.com/tracks/$numericId?client_id=$clientId"
+        val data = httpGetString(trackUrl) ?: return null
+        return parseSoundcloudStreamFromTrackJson(data, clientId)
+    }
+
+    private fun resolveSoundcloudStreamByPageUrl(pageUrl: String): String? {
+        val clientId = getSoundcloudClientId() ?: return null
+        val resolveUrl = "https://api-v2.soundcloud.com/resolve?url=" + encode(pageUrl) + "&client_id=" + clientId
+        val data = httpGetString(resolveUrl) ?: return null
+        return parseSoundcloudStreamFromTrackJson(data, clientId)
+    }
+
+    private fun parseSoundcloudStreamFromTrackJson(jsonStr: String, clientId: String): String? {
+        val root = runCatching { json.parseToJsonElement(jsonStr).jsonObject }.getOrNull() ?: return null
+        val transcodings = root["media"]?.jsonObject?.get("transcodings")?.jsonArray ?: return null
+        var progressiveUrl: String? = null
+        for (item in transcodings) {
+            val obj = item.jsonObject
+            val format = obj["format"]?.jsonObject
+            val protocol = format?.get("protocol")?.jsonPrimitive?.contentOrNull
+            val mime = format?.get("mime_type")?.jsonPrimitive?.contentOrNull
+            if (protocol == "progressive" || (mime != null && "audio/mpeg" in mime)) {
+                progressiveUrl = obj["url"]?.jsonPrimitive?.contentOrNull
+                if (progressiveUrl != null) break
+            }
+        }
+        val targetUrl = progressiveUrl ?: transcodings.firstOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.contentOrNull
+            ?: return null
+        val separator = if ("?" in targetUrl) "&" else "?"
+        val streamData = httpGetString("$targetUrl${separator}client_id=$clientId") ?: return null
+        val streamObj = runCatching { json.parseToJsonElement(streamData).jsonObject }.getOrNull() ?: return null
+        return streamObj["url"]?.jsonPrimitive?.contentOrNull
     }
 
     // ------------------------------------------------------------------ NewPipe downloader

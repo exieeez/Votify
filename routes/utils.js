@@ -1218,12 +1218,59 @@ async function scGetStreamUrl(trackId) {
   }
 }
 
+function resolveHttpRedirect(rawUrl, maxRedirects = 5) {
+  return new Promise((resolve) => {
+    let current = rawUrl;
+    let count = 0;
+    function check(u) {
+      if (count++ >= maxRedirects) return resolve(u);
+      try {
+        const parsed = new URL(u);
+        const transport = parsed.protocol === 'https:' ? https : http;
+        const req = transport.request(u, { method: 'HEAD', headers: { 'User-Agent': YT_UA } }, (res) => {
+          if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+            const loc = res.headers.location.startsWith('http')
+              ? res.headers.location
+              : new URL(res.headers.location, u).href;
+            return check(loc);
+          }
+          resolve(u);
+        });
+        req.on('error', () => {
+          const getReq = transport.get(u, { headers: { 'User-Agent': YT_UA } }, (res) => {
+            if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+              const loc = res.headers.location.startsWith('http')
+                ? res.headers.location
+                : new URL(res.headers.location, u).href;
+              res.destroy();
+              return check(loc);
+            }
+            res.destroy();
+            resolve(u);
+          });
+          getReq.on('error', () => resolve(u));
+        });
+        req.end();
+      } catch {
+        resolve(u);
+      }
+    }
+    check(current);
+  });
+}
+
 async function scImportPlaylist(playlistUrl) {
   const clientId = await scGetClientId();
   if (!clientId) return { error: 'No client_id' };
   try {
-    // Resolve the URL to get playlist/user info
-    const resolveUrl = `https://api-v2.soundcloud.com/resolve?url=${encodeURIComponent(playlistUrl)}&client_id=${clientId}`;
+    let resolvedUrl = playlistUrl;
+    try {
+      resolvedUrl = await resolveHttpRedirect(playlistUrl);
+    } catch (_) {}
+    const cleanUrl = resolvedUrl.split('?')[0];
+
+    // Resolve the URL to get playlist/user/track info
+    const resolveUrl = `https://api-v2.soundcloud.com/resolve?url=${encodeURIComponent(cleanUrl)}&client_id=${clientId}`;
     const data = await httpGet(resolveUrl, 15000);
     if (!data) return { error: 'Not found' };
 
@@ -1238,6 +1285,10 @@ async function scImportPlaylist(playlistUrl) {
           const artwork = (t.artwork_url || '').replace('-large', '-t500x500');
           return makeTrack('sc_' + t.id, t.title, t.user?.username || 'Unknown', artwork);
         });
+    } else if (data.kind === 'track') {
+      name = data.title || 'SoundCloud Track';
+      const artwork = (data.artwork_url || '').replace('-large', '-t500x500');
+      tracks = [makeTrack('sc_' + data.id, data.title, data.user?.username || 'Unknown', artwork)];
     } else if (data.kind === 'user') {
       name = data.username || 'SoundCloud Likes';
       // Fetch user's tracks
