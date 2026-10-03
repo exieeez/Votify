@@ -31,6 +31,7 @@ data class UpdateInfo(
     val downloadUrl: String = "",
     val cdnUrl: String = "",
     val releaseUrl: String = "",
+    val mirrorUrl: String = "",
 )
 
 sealed interface UpdateState {
@@ -93,7 +94,23 @@ class AppUpdateManager(
                 val cachedApk = getUpdateApkFile()
                 val metaFile = getUpdateMetaFile()
                 val cachedSha = if (metaFile.exists()) runCatching { metaFile.readText().trim() }.getOrNull() else null
-                if (cachedApk.exists() && cachedApk.length() > 5_000_000 && !cachedSha.isNullOrBlank() && cachedSha == info.sha) {
+                val pkgInfo = if (cachedApk.exists()) context.packageManager.getPackageArchiveInfo(cachedApk.absolutePath, 0) else null
+                val cachedVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    pkgInfo?.longVersionCode?.toInt() ?: 0
+                } else {
+                    @Suppress("DEPRECATION")
+                    pkgInfo?.versionCode ?: 0
+                }
+
+                val isCachedValid = cachedApk.exists() &&
+                        cachedApk.length() > 5_000_000 &&
+                        !cachedSha.isNullOrBlank() &&
+                        cachedSha == info.sha &&
+                        pkgInfo != null &&
+                        pkgInfo.packageName == context.packageName &&
+                        cachedVersionCode > curCode
+
+                if (isCachedValid) {
                     _state.value = UpdateState.Ready(info, cachedApk)
                 } else {
                     if (cachedApk.exists()) cachedApk.delete()
@@ -113,12 +130,16 @@ class AppUpdateManager(
 
     private fun fetchUpdateInfo(): UpdateInfo? {
         val urls = listOf(
-            "https://raw.githubusercontent.com/exieeez/Votify/apk/version.json",
+            "https://raw.githubusercontent.com/exieeez/Votify/apk/version.json?t=${System.currentTimeMillis()}",
             "https://cdn.jsdelivr.net/gh/exieeez/Votify@apk/version.json"
         )
         for (url in urls) {
             runCatching {
-                val req = Request.Builder().url(url).build()
+                val req = Request.Builder()
+                    .url(url)
+                    .header("Cache-Control", "no-cache")
+                    .header("Pragma", "no-cache")
+                    .build()
                 http.newCall(req).execute().use { resp ->
                     if (resp.isSuccessful) {
                         val body = resp.body?.string().orEmpty()
@@ -139,10 +160,11 @@ class AppUpdateManager(
             if (apkFile.exists()) apkFile.delete()
 
             val downloadUrls = listOfNotNull(
-                info.cdnUrl.ifBlank { null },
-                info.downloadUrl.ifBlank { null },
+                info.mirrorUrl.ifBlank { null },
                 info.releaseUrl.ifBlank { null },
-                "https://raw.githubusercontent.com/exieeez/Votify/apk/Votify-debug.apk"
+                info.downloadUrl.ifBlank { null },
+                "https://raw.githubusercontent.com/exieeez/Votify/apk/Votify-debug.apk?t=${System.currentTimeMillis()}",
+                info.cdnUrl.ifBlank { null }
             )
 
             var success = false
@@ -150,7 +172,11 @@ class AppUpdateManager(
                 _state.value = UpdateState.Downloading(info, 0f, 0L, -1L)
                 val ok = withContext(Dispatchers.IO) {
                     runCatching {
-                        val req = Request.Builder().url(url).build()
+                        val req = Request.Builder()
+                            .url(url)
+                            .header("Cache-Control", "no-cache")
+                            .header("Pragma", "no-cache")
+                            .build()
                         http.newCall(req).execute().use { resp ->
                             if (!resp.isSuccessful) return@runCatching false
                             val body = resp.body ?: return@runCatching false
@@ -179,10 +205,29 @@ class AppUpdateManager(
                                 }
                             }
                             if (tempFile.exists() && tempFile.length() > 5_000_000) {
-                                if (apkFile.exists()) apkFile.delete()
-                                tempFile.renameTo(apkFile)
-                                runCatching { getUpdateMetaFile().writeText(info.sha) }
-                                true
+                                val pkgInfo = context.packageManager.getPackageArchiveInfo(tempFile.absolutePath, 0)
+                                val apkVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                    pkgInfo?.longVersionCode?.toInt() ?: 0
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    pkgInfo?.versionCode ?: 0
+                                }
+
+                                val isLegitNewerApk = pkgInfo != null &&
+                                    pkgInfo.packageName == context.packageName &&
+                                    apkVersionCode > BuildConfig.VERSION_CODE &&
+                                    (info.versionCode <= 0 || apkVersionCode >= info.versionCode)
+
+                                if (isLegitNewerApk) {
+                                    if (apkFile.exists()) apkFile.delete()
+                                    tempFile.renameTo(apkFile)
+                                    runCatching { getUpdateMetaFile().writeText(info.sha) }
+                                    true
+                                } else {
+                                    android.util.Log.w("AppUpdateManager", "Rejected stale/corrupted APK from $url: code=$apkVersionCode vs current=${BuildConfig.VERSION_CODE}")
+                                    tempFile.delete()
+                                    false
+                                }
                             } else {
                                 tempFile.delete()
                                 false

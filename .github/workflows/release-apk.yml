@@ -44,12 +44,24 @@ jobs:
       # Постоянное зеркало: APK кладётся в отдельную ветку «apk». Оттуда он качается
       # с других хостов (raw.githubusercontent, jsDelivr) — release-канал GitHub у части
       # провайдеров виснет на 100%, а зеркала на catbox/gofile живут только 72 часа.
-      - name: Mirror APK to branch apk
+      - name: Mirror APK and Publish
         working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -e
           APK="android/Votify-debug.apk"
           ls -la "$APK"
+
+          # Upload to 72h external mirrors
+          mirror() {
+            curl -sf -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@$1" \
+              https://litterbox.catbox.moe/resources/internals/api.php || true
+          }
+          LB_DEBUG=$(mirror "$APK")
+          GF_DEBUG=$(curl -sf -F "file=@$APK" https://upload.gofile.io/uploadFile | jq -r '.data.downloadPage // empty' 2>/dev/null || true)
+          echo "Litterbox URL: $LB_DEBUG"
+
           rm -rf /tmp/apkmirror && mkdir -p /tmp/apkmirror && cd /tmp/apkmirror
           git init -q -b apk
           git config user.name 'github-actions[bot]'
@@ -72,6 +84,7 @@ jobs:
             "versionName": "$V_NAME",
             "sha": "${GITHUB_SHA}",
             "shortSha": "${GITHUB_SHA:0:7}",
+            "mirrorUrl": "${LB_DEBUG}",
             "downloadUrl": "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/apk/Votify-debug.apk",
             "cdnUrl": "https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@apk/Votify-debug.apk",
             "releaseUrl": "https://github.com/${GITHUB_REPOSITORY}/releases/download/android-debug/Votify-debug.apk"
@@ -83,23 +96,13 @@ jobs:
           git push -f origin apk
           echo "зеркало обновлено: ветка apk"
 
-      - name: Publish to GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
+          # Purge jsDelivr cache so CDN never serves an old APK
+          curl -sf "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@apk/Votify-debug.apk" || true
+          curl -sf "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@apk/version.json" || true
+
+          # Publish to GitHub Release
+          cd "$GITHUB_WORKSPACE/android"
           TAG="android-debug"
-          ls -la Votify-debug.apk
-
-          # GitHub's release CDN occasionally stalls at ~100% for some ISPs.
-          # Keep 72h mirrors on external hosts as fallback download links
-          # (re-uploaded on every build, so they are always fresh).
-          mirror() {
-            curl -sf -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@$1" \
-              https://litterbox.catbox.moe/resources/internals/api.php || true
-          }
-          LB_DEBUG=$(mirror Votify-debug.apk)
-          GF_DEBUG=$(curl -sf -F "file=@Votify-debug.apk" https://upload.gofile.io/uploadFile | jq -r '.data.downloadPage // empty' 2>/dev/null || true)
-
           {
             echo "Автосборка APK из ветки $GITHUB_REF_NAME (коммит $GITHUB_SHA)."
             echo
@@ -117,7 +120,6 @@ jobs:
             fi
           } > notes.md
 
-          # (Re)create the rolling prerelease, then upload the fresh APKs.
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             && gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag \
             || true
