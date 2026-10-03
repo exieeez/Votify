@@ -3035,6 +3035,30 @@ function openPlaylist(name) {
     playTrack(validTracks[currentTrackIndex]);
   });
 
+  const coverInput = document.getElementById('pl-screen-cover-input');
+  safeClick('pl-screen-cover-btn', () => {
+    if (coverInput) coverInput.click();
+  });
+  if (coverInput) {
+    coverInput.onchange = (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const dataUrl = evt.target.result;
+        if (!playlists[name] || Array.isArray(playlists[name])) {
+          playlists[name] = { name: name, cover: dataUrl, tracks: validTracks };
+        } else {
+          playlists[name].cover = dataUrl;
+        }
+        savePlaylists();
+        openPlaylist(name);
+        showToast('Обложка плейлиста обновлена');
+      };
+      reader.readAsDataURL(file);
+    };
+  }
+
   safeClick('pl-screen-download-all-btn', async () => {
     if (!validTracks.length) {
       showToast('Плейлист пуст');

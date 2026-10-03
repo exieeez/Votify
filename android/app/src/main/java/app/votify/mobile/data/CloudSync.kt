@@ -17,7 +17,7 @@ data class SyncTrack(val id: String, val t: String, val a: String, val c: String
 data class SyncFavorite(val addedAt: Long, val track: SyncTrack)
 
 @Serializable
-data class SyncPlaylist(val name: String, val createdAt: Long, val tracks: List<SyncTrack>)
+data class SyncPlaylist(val name: String, val createdAt: Long, val tracks: List<SyncTrack>, val cover: String? = null)
 
 /** Everything that travels to the account cloud: settings + favorites + playlists. */
 @Serializable
@@ -57,6 +57,7 @@ class CloudSync(
                 name = p.name,
                 createdAt = p.createdAt,
                 tracks = db.playlists().tracksOf(p.id).map { SyncTrack(it.id, it.title, it.artist, it.cover, it.duration) },
+                cover = p.customCover,
             )
         }
         return SyncBlob(
@@ -85,7 +86,7 @@ class CloudSync(
         // Playlists: recreated with fresh ids; tracks land in the stored order.
         val now = System.currentTimeMillis()
         blob.playlists.forEach { p ->
-            val pid = db.playlists().insert(PlaylistEntity(0, p.name, p.createdAt, now))
+            val pid = db.playlists().insert(PlaylistEntity(0, p.name, p.createdAt, now, customCover = p.cover))
             p.tracks.forEachIndexed { i, t ->
                 db.tracks().upsert(TrackEntity(t.id, t.t, t.a, t.c, t.d))
                 db.playlists().insertTrack(PlaylistTrackEntity(pid, t.id, i, now))

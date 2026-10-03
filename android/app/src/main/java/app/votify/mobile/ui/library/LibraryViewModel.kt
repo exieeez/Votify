@@ -1,5 +1,8 @@
 package app.votify.mobile.ui.library
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** A snackbar message that is resolved to text inside composition. */
 data class UiMessage(@StringRes val id: Int, val args: List<Any> = emptyList())
@@ -222,6 +226,42 @@ class LibraryViewModel(
 
     fun clearHistory() {
         viewModelScope.launch { library.clearHistory() }
+    }
+
+    fun setPlaylistCover(id: Long, uri: Uri) {
+        viewModelScope.launch {
+            val dataUrl = withContext(Dispatchers.IO) {
+                runCatching {
+                    VotifyApp.instance.contentResolver.openInputStream(uri)?.use { input ->
+                        val bmp = BitmapFactory.decodeStream(input) ?: return@runCatching null
+                        val maxDim = 512
+                        val scale = minOf(1f, maxDim / bmp.width.toFloat(), maxDim / bmp.height.toFloat())
+                        val scaled = if (scale < 1f) {
+                            Bitmap.createScaledBitmap(
+                                bmp,
+                                (bmp.width * scale).toInt().coerceAtLeast(1),
+                                (bmp.height * scale).toInt().coerceAtLeast(1),
+                                true,
+                            )
+                        } else bmp
+                        val out = java.io.ByteArrayOutputStream()
+                        scaled.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                        "data:image/jpeg;base64," + android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
+                    }
+                }.getOrNull()
+            }
+            if (dataUrl != null) {
+                library.updatePlaylistCover(id, dataUrl)
+                _messages.tryEmit(UiMessage(R.string.toast_cover_updated))
+            }
+        }
+    }
+
+    fun removePlaylistCover(id: Long) {
+        viewModelScope.launch {
+            library.updatePlaylistCover(id, null)
+            _messages.tryEmit(UiMessage(R.string.toast_cover_removed))
+        }
     }
 
     fun skipToQueueItem(index: Int) = player.skipToQueueItem(index)

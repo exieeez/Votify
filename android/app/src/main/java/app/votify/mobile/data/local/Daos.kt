@@ -104,8 +104,8 @@ interface PlaylistDao {
     @Query(
         """SELECT p.id, p.name, p.createdAt, p.updatedAt,
                   (SELECT COUNT(*) FROM playlist_tracks pt WHERE pt.playlistId = p.id) AS trackCount,
-                  (SELECT t.cover FROM playlist_tracks pt INNER JOIN tracks t ON t.id = pt.trackId
-                     WHERE pt.playlistId = p.id ORDER BY pt.position ASC LIMIT 1) AS cover
+                  COALESCE(p.customCover, (SELECT t.cover FROM playlist_tracks pt INNER JOIN tracks t ON t.id = pt.trackId
+                     WHERE pt.playlistId = p.id ORDER BY pt.position ASC LIMIT 1)) AS cover
            FROM playlists p ORDER BY p.updatedAt DESC""",
     )
     fun observeSummaries(): Flow<List<PlaylistSummary>>
@@ -127,6 +127,9 @@ interface PlaylistDao {
 
     @Query("UPDATE playlists SET name = :name, updatedAt = :now WHERE id = :id")
     suspend fun rename(id: Long, name: String, now: Long)
+
+    @Query("UPDATE playlists SET customCover = :cover, updatedAt = :now WHERE id = :id")
+    suspend fun updateCover(id: Long, cover: String?, now: Long)
 
     @Query("UPDATE playlists SET updatedAt = :now WHERE id = :id")
     suspend fun touch(id: Long, now: Long)

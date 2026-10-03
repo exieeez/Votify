@@ -89,6 +89,8 @@ class LibraryRepository(private val db: VotifyDatabase) {
 
     suspend fun renamePlaylist(id: Long, name: String) = db.playlists().rename(id, name.trim(), now())
 
+    suspend fun updatePlaylistCover(id: Long, cover: String?) = db.playlists().updateCover(id, cover, now())
+
     suspend fun deletePlaylist(id: Long) = db.playlists().delete(id)
 
     /** @return false if the track was already in the playlist. */

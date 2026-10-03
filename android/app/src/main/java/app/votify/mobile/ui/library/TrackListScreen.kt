@@ -22,10 +22,15 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.HideImage
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.QueueMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -551,7 +556,11 @@ fun PlaylistScreen(
     var menuExpanded by remember { mutableStateOf(false) }
 
     val name = playlist?.name ?: ""
-    val coverUrl = tracks.firstOrNull { !it.cover.isNullOrBlank() }?.cover
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { viewModel.setPlaylistCover(playlistId, it) }
+    }
+    val coverUrl = playlist?.customCover?.takeIf { it.isNotBlank() }
+        ?: tracks.firstOrNull { !it.cover.isNullOrBlank() }?.cover
 
     val isCurrentPlaylist = tracks.any { it.id == currentTrackId }
 
@@ -629,6 +638,24 @@ fun PlaylistScreen(
                                 expanded = menuExpanded,
                                 onDismissRequest = { menuExpanded = false },
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.action_change_cover)) },
+                                    leadingIcon = { Icon(Icons.Outlined.Image, null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                    },
+                                )
+                                if (!playlist?.customCover.isNullOrBlank()) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.action_remove_cover)) },
+                                        leadingIcon = { Icon(Icons.Outlined.HideImage, null) },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.removePlaylistCover(playlistId)
+                                        },
+                                    )
+                                }
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.action_download_playlist)) },
                                     leadingIcon = { Icon(Icons.Outlined.Download, null) },

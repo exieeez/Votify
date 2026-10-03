@@ -49,6 +49,7 @@ data class PlaylistEntity(
     val name: String,
     val createdAt: Long,
     val updatedAt: Long,
+    val customCover: String? = null,
 )
 
 @Entity(

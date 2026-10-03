@@ -292,6 +292,10 @@
     <string name="storage_downloads_cleared">Офлайн-музыка удалена</string>
     <string name="action_download">Скачать</string>
     <string name="action_download_playlist">Скачать плейлист</string>
+    <string name="action_change_cover">Сменить обложку</string>
+    <string name="action_remove_cover">Сбросить обложку</string>
+    <string name="toast_cover_updated">Обложка плейлиста обновлена</string>
+    <string name="toast_cover_removed">Обложка сброшена</string>
     <string name="action_delete_download">Удалить загрузку</string>
     <string name="toast_download_started">Скачивание…</string>
     <string name="toast_download_progress">Скачано %1$d из %2$d…</string>
