@@ -63,6 +63,13 @@ class AppUpdateManager(
 
     private var dismissed = false
 
+    init {
+        // Clear any old obsolete cached APK from legacy cache directory
+        runCatching {
+            File(context.cacheDir, "updates").deleteRecursively()
+        }
+    }
+
     fun checkForUpdate(force: Boolean = false) {
         if (!force && dismissed) return
         if (_state.value is UpdateState.Downloading || _state.value is UpdateState.Ready) return
@@ -86,19 +93,18 @@ class AppUpdateManager(
                 val cachedApk = getUpdateApkFile()
                 val metaFile = getUpdateMetaFile()
                 val cachedSha = if (metaFile.exists()) runCatching { metaFile.readText().trim() }.getOrNull() else null
-                if (cachedApk.exists() && cachedApk.length() > 5_000_000 && (cachedSha == null || cachedSha == info.sha)) {
+                if (cachedApk.exists() && cachedApk.length() > 5_000_000 && !cachedSha.isNullOrBlank() && cachedSha == info.sha) {
                     _state.value = UpdateState.Ready(info, cachedApk)
                 } else {
-                    if (cachedApk.exists() && cachedSha != null && cachedSha != info.sha) {
-                        cachedApk.delete()
-                        metaFile.delete()
-                    }
+                    if (cachedApk.exists()) cachedApk.delete()
+                    if (metaFile.exists()) metaFile.delete()
                     _state.value = UpdateState.Available(info)
                 }
             } else {
                 runCatching {
                     getUpdateApkFile().delete()
                     getUpdateMetaFile().delete()
+                    File(context.cacheDir, "updates").deleteRecursively()
                 }
                 _state.value = UpdateState.Idle
             }
@@ -242,6 +248,8 @@ class AppUpdateManager(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
+            dismissed = true
+            _state.value = UpdateState.Idle
         }.onFailure { e ->
             _state.value = UpdateState.Error("Ошибка запуска установщика: ${e.message}")
         }
