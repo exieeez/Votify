@@ -541,6 +541,7 @@ fun ChoiceBottomSheet(
     }
 }
 
+@JvmName("ChoiceBottomSheetPairs")
 @Composable
 fun ChoiceBottomSheet(
     title: String,
