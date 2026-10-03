@@ -510,7 +510,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         playlistId = id,
                         currentTrackId = playerState.current?.id,
                         isPlaying = playerState.isPlaying,
-                        onTogglePlay = { player.togglePlay() },
+                        onTogglePlay = { player.togglePlayPause() },
                         contentPadding = contentPadding,
                         onBack = { navController.popBackStack() },
                         onPlay = play,

@@ -341,7 +341,7 @@ fun PlaylistVinylHeader(
                 )
             }
             Text(
-                text = stringResource(R.string.library_playlist),
+                text = stringResource(R.string.home_playlist),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
