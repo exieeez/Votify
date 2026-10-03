@@ -52,6 +52,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.votify.mobile.R
 import app.votify.mobile.player.PlayerUiState
@@ -60,6 +61,7 @@ import app.votify.mobile.ui.theme.VotifyColors
 /** Visual style of the mini-player (Плеер → Мини-плеер settings). */
 data class MiniStyle(
     val pillShape: Boolean = true,
+    val cornerRadiusDp: Dp? = null,
     val roundCover: Boolean = false,
     val ringProgress: Boolean = false,
     val barProgress: Boolean = true,
@@ -89,7 +91,7 @@ fun MiniPlayer(
     modifier: Modifier = Modifier,
 ) {
     val track = state.current ?: return
-    val shape = if (style.pillShape) RoundedCornerShape(24.dp) else RoundedCornerShape(14.dp)
+    val shape = if (style.cornerRadiusDp != null) RoundedCornerShape(style.cornerRadiusDp) else if (style.pillShape) RoundedCornerShape(24.dp) else RoundedCornerShape(14.dp)
     val tint = if (style.artworkTint) rememberDominantTint(track.cover) else null
 
     val density = LocalDensity.current

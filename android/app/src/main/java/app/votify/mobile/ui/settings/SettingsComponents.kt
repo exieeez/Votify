@@ -1,6 +1,5 @@
 package app.votify.mobile.ui.settings
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,18 +22,27 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.Brush
-import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.outlined.CropSquare
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Equalizer
+import androidx.compose.material.icons.outlined.FitScreen
+import androidx.compose.material.icons.outlined.FormatAlignCenter
+import androidx.compose.material.icons.outlined.FormatAlignLeft
+import androidx.compose.material.icons.outlined.Grain
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.SmartButton
 import androidx.compose.material.icons.outlined.ToggleOn
+import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -54,8 +62,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -63,14 +69,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.votify.mobile.R
-import app.votify.mobile.ui.components.VotifyCard
-import app.votify.mobile.ui.components.VotifyHaptics
 import app.votify.mobile.ui.components.rememberVotifyHaptic
 import app.votify.mobile.ui.theme.VotifyColors
 
 /**
  * Modern Votify settings chrome: a round back button on the left and an elongated pill
- * with the screen title filling the rest of the row.
+ * with the screen title filling the rest of the row (matching screenshots).
  */
 @Composable
 fun SettingsScaffold(
@@ -100,31 +104,32 @@ fun SettingsScaffold(
                     onBack()
                 },
                 shape = CircleShape,
-                color = VotifyColors.SurfaceContainerHigh,
-                contentColor = VotifyColors.TextPrimary,
-                modifier = Modifier.size(44.dp),
+                color = Color(0xFF141416),
+                contentColor = Color.White,
+                modifier = Modifier.size(46.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = stringResource(R.string.nav_back),
                         modifier = Modifier.size(20.dp),
+                        tint = Color.White,
                     )
                 }
             }
             Spacer(Modifier.width(10.dp))
             Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = VotifyColors.SurfaceContainerHigh,
+                shape = RoundedCornerShape(23.dp),
+                color = Color(0xFF141416),
                 modifier = Modifier
                     .weight(1f)
-                    .height(44.dp),
+                    .height(46.dp),
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         title,
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
-                        color = VotifyColors.TextPrimary,
+                        color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -145,27 +150,37 @@ fun SettingsSectionLabel(text: String) {
             fontSize = 11.5.sp,
             letterSpacing = 0.8.sp,
         ),
-        color = VotifyColors.TextMuted,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 6.dp),
+        color = Color(0xFF8E8E93),
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 20.dp, bottom = 6.dp),
     )
 }
 
-/** Card with internal thin dividers between rows or standalone card item. */
+/** Clean solid container card without borders or outlines (native sleek look). */
 @Composable
 fun SettingsCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    VotifyCard(
-        modifier = modifier
-            .padding(horizontal = 14.dp, vertical = 3.dp)
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = VotifyColors.SurfaceContainer,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-        onClick = onClick,
+    val haptic = rememberVotifyHaptic()
+    val shape = RoundedCornerShape(18.dp)
+    val cardBg = Color(0xFF141416)
+    val base = modifier
+        .padding(horizontal = 14.dp, vertical = 3.dp)
+        .fillMaxWidth()
+        .clip(shape)
+        .background(cardBg)
+
+    val clickableModifier = if (onClick != null) {
+        base.clickable {
+            haptic()
+            onClick()
+        }
+    } else base
+
+    Box(
+        modifier = clickableModifier.padding(horizontal = 18.dp, vertical = 10.dp),
     ) {
         Column { content() }
     }
@@ -173,10 +188,16 @@ fun SettingsCard(
 
 @Composable
 fun SettingsDivider() {
-    Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).height(1.dp).background(VotifyColors.BorderSubtle.copy(alpha = 0.5f)))
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .height(0.6.dp)
+            .background(Color.White.copy(alpha = 0.05f)),
+    )
 }
 
-/** icon | title (+subtitle) | chevron — navigational row. */
+/** icon | title (+subtitle) | trailing icon/chevron — navigational row. */
 @Composable
 fun SettingsNavRow(
     icon: ImageVector,
@@ -195,15 +216,28 @@ fun SettingsNavRow(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                color = Color.White,
+                fontWeight = FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = VotifyColors.TextMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                    color = Color(0xFF8E8E93),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
-        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = VotifyColors.TextMuted)
+        Spacer(Modifier.width(12.dp))
+        Icon(icon, null, tint = Color(0xFF8E8E93), modifier = Modifier.size(20.dp))
     }
 }
 
@@ -230,12 +264,16 @@ fun SettingsToggleRow(
             Text(
                 title,
                 style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                color = VotifyColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                fontWeight = FontWeight.Normal,
             )
             if (subtitle != null) {
                 Spacer(Modifier.height(2.dp))
-                Text(subtitle, style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = VotifyColors.TextMuted)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                    color = Color(0xFF8E8E93),
+                )
             }
         }
         Spacer(Modifier.width(12.dp))
@@ -246,16 +284,23 @@ fun SettingsToggleRow(
                 onChange(it)
             },
             colors = SwitchDefaults.colors(
-                checkedThumbColor = VotifyColors.PitchBlack,
-                checkedTrackColor = VotifyColors.TextPrimary,
-                checkedBorderColor = VotifyColors.TextPrimary,
-                uncheckedThumbColor = VotifyColors.TextMuted,
-                uncheckedTrackColor = VotifyColors.SurfaceContainerHigh,
-                uncheckedBorderColor = VotifyColors.BorderProminent,
+                checkedThumbColor = Color.Black,
+                checkedTrackColor = Color.White,
+                checkedBorderColor = Color.White,
+                uncheckedThumbColor = Color(0xFF8E8E93),
+                uncheckedTrackColor = Color(0xFF242426),
+                uncheckedBorderColor = Color(0xFF38383A),
             ),
         )
     }
 }
+
+data class ChoiceOption(
+    val key: String,
+    val label: String,
+    val subtitle: String? = null,
+    val icon: ImageVector? = null,
+)
 
 /**
  * Modern Settings Value Row matching the screenshots:
@@ -268,7 +313,8 @@ fun SettingsValueRow(
     subtitle: String? = null,
     value: String,
     trailing: ImageVector? = null,
-    options: List<Pair<String, String>>,
+    options: List<Pair<String, String>> = emptyList(),
+    choiceOptions: List<ChoiceOption>? = null,
     onPick: (String) -> Unit,
 ) {
     val haptic = rememberVotifyHaptic()
@@ -281,36 +327,46 @@ fun SettingsValueRow(
                 haptic()
                 open = true
             }
-            .padding(vertical = 6.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
             Text(
                 title,
                 style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                color = VotifyColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                fontWeight = FontWeight.Normal,
             )
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(3.dp))
             Text(
                 subtitle ?: value,
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                color = VotifyColors.TextMuted,
+                color = Color(0xFF8E8E93),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
         if (trailing != null) {
             Spacer(Modifier.width(12.dp))
-            Icon(trailing, null, tint = VotifyColors.TextMuted, modifier = Modifier.size(20.dp))
+            Icon(trailing, null, tint = Color(0xFF8E8E93), modifier = Modifier.size(20.dp))
         }
     }
 
     if (open) {
+        val resolvedChoices = choiceOptions ?: options.map { (k, l) ->
+            ChoiceOption(
+                key = k,
+                label = l,
+                subtitle = resolveChoiceSubtitle(k, l),
+                icon = resolveChoiceIcon(k, l),
+            )
+        }
+        val currentSelectedKey = resolvedChoices.firstOrNull { it.key == value || it.label == value }?.key ?: value
+
         ChoiceBottomSheet(
             title = title,
-            options = options,
-            selected = options.firstOrNull { it.first == currentKey(options, value) }?.first ?: value,
+            options = resolvedChoices,
+            selected = currentSelectedKey,
             onDismiss = { open = false },
             onPick = {
                 onPick(it)
@@ -320,21 +376,19 @@ fun SettingsValueRow(
     }
 }
 
-private fun currentKey(options: List<Pair<String, String>>, value: String): String =
-    options.firstOrNull { it.second == value || it.first == value }?.first ?: ""
-
 /**
  * Modern modal bottom sheet selection picker matching the user's design:
- * - Rounded top corners
- * - Centered drag handle
- * - Interactive preview if applicable (e.g. audio slider preview)
- * - Individual rounded option cards with icons, labels, subtitles, and checkmarks
+ * - Rounded top corners (no border lines)
+ * - Centered subtle drag handle
+ * - Interactive slider preview if selecting slider style
+ * - Individual rounded option cards with solid dark background, zero borders,
+ *   circular icon pill only when selected, and white checkmark on the right.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChoiceBottomSheet(
     title: String,
-    options: List<Pair<String, String>>, // key -> label
+    options: List<ChoiceOption>,
     selected: String?,
     onDismiss: () -> Unit,
     onPick: (String) -> Unit,
@@ -345,16 +399,16 @@ fun ChoiceBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF141416),
+        containerColor = Color(0xFF0F0F11),
         scrimColor = Color.Black.copy(alpha = 0.65f),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
         dragHandle = {
             Box(
                 Modifier
-                    .padding(top = 10.dp, bottom = 10.dp)
+                    .padding(top = 10.dp, bottom = 12.dp)
                     .size(width = 38.dp, height = 4.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.25f)),
+                    .background(Color.White.copy(alpha = 0.22f)),
             )
         },
     ) {
@@ -362,29 +416,28 @@ fun ChoiceBottomSheet(
             Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // If selecting slider style: show interactive live slider preview card as in Screenshot 3
+            // Slider preview card as shown in user's Screenshot 4
             if (title.contains("слайдер", ignoreCase = true) || title.contains("slider", ignoreCase = true)) {
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFF1E1E22),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF1C1C1E),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
                 ) {
-                    Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
+                    Column(Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
                         Box(
                             Modifier
                                 .fillMaxWidth()
                                 .height(4.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.25f)),
+                                .background(Color.White.copy(alpha = 0.22f)),
                         ) {
                             Box(
                                 Modifier
-                                    .fillMaxWidth(0.42f)
+                                    .fillMaxWidth(0.38f)
                                     .height(4.dp)
                                     .clip(CircleShape)
                                     .background(Color.White),
@@ -392,7 +445,7 @@ fun ChoiceBottomSheet(
                             Box(
                                 Modifier
                                     .align(Alignment.CenterStart)
-                                    .padding(start = 120.dp)
+                                    .padding(start = 110.dp)
                                     .size(14.dp)
                                     .clip(CircleShape)
                                     .background(Color.White),
@@ -400,29 +453,25 @@ fun ChoiceBottomSheet(
                         }
                         Spacer(Modifier.height(14.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("1:24", style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = VotifyColors.TextMuted)
-                            Text("3:45", style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = VotifyColors.TextMuted)
+                            Text("1:24", style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = Color(0xFF8E8E93))
+                            Text("3:45", style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = Color(0xFF8E8E93))
                         }
                     }
                 }
             }
 
-            options.forEach { (key, label) ->
-                val isSelected = key == selected || label == selected
-                val icon = resolveChoiceIcon(key, label)
-                val subtitle = resolveChoiceSubtitle(key, label)
+            options.forEach { option ->
+                val isSelected = option.key == selected || option.label == selected
+                val icon = option.icon ?: resolveChoiceIcon(option.key, option.label)
+                val subtitle = option.subtitle ?: resolveChoiceSubtitle(option.key, option.label)
 
                 Surface(
                     onClick = {
                         haptic()
-                        onPick(key)
+                        onPick(option.key)
                     },
-                    shape = RoundedCornerShape(18.dp),
-                    color = if (isSelected) Color(0xFF222226) else Color(0xFF1B1B1E),
-                    border = BorderStroke(
-                        1.dp,
-                        if (isSelected) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.05f),
-                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF1C1C1E),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
@@ -430,35 +479,49 @@ fun ChoiceBottomSheet(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (icon != null) {
-                            Box(
-                                Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.08f)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    icon,
-                                    contentDescription = null,
-                                    tint = VotifyColors.TextPrimary,
-                                    modifier = Modifier.size(19.dp),
-                                )
+                            if (isSelected) {
+                                Box(
+                                    Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF2C2C30)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        icon,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                            } else {
+                                Box(
+                                    Modifier.size(38.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        icon,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
                             }
                             Spacer(Modifier.width(14.dp))
                         }
                         Column(Modifier.weight(1f)) {
                             Text(
-                                label,
+                                option.label,
                                 style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                                fontWeight = FontWeight.SemiBold,
-                                color = VotifyColors.TextPrimary,
+                                fontWeight = FontWeight.Normal,
+                                color = Color.White,
                             )
                             if (!subtitle.isNullOrBlank()) {
                                 Spacer(Modifier.height(2.dp))
                                 Text(
                                     subtitle,
                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
-                                    color = VotifyColors.TextMuted,
+                                    color = Color(0xFF8E8E93),
                                 )
                             }
                         }
@@ -478,20 +541,52 @@ fun ChoiceBottomSheet(
     }
 }
 
+@Composable
+fun ChoiceBottomSheet(
+    title: String,
+    options: List<Pair<String, String>>,
+    selected: String?,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit,
+) {
+    ChoiceBottomSheet(
+        title = title,
+        options = options.map { (key, label) ->
+            ChoiceOption(
+                key = key,
+                label = label,
+                subtitle = resolveChoiceSubtitle(key, label),
+                icon = resolveChoiceIcon(key, label),
+            )
+        },
+        selected = selected,
+        onDismiss = onDismiss,
+        onPick = onPick,
+    )
+}
+
 /** Resolves an appropriate descriptive icon for common setting options. */
 private fun resolveChoiceIcon(key: String, label: String): ImageVector? {
     val lowerKey = key.lowercase()
     val lowerLabel = label.lowercase()
     return when {
+        lowerKey == "square" || lowerLabel == "стандартный" && lowerKey.contains("square") -> Icons.Outlined.MusicNote
+        lowerKey == "blur" || lowerLabel == "большой" -> Icons.Outlined.Tv
+        lowerKey == "vinyl" || lowerLabel == "пластинка" -> Icons.Outlined.Album
         lowerKey.contains("artwork") || lowerLabel.contains("обложк") -> Icons.Outlined.Image
         lowerKey.contains("lava") || lowerLabel.contains("цвет") || lowerKey.contains("palette") -> Icons.Outlined.Palette
-        lowerKey.contains("dark") || lowerKey.contains("none") || lowerLabel.contains("нет") || lowerLabel.contains("без фона") -> Icons.Outlined.Block
-        lowerKey.contains("standard") || lowerLabel.contains("стандарт") -> Icons.Outlined.Brush
-        lowerKey.contains("thin") || lowerLabel.contains("тонк") -> Icons.Outlined.Remove
+        lowerKey == "none" || lowerKey == "dark" || lowerLabel.contains("нет") || lowerLabel.contains("без фона") -> Icons.Outlined.Block
+        lowerKey == "classic" || lowerLabel == "стандартный" -> Icons.Outlined.RadioButtonUnchecked
+        lowerKey == "thin" || lowerLabel.contains("тонк") -> Icons.Outlined.Remove
         lowerKey.contains("ios") -> Icons.Outlined.ToggleOn
         lowerKey.contains("wave") || lowerLabel.contains("волн") -> Icons.Outlined.Equalizer
-        lowerKey.contains("circle") || lowerLabel.contains("круг") -> Icons.Outlined.Circle
-        lowerKey.contains("pill") || lowerLabel.contains("капсул") -> Icons.Outlined.SmartButton
+        lowerKey == "circle" || lowerLabel.contains("круг") -> Icons.Outlined.RadioButtonUnchecked
+        lowerKey == "pill" -> Icons.Outlined.RadioButtonUnchecked
+        lowerKey == "soft" || lowerLabel.contains("мягк") -> Icons.Outlined.GridView
+        lowerKey == "rounded" || lowerLabel.contains("закруглен") -> Icons.Outlined.GridView
+        lowerKey == "minimal" || lowerLabel.contains("минималистичн") -> Icons.Outlined.Grain
+        lowerKey == "filled" || lowerLabel.contains("залит") -> Icons.Outlined.RadioButtonUnchecked
+        lowerKey == "standard" || lowerLabel.contains("стандартн") -> Icons.Outlined.MoreHoriz
         lowerKey.contains("source") || lowerLabel.contains("источник") -> Icons.Outlined.Info
         lowerKey.contains("text") || lowerLabel.contains("текст") || lowerKey.contains("lyrics") -> Icons.Outlined.Description
         lowerKey.contains("preset") || lowerLabel.contains("пресет") -> Icons.Outlined.AutoAwesome
@@ -504,16 +599,12 @@ private fun resolveChoiceSubtitle(key: String, label: String): String? {
     val lowerKey = key.lowercase()
     val lowerLabel = label.lowercase()
     return when {
+        lowerKey == "square" || (lowerLabel == "стандартный" && !lowerKey.contains("classic")) -> "Классический вид с обложкой"
+        lowerKey == "blur" || lowerLabel == "большой" -> "Обложка на весь экран"
+        lowerKey == "vinyl" || lowerLabel == "пластинка" -> "Виниловая пластинка с вращением"
         lowerKey == "artwork" || (lowerLabel == "обложка" && !lowerKey.contains("mini")) -> "Размытая обложка трека"
-        lowerKey == "lava" || lowerLabel.contains("адаптивный") -> "Адаптивный градиент под обложку"
-        lowerKey == "dark" || lowerKey == "none" || lowerLabel.contains("без фона") -> "Без фона"
-        lowerKey == "standard" -> "Стандартное оформление"
-        lowerKey == "accent" -> "Цвет текущей обложки"
-        lowerKey == "thin" -> "Минималистичный тонкий ползунок"
-        lowerKey == "ios" -> "Стиль ползунка в стиле iOS"
-        lowerKey == "wave" -> "Анимированная аудио-волна"
-        lowerKey == "source" -> "Показывать источник трека"
-        lowerKey == "text" -> "Показывать текущий текст песни"
+        lowerKey == "lava" || lowerLabel.contains("адаптивный") || lowerLabel == "цвет" -> "Адаптивный градиент под обложку"
+        lowerKey == "dark" || (lowerKey == "none" && lowerLabel.contains("нет")) -> "Без фона"
         else -> null
     }
 }
@@ -550,8 +641,8 @@ fun SettingsCtaPill(
             onClick()
         },
         shape = RoundedCornerShape(20.dp),
-        color = VotifyColors.TextPrimary,
-        contentColor = VotifyColors.PitchBlack,
+        color = Color.White,
+        contentColor = Color.Black,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
         Row(
@@ -560,10 +651,10 @@ fun SettingsCtaPill(
             horizontalArrangement = Arrangement.Center,
         ) {
             if (icon != null) {
-                Icon(icon, null, modifier = Modifier.size(18.dp))
+                Icon(icon, null, modifier = Modifier.size(18.dp), tint = Color.Black)
                 Spacer(Modifier.width(8.dp))
             }
-            Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color.Black)
         }
     }
 }
@@ -573,7 +664,7 @@ fun SettingsCtaPill(
 fun SwipePreviewBar(vararg icons: ImageVector) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = VotifyColors.SurfaceContainerHigh,
+        color = Color(0xFF1C1C1E),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -581,7 +672,7 @@ fun SwipePreviewBar(vararg icons: ImageVector) {
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            icons.forEach { Icon(it, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(20.dp)) }
+            icons.forEach { Icon(it, null, tint = Color(0xFF8E8E93), modifier = Modifier.size(20.dp)) }
         }
     }
 }
@@ -590,7 +681,7 @@ fun SwipePreviewBar(vararg icons: ImageVector) {
 @Composable
 fun SyncCell(
     icon: ImageVector,
-    iconTint: Color = VotifyColors.TextPrimary,
+    iconTint: Color = Color.White,
     title: String,
     subtitle: String,
     onClick: () -> Unit,
@@ -603,15 +694,15 @@ fun SyncCell(
             onClick()
         },
         shape = RoundedCornerShape(16.dp),
-        color = VotifyColors.SurfaceContainerHigh,
+        color = Color(0xFF141416),
         modifier = modifier,
     ) {
         Column(Modifier.padding(14.dp)) {
             Icon(icon, null, tint = iconTint, modifier = Modifier.size(22.dp))
             Spacer(Modifier.height(10.dp))
-            Text(title, style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+            Text(title, style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(2.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = VotifyColors.TextMuted)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color(0xFF8E8E93))
         }
     }
 }

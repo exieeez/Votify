@@ -17,16 +17,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import app.votify.mobile.ui.common.UpdateBanner
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
@@ -424,12 +429,18 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                                 player.dismiss()
                             },
                             style = MiniStyle(
-                                pillShape = cp.miniCorners != "rounded",
+                                pillShape = cp.miniCorners == "pill",
+                                cornerRadiusDp = when (cp.miniCorners) {
+                                    "none" -> 0.dp
+                                    "soft" -> 8.dp
+                                    "rounded" -> 16.dp
+                                    else -> 28.dp
+                                },
                                 roundCover = cp.miniCoverShape == "circle",
                                 ringProgress = cp.miniProgress == "ring",
                                 barProgress = cp.miniProgress == "bar",
                                 showLike = cp.miniButtons == "both",
-                                filledPlay = cp.miniButtonStyle != "outline",
+                                filledPlay = cp.miniButtonStyle != "outline" && cp.miniButtonStyle != "minimal",
                                 artworkTint = cp.miniBg == "artwork",
                             ),
                         )
@@ -835,61 +846,66 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
 private fun VotifyNavBar(selected: Tab, onSelect: (Tab) -> Unit) {
     val view = androidx.compose.ui.platform.LocalView.current
     val context = androidx.compose.ui.platform.LocalContext.current
-    NavigationBar(
-        containerColor = VotifyColors.SurfaceBase,
-        contentColor = VotifyColors.TextMuted,
-        tonalElevation = 0.dp,
-        windowInsets = NavigationBarDefaults.windowInsets,
+    Surface(
+        color = VotifyColors.SurfaceBase,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Tab.entries.forEach { tab ->
-            val isSelected = tab == selected
-            val scale by androidx.compose.animation.core.animateFloatAsState(
-                targetValue = if (isSelected) 1.16f else 1.0f,
-                animationSpec = androidx.compose.animation.core.spring(
-                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                    stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
-                ),
-                label = "navScale",
-            )
-            val rotation by androidx.compose.animation.core.animateFloatAsState(
-                targetValue = if (isSelected) {
-                    when (tab) {
-                        Tab.Home -> -7f
-                        Tab.Search -> -14f
-                        Tab.Library -> 12f
-                    }
-                } else 0f,
-                animationSpec = androidx.compose.animation.core.spring(
-                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                    stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
-                ),
-                label = "navRotation",
-            )
-            NavigationBarItem(
-                selected = isSelected,
-                onClick = {
-                    VotifyHaptics.click(view, context)
-                    onSelect(tab)
-                },
-                icon = {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(NavigationBarDefaults.windowInsets)
+                .height(64.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Tab.entries.forEach { tab ->
+                val isSelected = tab == selected
+                val scale by androidx.compose.animation.core.animateFloatAsState(
+                    targetValue = if (isSelected) 1.16f else 1.0f,
+                    animationSpec = androidx.compose.animation.core.spring(
+                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                        stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
+                    ),
+                    label = "navScale",
+                )
+                val rotation by androidx.compose.animation.core.animateFloatAsState(
+                    targetValue = if (isSelected) {
+                        when (tab) {
+                            Tab.Home -> -7f
+                            Tab.Search -> -14f
+                            Tab.Library -> 12f
+                        }
+                    } else 0f,
+                    animationSpec = androidx.compose.animation.core.spring(
+                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                        stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
+                    ),
+                    label = "navRotation",
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) {
+                            VotifyHaptics.click(view, context)
+                            onSelect(tab)
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
                     Icon(
                         painter = painterResource(if (isSelected) tab.iconSelected else tab.icon),
                         contentDescription = stringResource(tab.label),
+                        tint = if (isSelected) VotifyColors.TextPrimary else VotifyColors.TextMuted,
                         modifier = Modifier.graphicsLayer {
                             scaleX = scale
                             scaleY = scale
                             rotationZ = rotation
                         },
                     )
-                },
-                alwaysShowLabel = false,
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = VotifyColors.TextPrimary,
-                    unselectedIconColor = VotifyColors.TextMuted,
-                    indicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                ),
-            )
+                }
+            }
         }
     }
 }

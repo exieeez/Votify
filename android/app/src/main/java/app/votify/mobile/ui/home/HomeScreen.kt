@@ -567,11 +567,6 @@ private fun TrackCard(
                 contentDescription = track.title,
                 modifier = Modifier.fillMaxSize(),
             )
-            SpotifyBadge(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp),
-            )
         }
         Spacer(Modifier.height(8.dp))
         Text(

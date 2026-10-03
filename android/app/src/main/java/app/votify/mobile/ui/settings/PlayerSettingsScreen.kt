@@ -7,21 +7,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.outlined.CropSquare
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Equalizer
 import androidx.compose.material.icons.outlined.FormatAlignCenter
+import androidx.compose.material.icons.outlined.FormatAlignLeft
+import androidx.compose.material.icons.outlined.Grain
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.SmartButton
 import androidx.compose.material.icons.outlined.ToggleOn
+import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -32,7 +37,7 @@ import app.votify.mobile.R
 import app.votify.mobile.data.ArtworkStyle
 import app.votify.mobile.data.PlayerBackground
 
-/** «Плеер»: стиль, заголовок, слайдер, кнопка, плашка, фон + вся секция мини-плеера. */
+/** «Плеер»: стиль, заголовок, слайдер, плашка, фон + секция мини-плеера (100% дизайн со скриншотов). */
 @Composable
 fun PlayerSettingsScreen(
     viewModel: SettingsViewModel,
@@ -44,25 +49,37 @@ fun PlayerSettingsScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     SettingsScaffold(stringResource(R.string.settings_player), contentPadding, onBack) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 32.dp),
+        ) {
 
-            SettingsSectionLabel(stringResource(R.string.settings_player_style))
+            // СТИЛЬ ПЛЕЕРА
+            SettingsSectionLabel("Стиль плеера")
             SettingsCard {
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_player_style),
+                    title = "Стиль плеера",
                     subtitle = null,
-                    value = playerStyleLabel(settings.artworkStyle.key),
-                    trailing = Icons.Outlined.Album,
-                    options = listOf(
-                        "vinyl" to stringResource(R.string.settings_artwork_vinyl),
-                        "square" to stringResource(R.string.settings_artwork_square),
-                        "circle" to stringResource(R.string.settings_artwork_circle),
-                        "blur" to stringResource(R.string.settings_artwork_blur),
+                    value = when (settings.artworkStyle) {
+                        ArtworkStyle.Square -> "Стандартный"
+                        ArtworkStyle.Blur -> "Большой"
+                        else -> "Пластинка"
+                    },
+                    trailing = when (settings.artworkStyle) {
+                        ArtworkStyle.Square -> Icons.Outlined.MusicNote
+                        ArtworkStyle.Blur -> Icons.Outlined.Tv
+                        else -> Icons.Outlined.Album
+                    },
+                    choiceOptions = listOf(
+                        ChoiceOption("square", "Стандартный", "Классический вид с обложкой", Icons.Outlined.MusicNote),
+                        ChoiceOption("blur", "Большой", "Обложка на весь экран", Icons.Outlined.Tv),
+                        ChoiceOption("vinyl", "Пластинка", "Виниловая пластинка с вращением", Icons.Outlined.Album),
                     ),
                     onPick = { key ->
                         when (key) {
                             "square" -> viewModel.setArtworkStyle(ArtworkStyle.Square)
-                            "circle" -> viewModel.setArtworkStyle(ArtworkStyle.Circle)
                             "blur" -> viewModel.setArtworkStyle(ArtworkStyle.Blur)
                             else -> viewModel.setArtworkStyle(ArtworkStyle.Vinyl)
                         }
@@ -71,25 +88,27 @@ fun PlayerSettingsScreen(
                 )
             }
 
-            SettingsSectionLabel(stringResource(R.string.settings_title_section))
+            // ЗАГОЛОВОК
+            SettingsSectionLabel("Заголовок")
             SettingsCard {
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_title_align),
+                    title = "Выравнивание заголовка",
                     subtitle = null,
-                    value = if (prefs.titleAlign == "left") stringResource(R.string.settings_align_left) else stringResource(R.string.settings_align_center),
-                    trailing = Icons.Outlined.FormatAlignCenter,
-                    options = listOf(
-                        "center" to stringResource(R.string.settings_align_center),
-                        "left" to stringResource(R.string.settings_align_left),
+                    value = if (prefs.titleAlign == "left") "Слева" else "По центру",
+                    trailing = if (prefs.titleAlign == "left") Icons.Outlined.FormatAlignLeft else Icons.Outlined.FormatAlignCenter,
+                    choiceOptions = listOf(
+                        ChoiceOption("center", "По центру", null, Icons.Outlined.FormatAlignCenter),
+                        ChoiceOption("left", "Слева", null, Icons.Outlined.FormatAlignLeft),
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(titleAlign = v) } },
                 )
             }
 
-            SettingsSectionLabel(stringResource(R.string.settings_slider))
+            // СЛАЙДЕР
+            SettingsSectionLabel("Слайдер")
             SettingsCard {
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_slider_type),
+                    title = "Тип слайдера",
                     subtitle = when (prefs.sliderStyle) {
                         "thin" -> "Тонкий"
                         "classic" -> "Стандартный"
@@ -104,39 +123,25 @@ fun PlayerSettingsScreen(
                     },
                     trailing = when (prefs.sliderStyle) {
                         "thin" -> Icons.Outlined.Remove
-                        "classic" -> Icons.Outlined.Circle
+                        "classic" -> Icons.Outlined.RadioButtonUnchecked
                         "wave" -> Icons.Outlined.Equalizer
                         else -> Icons.Outlined.ToggleOn
                     },
-                    options = listOf(
-                        "classic" to "Стандартный",
-                        "thin" to "Тонкий",
-                        "ios" to "iOS",
-                        "wave" to "Волновой",
+                    choiceOptions = listOf(
+                        ChoiceOption("classic", "Стандартный", null, Icons.Outlined.RadioButtonUnchecked),
+                        ChoiceOption("thin", "Тонкий", null, Icons.Outlined.Remove),
+                        ChoiceOption("ios", "iOS", null, Icons.Outlined.ToggleOn),
+                        ChoiceOption("wave", "Волновой", null, Icons.Outlined.Equalizer),
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(sliderStyle = v) } },
                 )
             }
 
-            SettingsSectionLabel(stringResource(R.string.settings_play_button))
+            // ПЛАШКА ИНФОРМАЦИИ
+            SettingsSectionLabel("Плашка информации")
             SettingsCard {
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_play_button_style),
-                    subtitle = if (prefs.playButtonStyle == "pill") "Капсула" else "Круг",
-                    value = if (prefs.playButtonStyle == "pill") "Капсула" else "Круг",
-                    trailing = if (prefs.playButtonStyle == "pill") Icons.Outlined.SmartButton else Icons.Outlined.Circle,
-                    options = listOf(
-                        "circle" to "Круг",
-                        "pill" to "Капсула",
-                    ),
-                    onPick = { v -> viewModel.updatePrefs { it.copy(playButtonStyle = v) } },
-                )
-            }
-
-            SettingsSectionLabel(stringResource(R.string.settings_info_chip))
-            SettingsCard {
-                SettingsValueRow(
-                    title = stringResource(R.string.settings_info_chip_show),
+                    title = "Показывать в плашке",
                     subtitle = when (prefs.infoChip) {
                         "text" -> "Текст песни"
                         "none" -> "Нет"
@@ -152,19 +157,20 @@ fun PlayerSettingsScreen(
                         "none" -> Icons.Outlined.Block
                         else -> Icons.Outlined.Info
                     },
-                    options = listOf(
-                        "source" to "Источник",
-                        "text" to "Текст песни",
-                        "none" to "Нет",
+                    choiceOptions = listOf(
+                        ChoiceOption("source", "Источник", null, Icons.Outlined.Info),
+                        ChoiceOption("text", "Текст песни", null, Icons.Outlined.Description),
+                        ChoiceOption("none", "Нет", null, Icons.Outlined.Block),
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(infoChip = v) } },
                 )
             }
 
-            SettingsSectionLabel(stringResource(R.string.settings_player_bg))
+            // ФОН ПЛЕЕРА
+            SettingsSectionLabel("Фон плеера")
             SettingsCard {
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_player_bg),
+                    title = "Фон плеера",
                     subtitle = when (settings.playerBackground) {
                         PlayerBackground.Artwork -> "Обложка"
                         PlayerBackground.Lava -> "Цвет"
@@ -180,10 +186,10 @@ fun PlayerSettingsScreen(
                         PlayerBackground.Lava -> Icons.Outlined.Palette
                         else -> Icons.Outlined.Block
                     },
-                    options = listOf(
-                        "artwork" to "Обложка",
-                        "lava" to "Цвет",
-                        "dark" to "Нет",
+                    choiceOptions = listOf(
+                        ChoiceOption("artwork", "Обложка", "Размытая обложка трека", Icons.Outlined.Image),
+                        ChoiceOption("lava", "Цвет", "Адаптивный градиент под обложку", Icons.Outlined.Palette),
+                        ChoiceOption("dark", "Нет", "Без фона", Icons.Outlined.Block),
                     ),
                     onPick = { v ->
                         viewModel.setPlayerBackground(
@@ -204,85 +210,102 @@ fun PlayerSettingsScreen(
                 )
             }
 
-            SettingsSectionLabel(stringResource(R.string.settings_mini_player))
+            // МИНИ-ПЛЕЕР
+            SettingsSectionLabel("Мини-плеер")
             SettingsCard {
                 SettingsNavRow(
                     icon = Icons.Outlined.AutoAwesome,
-                    title = stringResource(R.string.settings_mini_presets),
-                    subtitle = stringResource(R.string.settings_mini_presets_sub),
+                    title = "Готовые пресеты",
+                    subtitle = "Выбрать пресет",
                     onClick = onOpenPresets,
                 )
                 SettingsDivider()
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_mini_bg),
-                    subtitle = null,
-                    value = if (prefs.miniBg == "artwork") stringResource(R.string.settings_mini_bg_artwork) else stringResource(R.string.settings_mini_bg_plain),
+                    title = "Фон",
+                    subtitle = if (prefs.miniBg == "artwork") "Цвет обложки" else "Обычный",
+                    value = if (prefs.miniBg == "artwork") "Цвет обложки" else "Обычный",
                     trailing = Icons.Outlined.Palette,
-                    options = listOf(
-                        "plain" to stringResource(R.string.settings_mini_bg_plain),
-                        "artwork" to stringResource(R.string.settings_mini_bg_artwork),
+                    choiceOptions = listOf(
+                        ChoiceOption("artwork", "Цвет обложки", null, Icons.Outlined.Palette),
+                        ChoiceOption("plain", "Обычный", null, Icons.Outlined.Block),
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(miniBg = v) } },
                 )
                 SettingsDivider()
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_mini_progress),
-                    subtitle = null,
-                    value = miniProgressLabel(prefs.miniProgress),
+                    title = "Индикаторы прогресса",
+                    subtitle = when (prefs.miniProgress) {
+                        "bar" -> "Полоса"
+                        "none" -> "Нет"
+                        else -> "Кольцо на обложке"
+                    },
+                    value = when (prefs.miniProgress) {
+                        "bar" -> "Полоса"
+                        "none" -> "Нет"
+                        else -> "Кольцо на обложке"
+                    },
                     trailing = Icons.Outlined.Equalizer,
-                    options = listOf(
-                        "ring" to stringResource(R.string.settings_mini_progress_ring),
-                        "bar" to stringResource(R.string.settings_mini_progress_bar),
-                        "none" to stringResource(R.string.swipe_action_none),
+                    choiceOptions = listOf(
+                        ChoiceOption("ring", "Кольцо на обложке", null, Icons.Outlined.RadioButtonUnchecked),
+                        ChoiceOption("bar", "Полоса", null, Icons.Outlined.Remove),
+                        ChoiceOption("none", "Нет", null, Icons.Outlined.Block),
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(miniProgress = v) } },
                 )
                 SettingsDivider()
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_mini_cover),
-                    subtitle = null,
-                    value = if (prefs.miniCoverShape == "circle") stringResource(R.string.settings_shape_circle) else stringResource(R.string.settings_shape_rounded),
-                    trailing = Icons.Outlined.Circle,
-                    options = listOf(
-                        "circle" to stringResource(R.string.settings_shape_circle),
-                        "rounded" to stringResource(R.string.settings_shape_rounded),
+                    title = "Форма обложки",
+                    subtitle = if (prefs.miniCoverShape == "circle") "Круг" else "Закругленная",
+                    value = if (prefs.miniCoverShape == "circle") "Круг" else "Закругленная",
+                    trailing = Icons.Outlined.RadioButtonUnchecked,
+                    choiceOptions = listOf(
+                        ChoiceOption("circle", "Круг", null, Icons.Outlined.RadioButtonUnchecked),
+                        ChoiceOption("rounded", "Закругленная", null, Icons.Outlined.CropSquare),
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(miniCoverShape = v) } },
                 )
                 SettingsDivider()
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_mini_corners),
-                    subtitle = null,
-                    value = if (prefs.miniCorners == "pill") stringResource(R.string.settings_shape_pill) else stringResource(R.string.settings_shape_rounded),
-                    trailing = Icons.Outlined.Circle,
-                    options = listOf(
-                        "pill" to stringResource(R.string.settings_shape_pill),
-                        "rounded" to stringResource(R.string.settings_shape_rounded),
+                    title = "Скругление границ",
+                    subtitle = when (prefs.miniCorners) {
+                        "none" -> "Нет"
+                        "soft" -> "Мягкое"
+                        "rounded" -> "Закругленное"
+                        else -> "Круглое (Pill)"
+                    },
+                    value = when (prefs.miniCorners) {
+                        "none" -> "Нет"
+                        "soft" -> "Мягкое"
+                        "rounded" -> "Закругленное"
+                        else -> "Круглое (Pill)"
+                    },
+                    trailing = Icons.Outlined.RadioButtonUnchecked,
+                    choiceOptions = listOf(
+                        ChoiceOption("none", "Нет", null, Icons.Outlined.CropSquare),
+                        ChoiceOption("soft", "Мягкое", null, Icons.Outlined.GridView),
+                        ChoiceOption("rounded", "Закругленное", null, Icons.Outlined.GridView),
+                        ChoiceOption("pill", "Круглое (Pill)", null, Icons.Outlined.RadioButtonUnchecked),
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(miniCorners = v) } },
                 )
                 SettingsDivider()
                 SettingsValueRow(
-                    title = stringResource(R.string.settings_mini_buttons),
-                    subtitle = null,
-                    value = miniButtonsLabel(prefs.miniButtons),
-                    trailing = Icons.Outlined.SmartButton,
-                    options = listOf(
-                        "both" to stringResource(R.string.settings_mini_buttons_both),
-                        "play" to stringResource(R.string.settings_mini_buttons_play),
-                        "none" to stringResource(R.string.swipe_action_none),
-                    ),
-                    onPick = { v -> viewModel.updatePrefs { it.copy(miniButtons = v) } },
-                )
-                SettingsDivider()
-                SettingsValueRow(
-                    title = stringResource(R.string.settings_mini_button_style),
-                    subtitle = null,
-                    value = if (prefs.miniButtonStyle == "outline") stringResource(R.string.settings_button_outline) else stringResource(R.string.settings_button_filled),
-                    trailing = Icons.Outlined.SmartButton,
-                    options = listOf(
-                        "filled" to stringResource(R.string.settings_button_filled),
-                        "outline" to stringResource(R.string.settings_button_outline),
+                    title = "Стиль кнопок",
+                    subtitle = when (prefs.miniButtonStyle) {
+                        "standard" -> "Стандартные"
+                        "minimal" -> "Минималистичные"
+                        else -> "Залитые"
+                    },
+                    value = when (prefs.miniButtonStyle) {
+                        "standard" -> "Стандартные"
+                        "minimal" -> "Минималистичные"
+                        else -> "Залитые"
+                    },
+                    trailing = Icons.Outlined.RadioButtonUnchecked,
+                    choiceOptions = listOf(
+                        ChoiceOption("standard", "Стандартные", null, Icons.Outlined.MoreHoriz),
+                        ChoiceOption("filled", "Залитые", null, Icons.Outlined.RadioButtonUnchecked),
+                        ChoiceOption("minimal", "Минималистичные", null, Icons.Outlined.Grain),
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(miniButtonStyle = v) } },
                 )
@@ -290,40 +313,3 @@ fun PlayerSettingsScreen(
         }
     }
 }
-
-@Composable
-private fun playerStyleLabel(v: String): String = stringResource(
-    when (v) {
-        "square" -> R.string.settings_artwork_square
-        "circle" -> R.string.settings_artwork_circle
-        "blur" -> R.string.settings_artwork_blur
-        else -> R.string.settings_artwork_vinyl
-    },
-)
-
-@Composable
-private fun infoChipLabel(v: String): String = stringResource(
-    when (v) {
-        "text" -> R.string.settings_chip_text
-        "none" -> R.string.swipe_action_none
-        else -> R.string.settings_chip_source
-    },
-)
-
-@Composable
-private fun miniProgressLabel(v: String): String = stringResource(
-    when (v) {
-        "bar" -> R.string.settings_mini_progress_bar
-        "none" -> R.string.swipe_action_none
-        else -> R.string.settings_mini_progress_ring
-    },
-)
-
-@Composable
-private fun miniButtonsLabel(v: String): String = stringResource(
-    when (v) {
-        "play" -> R.string.settings_mini_buttons_play
-        "none" -> R.string.swipe_action_none
-        else -> R.string.settings_mini_buttons_both
-    },
-)

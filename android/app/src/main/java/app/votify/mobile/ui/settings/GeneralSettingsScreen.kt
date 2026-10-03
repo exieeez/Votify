@@ -194,13 +194,6 @@ fun GeneralSettingsScreen(
                     )
                 }
             }
-
-            Spacer(Modifier.height(8.dp))
-            SettingsCtaPill(
-                text = stringResource(R.string.settings_check_updates),
-                icon = Icons.Filled.Refresh,
-                onClick = viewModel::checkUpdates,
-            )
         }
     }
 }
