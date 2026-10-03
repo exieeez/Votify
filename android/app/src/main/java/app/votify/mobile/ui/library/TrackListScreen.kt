@@ -579,23 +579,39 @@ fun PlaylistScreen(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(50.dp)
-                    .alpha(0.40f),
+                    .blur(45.dp)
+                    .alpha(0.85f),
+            )
+        } else {
+            // Ambient vivid fallback gradient when no cover is present
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xFF3b2361),
+                                Color(0xFF1a172e),
+                                Color(0xFF0c0d10),
+                                Color(0xFF0c0d10),
+                            )
+                        )
+                    )
             )
         }
 
-        // Gradient overlay fading into deep black surface
+        // Gradient overlay fading smoothly into deep opaque surface
         Box(
             Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        listOf(
-                            Color.Black.copy(alpha = 0.5f),
-                            Color(0xFF0c0d10).copy(alpha = 0.85f),
-                            Color(0xFF0c0d10),
-                            Color(0xFF0c0d10),
-                        )
+                        0.0f to Color.Black.copy(alpha = 0.15f),
+                        0.25f to Color.Transparent,
+                        0.52f to Color(0xFF0c0d10).copy(alpha = 0.40f),
+                        0.74f to Color(0xFF0c0d10).copy(alpha = 0.90f),
+                        0.88f to Color(0xFF0c0d10),
+                        1.0f to Color(0xFF0c0d10),
                     )
                 )
         )

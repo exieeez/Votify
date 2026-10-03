@@ -2,7 +2,6 @@ package app.votify.mobile.ui.workshop
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -55,7 +53,6 @@ import app.votify.mobile.R
 import app.votify.mobile.data.AppTheme
 import app.votify.mobile.data.WorkshopThemeDoc
 import app.votify.mobile.ui.components.CircleIconButton
-import app.votify.mobile.ui.components.PillChip
 import app.votify.mobile.ui.components.VotifyTextField
 import app.votify.mobile.ui.theme.VotifyColors
 
@@ -78,7 +75,6 @@ fun WorkshopScreen(
     var publishDialog by rememberSaveable { mutableStateOf(false) }
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var filter by rememberSaveable { mutableStateOf("all") }
     var selectedDoc by remember { mutableStateOf<WorkshopThemeDoc?>(null) }
 
     Box(Modifier.fillMaxSize()) {
@@ -139,19 +135,8 @@ fun WorkshopScreen(
                     stringResource(R.string.workshop_search_hint),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth(),
                 )
-            }
-
-            // ---- Chip filters ----
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                PillChip(text = "▦ " + stringResource(R.string.workshop_filter_all), selected = filter == "all", onClick = { filter = "all" })
-                PillChip(text = "🔥 " + stringResource(R.string.workshop_filter_popular), selected = filter == "pop", onClick = { filter = "pop" })
-                PillChip(text = "✨ " + stringResource(R.string.workshop_filter_new), selected = filter == "new", onClick = { filter = "new" })
+            } else {
+                Spacer(Modifier.height(4.dp))
             }
 
             // ---- Grid ----
@@ -169,13 +154,11 @@ fun WorkshopScreen(
                     CircularProgressIndicator(color = VotifyColors.Primary, strokeWidth = 2.dp)
                 }
             } else {
-                val visible = state.community
-                    .filter { d ->
-                        searchQuery.isBlank() ||
-                            d.title.contains(searchQuery, ignoreCase = true) ||
-                            d.authorName.contains(searchQuery, ignoreCase = true)
-                    }
-                    .let { list -> if (filter == "pop") list.sortedBy { d -> d.id.hashCode() } else list }
+                val visible = state.community.filter { d ->
+                    searchQuery.isBlank() ||
+                        d.title.contains(searchQuery, ignoreCase = true) ||
+                        d.authorName.contains(searchQuery, ignoreCase = true)
+                }
                 LazyColumn(
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + 24.dp),
