@@ -49,16 +49,37 @@ import app.votify.mobile.data.Track
 import app.votify.mobile.ui.theme.VotifyColors
 import coil.compose.SubcomposeAsyncImage
 
+fun resolveCoverModel(url: String?): Any? {
+    if (url.isNullOrBlank()) return null
+    if (url.startsWith("data:image/")) {
+        val commaIdx = url.indexOf(',')
+        if (commaIdx != -1) {
+            val base64Data = url.substring(commaIdx + 1)
+            return runCatching {
+                android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+            }.getOrNull()
+        }
+    }
+    if (url.startsWith("file://")) {
+        return java.io.File(url.removePrefix("file://"))
+    }
+    if (url.startsWith("/")) {
+        return java.io.File(url)
+    }
+    return url
+}
+
 /** Square artwork with a graceful placeholder. */
 @Composable
 fun Artwork(
-    url: String,
+    url: String?,
     modifier: Modifier = Modifier,
     size: Dp = 44.dp,
-    shape: RoundedCornerShape = RoundedCornerShape(8.dp),
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
     contentDescription: String? = null,
     colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
 ) {
+    val model = androidx.compose.runtime.remember(url) { resolveCoverModel(url) }
     Box(
         modifier
             .size(size)
@@ -66,11 +87,11 @@ fun Artwork(
             .background(VotifyColors.SurfaceContainerHigh),
         contentAlignment = Alignment.Center,
     ) {
-        if (url.isBlank()) {
+        if (model == null) {
             Icon(Icons.Default.MusicNote, null, tint = VotifyColors.TextMuted, modifier = Modifier.size(size * 0.45f))
         } else {
             SubcomposeAsyncImage(
-                model = url,
+                model = model,
                 contentDescription = contentDescription,
                 contentScale = ContentScale.Crop,
                 colorFilter = colorFilter,

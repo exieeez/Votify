@@ -81,6 +81,7 @@ import app.votify.mobile.R
 import app.votify.mobile.data.DownloadProgress
 import app.votify.mobile.data.Track
 import app.votify.mobile.ui.components.Artwork
+import app.votify.mobile.ui.components.resolveCoverModel
 import app.votify.mobile.ui.components.CircleIconButton
 import app.votify.mobile.ui.components.ConfirmDialog
 import app.votify.mobile.ui.components.PillChip
@@ -320,7 +321,7 @@ fun PlaylistVinylHeader(
     if (spinning) frozenAngle = angle
 
     val vinylOffset by animateDpAsState(
-        targetValue = if (spinning) 48.dp else 0.dp,
+        targetValue = if (spinning) 52.dp else 40.dp,
         animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "vinyl_offset",
     )
@@ -566,9 +567,10 @@ fun PlaylistScreen(
 
     Box(Modifier.fillMaxSize()) {
         // Heavily blurred background cover image
-        if (!coverUrl.isNullOrBlank()) {
+        val bgModel = remember(coverUrl) { resolveCoverModel(coverUrl) }
+        if (bgModel != null) {
             SubcomposeAsyncImage(
-                model = coverUrl,
+                model = bgModel,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

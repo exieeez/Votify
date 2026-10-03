@@ -3,6 +3,7 @@ package app.votify.mobile.ui.library
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import java.io.File
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -230,7 +231,7 @@ class LibraryViewModel(
 
     fun setPlaylistCover(id: Long, uri: Uri) {
         viewModelScope.launch {
-            val dataUrl = withContext(Dispatchers.IO) {
+            val filePath = withContext(Dispatchers.IO) {
                 runCatching {
                     VotifyApp.instance.contentResolver.openInputStream(uri)?.use { input ->
                         val bmp = BitmapFactory.decodeStream(input) ?: return@runCatching null
@@ -244,14 +245,18 @@ class LibraryViewModel(
                                 true,
                             )
                         } else bmp
-                        val out = java.io.ByteArrayOutputStream()
-                        scaled.compress(Bitmap.CompressFormat.JPEG, 80, out)
-                        "data:image/jpeg;base64," + android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
+                        val dir = File(VotifyApp.instance.filesDir, "playlist_covers").apply { mkdirs() }
+                        dir.listFiles { _, name -> name.startsWith("pl_${id}_") || name == "pl_${id}.jpg" }?.forEach { it.delete() }
+                        val file = File(dir, "pl_${id}_${System.currentTimeMillis()}.jpg")
+                        file.outputStream().use { out ->
+                            scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                        }
+                        file.absolutePath
                     }
                 }.getOrNull()
             }
-            if (dataUrl != null) {
-                library.updatePlaylistCover(id, dataUrl)
+            if (filePath != null) {
+                library.updatePlaylistCover(id, filePath)
                 _messages.tryEmit(UiMessage(R.string.toast_cover_updated))
             }
         }
@@ -259,6 +264,12 @@ class LibraryViewModel(
 
     fun removePlaylistCover(id: Long) {
         viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val dir = File(VotifyApp.instance.filesDir, "playlist_covers")
+                    dir.listFiles { _, name -> name.startsWith("pl_${id}_") || name == "pl_${id}.jpg" }?.forEach { it.delete() }
+                }
+            }
             library.updatePlaylistCover(id, null)
             _messages.tryEmit(UiMessage(R.string.toast_cover_removed))
         }
