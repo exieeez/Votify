@@ -372,6 +372,48 @@ async function handleMusicRoutes(req, res, u) {
   }
 
   // --- PLAYLIST IMPORT (YouTube + Spotify) ---
+  async function fetchFullUrl(rawUrl, timeout = 12000) {
+    return new Promise((resolve) => {
+      let current = rawUrl;
+      if (!current.startsWith('http://') && !current.startsWith('https://')) {
+        current = 'https://' + current;
+      }
+      function follow(u, hops = 0) {
+        if (hops > 6) return resolve({ finalUrl: u, body: '' });
+        let parsed;
+        try { parsed = new URL(u); } catch { return resolve({ finalUrl: u, body: '' }); }
+        const transport = parsed.protocol === 'https:' ? https : http;
+        const timer = setTimeout(() => { req.destroy(); resolve({ finalUrl: u, body: '' }); }, timeout);
+        const req = transport.get(u, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          }
+        }, res => {
+          if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+            clearTimeout(timer);
+            const loc = res.headers.location.startsWith('http')
+              ? res.headers.location
+              : parsed.origin + res.headers.location;
+            return follow(loc, hops + 1);
+          }
+          let data = '';
+          res.on('data', c => (data += c));
+          res.on('end', () => {
+            clearTimeout(timer);
+            resolve({ finalUrl: u, body: data });
+          });
+        });
+        req.on('error', () => {
+          clearTimeout(timer);
+          resolve({ finalUrl: u, body: '' });
+        });
+      }
+      follow(current);
+    });
+  }
+
   // --- PLAYLIST EXTRACTION & STREAMING RESOLUTION HELPERS ---
   async function extractTracksFromUrl(url) {
     const rawUrl = String(url || '').trim();
@@ -472,24 +514,33 @@ async function handleMusicRoutes(req, res, u) {
     }
 
     // 2. YANDEX MUSIC (Playlist / Album / Track)
-    if (rawUrl.includes('music.yandex.ru') || rawUrl.includes('music.yandex.com')) {
-      const pMatch = rawUrl.match(/users\/([^\/]+)\/playlists\/([0-9]+)/i);
-      const aMatch = rawUrl.match(/album\/([0-9]+)/i);
+    if (rawUrl.includes('music.yandex.') || rawUrl.includes('yandex.ru/music') || rawUrl.includes('yandex.com/music')) {
+      const { finalUrl, body: html } = await fetchFullUrl(rawUrl, 12000);
+      const userPlRegex = /(?:users\/|\/users\/)([^/\s"']+)\/playlists\/([0-9]+)/i;
+      const albumRegex = /(?:album\/|\/album\/)([0-9]+)/i;
+      const trackRegex = /(?:track\/|\/track\/)([0-9]+)/i;
+
+      const pMatch = finalUrl.match(userPlRegex) || (html && html.match(userPlRegex));
+      const aMatch = !pMatch && (finalUrl.match(albumRegex) || (html && html.match(albumRegex)));
+      const tMatch = !pMatch && !aMatch && (finalUrl.match(trackRegex) || (html && html.match(trackRegex)));
+
       const items = [];
       let playlistName = 'Яндекс Музыка';
+      let playlistCover = '';
 
       if (pMatch) {
         const [, owner, kinds] = pMatch;
         try {
           const json = await httpGet(`https://music.yandex.ru/handlers/playlist.jsx?owner=${encodeURIComponent(owner)}&kinds=${encodeURIComponent(kinds)}`, 12000);
-          const data = JSON.parse(json);
+          const data = typeof json === 'object' ? json : JSON.parse(json);
           const pl = data.playlist || {};
           playlistName = pl.title || 'Плейлист Яндекс Музыки';
+          playlistCover = pl.ogImage ? `https://${pl.ogImage.replace('%%', '400x400')}` : '';
           const rawTracks = pl.tracks || [];
           for (const tr of rawTracks) {
             const title = tr.title || '';
             const artist = (tr.artists || []).map(a => a.name).join(', ');
-            const ogImg = tr.ogImage ? `https://${tr.ogImage.replace('%%', '400x400')}` : '';
+            const ogImg = tr.ogImage ? `https://${tr.ogImage.replace('%%', '400x400')}` : playlistCover;
             const duration = Math.round((tr.durationMs || 0) / 1000);
             if (title) items.push({ title, artist, cover: ogImg, duration });
           }
@@ -500,15 +551,16 @@ async function handleMusicRoutes(req, res, u) {
         const albumId = aMatch[1];
         try {
           const json = await httpGet(`https://music.yandex.ru/handlers/album.jsx?album=${encodeURIComponent(albumId)}`, 12000);
-          const data = JSON.parse(json);
+          const data = typeof json === 'object' ? json : JSON.parse(json);
           const artist = (data.artists || []).map(a => a.name).join(', ');
           playlistName = data.title ? `${artist ? artist + ' - ' : ''}${data.title}` : 'Альбом Яндекс Музыки';
-          const ogImg = data.ogImage ? `https://${data.ogImage.replace('%%', '400x400')}` : '';
+          playlistCover = data.ogImage ? `https://${data.ogImage.replace('%%', '400x400')}` : '';
           const volumes = data.volumes || [];
           for (const vol of volumes) {
             for (const tr of vol) {
               const title = tr.title || '';
               const trArtist = (tr.artists || []).map(a => a.name).join(', ') || artist;
+              const ogImg = tr.ogImage ? `https://${tr.ogImage.replace('%%', '400x400')}` : playlistCover;
               const duration = Math.round((tr.durationMs || 0) / 1000);
               if (title) items.push({ title, artist: trArtist, cover: ogImg, duration });
             }
@@ -516,10 +568,47 @@ async function handleMusicRoutes(req, res, u) {
         } catch (e) {
           console.warn('[yandex] Album handler error:', e.message);
         }
+      } else if (tMatch) {
+        const trackId = tMatch[1];
+        try {
+          const json = await httpGet(`https://music.yandex.ru/handlers/track.jsx?track=${encodeURIComponent(trackId)}`, 12000);
+          const data = typeof json === 'object' ? json : JSON.parse(json);
+          const trk = data.track || data;
+          const title = trk.title || '';
+          const artist = (trk.artists || []).map(a => a.name).join(', ');
+          playlistName = `${artist} - ${title}`;
+          const ogImg = trk.ogImage ? `https://${trk.ogImage.replace('%%', '400x400')}` : '';
+          const duration = Math.round((trk.durationMs || 0) / 1000);
+          if (title) items.push({ title, artist, cover: ogImg, duration });
+        } catch (e) {
+          console.warn('[yandex] Track handler error:', e.message);
+        }
+      }
+
+      // If items empty, parse HTML fallback (schema.org ld+json)
+      if (items.length === 0 && html) {
+        const ldMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+        if (ldMatches) {
+          for (const m of ldMatches) {
+            try {
+              const jsonStr = m.replace(/<script[^>]*>/i, '').replace(/<\/script>/i, '');
+              const root = JSON.parse(jsonStr);
+              if (root.name) playlistName = root.name;
+              const tracks = root.track || root.itemListElement || [];
+              for (const it of tracks) {
+                const tr = it.item || it;
+                const title = tr.name || '';
+                const artist = tr.byArtist?.name || tr.byArtist?.[0]?.name || '';
+                if (title) items.push({ title, artist, cover: '', duration: 0 });
+              }
+              if (items.length > 0) break;
+            } catch {}
+          }
+        }
       }
 
       if (items.length === 0) throw new Error('Не удалось извлечь треки из Яндекс Музыки');
-      return { name: playlistName, cover: items[0]?.cover || '', items, isDirect: false };
+      return { name: playlistName, cover: playlistCover || items[0]?.cover || '', items, isDirect: false };
     }
 
     // 3. SOUNDCLOUD

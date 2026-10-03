@@ -113,7 +113,11 @@ class MusicRepository(
 
     suspend fun importPlaylist(url: String): ImportedTracks =
         if (isServerMode) {
-            if ("soundcloud.com" in url) api.importSoundcloud(url) else api.importPlaylist(url)
+            runCatching {
+                if ("soundcloud.com" in url) api.importSoundcloud(url) else api.importPlaylist(url)
+            }.getOrElse {
+                EmbeddedMusicSource.importPlaylist(url)
+            }
         } else {
             EmbeddedMusicSource.importPlaylist(url)
         }
