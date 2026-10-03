@@ -37,6 +37,31 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.SubcomposeAsyncImage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -251,10 +276,266 @@ fun HistoryScreen(
 }
 
 @Composable
+fun PlaylistVinylHeader(
+    title: String,
+    tracks: List<Track>,
+    coverUrl: String?,
+    isPlaying: Boolean,
+    isCurrentPlaylist: Boolean,
+    topPadding: androidx.compose.ui.unit.Dp,
+    onBack: () -> Unit,
+    onPlayAll: () -> Unit,
+    onShuffle: () -> Unit,
+    trailingActions: @Composable () -> Unit,
+) {
+    val totalSeconds = remember(tracks) {
+        tracks.sumOf { it.duration.toLong().coerceAtLeast(0L) }
+    }
+    val formattedTotalTime = remember(totalSeconds) {
+        val h = totalSeconds / 3600
+        val m = (totalSeconds % 3600) / 60
+        val s = totalSeconds % 60
+        if (h > 0) {
+            "$h:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
+        } else {
+            "$m:${s.toString().padStart(2, '0')}"
+        }
+    }
+
+    val spinning = isPlaying && isCurrentPlaylist
+
+    val transition = rememberInfiniteTransition(label = "vinyl_spin")
+    val angle by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(8_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "angle",
+    )
+    var frozenAngle by remember { mutableStateOf(0f) }
+    if (spinning) frozenAngle = angle
+
+    val vinylOffset by animateDpAsState(
+        targetValue = if (spinning) 48.dp else 0.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "vinyl_offset",
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = topPadding + 4.dp, bottom = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Top App Bar: Back arrow, "Playlist", trailing menu actions
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = stringResource(R.string.nav_back),
+                    tint = Color.White,
+                )
+            }
+            Text(
+                text = stringResource(R.string.library_playlist),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+            Spacer(Modifier.weight(1f))
+            trailingActions()
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        // Center Vinyl + Album Cover
+        Box(
+            modifier = Modifier
+                .size(width = 280.dp, height = 200.dp)
+                .clickable { onPlayAll() },
+            contentAlignment = Alignment.Center,
+        ) {
+            // Spinning vinyl disc behind the cover
+            Box(
+                modifier = Modifier
+                    .offset(x = vinylOffset)
+                    .size(185.dp)
+                    .rotate(if (spinning) angle else frozenAngle)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFF262626),
+                                Color(0xFF141414),
+                                Color(0xFF0a0a0a),
+                                Color(0xFF1c1c1c),
+                                Color(0xFF080808),
+                            )
+                        )
+                    )
+                    .border(1.dp, Color(0xFF444444).copy(alpha = 0.5f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                // Concentric vinyl grooves
+                for (r in listOf(168, 148, 128, 108, 88)) {
+                    Box(
+                        Modifier
+                            .size(r.dp)
+                            .border(0.6.dp, Color.White.copy(alpha = 0.08f), CircleShape)
+                    )
+                }
+                // Center circular label
+                if (!coverUrl.isNullOrBlank()) {
+                    Artwork(
+                        coverUrl,
+                        size = 62.dp,
+                        shape = RoundedCornerShape(50),
+                    )
+                } else {
+                    Box(
+                        Modifier
+                            .size(62.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF202020))
+                    )
+                }
+                // Center metallic spindle hole
+                Box(
+                    Modifier
+                        .size(14.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black)
+                        .border(1.dp, Color(0xFF888888), CircleShape)
+                )
+            }
+
+            // Front Album Cover with shadow
+            Box(
+                modifier = Modifier
+                    .size(190.dp)
+                    .shadow(elevation = 16.dp, shape = RoundedCornerShape(14.dp), clip = false)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(VotifyColors.SurfaceContainer)
+                    .border(1.dp, VotifyColors.BorderSubtle, RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (coverUrl.isNullOrBlank()) {
+                    Icon(
+                        Icons.Outlined.QueueMusic,
+                        contentDescription = null,
+                        tint = VotifyColors.TextSecondary,
+                        modifier = Modifier.size(64.dp),
+                    )
+                } else {
+                    Artwork(
+                        coverUrl,
+                        size = 190.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(22.dp))
+
+        // Playlist Title (bold, centered)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        )
+
+        Spacer(Modifier.height(6.dp))
+
+        // Subtitle: Playlist • 75 Tracks • 3:24:29
+        val tracksCountText = pluralTracks(tracks.size)
+        val subtitleText = if (totalSeconds > 0) {
+            "Playlist • $tracksCountText • $formattedTotalTime"
+        } else {
+            "Playlist • $tracksCountText"
+        }
+        Text(
+            text = subtitleText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.65f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        )
+
+        Spacer(Modifier.height(18.dp))
+
+        // Action Buttons Row (Heart, 3-dots, Shuffle, Big Play Button)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Favorite icon
+            Icon(
+                Icons.Default.Favorite,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.85f),
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(24.dp),
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            // Shuffle Button
+            IconButton(
+                onClick = onShuffle,
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Shuffle,
+                    contentDescription = stringResource(R.string.action_shuffle_all),
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            // Big Round Play Button
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable { onPlayAll() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (spinning) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = stringResource(if (spinning) R.string.player_pause else R.string.player_play),
+                    tint = Color.Black,
+                    modifier = Modifier.size(30.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun PlaylistScreen(
     viewModel: LibraryViewModel,
     playlistId: Long,
     currentTrackId: String?,
+    isPlaying: Boolean = false,
+    onTogglePlay: () -> Unit = {},
     contentPadding: PaddingValues,
     onBack: () -> Unit,
     onPlay: (List<Track>, Int) -> Unit,
@@ -267,41 +548,118 @@ fun PlaylistScreen(
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
     var renaming by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     val name = playlist?.name ?: ""
+    val coverUrl = tracks.firstOrNull { !it.cover.isNullOrBlank() }?.cover
 
-    TrackList(
-        tracks = tracks,
-        currentTrackId = currentTrackId,
-        contentPadding = contentPadding,
-        emptyText = stringResource(R.string.library_playlist_empty),
-        onPlay = onPlay,
-        onMore = { viewModel.openMenu(it, playlistId = playlistId) },
-        downloadedIds = downloadedIds,
-        downloadProgress = downloadProgress,
-        header = {
-            CollectionHeader(
-                title = name,
-                subtitle = pluralTracks(tracks.size),
-                cover = tracks.firstOrNull()?.cover,
-                icon = Icons.Outlined.QueueMusic,
-                tracks = tracks,
-                onBack = onBack,
-                onPlay = onPlay,
-                trailing = {
-                    IconButton(onClick = { viewModel.downloadPlaylist(tracks) }) {
-                        Icon(Icons.Outlined.Download, stringResource(R.string.action_download_playlist), tint = VotifyColors.TextSecondary)
-                    }
-                    IconButton(onClick = { renaming = true }) {
-                        Icon(Icons.Outlined.Edit, stringResource(R.string.action_rename), tint = VotifyColors.TextSecondary)
-                    }
-                    IconButton(onClick = { confirmDelete = true }) {
-                        Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), tint = VotifyColors.TextSecondary)
-                    }
-                },
+    val isCurrentPlaylist = tracks.any { it.id == currentTrackId }
+
+    Box(Modifier.fillMaxSize()) {
+        // Heavily blurred background cover image
+        if (!coverUrl.isNullOrBlank()) {
+            SubcomposeAsyncImage(
+                model = coverUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(50.dp)
+                    .alpha(0.45f),
             )
-        },
-    )
+        }
+
+        // Gradient overlay fading into deep black surface
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.8f),
+                            Color(0xFF0c0d10).copy(alpha = 0.96f),
+                            Color(0xFF0c0d10),
+                        )
+                    )
+                )
+        )
+
+        // Tracklist with the vinyl header
+        TrackList(
+            tracks = tracks,
+            currentTrackId = currentTrackId,
+            contentPadding = contentPadding,
+            emptyText = stringResource(R.string.library_playlist_empty),
+            onPlay = onPlay,
+            onMore = { viewModel.openMenu(it, playlistId = playlistId) },
+            downloadedIds = downloadedIds,
+            downloadProgress = downloadProgress,
+            header = {
+                PlaylistVinylHeader(
+                    title = name,
+                    tracks = tracks,
+                    coverUrl = coverUrl,
+                    isPlaying = isPlaying,
+                    isCurrentPlaylist = isCurrentPlaylist,
+                    topPadding = contentPadding.calculateTopPadding(),
+                    onBack = onBack,
+                    onPlayAll = {
+                        if (tracks.isNotEmpty()) {
+                            if (isCurrentPlaylist) {
+                                onTogglePlay()
+                            } else {
+                                onPlay(tracks, 0)
+                            }
+                        }
+                    },
+                    onShuffle = {
+                        if (tracks.isNotEmpty()) onPlay(tracks.shuffled(), 0)
+                    },
+                    trailingActions = {
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(
+                                    Icons.Outlined.MoreVert,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.action_download_playlist)) },
+                                    leadingIcon = { Icon(Icons.Outlined.Download, null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.downloadPlaylist(tracks)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.action_rename)) },
+                                    leadingIcon = { Icon(Icons.Outlined.Edit, null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        renaming = true
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.action_delete)) },
+                                    leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        confirmDelete = true
+                                    },
+                                )
+                            }
+                        }
+                    },
+                )
+            },
+        )
+    }
 
     if (renaming) {
         PlaylistNameDialog(

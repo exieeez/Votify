@@ -1140,6 +1140,7 @@
 
         <!-- STANDALONE PLAYLIST SCREEN -->
         <section id="playlist-screen" class="screen hidden" style="display:none">
+          <div class="pl-screen-backdrop" id="pl-screen-backdrop"></div>
           <div class="library-modern-wrap">
             <div class="screen-header" style="margin-bottom: 16px;">
               <button class="library-action-btn secondary" id="back-from-playlist-btn" style="display: inline-flex; align-items: center; gap: 8px;">
@@ -1148,18 +1149,23 @@
             </div>
 
             <div class="library-active-playlist-view" style="display:block;">
-              <div class="lib-detail-header-card">
-                <div class="lib-detail-left">
+              <div class="lib-detail-header-card pl-vinyl-header-card">
+                <div class="pl-vinyl-container" id="pl-vinyl-wrap">
+                  <div class="pl-vinyl-disc" id="pl-vinyl-disc">
+                    <div class="pl-vinyl-grooves"></div>
+                    <img class="pl-vinyl-label-img" id="pl-vinyl-label-img" src="" alt="" style="display:none;" />
+                    <div class="pl-vinyl-spindle"></div>
+                  </div>
                   <div class="lib-detail-cover is-empty" id="pl-screen-cover">
                     <div class="cover-fallback lib-detail-cover-fallback" id="pl-screen-cover-fallback">
                       <i class="material-icons" id="pl-screen-cover-icon">queue_music</i>
                     </div>
                     <img id="pl-screen-cover-img" src="" alt="Cover" style="display:none;" />
                   </div>
-                  <div class="lib-detail-info">
-                    <h2 class="lib-detail-title" id="pl-screen-title">Плейлист</h2>
-                    <div class="lib-detail-sub" id="pl-screen-meta">0 треков</div>
-                  </div>
+                </div>
+                <div class="lib-detail-info">
+                  <h2 class="lib-detail-title" id="pl-screen-title">Плейлист</h2>
+                  <div class="lib-detail-sub" id="pl-screen-meta">0 треков</div>
                 </div>
                 <div class="lib-detail-actions">
                   <button class="lib-action-circle-btn" id="pl-screen-play-btn" title="Воспроизвести"><i class="material-icons">play_arrow</i></button>

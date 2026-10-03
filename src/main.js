@@ -2874,6 +2874,24 @@ function logRendererDebug(tag, data) {
   } catch (e) {}
 }
 
+function updatePlaylistVinylPlayState() {
+  const vinylWrap = document.getElementById('pl-vinyl-wrap');
+  const playBtn = document.getElementById('pl-screen-play-btn');
+  if (!vinylWrap) return;
+  const isPlaying = Boolean(state.isPlaying);
+  vinylWrap.classList.toggle('is-playing', isPlaying);
+  if (playBtn) {
+    const icon = playBtn.querySelector('i') || playBtn.querySelector('.material-icons');
+    if (icon) icon.textContent = isPlaying ? 'pause' : 'play_arrow';
+  }
+}
+window.updatePlaylistVinylPlayState = updatePlaylistVinylPlayState;
+if (typeof on === 'function') {
+  on('state:isPlaying', () => {
+    try { updatePlaylistVinylPlayState(); } catch (e) {}
+  });
+}
+
 function openPlaylist(name) {
   if (!name) name = 'Избранное';
   currentActiveLibItem = name;
@@ -2944,14 +2962,14 @@ function openPlaylist(name) {
     totalSec += sec;
   });
 
-  const totalMinsTotal = Math.max(1, Math.floor(totalSec / 60));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
   let formattedTime = '';
-  if (totalMinsTotal >= 60) {
-    const hours = Math.floor(totalMinsTotal / 60);
-    const mins = totalMinsTotal % 60;
-    formattedTime = `${hours} ч. ${mins} мин.`;
+  if (h > 0) {
+    formattedTime = `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   } else {
-    formattedTime = `${totalMinsTotal} мин.`;
+    formattedTime = `${m}:${String(s).padStart(2, '0')}`;
   }
 
   // --- 1. SWITCH TO STANDALONE PLAYLIST SCREEN ---
@@ -2960,11 +2978,20 @@ function openPlaylist(name) {
   const titleEl = document.getElementById('pl-screen-title');
   const metaEl = document.getElementById('pl-screen-meta');
   if (titleEl) titleEl.textContent = title;
-  if (metaEl) metaEl.textContent = `${validTracks.length} треков • ${formattedTime}`;
+  if (metaEl) {
+    metaEl.textContent = totalSec > 0
+      ? `Плейлист • ${validTracks.length} треков • ${formattedTime}`
+      : `Плейлист • ${validTracks.length} треков`;
+  }
 
   let coverUrl = getPlaylistCover(rawData);
+  if ((!coverUrl || coverUrl === 'assets/logo.png') && validTracks.length > 0 && validTracks[0].cover && validTracks[0].cover !== 'assets/logo.png') {
+    coverUrl = validTracks[0].cover;
+  }
   const coverImg = document.getElementById('pl-screen-cover-img');
   const coverFallback = document.getElementById('pl-screen-cover-fallback');
+  const backdrop = document.getElementById('pl-screen-backdrop');
+  const vinylLabelImg = document.getElementById('pl-vinyl-label-img');
 
   if (coverUrl && coverUrl !== 'assets/logo.png') {
     if (coverImg) {
@@ -2972,16 +2999,32 @@ function openPlaylist(name) {
       coverImg.style.display = 'block';
     }
     if (coverFallback) coverFallback.style.display = 'none';
+    if (backdrop) backdrop.style.backgroundImage = `url("${coverUrl}")`;
+    if (vinylLabelImg) {
+      vinylLabelImg.src = coverUrl;
+      vinylLabelImg.style.display = 'block';
+    }
   } else {
     if (coverImg) coverImg.style.display = 'none';
     if (coverFallback) coverFallback.style.display = 'flex';
+    if (backdrop) backdrop.style.backgroundImage = 'none';
+    if (vinylLabelImg) vinylLabelImg.style.display = 'none';
   }
+
+  updatePlaylistVinylPlayState();
 
   safeClick('pl-screen-play-btn', () => {
     if (!validTracks.length) return;
-    currentPlaylist = [...validTracks];
-    currentTrackIndex = 0;
-    playTrack(validTracks[0]);
+    if (state.isPlaying && (currentPlaylist === validTracks || (state.currentTrack && validTracks.some(t => t.id === state.currentTrack.id)))) {
+      pauseTrack();
+    } else if (state.currentTrack && validTracks.some(t => t.id === state.currentTrack.id)) {
+      resumeTrack();
+    } else {
+      currentPlaylist = [...validTracks];
+      currentTrackIndex = 0;
+      playTrack(validTracks[0]);
+    }
+    updatePlaylistVinylPlayState();
   });
 
   safeClick('pl-screen-shuffle-btn', () => {
