@@ -39,6 +39,7 @@ data class CustomPrefs(
     val tabStyle: String = "standard", // standard | compact
     val accentFromArt: Boolean = false,
     val transparentCards: Boolean = false,
+    val liquidGlass: Boolean = false,
     val fontFamily: String = "system", // system | serif | mono | rounded
     val fontScale: String = "normal", // small | normal | large
 

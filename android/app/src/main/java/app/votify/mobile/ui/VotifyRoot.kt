@@ -359,7 +359,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     // Fine-tuning: Настройки → Фон («затемнение»/«размытие», prefs.bgDim/bgBlur).
     // Defaults (dim 35, blur 0) match the previous hard-coded look; the workshop
     // spec sliders were the only tuning before and are now overridden here.
-    val bgBlurDp = bgPrefs.bgBlur.coerceIn(0, 60)
+    val bgBlurDp = if (bgPrefs.liquidGlass) bgPrefs.bgBlur.coerceAtLeast(40) else bgPrefs.bgBlur.coerceIn(0, 60)
     val bgDimAlpha = bgPrefs.bgDim.coerceIn(0, 92) / 100f
     // imePadding: with edge-to-edge the keyboard would cover the bottom nav — on the search
     // screen that made it impossible to return to Home without the system back gesture.
@@ -381,8 +381,11 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 ),
             )
         }
-        Scaffold(
-            containerColor = if (workshopBgUrl.isNotBlank()) androidx.compose.ui.graphics.Color.Transparent else VotifyColors.SurfaceBase,
+        androidx.compose.runtime.CompositionLocalProvider(
+            app.votify.mobile.ui.components.LocalLiquidGlass provides bgPrefs.liquidGlass
+        ) {
+            Scaffold(
+                containerColor = if (workshopBgUrl.isNotBlank() || bgPrefs.liquidGlass) androidx.compose.ui.graphics.Color.Transparent else VotifyColors.SurfaceBase,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
@@ -699,6 +702,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                     )
                 }
             }
+        }
         }
 
         AnimatedVisibility(

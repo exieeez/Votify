@@ -139,6 +139,13 @@ fun InterfaceSettingsScreen(
                     checked = prefs.transparentCards,
                     onChange = { v -> viewModel.updatePrefs { it.copy(transparentCards = v) } },
                 )
+                SettingsDivider()
+                SettingsToggleRow(
+                    title = "Жидкое стекло (Liquid Glass)",
+                    subtitle = "Сильно размытый фон карточек с зеркальным бликом",
+                    checked = prefs.liquidGlass,
+                    onChange = { v -> viewModel.updatePrefs { it.copy(liquidGlass = v) } },
+                )
             }
 
             SettingsSectionLabel(stringResource(R.string.settings_text))

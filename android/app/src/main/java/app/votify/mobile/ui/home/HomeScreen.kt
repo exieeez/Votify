@@ -57,6 +57,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -71,6 +72,7 @@ import app.votify.mobile.R
 import app.votify.mobile.data.Track
 import app.votify.mobile.ui.components.Artwork
 import app.votify.mobile.ui.components.CircleIconButton
+import app.votify.mobile.ui.components.LocalLiquidGlass
 import app.votify.mobile.ui.components.PillChip
 import app.votify.mobile.ui.components.VotifyCard
 import app.votify.mobile.ui.components.liquidGlass
@@ -183,88 +185,52 @@ fun HomeScreen(
 
         Spacer(Modifier.height(14.dp))
 
-        // --- "Недавние" card with liquid glass and stacked artwork covers ---
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()
-                .liquidGlass(
-                    shape = RoundedCornerShape(18.dp),
-                    backgroundColor = Color.White.copy(alpha = 0.08f),
-                    borderColor = Color.White.copy(alpha = 0.22f),
-                )
-                .clickable(onClick = onOpenHistory)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+        // --- "Недавние" card (original compact stacked layout) ---
+        VotifyCard(
+            Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+            onClick = onOpenHistory,
+            contentPadding = PaddingValues(12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Stacked covers
-                Box(Modifier.size(52.dp), contentAlignment = Alignment.CenterStart) {
+                Box(Modifier.size(48.dp)) {
                     val second = recent.getOrNull(1)?.cover.orEmpty()
                     if (second.isNotBlank()) {
                         Artwork(
                             url = second,
                             size = 40.dp,
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .offset(x = 8.dp)
-                                .graphicsLayer { rotationZ = 8f },
+                            modifier = Modifier.align(Alignment.TopEnd).graphicsLayer { rotationZ = 6f },
                         )
                     } else {
                         Box(
                             Modifier
-                                .align(Alignment.CenterStart)
-                                .offset(x = 8.dp)
+                                .align(Alignment.TopEnd)
                                 .size(40.dp)
-                                .graphicsLayer { rotationZ = 8f }
-                                .clip(RoundedCornerShape(10.dp))
+                                .graphicsLayer { rotationZ = 6f }
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(VotifyColors.SurfaceContainerHighest),
                         )
                     }
                     Artwork(
                         url = recent.firstOrNull()?.cover.orEmpty(),
-                        size = 44.dp,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .border(
-                                1.dp,
-                                Brush.verticalGradient(
-                                    listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.08f))
-                                ),
-                                RoundedCornerShape(10.dp),
-                            ),
+                        size = 40.dp,
+                        modifier = Modifier.align(Alignment.TopStart).border(1.dp, VotifyColors.BorderProminent, RoundedCornerShape(8.dp)),
                     )
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.home_recent),
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(Modifier.height(2.dp))
+                    Text(stringResource(R.string.home_recent), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold)
                     Text(
                         if (recent.isEmpty()) stringResource(R.string.home_recent_empty)
-                        else pluralTracks(recent.size),
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        else recent.first().title + " · " + recent.first().artist,
+                        style = MaterialTheme.typography.bodySmall,
                         color = VotifyColors.TextMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 if (recent.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.12f))
-                            .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
-                            .clickable { onPlay(recent, 0) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    CircleIconButton(onClick = { onPlay(recent, 0) }, size = 36.dp, contentDescription = stringResource(R.string.player_play)) {
+                        Icon(Icons.Filled.PlayArrow, null, tint = VotifyColors.TextPrimary, modifier = Modifier.size(20.dp))
                     }
                     Spacer(Modifier.width(4.dp))
                 }
@@ -414,6 +380,7 @@ private fun HomeHeader(
     onOpenAccount: () -> Unit,
     onOpenSite: () -> Unit,
 ) {
+    val isGlass = LocalLiquidGlass.current
     Row(
         Modifier
             .fillMaxWidth()
@@ -423,12 +390,12 @@ private fun HomeHeader(
         Surface(
             onClick = onOpenSite,
             shape = CircleShape,
-            color = Color.White.copy(alpha = 0.08f),
+            color = if (isGlass) Color.White.copy(alpha = 0.08f) else VotifyColors.SurfaceContainer,
             border = BorderStroke(
                 1.dp,
-                Brush.verticalGradient(
+                if (isGlass) Brush.verticalGradient(
                     listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))
-                ),
+                ) else SolidColor(VotifyColors.BorderSubtle),
             ),
         ) {
             Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -497,6 +464,7 @@ private fun WaveOrbit(
             val angle = Math.toRadians((i * (360.0 / bubbles.size)) - 90 + drift)
             val dx = (radius.value * cos(angle)).toFloat().dp
             val dy = (radius.value * sin(angle)).toFloat().dp
+            val isGlass = LocalLiquidGlass.current
             val shape = RoundedCornerShape(16.dp)
             Box(
                 Modifier
@@ -505,9 +473,9 @@ private fun WaveOrbit(
                     .clip(shape)
                     .border(
                         1.dp,
-                        Brush.verticalGradient(
+                        if (isGlass) Brush.verticalGradient(
                             listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.08f))
-                        ),
+                        ) else SolidColor(VotifyColors.BorderSubtle),
                         shape,
                     )
                     .clickable { onPlayTrack(i) },
@@ -553,6 +521,7 @@ private fun TrackCard(
     track: Track,
     onClick: () -> Unit,
 ) {
+    val isGlass = LocalLiquidGlass.current
     Column(
         modifier = Modifier
             .width(135.dp)
@@ -564,9 +533,9 @@ private fun TrackCard(
                 .clip(RoundedCornerShape(16.dp))
                 .border(
                     1.dp,
-                    Brush.verticalGradient(
+                    if (isGlass) Brush.verticalGradient(
                         listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.05f))
-                    ),
+                    ) else SolidColor(VotifyColors.BorderSubtle),
                     RoundedCornerShape(16.dp),
                 ),
         ) {
@@ -607,6 +576,7 @@ private fun PlaylistCard(
     playlist: HomePlaylistItem,
     onClick: () -> Unit,
 ) {
+    val isGlass = LocalLiquidGlass.current
     Column(
         modifier = Modifier
             .width(135.dp)
@@ -618,9 +588,9 @@ private fun PlaylistCard(
                 .clip(RoundedCornerShape(16.dp))
                 .border(
                     1.dp,
-                    Brush.verticalGradient(
+                    if (isGlass) Brush.verticalGradient(
                         listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.05f))
-                    ),
+                    ) else SolidColor(VotifyColors.BorderSubtle),
                     RoundedCornerShape(16.dp),
                 ),
         ) {
@@ -661,6 +631,7 @@ private fun ArtistCard(
     artist: HomeArtistItem,
     onClick: () -> Unit,
 ) {
+    val isGlass = LocalLiquidGlass.current
     Column(
         modifier = Modifier
             .width(112.dp)
@@ -673,9 +644,9 @@ private fun ArtistCard(
                 .clip(CircleShape)
                 .border(
                     1.5.dp,
-                    Brush.verticalGradient(
+                    if (isGlass) Brush.verticalGradient(
                         listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.08f))
-                    ),
+                    ) else SolidColor(VotifyColors.BorderSubtle),
                     CircleShape,
                 ),
             contentAlignment = Alignment.Center,
@@ -716,6 +687,7 @@ private fun ReleaseCard(
     release: HomeReleaseItem,
     onClick: () -> Unit,
 ) {
+    val isGlass = LocalLiquidGlass.current
     Column(
         modifier = Modifier
             .width(135.dp)
@@ -727,9 +699,9 @@ private fun ReleaseCard(
                 .clip(RoundedCornerShape(16.dp))
                 .border(
                     1.dp,
-                    Brush.verticalGradient(
+                    if (isGlass) Brush.verticalGradient(
                         listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.05f))
-                    ),
+                    ) else SolidColor(VotifyColors.BorderSubtle),
                     RoundedCornerShape(16.dp),
                 ),
         ) {

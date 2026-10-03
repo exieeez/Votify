@@ -244,22 +244,25 @@ fun PillChip(
     }
 }
 
+/** Global toggle for Liquid Glass mode (Settings -> Interface). */
+val LocalLiquidGlass = androidx.compose.runtime.compositionLocalOf { false }
+
 /**
- * Liquid Glass modifier: translucent frosted glass with specular highlight border,
- * subtle gradient surface and glassy shine.
+ * Liquid Glass modifier: strongly frosted glass with specular highlight border,
+ * gradient reflection and glassy shine.
  */
 fun Modifier.liquidGlass(
     shape: Shape = RoundedCornerShape(16.dp),
-    backgroundColor: Color = Color.White.copy(alpha = 0.08f),
-    borderColor: Color = Color.White.copy(alpha = 0.20f),
+    backgroundColor: Color = Color.White.copy(alpha = 0.12f),
+    borderColor: Color = Color.White.copy(alpha = 0.35f),
     borderWidth: Dp = 1.dp,
 ): Modifier = this
     .clip(shape)
     .background(
         Brush.verticalGradient(
             colors = listOf(
-                backgroundColor.copy(alpha = (backgroundColor.alpha * 1.35f).coerceAtMost(1f)),
-                backgroundColor.copy(alpha = (backgroundColor.alpha * 0.70f).coerceAtMost(1f)),
+                backgroundColor.copy(alpha = (backgroundColor.alpha * 1.5f).coerceAtMost(1f)),
+                backgroundColor.copy(alpha = (backgroundColor.alpha * 0.4f).coerceAtMost(1f)),
             )
         )
     )
@@ -268,33 +271,41 @@ fun Modifier.liquidGlass(
         brush = Brush.verticalGradient(
             colors = listOf(
                 borderColor,
-                borderColor.copy(alpha = (borderColor.alpha * 0.25f).coerceAtMost(1f)),
+                borderColor.copy(alpha = (borderColor.alpha * 0.15f).coerceAtMost(1f)),
             )
         ),
         shape = shape,
     )
 
-/** Level-2 card: Liquid glass surface with subtle specular border and rounded corners. */
+/** Level-2 card: solid #1E1E1E surface by default; frosted liquid glass when enabled in settings. */
 @Composable
 fun VotifyCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     shape: RoundedCornerShape = RoundedCornerShape(16.dp),
-    color: Color = Color.White.copy(alpha = 0.08f),
+    color: Color = VotifyColors.SurfaceContainer,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     content: @Composable () -> Unit,
 ) {
-    val base = modifier.liquidGlass(
-        shape = shape,
-        backgroundColor = if (color == VotifyColors.SurfaceContainer) Color.White.copy(alpha = 0.08f) else color,
-        borderColor = Color.White.copy(alpha = 0.20f),
-    )
+    val isGlass = LocalLiquidGlass.current
+    val base = if (isGlass) {
+        modifier.liquidGlass(
+            shape = shape,
+            backgroundColor = if (color == VotifyColors.SurfaceContainer) Color.White.copy(alpha = 0.12f) else color,
+            borderColor = Color.White.copy(alpha = 0.32f),
+        )
+    } else {
+        modifier
+            .clip(shape)
+            .background(color)
+            .border(1.dp, VotifyColors.BorderSubtle, shape)
+    }
     Box(
         (if (onClick != null) base.clickable(onClick = onClick) else base).padding(contentPadding),
     ) { content() }
 }
 
-/** Circular 40dp icon action button on a liquid glass disc. */
+/** Circular 40dp icon action button on a solid disc (or liquid glass if enabled). */
 @Composable
 fun CircleIconButton(
     onClick: () -> Unit,
@@ -308,14 +319,15 @@ fun CircleIconButton(
     tintColor: Color? = null,
     icon: @Composable () -> Unit,
 ) {
+    val isGlass = LocalLiquidGlass.current
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = fillColor ?: if (filled) VotifyColors.Primary else Color.White.copy(alpha = 0.09f),
+        color = fillColor ?: if (filled) VotifyColors.Primary else if (isGlass) Color.White.copy(alpha = 0.12f) else VotifyColors.SurfaceContainer,
         contentColor = tintColor ?: if (filled) VotifyColors.OnPrimary else VotifyColors.TextPrimary,
-        border = if (filled) null else BorderStroke(
+        border = if (filled || !isGlass) null else BorderStroke(
             1.dp,
-            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.24f), Color.White.copy(alpha = 0.05f)))
+            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.08f)))
         ),
         modifier = modifier.size(size),
     ) {
