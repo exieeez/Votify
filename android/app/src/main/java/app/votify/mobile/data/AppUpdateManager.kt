@@ -2,6 +2,9 @@ package app.votify.mobile.data
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.core.content.FileProvider
 import app.votify.mobile.BuildConfig
 import kotlinx.coroutines.CoroutineScope
@@ -81,12 +84,22 @@ class AppUpdateManager(
 
             if (isNewerCode || isNewerSha) {
                 val cachedApk = getUpdateApkFile()
-                if (cachedApk.exists() && cachedApk.length() > 5_000_000) {
+                val metaFile = getUpdateMetaFile()
+                val cachedSha = if (metaFile.exists()) runCatching { metaFile.readText().trim() }.getOrNull() else null
+                if (cachedApk.exists() && cachedApk.length() > 5_000_000 && (cachedSha == null || cachedSha == info.sha)) {
                     _state.value = UpdateState.Ready(info, cachedApk)
                 } else {
+                    if (cachedApk.exists() && cachedSha != null && cachedSha != info.sha) {
+                        cachedApk.delete()
+                        metaFile.delete()
+                    }
                     _state.value = UpdateState.Available(info)
                 }
             } else {
+                runCatching {
+                    getUpdateApkFile().delete()
+                    getUpdateMetaFile().delete()
+                }
                 _state.value = UpdateState.Idle
             }
         }
@@ -151,9 +164,9 @@ class AppUpdateManager(
                                         bytesCopied += read
                                         val now = System.currentTimeMillis()
                                         if (now - lastReport > 200 || bytesCopied == total) {
-                                            lastReport = now
-                                            val progress = if (total > 0) bytesCopied.toFloat() / total.toFloat() else 0f
-                                            _state.value = UpdateState.Downloading(info, progress, bytesCopied, total)
+                                             lastReport = now
+                                             val progress = if (total > 0) bytesCopied.toFloat() / total.toFloat() else 0f
+                                             _state.value = UpdateState.Downloading(info, progress, bytesCopied, total)
                                         }
                                     }
                                     output.flush()
@@ -162,6 +175,7 @@ class AppUpdateManager(
                             if (tempFile.exists() && tempFile.length() > 5_000_000) {
                                 if (apkFile.exists()) apkFile.delete()
                                 tempFile.renameTo(apkFile)
+                                runCatching { getUpdateMetaFile().writeText(info.sha) }
                                 true
                             } else {
                                 tempFile.delete()
@@ -184,7 +198,42 @@ class AppUpdateManager(
         }
     }
 
-    fun installAndRestart(apkFile: File) {
+    fun canInstallDirectly(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.packageManager.canRequestPackageInstalls()
+        } else {
+            true
+        }
+    }
+
+    fun openInstallPermissionSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            runCatching {
+                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            }.onFailure {
+                val fallback = Intent(Settings.ACTION_SECURITY_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                runCatching { context.startActivity(fallback) }
+            }
+        }
+    }
+
+    fun installUpdate(apkFile: File) {
+        if (!apkFile.exists()) {
+            _state.value = UpdateState.Error("Файл обновления не найден")
+            return
+        }
+
+        if (!canInstallDirectly()) {
+            openInstallPermissionSettings()
+            return
+        }
+
         runCatching {
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", apkFile)
             val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -194,17 +243,22 @@ class AppUpdateManager(
             }
             context.startActivity(intent)
         }.onFailure { e ->
-            _state.value = UpdateState.Error("Ошибка установки: ${e.message}")
+            _state.value = UpdateState.Error("Ошибка запуска установщика: ${e.message}")
         }
     }
+
+    fun installAndRestart(apkFile: File) = installUpdate(apkFile)
 
     fun dismiss() {
         dismissed = true
         _state.value = UpdateState.Idle
     }
 
-    private fun getUpdateApkFile(): File {
-        val dir = File(context.cacheDir, "updates")
-        return File(dir, "Votify-update.apk")
+    private fun getUpdateDir(): File {
+        val base = context.getExternalFilesDir(null) ?: context.cacheDir
+        return File(base, "updates").apply { mkdirs() }
     }
+
+    private fun getUpdateApkFile(): File = File(getUpdateDir(), "Votify-update.apk")
+    private fun getUpdateMetaFile(): File = File(getUpdateDir(), "Votify-update.sha")
 }

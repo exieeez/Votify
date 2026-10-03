@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.DownloadDone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -196,6 +197,7 @@ fun UpdateBanner(
                     }
 
                     is UpdateState.Ready -> {
+                        val canInstall = updateManager.canInstallDirectly()
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
@@ -208,7 +210,7 @@ fun UpdateBanner(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Refresh,
+                                    imageVector = Icons.Outlined.DownloadDone,
                                     contentDescription = null,
                                     tint = Color.Black,
                                     modifier = Modifier.size(20.dp)
@@ -217,20 +219,22 @@ fun UpdateBanner(
                             Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Обновление загружено",
+                                    text = "Обновление готово к установке",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
                                 )
                                 Text(
-                                    text = "Нажмите чтобы перезапустить",
+                                    text = if (canInstall) "Нажмите «Установить» для обновления" else "Нужно разрешить установку приложений",
                                     fontSize = 12.sp,
-                                    color = Color.White.copy(alpha = 0.7f)
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                             Spacer(Modifier.width(8.dp))
                             Button(
-                                onClick = { updateManager.installAndRestart(s.apkFile) },
+                                onClick = { updateManager.installUpdate(s.apkFile) },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF1DB954),
                                     contentColor = Color.Black
@@ -239,7 +243,22 @@ fun UpdateBanner(
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                 modifier = Modifier.height(34.dp)
                             ) {
-                                Text("Перезапустить", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (canInstall) "Установить" else "Разрешить",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            IconButton(
+                                onClick = { updateManager.dismiss() },
+                                modifier = Modifier.size(30.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Закрыть",
+                                    tint = Color.White.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                         }
                     }
