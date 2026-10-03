@@ -7,6 +7,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -50,7 +52,7 @@ object EmbeddedMusicSource {
     @Volatile
     var downloadsDir: java.io.File? = null
 
-    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
 
     private val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -915,51 +917,120 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
 
     /**
      * Yandex Music playlists, albums, and tracks.
-     * Supports /playlists/lk.<uuid>, /users/<login>/playlists/<kind>, /album/<id>, /track/<id>.
+     * Supports /playlists/lk.<uuid>, /playlists/<uuid>, /users/<login>/playlists/<kind>, /album/<id>, /track/<id>.
      * Extracts track titles & artists, then resolves them on YouTube Music.
      */
     suspend fun importYandex(url: String): ImportedTracks = withContext(Dispatchers.IO) {
         val cleanUrl = url.trim()
-        val (finalUrl, initialHtml) = fetchUrlWithRedirect(cleanUrl)
-
         var playlistName: String? = null
         val entries = mutableListOf<Pair<String, String>>()
 
         val userPlRegex = Regex("""(?:users/|/users/)([^/\s"']+)/playlists/([0-9]+)""", RegexOption.IGNORE_CASE)
+        val plUuidRegex = Regex("""(?:^|/)playlists/(?:lk\.)?([a-zA-Z0-9._-]+)""", RegexOption.IGNORE_CASE)
         val albumRegex = Regex("""(?:album/|/album/)([0-9]+)""", RegexOption.IGNORE_CASE)
         val trackRegex = Regex("""(?:track/|/track/)([0-9]+)""", RegexOption.IGNORE_CASE)
 
-        val plMatch = userPlRegex.find(finalUrl) ?: userPlRegex.find(initialHtml)
-        val albumMatch = if (plMatch == null) albumRegex.find(finalUrl) ?: albumRegex.find(initialHtml) else null
-        val trackMatch = if (plMatch == null && albumMatch == null) trackRegex.find(finalUrl) ?: trackRegex.find(initialHtml) else null
+        val plUuidMatch = plUuidRegex.find(cleanUrl)
+        val userPlMatch = userPlRegex.find(cleanUrl)
+        val albumMatch = albumRegex.find(cleanUrl)
+        val trackMatch = trackRegex.find(cleanUrl)
 
-        if (plMatch != null) {
-            val owner = plMatch.groupValues[1]
-            val kinds = plMatch.groupValues[2]
-            val handlerUrl = "https://music.yandex.ru/handlers/playlist.jsx?owner=${encode(owner)}&kinds=${encode(kinds)}"
-            val jsonStr = httpGetBrowser(handlerUrl)
-            if (!jsonStr.isNullOrBlank()) {
-                parseYandexPlaylistJson(jsonStr, entries)?.let { playlistName = it }
-            }
-        } else if (albumMatch != null) {
-            val albumId = albumMatch.groupValues[1]
-            val handlerUrl = "https://music.yandex.ru/handlers/album.jsx?album=${encode(albumId)}"
-            val jsonStr = httpGetBrowser(handlerUrl)
-            if (!jsonStr.isNullOrBlank()) {
-                parseYandexAlbumJson(jsonStr, entries)?.let { playlistName = it }
-            }
-        } else if (trackMatch != null) {
-            val trackId = trackMatch.groupValues[1]
-            val handlerUrl = "https://music.yandex.ru/handlers/track.jsx?track=${encode(trackId)}"
-            val jsonStr = httpGetBrowser(handlerUrl)
-            if (!jsonStr.isNullOrBlank()) {
-                parseYandexTrackJson(jsonStr, entries)?.let { playlistName = it }
+        // 1. Direct API queries if UUID / playlist ID is found
+        if (plUuidMatch != null) {
+            val uuid = plUuidMatch.groupValues[1].trim()
+            val candidateEndpoints = listOf(
+                "https://api.music.yandex.net/playlists/$uuid",
+                "https://api.music.yandex.net/playlist/$uuid",
+                "https://api.music.yandex.net/playlists/lk.$uuid",
+                "https://api.music.yandex.net/playlist/lk.$uuid",
+                "https://music.yandex.ru/handlers/playlist.jsx?playlistUuid=$uuid",
+                "https://music.yandex.ru/handlers/playlist.jsx?uuid=$uuid",
+                "https://music.yandex.ru/handlers/playlist.jsx?playlistUuid=lk.$uuid",
+                "https://music.yandex.ru/handlers/playlist.jsx?uuid=lk.$uuid",
+                "https://music.yandex.ru/handlers/playlist.jsx?owner=&kinds=&uuid=$uuid",
+                "https://music.yandex.ru/iframe/playlist/$uuid"
+            )
+            for (apiUrl in candidateEndpoints) {
+                val jsonStr = httpGetJson(apiUrl)
+                if (!jsonStr.isNullOrBlank()) {
+                    val t = parseAnyYandexJson(jsonStr, entries)
+                    if (playlistName == null && !t.isNullOrBlank()) playlistName = t
+                    if (entries.isNotEmpty()) break
+                }
             }
         }
 
-        // If entries is still empty, parse HTML directly (Next.js __NEXT_DATA__, ld+json, or regex)
-        if (entries.isEmpty() && initialHtml.isNotBlank()) {
-            parseYandexFromHtml(initialHtml, entries)?.let { playlistName = it }
+        // 2. User playlist handler
+        if (entries.isEmpty() && userPlMatch != null) {
+            val owner = userPlMatch.groupValues[1]
+            val kinds = userPlMatch.groupValues[2]
+            val handlerUrl = "https://music.yandex.ru/handlers/playlist.jsx?owner=${encode(owner)}&kinds=${encode(kinds)}"
+            val jsonStr = httpGetJson(handlerUrl)
+            if (!jsonStr.isNullOrBlank()) {
+                val t = parseAnyYandexJson(jsonStr, entries)
+                if (playlistName == null && !t.isNullOrBlank()) playlistName = t
+            }
+        }
+
+        // 3. Album handler
+        if (entries.isEmpty() && albumMatch != null) {
+            val albumId = albumMatch.groupValues[1]
+            val handlerUrl = "https://music.yandex.ru/handlers/album.jsx?album=${encode(albumId)}"
+            val jsonStr = httpGetJson(handlerUrl)
+            if (!jsonStr.isNullOrBlank()) {
+                val t = parseAnyYandexJson(jsonStr, entries)
+                if (playlistName == null && !t.isNullOrBlank()) playlistName = t
+            }
+        }
+
+        // 4. Single track handler
+        if (entries.isEmpty() && trackMatch != null) {
+            val trackId = trackMatch.groupValues[1]
+            val handlerUrl = "https://music.yandex.ru/handlers/track.jsx?track=${encode(trackId)}"
+            val jsonStr = httpGetJson(handlerUrl)
+            if (!jsonStr.isNullOrBlank()) {
+                val t = parseAnyYandexJson(jsonStr, entries)
+                if (playlistName == null && !t.isNullOrBlank()) playlistName = t
+            }
+        }
+
+        // 5. If entries is still empty, fetch the webpage HTML with redirects
+        if (entries.isEmpty()) {
+            val (finalUrl, initialHtml) = fetchUrlWithRedirect(cleanUrl)
+
+            // Check if redirected to users/.../playlists/...
+            val redirPl = userPlRegex.find(finalUrl) ?: userPlRegex.find(initialHtml)
+            if (redirPl != null) {
+                val owner = redirPl.groupValues[1]
+                val kinds = redirPl.groupValues[2]
+                val handlerUrl = "https://music.yandex.ru/handlers/playlist.jsx?owner=${encode(owner)}&kinds=${encode(kinds)}"
+                val jsonStr = httpGetJson(handlerUrl)
+                if (!jsonStr.isNullOrBlank()) {
+                    val t = parseAnyYandexJson(jsonStr, entries)
+                    if (playlistName == null && !t.isNullOrBlank()) playlistName = t
+                }
+            }
+
+            // Check if HTML contains owner login/uid and kind
+            if (entries.isEmpty() && initialHtml.isNotBlank()) {
+                val ownerKindMatch = Regex("""(?:"owner"|'owner')\s*:\s*\{[^}]*(?:"login"|'login'|"uid"|'uid')\s*:\s*["']?([^"',}\s]+)["']?[^}]*(?:"kind"|'kind')\s*:\s*([0-9]+)""").find(initialHtml)
+                    ?: Regex("""(?:"kind"|'kind')\s*:\s*([0-9]+)[^}]*(?:"login"|'login'|"uid"|'uid')\s*:\s*["']?([^"',}\s]+)""").find(initialHtml)
+                if (ownerKindMatch != null) {
+                    val owner = ownerKindMatch.groupValues[1]
+                    val kinds = ownerKindMatch.groupValues[2]
+                    val handlerUrl = "https://music.yandex.ru/handlers/playlist.jsx?owner=${encode(owner)}&kinds=${encode(kinds)}"
+                    val jsonStr = httpGetJson(handlerUrl)
+                    if (!jsonStr.isNullOrBlank()) {
+                        val t = parseAnyYandexJson(jsonStr, entries)
+                        if (playlistName == null && !t.isNullOrBlank()) playlistName = t
+                    }
+                }
+            }
+
+            // Fallback: parse HTML script tags / ld+json / regex
+            if (entries.isEmpty() && initialHtml.isNotBlank()) {
+                parseYandexFromHtml(initialHtml, entries)?.let { if (playlistName == null) playlistName = it }
+            }
         }
 
         if (entries.isEmpty()) {
@@ -1014,142 +1085,142 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
         }.getOrDefault(Pair(currentUrl, ""))
     }
 
-    private fun httpGetBrowser(url: String): String? {
+    private fun httpGetJson(url: String): String? {
+        val mobile = runCatching {
+            val req = OkHttpRequest.Builder()
+                .url(url)
+                .header("User-Agent", "YandexMusic/2024.01 (Android 14; Pixel 8)")
+                .header("Accept", "application/json")
+                .header("X-Yandex-Music-Client", "YandexMusicAndroid/24012020")
+                .build()
+            http.newCall(req).execute().use { resp ->
+                if (resp.isSuccessful) resp.body?.string() else null
+            }
+        }.getOrNull()
+        if (!mobile.isNullOrBlank()) return mobile
+
         return runCatching {
-            val request = OkHttpRequest.Builder()
+            val req = OkHttpRequest.Builder()
                 .url(url)
                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                 .header("Accept", "application/json, text/javascript, */*; q=0.01")
                 .header("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
                 .header("X-Requested-With", "XMLHttpRequest")
                 .build()
-            http.newCall(request).execute().use { resp ->
-                if (!resp.isSuccessful) null else resp.body?.string()
+            http.newCall(req).execute().use { resp ->
+                if (resp.isSuccessful) resp.body?.string() else null
             }
         }.getOrNull()
     }
 
-    private fun parseYandexPlaylistJson(jsonStr: String, outEntries: MutableList<Pair<String, String>>): String? {
+    private fun parseAnyYandexJson(jsonStr: String, outEntries: MutableList<Pair<String, String>>): String? {
         return runCatching {
-            val element = json.parseToJsonElement(jsonStr).jsonObject
-            val pl = element["playlist"]?.jsonObject ?: return null
-            val title = pl["title"]?.jsonPrimitive?.contentOrNull
-            val tracksArray = pl["tracks"]?.jsonArray ?: return title
-            for (t in tracksArray) {
-                val tObj = runCatching { t.jsonObject }.getOrNull() ?: continue
-                val trackTitle = tObj["title"]?.jsonPrimitive?.contentOrNull ?: continue
-                val artists = tObj["artists"]?.jsonArray?.mapNotNull {
-                    runCatching { it.jsonObject["name"]?.jsonPrimitive?.contentOrNull }.getOrNull()
-                }?.joinToString(", ") ?: ""
-                outEntries += Pair(trackTitle, artists)
-            }
-            title
-        }.getOrNull()
-    }
+            val root = json.parseToJsonElement(jsonStr)
+            var foundTitle: String? = null
 
-    private fun parseYandexAlbumJson(jsonStr: String, outEntries: MutableList<Pair<String, String>>): String? {
-        return runCatching {
-            val element = json.parseToJsonElement(jsonStr).jsonObject
-            val title = element["title"]?.jsonPrimitive?.contentOrNull
-            val albumArtists = element["artists"]?.jsonArray?.mapNotNull {
-                runCatching { it.jsonObject["name"]?.jsonPrimitive?.contentOrNull }.getOrNull()
-            }?.joinToString(", ") ?: ""
-            val volumes = element["volumes"]?.jsonArray ?: return title
-            for (vol in volumes) {
-                val arr = runCatching { vol.jsonArray }.getOrNull() ?: continue
-                for (t in arr) {
-                    val tObj = runCatching { t.jsonObject }.getOrNull() ?: continue
-                    val trackTitle = tObj["title"]?.jsonPrimitive?.contentOrNull ?: continue
-                    val artists = tObj["artists"]?.jsonArray?.mapNotNull {
-                        runCatching { it.jsonObject["name"]?.jsonPrimitive?.contentOrNull }.getOrNull()
-                    }?.joinToString(", ") ?: albumArtists
-                    outEntries += Pair(trackTitle, artists)
+            fun inspectTitle(obj: JsonObject) {
+                if (foundTitle == null) {
+                    val t = obj["title"]?.jsonPrimitive?.contentOrNull
+                        ?: obj["name"]?.jsonPrimitive?.contentOrNull
+                    if (!t.isNullOrBlank() && t != "null") foundTitle = t
                 }
             }
-            if (title != null && albumArtists.isNotBlank()) "$albumArtists - $title" else title
-        }.getOrNull()
-    }
 
-    private fun parseYandexTrackJson(jsonStr: String, outEntries: MutableList<Pair<String, String>>): String? {
-        return runCatching {
-            val element = json.parseToJsonElement(jsonStr).jsonObject
-            val track = element["track"]?.jsonObject ?: element
-            val trackTitle = track["title"]?.jsonPrimitive?.contentOrNull ?: return null
-            val artists = track["artists"]?.jsonArray?.mapNotNull {
-                runCatching { it.jsonObject["name"]?.jsonPrimitive?.contentOrNull }.getOrNull()
-            }?.joinToString(", ") ?: ""
-            outEntries += Pair(trackTitle, artists)
-            if (artists.isNotBlank()) "$artists - $trackTitle" else trackTitle
+            fun walk(element: JsonElement) {
+                when (element) {
+                    is JsonObject -> {
+                        val trackTitle = element["title"]?.jsonPrimitive?.contentOrNull
+                            ?: element["name"]?.jsonPrimitive?.contentOrNull
+                        val artistsElement = element["artists"] ?: element["artist"]
+
+                        if (!trackTitle.isNullOrBlank() && artistsElement != null && trackTitle != "null") {
+                            val artistsStr = when (artistsElement) {
+                                is JsonArray -> {
+                                    artistsElement.mapNotNull { a ->
+                                        when (a) {
+                                            is JsonObject -> a["name"]?.jsonPrimitive?.contentOrNull
+                                            else -> a.jsonPrimitive.contentOrNull
+                                        }
+                                    }.filter { it.isNotBlank() && it != "null" }.joinToString(", ")
+                                }
+                                else -> artistsElement.jsonPrimitive.contentOrNull?.takeIf { it != "null" } ?: ""
+                            }
+                            if (outEntries.none { it.first == trackTitle && it.second == artistsStr }) {
+                                outEntries += Pair(trackTitle, artistsStr)
+                            }
+                            return
+                        }
+
+                        inspectTitle(element)
+
+                        for ((_, v) in element) {
+                            walk(v)
+                        }
+                    }
+                    is JsonArray -> {
+                        for (item in element) {
+                            walk(item)
+                        }
+                    }
+                    else -> {}
+                }
+            }
+
+            walk(root)
+            foundTitle
         }.getOrNull()
     }
 
     private fun parseYandexFromHtml(html: String, outEntries: MutableList<Pair<String, String>>): String? {
-        return runCatching {
-            var playlistTitle: String? = null
-            Regex("""<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
-                .find(html)?.groupValues?.get(1)?.let { playlistTitle = it }
+        var playlistTitle: String? = null
+        Regex("""<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+            .find(html)?.groupValues?.get(1)?.let { playlistTitle = it }
 
-            val ldJsons = Regex("""<script[^>]*type=["']application/ld\+json["'][^>]*>([\s\S]*?)</script>""", RegexOption.IGNORE_CASE).findAll(html)
-            for (m in ldJsons) {
-                val block = m.groupValues[1]
-                runCatching {
-                    val root = json.parseToJsonElement(block).jsonObject
-                    val name = root["name"]?.jsonPrimitive?.contentOrNull
-                    val trackList = root["track"]?.jsonArray ?: root["itemListElement"]?.jsonArray
-                    if (trackList != null && trackList.isNotEmpty()) {
-                        for (item in trackList) {
-                            val itemObj = runCatching { item.jsonObject }.getOrNull() ?: continue
-                            val itTrack = itemObj["item"]?.jsonObject ?: itemObj
-                            val trTitle = itTrack["name"]?.jsonPrimitive?.contentOrNull ?: continue
-                            val trArtist = itTrack["byArtist"]?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull
-                                ?: itTrack["byArtist"]?.jsonArray?.firstOrNull()?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull
-                                ?: ""
-                            outEntries += Pair(trTitle, trArtist)
-                        }
-                        if (name != null) playlistTitle = name
-                        if (outEntries.isNotEmpty()) return playlistTitle
-                    }
-                }
+        // 1. Script tags
+        val scriptBlocks = Regex("""<script[^>]*>([\s\S]*?)</script>""", RegexOption.IGNORE_CASE).findAll(html)
+        for (m in scriptBlocks) {
+            val content = m.groupValues[1].trim()
+            if (content.isBlank()) continue
+
+            val jsonCandidates = mutableListOf<String>()
+            if (content.startsWith("{") && content.endsWith("}")) {
+                jsonCandidates += content
             }
+            Regex("""(?:__INITIAL_DATA__|__INITIAL_STATE__|__DATA__|initialState|Mu\.state)\s*=\s*(\{[\s\S]*?\});?""", RegexOption.IGNORE_CASE)
+                .findAll(content).forEach { jsonCandidates += it.groupValues[1] }
 
-            val nextData = Regex("""<script[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)</script>""", RegexOption.IGNORE_CASE)
-                .find(html)?.groupValues?.get(1)
-            if (nextData != null) {
-                runCatching {
-                    val root = json.parseToJsonElement(nextData).jsonObject
-                    val pageProps = root["props"]?.jsonObject?.get("pageProps")?.jsonObject
-                    val entity = pageProps?.get("state")?.jsonObject?.get("data")?.jsonObject?.get("entity")?.jsonObject
-                        ?: pageProps?.get("playlist")?.jsonObject
-                        ?: pageProps?.get("data")?.jsonObject?.get("playlist")?.jsonObject
-                    val name = entity?.get("title")?.jsonPrimitive?.contentOrNull ?: entity?.get("name")?.jsonPrimitive?.contentOrNull
-                    val tracks = entity?.get("tracks")?.jsonArray ?: entity?.get("trackList")?.jsonArray
-                    if (tracks != null) {
-                        for (tr in tracks) {
-                            val tObj = runCatching { tr.jsonObject }.getOrNull() ?: continue
-                            val actualTrk = tObj["track"]?.jsonObject ?: tObj
-                            val trTitle = actualTrk["title"]?.jsonPrimitive?.contentOrNull ?: actualTrk["name"]?.jsonPrimitive?.contentOrNull ?: continue
-                            val artists = actualTrk["artists"]?.jsonArray?.mapNotNull {
-                                runCatching { it.jsonObject["name"]?.jsonPrimitive?.contentOrNull }.getOrNull()
-                            }?.joinToString(", ") ?: ""
-                            outEntries += Pair(trTitle, artists)
-                        }
-                        if (name != null) playlistTitle = name
-                        if (outEntries.isNotEmpty()) return playlistTitle
-                    }
-                }
+            for (cand in jsonCandidates) {
+                val t = parseAnyYandexJson(cand, outEntries)
+                if (playlistTitle == null && !t.isNullOrBlank()) playlistTitle = t
+                if (outEntries.isNotEmpty()) break
             }
+            if (outEntries.isNotEmpty()) break
+        }
 
-            val trackMatchRegex = Regex(""""title"\s*:\s*"([^"]+)"\s*,\s*"artists"\s*:\s*\[\{"name"\s*:\s*"([^"]+)"""")
-            for (m in trackMatchRegex.findAll(html)) {
-                val title = m.groupValues[1]
-                val artist = m.groupValues[2]
-                if (outEntries.none { it.first == title && it.second == artist }) {
+        // 2. Loose regex fallback
+        if (outEntries.isEmpty()) {
+            val pattern1 = Regex("""(?:"title"|'title')\s*:\s*"([^"]+)"[\s\S]{1,400}?(?:"artists"|'artists')\s*:\s*\[[\s\S]{1,200}?(?:"name"|'name')\s*:\s*"([^"]+)"""")
+            val pattern2 = Regex("""(?:"artists"|'artists')\s*:\s*\[[\s\S]{1,200}?(?:"name"|'name')\s*:\s*"([^"]+)"[\s\S]{1,400}?(?:"title"|'title')\s*:\s*"([^"]+)"""")
+
+            for (m in pattern1.findAll(html)) {
+                val title = m.groupValues[1].trim()
+                val artist = m.groupValues[2].trim()
+                if (title.isNotBlank() && outEntries.none { it.first == title && it.second == artist }) {
                     outEntries += Pair(title, artist)
                 }
             }
+            if (outEntries.isEmpty()) {
+                for (m in pattern2.findAll(html)) {
+                    val artist = m.groupValues[1].trim()
+                    val title = m.groupValues[2].trim()
+                    if (title.isNotBlank() && outEntries.none { it.first == title && it.second == artist }) {
+                        outEntries += Pair(title, artist)
+                    }
+                }
+            }
+        }
 
-            playlistTitle
-        }.getOrNull()
+        return playlistTitle
     }
 
     // ------------------------------------------------------------------ helpers
