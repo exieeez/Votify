@@ -10,12 +10,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Equalizer
 import androidx.compose.material.icons.outlined.FormatAlignCenter
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.SmartButton
 import androidx.compose.material.icons.outlined.ToggleOn
 import androidx.compose.runtime.Composable
