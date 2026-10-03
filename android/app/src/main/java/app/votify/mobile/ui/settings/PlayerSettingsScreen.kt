@@ -86,12 +86,29 @@ fun PlayerSettingsScreen(
             SettingsCard {
                 SettingsValueRow(
                     title = stringResource(R.string.settings_slider_type),
-                    subtitle = null,
-                    value = if (prefs.sliderStyle == "classic") stringResource(R.string.settings_slider_classic) else "iOS",
-                    trailing = Icons.Outlined.ToggleOn,
+                    subtitle = when (prefs.sliderStyle) {
+                        "thin" -> "Тонкий"
+                        "classic" -> "Стандартный"
+                        "wave" -> "Волновой"
+                        else -> "iOS"
+                    },
+                    value = when (prefs.sliderStyle) {
+                        "thin" -> "Тонкий"
+                        "classic" -> "Стандартный"
+                        "wave" -> "Волновой"
+                        else -> "iOS"
+                    },
+                    trailing = when (prefs.sliderStyle) {
+                        "thin" -> Icons.Outlined.Remove
+                        "classic" -> Icons.Outlined.Circle
+                        "wave" -> Icons.Outlined.Equalizer
+                        else -> Icons.Outlined.ToggleOn
+                    },
                     options = listOf(
+                        "classic" to "Стандартный",
+                        "thin" to "Тонкий",
                         "ios" to "iOS",
-                        "classic" to stringResource(R.string.settings_slider_classic),
+                        "wave" to "Волновой",
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(sliderStyle = v) } },
                 )
@@ -101,12 +118,12 @@ fun PlayerSettingsScreen(
             SettingsCard {
                 SettingsValueRow(
                     title = stringResource(R.string.settings_play_button_style),
-                    subtitle = null,
-                    value = if (prefs.playButtonStyle == "pill") stringResource(R.string.settings_shape_pill) else stringResource(R.string.settings_shape_circle),
-                    trailing = Icons.Outlined.Circle,
+                    subtitle = if (prefs.playButtonStyle == "pill") "Капсула" else "Круг",
+                    value = if (prefs.playButtonStyle == "pill") "Капсула" else "Круг",
+                    trailing = if (prefs.playButtonStyle == "pill") Icons.Outlined.SmartButton else Icons.Outlined.Circle,
                     options = listOf(
-                        "circle" to stringResource(R.string.settings_shape_circle),
-                        "pill" to stringResource(R.string.settings_shape_pill),
+                        "circle" to "Круг",
+                        "pill" to "Капсула",
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(playButtonStyle = v) } },
                 )
@@ -116,13 +133,25 @@ fun PlayerSettingsScreen(
             SettingsCard {
                 SettingsValueRow(
                     title = stringResource(R.string.settings_info_chip_show),
-                    subtitle = null,
-                    value = infoChipLabel(prefs.infoChip),
-                    trailing = Icons.Outlined.Info,
+                    subtitle = when (prefs.infoChip) {
+                        "text" -> "Текст песни"
+                        "none" -> "Нет"
+                        else -> "Источник"
+                    },
+                    value = when (prefs.infoChip) {
+                        "text" -> "Текст песни"
+                        "none" -> "Нет"
+                        else -> "Источник"
+                    },
+                    trailing = when (prefs.infoChip) {
+                        "text" -> Icons.Outlined.Description
+                        "none" -> Icons.Outlined.Block
+                        else -> Icons.Outlined.Info
+                    },
                     options = listOf(
-                        "source" to stringResource(R.string.settings_chip_source),
-                        "text" to stringResource(R.string.settings_chip_text),
-                        "none" to stringResource(R.string.swipe_action_none),
+                        "source" to "Источник",
+                        "text" to "Текст песни",
+                        "none" to "Нет",
                     ),
                     onPick = { v -> viewModel.updatePrefs { it.copy(infoChip = v) } },
                 )
@@ -132,17 +161,25 @@ fun PlayerSettingsScreen(
             SettingsCard {
                 SettingsValueRow(
                     title = stringResource(R.string.settings_player_bg),
-                    subtitle = null,
-                    value = when (settings.playerBackground) {
-                        PlayerBackground.Artwork -> stringResource(R.string.settings_player_bg_artwork)
-                        PlayerBackground.Lava -> stringResource(R.string.settings_player_bg_lava)
-                        else -> stringResource(R.string.settings_player_bg_dark)
+                    subtitle = when (settings.playerBackground) {
+                        PlayerBackground.Artwork -> "Обложка"
+                        PlayerBackground.Lava -> "Цвет"
+                        else -> "Нет"
                     },
-                    trailing = Icons.Outlined.RadioButtonUnchecked,
+                    value = when (settings.playerBackground) {
+                        PlayerBackground.Artwork -> "Обложка"
+                        PlayerBackground.Lava -> "Цвет"
+                        else -> "Нет"
+                    },
+                    trailing = when (settings.playerBackground) {
+                        PlayerBackground.Artwork -> Icons.Outlined.Image
+                        PlayerBackground.Lava -> Icons.Outlined.Palette
+                        else -> Icons.Outlined.Block
+                    },
                     options = listOf(
-                        "artwork" to stringResource(R.string.settings_player_bg_artwork),
-                        "lava" to stringResource(R.string.settings_player_bg_lava),
-                        "dark" to stringResource(R.string.settings_player_bg_dark),
+                        "artwork" to "Обложка",
+                        "lava" to "Цвет",
+                        "dark" to "Нет",
                     ),
                     onPick = { v ->
                         viewModel.setPlayerBackground(

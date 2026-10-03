@@ -111,8 +111,28 @@ fun LibraryScreen(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                 )
-                CircleIconButton(onClick = onOpenSettings, size = 36.dp, contentDescription = stringResource(R.string.nav_settings)) {
-                    Icon(Icons.Outlined.Settings, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(18.dp))
+                var settingsAngle by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+                val animatedRotation by androidx.compose.animation.core.animateFloatAsState(
+                    targetValue = settingsAngle,
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 500, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                    label = "settingsSpin",
+                )
+                CircleIconButton(
+                    onClick = {
+                        settingsAngle += 360f
+                        onOpenSettings()
+                    },
+                    size = 36.dp,
+                    contentDescription = stringResource(R.string.nav_settings),
+                ) {
+                    Icon(
+                        Icons.Outlined.Settings,
+                        null,
+                        tint = VotifyColors.TextSecondary,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .graphicsLayer { rotationZ = animatedRotation },
+                    )
                 }
             }
         }

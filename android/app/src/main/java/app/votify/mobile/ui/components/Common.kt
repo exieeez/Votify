@@ -287,6 +287,8 @@ fun VotifyCard(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     content: @Composable () -> Unit,
 ) {
+    val view = androidx.compose.ui.platform.LocalView.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val isGlass = LocalLiquidGlass.current
     val base = if (isGlass) {
         modifier.liquidGlass(
@@ -301,7 +303,10 @@ fun VotifyCard(
             .border(1.dp, VotifyColors.BorderSubtle, shape)
     }
     Box(
-        (if (onClick != null) base.clickable(onClick = onClick) else base).padding(contentPadding),
+        (if (onClick != null) base.clickable {
+            VotifyHaptics.click(view, context)
+            onClick()
+        } else base).padding(contentPadding),
     ) { content() }
 }
 
@@ -319,9 +324,14 @@ fun CircleIconButton(
     tintColor: Color? = null,
     icon: @Composable () -> Unit,
 ) {
+    val view = androidx.compose.ui.platform.LocalView.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val isGlass = LocalLiquidGlass.current
     Surface(
-        onClick = onClick,
+        onClick = {
+            VotifyHaptics.click(view, context)
+            onClick()
+        },
         shape = CircleShape,
         color = fillColor ?: if (filled) VotifyColors.Primary else if (isGlass) Color.White.copy(alpha = 0.12f) else VotifyColors.SurfaceContainer,
         contentColor = tintColor ?: if (filled) VotifyColors.OnPrimary else VotifyColors.TextPrimary,

@@ -112,6 +112,9 @@ import app.votify.mobile.ui.settings.InterfaceSettingsScreen
 import app.votify.mobile.ui.settings.PlayerSettingsScreen
 import app.votify.mobile.ui.settings.PresetsScreen
 import app.votify.mobile.ui.settings.ProxySettingsScreen
+import androidx.compose.runtime.CompositionLocalProvider
+import app.votify.mobile.ui.components.LocalLiquidGlass
+import app.votify.mobile.ui.components.VotifyHaptics
 import app.votify.mobile.ui.settings.StorageSettingsScreen
 import app.votify.mobile.ui.settings.SwipeSettingsScreen
 import app.votify.mobile.ui.settings.SettingsViewModel
@@ -381,8 +384,8 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 ),
             )
         }
-        androidx.compose.runtime.CompositionLocalProvider(
-            app.votify.mobile.ui.components.LocalLiquidGlass provides bgPrefs.liquidGlass
+        CompositionLocalProvider(
+            LocalLiquidGlass provides bgPrefs.liquidGlass
         ) {
             Scaffold(
                 containerColor = if (workshopBgUrl.isNotBlank() || bgPrefs.liquidGlass) androidx.compose.ui.graphics.Color.Transparent else VotifyColors.SurfaceBase,
@@ -826,9 +829,11 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     }
 }
 
-/** 72dp nav bar: base trough, white pill indicator behind the active icon, no labels. */
+/** 72dp nav bar: base trough with spring-animated icons and tactile haptic feedback. */
 @Composable
 private fun VotifyNavBar(selected: Tab, onSelect: (Tab) -> Unit) {
+    val view = androidx.compose.ui.platform.LocalView.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     NavigationBar(
         containerColor = VotifyColors.SurfaceBase,
         contentColor = VotifyColors.TextMuted,
@@ -838,20 +843,49 @@ private fun VotifyNavBar(selected: Tab, onSelect: (Tab) -> Unit) {
     ) {
         Tab.entries.forEach { tab ->
             val isSelected = tab == selected
+            val scale by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = if (isSelected) 1.16f else 1.0f,
+                animationSpec = androidx.compose.animation.core.spring(
+                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                    stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
+                ),
+                label = "navScale",
+            )
+            val rotation by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = if (isSelected) {
+                    when (tab) {
+                        Tab.Home -> -7f
+                        Tab.Search -> -14f
+                        Tab.Library -> 12f
+                    }
+                } else 0f,
+                animationSpec = androidx.compose.animation.core.spring(
+                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                    stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
+                ),
+                label = "navRotation",
+            )
             NavigationBarItem(
                 selected = isSelected,
-                onClick = { onSelect(tab) },
+                onClick = {
+                    VotifyHaptics.click(view, context)
+                    onSelect(tab)
+                },
                 icon = {
                     Icon(
                         painter = painterResource(if (isSelected) tab.iconSelected else tab.icon),
                         contentDescription = stringResource(tab.label),
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            rotationZ = rotation
+                        },
                     )
                 },
                 alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = VotifyColors.TextPrimary,
                     unselectedIconColor = VotifyColors.TextMuted,
-                    // No white pill behind the active icon — the icon itself goes bright.
                     indicatorColor = androidx.compose.ui.graphics.Color.Transparent,
                 ),
             )
