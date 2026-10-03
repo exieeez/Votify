@@ -81,6 +81,14 @@ object EmbeddedMusicSource {
     /** Живой чарт Apple Music (Россия): что слушают прямо сейчас, без ключа и регистрации. */
     private const val CHART_URL = "https://rss.marketingtools.apple.com/api/v2/ru/music/most-played/50/songs.json"
 
+    private val EXCLUDED_POP_ARTISTS = setOf(
+        "anna asti", "анна асти", "клава кока", "klava koka", "zivert", "зиверт",
+        "мари краймбрери", "jony", "джони", "mia boyka", "миа бойка", "artik & asti",
+        "люся чеботина", "niletto", "инстасамка", "instasamka", "шаман", "shaman",
+        "сергей лазарев", "дима билан", "руки вверх", "ваня дмитриенко", "dabro",
+        "хабиб", "юрий шатунов", "секрет", "ленинград",
+    )
+
     /** Tracks shorter/longer than this are noise: intros, livestreams, hour-long mixes. */
     private const val MIN_TRACK_SECONDS = 30L
     private const val MAX_TRACK_SECONDS = 15 * 60L
@@ -423,42 +431,45 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
             return cached.second.take(limit)
         }
 
-        // 1. Чарт: сверху вниз по реальной популярности.
-        val chart = chartEntries(60)
-        val chartTracks = fanOut(chart, limit = 6) { (artist, title) ->
+        // 1. Артисты актуального звучания (ONDA ANDAR, madk1d, 52 NGG, андеграунд рэп)
+        val artists = listOf(
+            "ONDA ANDAR", "madk1d", "VILLIAN", "ICEGERGERT", "Friendly Thug 52 NGG",
+            "ALBLAK 52", "Hugo Loud", "Toxi$", "Heronwater", "Scally Milano",
+            "Big Baby Tape", "Kizaru", "Bushido Zho", "SALUKI", "Платина",
+            "OG Buda", "unki", "Voskresenskii", "kai angel", "9mice",
+            "Pepel Nahudi", "Aarne", "10AGE", "Macan",
+        )
+        val perArtist = mapParallel(artists.shuffled().take(12), limit = 4) { artist ->
+            rawSearch(artist, music = true, 4).take(3)
+        }
+        val interleaved = mutableListOf<Track>()
+        (0 until 3).forEach { i -> perArtist.forEach { page -> page.getOrNull(i)?.let { interleaved += it } } }
+
+        // 2. Живой чарт (с фильтрацией попсы)
+        val chart = chartEntries(50)
+        val chartTracks = fanOut(chart.take(25), limit = 5) { (artist, title) ->
             rawSearch(if (artist.isBlank()) title else "$artist $title", music = true, 1)
         }
-            .distinctBy { it.id }
-            .distinctBy { dedupeKey(it) }
-            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
-            .take(limit)
 
-        if (chartTracks.size >= 10) {
-            trendingCache = System.currentTimeMillis() to chartTracks
-            return chartTracks
-        }
-
-        // 2. Запасной путь: свежие запросы + хиты артистов, которые сейчас в ротации
-        //    (round-robin, чтобы один артист не забивал весь верх списка).
-        val artists = listOf(
-            "ONDA ANDAR", "XOLIDAYBOY", "Nasty Babe", "Jakone", "ICEGERGERT", "Kamazz",
-            "Три дня дождя", "ANNA ASTI", "Zivert", "Artik & Asti", "VERBEE", "Клава Кока",
-            "JONY", "Ay Yola", "Баста", "Мари Краймбрери",
+        val freshQueries = listOf(
+            "ONDA ANDAR", "madk1d", "VILLIAN ДИНАСТИЯ", "русский рэп андеграунд",
+            "52 ngg", "ICEGERGERT", "dark trap", "хип хоп 2026",
         )
-        val freshQueries = listOf("хиты 2026", "популярное сейчас 2026", "новинки музыки 2026", "тренды музыки 2026")
-        val fresh = fanOut(freshQueries, limit = 4) { q -> rawSearch(q, music = true, 12) }
-        val perArtist = mapParallel(artists, limit = 4) { artist -> rawSearch(artist, music = true, 5).take(4) }
-        val interleaved = mutableListOf<Track>()
-        (0 until 4).forEach { i -> perArtist.forEach { page -> page.getOrNull(i)?.let { interleaved += it } } }
-        val result = (chartTracks + fresh + interleaved)
+        val fresh = fanOut(freshQueries, limit = 4) { q -> rawSearch(q, music = true, 6) }
+
+        val combined = (interleaved.take(15) + chartTracks + interleaved.drop(15) + fresh)
             .distinctBy { it.id }
             .distinctBy { dedupeKey(it) }
             .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
-        if (result.isNotEmpty()) trendingCache = System.currentTimeMillis() to result
-        return if (result.size >= 6) result.take(limit) else result + recommendations(limit)
+
+        if (combined.isNotEmpty()) {
+            trendingCache = System.currentTimeMillis() to combined
+            return combined.take(limit)
+        }
+        return recommendations(limit)
     }
 
-    /** Позиции живого чарта Apple Music: (артист, название). Без ключа и без регистрации. */
+    /** Позиции живого чарта Apple Music (с отсевом попсы): (артист, название). */
     private fun chartEntries(limit: Int): List<Pair<String, String>> {
         val body = runCatching { httpGetString(CHART_URL) }.getOrNull() ?: return emptyList()
         return runCatching {
@@ -470,6 +481,8 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
                 val obj = runCatching { item.jsonObject }.getOrNull() ?: return@mapNotNull null
                 val title = obj["name"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
                 val artist = obj["artistName"]?.jsonPrimitive?.content.orEmpty()
+                val full = "$artist $title".lowercase()
+                if (EXCLUDED_POP_ARTISTS.any { full.contains(it) }) return@mapNotNull null
                 artist to title
             }.take(limit)
         }.getOrDefault(emptyList())
@@ -477,12 +490,32 @@ private const val TRENDING_TTL_MS = 30 * 60 * 1000L
 
     fun recommendations(limit: Int): List<Track> {
         ensureInit()
-        val queries = listOf("top hits", "pop hits 2026", "best songs")
+        val queries = listOf(
+            "ONDA ANDAR",
+            "madk1d",
+            "VILLIAN ДИНАСТИЯ",
+            "ICEGERGERT",
+            "Friendly Thug 52 NGG",
+            "ALBLAK 52",
+            "Hugo Loud",
+            "Toxi$",
+            "Heronwater",
+            "Scally Milano",
+            "Big Baby Tape",
+            "Kizaru",
+            "Bushido Zho",
+            "SALUKI",
+            "Платина",
+            "OG Buda",
+        )
         return queries.asSequence()
-            .map { q -> runCatching { rawSearch(q, music = true, limit + 6) }.getOrDefault(emptyList()) }
+            .shuffled()
+            .take(6)
+            .map { q -> runCatching { rawSearch(q, music = true, 6) }.getOrDefault(emptyList()) }
             .flatten()
             .distinctBy { it.id }
-            .distinctBy { "${it.artist}|${it.title}".lowercase() }
+            .distinctBy { dedupeKey(it) }
+            .filter { it.duration in MIN_TRACK_SECONDS..MAX_WAVE_SECONDS }
             .shuffled()
             .take(limit)
             .toList()

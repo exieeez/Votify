@@ -133,25 +133,37 @@ const RECOMMENDATION_LIMIT = 16;
 // Живой чарт (Apple Music) подменяет этот список, когда доступен — см. getChartTracks.
 const RECOMMENDATION_SEEDS = [
   'ONDA ANDAR official audio',
-  'XOLIDAYBOY official audio',
-  'Nasty Babe official audio',
-  'Jakone official audio',
-  'ICEGERGERT official audio',
-  'Toxi$ official audio',
-  'Дора official audio',
+  'madk1d official audio',
   'VILLIAN official audio',
-  'MIA BOYKA official audio',
-  'Zivert official audio',
-  'ANNA ASTI official audio',
-  'Три дня дождя official audio',
-  'JONY official audio',
-  'Ay Yola official audio',
-  'Баста official audio',
-  'Мари Краймбрери official audio',
-  'ENZRO official audio',
-  'SAYAN official audio',
-  'Клава Кока official audio',
-  'BEARWOLF official audio',
+  'ICEGERGERT official audio',
+  'Friendly Thug 52 NGG official audio',
+  'ALBLAK 52 official audio',
+  'Hugo Loud official audio',
+  'Toxi$ official audio',
+  'Heronwater official audio',
+  'Scally Milano official audio',
+  'Big Baby Tape official audio',
+  'Kizaru official audio',
+  'Bushido Zho official audio',
+  'SALUKI official audio',
+  'Платина official audio',
+  'OG Buda official audio',
+  'unki official audio',
+  'Voskresenskii official audio',
+  'kai angel official audio',
+  '9mice official audio',
+  'Pepel Nahudi official audio',
+  'Aarne official audio',
+  '10AGE official audio',
+  'Macan official audio',
+];
+
+const EXCLUDED_POP_ARTISTS = [
+  'anna asti', 'анна асти', 'клава кока', 'klava koka', 'zivert', 'зиверт',
+  'мари краймбрери', 'jony', 'джони', 'mia boyka', 'миа бойка', 'artik & asti',
+  'люся чеботина', 'niletto', 'инстасамка', 'instasamka', 'шаман', 'shaman',
+  'сергей лазарев', 'дима билан', 'руки вверх', 'ваня дмитриенко', 'dabro',
+  'хабиб', 'юрий шатунов', 'секрет', 'ленинград',
 ];
 
 const BLOCKED_KEYWORDS = [
@@ -851,7 +863,11 @@ async function getChartTracks(region = 'ru', limit = 30) {
   const data = await httpsGetJson(url);
   const entries = (data && data.feed && data.feed.results ? data.feed.results : [])
     .map(r => ({ title: r && r.name, artist: (r && r.artistName) || '' }))
-    .filter(e => e.title)
+    .filter(e => {
+      if (!e.title) return false;
+      const lower = `${e.artist} ${e.title}`.toLowerCase();
+      return !EXCLUDED_POP_ARTISTS.some(k => lower.includes(k));
+    })
     .slice(0, limit);
   if (!entries.length) return [];
 
