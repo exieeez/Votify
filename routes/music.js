@@ -513,7 +513,212 @@ async function handleMusicRoutes(req, res, u) {
       return { name: playlistName, cover: playlistCover, items, isDirect: false };
     }
 
-    // 2. SOUNDCLOUD
+    // 2. YANDEX MUSIC (Playlist / Album / Track)
+    if (rawUrl.includes('music.yandex.') || rawUrl.includes('yandex.ru/music') || rawUrl.includes('yandex.com/music')) {
+      const cleanUrl = rawUrl.trim();
+      const userPlRegex = /(?:users\/|\/users\/)([^/\s"']+)\/playlists\/([0-9]+)/i;
+      const plUuidRegex = /(?:^|\/)playlists\/(?:lk\.)?([a-zA-Z0-9._-]+)/i;
+      const albumRegex = /(?:album\/|\/album\/)([0-9]+)/i;
+      const trackRegex = /(?:track\/|\/track\/)([0-9]+)/i;
+
+      const plUuidMatch = cleanUrl.match(plUuidRegex);
+      const pMatch = cleanUrl.match(userPlRegex);
+      const aMatch = cleanUrl.match(albumRegex);
+      const tMatch = cleanUrl.match(trackRegex);
+
+      const items = [];
+      let playlistName = 'Яндекс Музыка';
+      let playlistCover = '';
+
+      function extractYandexTracks(node, out = []) {
+        if (!node || typeof node !== 'object') return out;
+        if (Array.isArray(node)) {
+          for (const item of node) extractYandexTracks(item, out);
+          return out;
+        }
+        const title = (node.title || node.name || '').trim();
+        const artistsVal = node.artists || node.artist;
+        if (title && artistsVal && title !== 'null') {
+          let artist = '';
+          if (Array.isArray(artistsVal)) {
+            artist = artistsVal.map(a => typeof a === 'object' ? (a.name || '') : String(a)).filter(Boolean).join(', ');
+          } else if (typeof artistsVal === 'string') {
+            artist = artistsVal;
+          }
+          const cover = node.ogImage ? `https://${node.ogImage.replace('%%', '400x400')}` : '';
+          const duration = Math.round((node.durationMs || node.duration || 0) / (node.durationMs ? 1000 : 1));
+          if (!out.some(x => x.title === title && x.artist === artist)) {
+            out.push({ title, artist, cover, duration });
+          }
+          return out;
+        }
+        for (const key of Object.keys(node)) {
+          extractYandexTracks(node[key], out);
+        }
+        return out;
+      }
+
+      function findTitle(node) {
+        if (!node || typeof node !== 'object') return null;
+        if (node.title && typeof node.title === 'string' && !node.artists && !node.artist) return node.title;
+        if (node.name && typeof node.name === 'string' && !node.artists && !node.artist) return node.name;
+        for (const k of ['result', 'playlist', 'album', 'data']) {
+          if (node[k]) {
+            const res = findTitle(node[k]);
+            if (res) return res;
+          }
+        }
+        return null;
+      }
+
+      // 1. Direct API queries if UUID found
+      if (plUuidMatch) {
+        const uuid = plUuidMatch[1];
+        const candidateEndpoints = [
+          `https://api.music.yandex.net/playlists/${uuid}`,
+          `https://api.music.yandex.net/playlist/${uuid}`,
+          `https://api.music.yandex.net/playlists/lk.${uuid}`,
+          `https://api.music.yandex.net/playlist/lk.${uuid}`,
+          `https://music.yandex.ru/handlers/playlist.jsx?playlistUuid=${uuid}`,
+          `https://music.yandex.ru/handlers/playlist.jsx?uuid=${uuid}`,
+          `https://music.yandex.ru/handlers/playlist.jsx?playlistUuid=lk.${uuid}`,
+          `https://music.yandex.ru/handlers/playlist.jsx?uuid=lk.${uuid}`,
+          `https://music.yandex.ru/handlers/playlist.jsx?owner=&kinds=&uuid=${uuid}`,
+          `https://music.yandex.ru/iframe/playlist/${uuid}`,
+        ];
+        for (const apiUrl of candidateEndpoints) {
+          try {
+            const json = await httpGet(apiUrl, 10000);
+            const data = typeof json === 'object' ? json : JSON.parse(json);
+            extractYandexTracks(data, items);
+            const t = findTitle(data);
+            if (t) playlistName = t;
+            if (items.length > 0) break;
+          } catch {}
+        }
+      }
+
+      // 2. User playlist handler
+      if (items.length === 0 && pMatch) {
+        const [, owner, kinds] = pMatch;
+        try {
+          const json = await httpGet(`https://music.yandex.ru/handlers/playlist.jsx?owner=${encodeURIComponent(owner)}&kinds=${encodeURIComponent(kinds)}`, 12000);
+          const data = typeof json === 'object' ? json : JSON.parse(json);
+          extractYandexTracks(data, items);
+          const t = findTitle(data);
+          if (t) playlistName = t;
+        } catch (e) {
+          console.warn('[yandex] Playlist handler error:', e.message);
+        }
+      }
+
+      // 3. Album handler
+      if (items.length === 0 && aMatch) {
+        const albumId = aMatch[1];
+        try {
+          const json = await httpGet(`https://music.yandex.ru/handlers/album.jsx?album=${encodeURIComponent(albumId)}`, 12000);
+          const data = typeof json === 'object' ? json : JSON.parse(json);
+          extractYandexTracks(data, items);
+          const t = findTitle(data);
+          if (t) playlistName = t;
+        } catch (e) {
+          console.warn('[yandex] Album handler error:', e.message);
+        }
+      }
+
+      // 4. Track handler
+      if (items.length === 0 && tMatch) {
+        const trackId = tMatch[1];
+        try {
+          const json = await httpGet(`https://music.yandex.ru/handlers/track.jsx?track=${encodeURIComponent(trackId)}`, 12000);
+          const data = typeof json === 'object' ? json : JSON.parse(json);
+          extractYandexTracks(data, items);
+          const t = findTitle(data);
+          if (t) playlistName = t;
+        } catch (e) {
+          console.warn('[yandex] Track handler error:', e.message);
+        }
+      }
+
+      // 5. Fallback: fetch page HTML with redirects
+      if (items.length === 0) {
+        const { finalUrl, body: html } = await fetchFullUrl(cleanUrl, 12000);
+
+        const redirPl = (finalUrl && finalUrl.match(userPlRegex)) || (html && html.match(userPlRegex));
+        if (redirPl) {
+          try {
+            const [, owner, kinds] = redirPl;
+            const json = await httpGet(`https://music.yandex.ru/handlers/playlist.jsx?owner=${encodeURIComponent(owner)}&kinds=${encodeURIComponent(kinds)}`, 12000);
+            const data = typeof json === 'object' ? json : JSON.parse(json);
+            extractYandexTracks(data, items);
+            const t = findTitle(data);
+            if (t) playlistName = t;
+          } catch {}
+        }
+
+        if (items.length === 0 && html) {
+          // Check for owner & kind in html
+          const ownerKindMatch = html.match(/(?:"owner"|'owner')\s*:\s*\{[^}]*(?:"login"|'login'|"uid"|'uid')\s*:\s*["']?([^"',}\s]+)["']?[^}]*(?:"kind"|'kind')\s*:\s*([0-9]+)/i)
+            || html.match(/(?:"kind"|'kind')\s*:\s*([0-9]+)[^}]*(?:"login"|'login'|"uid"|'uid')\s*:\s*["']?([^"',}\s]+)/i);
+          if (ownerKindMatch) {
+            try {
+              const owner = ownerKindMatch[1];
+              const kinds = ownerKindMatch[2];
+              const json = await httpGet(`https://music.yandex.ru/handlers/playlist.jsx?owner=${encodeURIComponent(owner)}&kinds=${encodeURIComponent(kinds)}`, 12000);
+              const data = typeof json === 'object' ? json : JSON.parse(json);
+              extractYandexTracks(data, items);
+              const t = findTitle(data);
+              if (t) playlistName = t;
+            } catch {}
+          }
+        }
+
+        if (items.length === 0 && html) {
+          // Parse any script tags
+          const scriptBlocks = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi) || [];
+          for (const block of scriptBlocks) {
+            const content = block.replace(/<script[^>]*>/i, '').replace(/<\/script>/i, '').trim();
+            if (content.startsWith('{') && content.endsWith('}')) {
+              try {
+                const data = JSON.parse(content);
+                extractYandexTracks(data, items);
+                const t = findTitle(data);
+                if (t) playlistName = t;
+                if (items.length > 0) break;
+              } catch {}
+            }
+            const stateMatches = content.match(/(?:__INITIAL_DATA__|__INITIAL_STATE__|__DATA__|initialState|Mu\.state)\s*=\s*(\{[\s\S]*?\});?/i);
+            if (stateMatches) {
+              try {
+                const data = JSON.parse(stateMatches[1]);
+                extractYandexTracks(data, items);
+                const t = findTitle(data);
+                if (t) playlistName = t;
+                if (items.length > 0) break;
+              } catch {}
+            }
+          }
+        }
+
+        // Loose regex fallback
+        if (items.length === 0 && html) {
+          const pat1 = /(?:"title"|'title')\s*:\s*"([^"]+)"[\s\S]{1,400}?(?:"artists"|'artists')\s*:\s*\[[\s\S]{1,200}?(?:"name"|'name')\s*:\s*"([^"]+)"/g;
+          let m;
+          while ((m = pat1.exec(html)) !== null) {
+            const title = m[1].trim();
+            const artist = m[2].trim();
+            if (title && !items.some(x => x.title === title && x.artist === artist)) {
+              items.push({ title, artist, cover: '', duration: 0 });
+            }
+          }
+        }
+      }
+
+      if (items.length === 0) throw new Error('Не удалось извлечь треки из Яндекс Музыки');
+      return { name: playlistName, cover: playlistCover || items[0]?.cover || '', items, isDirect: false };
+    }
+
+    // 3. SOUNDCLOUD
     if (rawUrl.includes('soundcloud.com')) {
       try {
         const result = await scImportPlaylist(rawUrl);

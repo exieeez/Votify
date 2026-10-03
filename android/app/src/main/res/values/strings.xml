@@ -531,7 +531,7 @@
 
     <string name="import_title">Импорт плейлиста</string>
     <string name="import_url_hint">Ссылка на плейлист</string>
-    <string name="import_supported">Поддерживаются плейлисты YouTube, Spotify и SoundCloud</string>
+    <string name="import_supported">Поддерживаются плейлисты YouTube, Spotify, SoundCloud и Яндекс Музыка</string>
     <string name="import_button">Импортировать</string>
     <string name="import_loading">Загружаем треки — большой плейлист может занять пару минут…</string>
     <string name="import_found">Найдено треков</string>
