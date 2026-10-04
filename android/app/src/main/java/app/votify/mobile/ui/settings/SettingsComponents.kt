@@ -530,14 +530,13 @@ private fun SliderStylePreview(style: String) {
 
             when (normalized) {
                 "ios" -> {
-                    // Authentic iOS pill scrubber preview: 10dp pill track with white knob
+                    // Authentic iOS pill scrubber preview: 10dp pill track without floating knob
                     BoxWithConstraints(
                         Modifier
                             .fillMaxWidth()
                             .height(24.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        val width = maxWidth
                         Box(
                             Modifier
                                 .fillMaxWidth()
@@ -553,18 +552,10 @@ private fun SliderStylePreview(style: String) {
                                     .background(Color.White),
                             )
                         }
-                        Box(
-                            Modifier
-                                .offset(x = (width - 14.dp) * 0.38f)
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .shadow(2.dp, CircleShape),
-                        )
                     }
                 }
                 "thin" -> {
-                    // Minimalist thin scrubber preview: 3dp line with subtle dot
+                    // Minimalist thin scrubber preview: 3dp line with properly centered dot
                     BoxWithConstraints(
                         Modifier
                             .fillMaxWidth()
@@ -572,6 +563,8 @@ private fun SliderStylePreview(style: String) {
                         contentAlignment = Alignment.CenterStart,
                     ) {
                         val width = maxWidth
+                        val dotSize = 10.dp
+                        val dotRadius = dotSize / 2
                         Box(
                             Modifier
                                 .fillMaxWidth()
@@ -587,24 +580,25 @@ private fun SliderStylePreview(style: String) {
                                     .background(Color.White),
                             )
                         }
+                        val dotOffset = ((width * 0.38f) - dotRadius).coerceIn(0.dp, width - dotSize)
                         Box(
                             Modifier
-                                .offset(x = (width - 7.dp) * 0.38f)
-                                .size(7.dp)
+                                .offset(x = dotOffset)
+                                .size(dotSize)
                                 .clip(CircleShape)
-                                .background(Color.White),
+                                .background(Color.White)
+                                .shadow(2.dp, CircleShape),
                         )
                     }
                 }
                 "wave" -> {
-                    // Waveform equalizer bars scrubber preview
+                    // Waveform equalizer bars scrubber preview (pure waveform, no floating knob)
                     BoxWithConstraints(
                         Modifier
                             .fillMaxWidth()
                             .height(26.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        val width = maxWidth
                         val barCount = 36
                         val activeBars = (barCount * 0.38f).toInt()
                         val waveHeights = remember {
@@ -636,48 +630,63 @@ private fun SliderStylePreview(style: String) {
                                 )
                             }
                         }
-                        Box(
-                            Modifier
-                                .offset(x = (width - 10.dp) * 0.38f)
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .shadow(3.dp, CircleShape),
-                        )
                     }
                 }
                 else -> { // "classic" / standard
-                    // Standard Material 3 slider preview with 4dp track and 18dp thumb
+                    // Native Material 3 slider preview: 16dp rounded track with vertical capsule handle and stop dot
                     BoxWithConstraints(
                         Modifier
                             .fillMaxWidth()
                             .height(24.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        val width = maxWidth
-                        Box(
+                        val progress = 0.38f
+                        val trackHeight = 16.dp
+                        val handleWidth = 4.dp
+                        val gap = 4.dp
+
+                        Row(
                             Modifier
                                 .fillMaxWidth()
-                                .height(4.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.22f)),
+                                .height(trackHeight),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            // Active rounded segment
                             Box(
                                 Modifier
-                                    .fillMaxWidth(0.38f)
+                                    .weight(progress)
                                     .fillMaxHeight()
-                                    .clip(CircleShape)
+                                    .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 2.dp, bottomEnd = 2.dp))
                                     .background(Color.White),
                             )
+                            Spacer(Modifier.width(gap))
+                            // M3 vertical pill thumb
+                            Box(
+                                Modifier
+                                    .width(handleWidth)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(Color.White),
+                            )
+                            Spacer(Modifier.width(gap))
+                            // Inactive rounded segment with end stop indicator dot
+                            Box(
+                                Modifier
+                                    .weight(1f - progress)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp, topEnd = 8.dp, bottomEnd = 8.dp))
+                                    .background(Color.White.copy(alpha = 0.22f)),
+                                contentAlignment = Alignment.CenterEnd,
+                            ) {
+                                Box(
+                                    Modifier
+                                        .padding(end = 6.dp)
+                                        .size(4.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White),
+                                )
+                            }
                         }
-                        Box(
-                            Modifier
-                                .offset(x = (width - 18.dp) * 0.38f)
-                                .size(18.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .shadow(3.dp, CircleShape),
-                        )
                     }
                 }
             }
