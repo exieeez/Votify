@@ -354,20 +354,20 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     }
 
     // Apply saved playback remix preset when track changes or when preference changes.
-    val rootCp = parseCustomPrefs(settings.customPrefs)
+    val cp = parseCustomPrefs(settings.customPrefs)
     LaunchedEffect(
-        rootCp.playbackSpeed,
-        rootCp.playbackPitch,
-        rootCp.pitchShiftLinked,
-        rootCp.reverbPreset,
-        rootCp.bassBoost,
+        cp.playbackSpeed,
+        cp.playbackPitch,
+        cp.pitchShiftLinked,
+        cp.reverbPreset,
+        cp.bassBoost,
         playerState.current?.id,
     ) {
-        val s = if (rootCp.playbackSpeed in 0.25f..2.5f) rootCp.playbackSpeed else 1.0f
-        val p = if (rootCp.playbackPitch in 0.25f..2.5f) rootCp.playbackPitch else s
-        player.setPlaybackRemix(speed = s, pitch = p, pitchLinked = rootCp.pitchShiftLinked)
-        player.setReverb(rootCp.reverbPreset)
-        player.setBassBoost(rootCp.bassBoost)
+        val s = if (cp.playbackSpeed in 0.25f..2.5f) cp.playbackSpeed else 1.0f
+        val p = if (cp.playbackPitch in 0.25f..2.5f) cp.playbackPitch else s
+        player.setPlaybackRemix(speed = s, pitch = p, pitchLinked = cp.pitchShiftLinked)
+        player.setReverb(cp.reverbPreset)
+        player.setBassBoost(cp.bassBoost)
     }
 
     val statusBar = WindowInsets.statusBars.asPaddingValues()
@@ -438,7 +438,6 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                     )
                     AnimatedVisibility(visible = hasMini, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
-                        val cp = parseCustomPrefs(settings.customPrefs)
                         MiniPlayer(
                             state = playerState,
                             isFavorite = currentIsFavorite,
