@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLaunchAtLogin: () => ipcRenderer.invoke('get-launch-at-login'),
   setLaunchAtLogin: enabled => ipcRenderer.invoke('set-launch-at-login', enabled),
   setCloseToTray: enabled => ipcRenderer.send('set-close-to-tray', enabled),
+  onPlayerAction: cb => ipcRenderer.on('player-action', (e, action) => cb(action)),
   updateDiscordPresence: playback => ipcRenderer.send('discord-presence:update', playback),
   clearDiscordPresence: () => ipcRenderer.send('discord-presence:clear'),
   signInWithGoogle: () => ipcRenderer.invoke('google-auth:start'),

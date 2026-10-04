@@ -23,7 +23,7 @@ let PORT = 17217;
 let mainWindow = null;
 let serverProcess = null;
 let tray = null;
-let closeToTrayEnabled = false;
+let closeToTrayEnabled = true;
 let isQuitting = false;
 let googleAuthPromise = null;
 
@@ -34,8 +34,16 @@ const discordPresence = new DiscordPresence({
   fallbackImageKey: process.env.VOTIFY_DISCORD_LARGE_IMAGE_KEY,
 });
 
-// Force persistent user data dir so settings/playlists survive restarts
-const userDataPath = path.join(app.getPath('home'), '.votify');
+// Support fresh PC mode or isolated user data directory
+const isFresh = process.argv.includes('--fresh') || process.env.VOTIFY_FRESH === '1';
+const freshUserDataDir = isFresh
+  ? path.join(require('os').tmpdir(), `votify-fresh-${Date.now()}`)
+  : null;
+const userDataPath =
+  process.env.VOTIFY_USER_DATA_DIR || freshUserDataDir || path.join(app.getPath('home'), '.votify');
+if (isFresh) {
+  console.log(`[main] Running in fresh PC mode (isolated data dir: ${userDataPath})`);
+}
 try {
   fs.mkdirSync(userDataPath, { recursive: true });
 } catch (e) {
@@ -119,6 +127,10 @@ async function startServer() {
   // process. Pick the next local port when the default one is occupied.
   while (!(await isPortFree(PORT))) PORT += 1;
   const env = { ...process.env };
+  if (isFresh) {
+    env.VOTIFY_CONFIG_DIR = path.join(userDataPath, 'config');
+    env.XDG_CONFIG_HOME = path.join(userDataPath, 'config_home');
+  }
   env.YT_DLP_PATH = findYtDlp();
   env.VOTIFY_SRC_DIR = path.join(__dirname, 'src');
   env.VOTIFY_PORT = String(PORT);
@@ -170,6 +182,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      backgroundThrottling: false,
     },
     icon: path.join(__dirname, 'src/icon.png'),
     show: false,
@@ -215,13 +228,40 @@ function createTray() {
   try {
     tray = new Tray(path.join(__dirname, 'src/icon.png'));
     tray.setToolTip('Votify');
+
+    const showWindow = () => {
+      if (!mainWindow) return;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    };
+
     const contextMenu = Menu.buildFromTemplate([
       {
         label: 'Открыть Votify',
+        click: showWindow,
+      },
+      {
+        label: 'Воспроизведение / Пауза',
         click: () => {
-          if (mainWindow) {
-            mainWindow.show();
-            mainWindow.focus();
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('player-action', 'play-pause');
+          }
+        },
+      },
+      {
+        label: 'Следующий трек',
+        click: () => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('player-action', 'next');
+          }
+        },
+      },
+      {
+        label: 'Предыдущий трек',
+        click: () => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('player-action', 'prev');
           }
         },
       },
@@ -235,15 +275,22 @@ function createTray() {
       },
     ]);
     tray.setContextMenu(contextMenu);
+
     tray.on('click', () => {
       if (!mainWindow) return;
       if (mainWindow.isVisible()) {
-        mainWindow.hide();
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
+          mainWindow.focus();
+        } else {
+          mainWindow.hide();
+        }
       } else {
-        mainWindow.show();
-        mainWindow.focus();
+        showWindow();
       }
     });
+
+    tray.on('double-click', showWindow);
   } catch (e) {
     console.error('Tray creation failed:', e.message);
   }
@@ -350,11 +397,18 @@ app.whenReady().then(async () => {
   setupAutoUpdater();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    } else if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
   });
 });
 
 app.on('window-all-closed', () => {
+  if (closeToTrayEnabled && !isQuitting) return;
   if (process.platform !== 'darwin') {
     if (serverProcess) {
       serverProcess.kill();

@@ -13,6 +13,9 @@ const appRoot = path.dirname(__dirname);
 
 const os = require('os');
 function getConfigDir() {
+  if (process.env.VOTIFY_CONFIG_DIR) {
+    return process.env.VOTIFY_CONFIG_DIR;
+  }
   if (process.platform === 'win32') {
     return path.join(
       process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),

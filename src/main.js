@@ -1044,7 +1044,7 @@ let appSettings = readStoredJson('votify-settings', {
   uiSounds: true,
   loadingSound: true,
   uiSoundVolume: 30,
-  closeToTray: false,
+  closeToTray: true,
   trackNotifications: false,
   rememberVolume: true,
   dynamicPlayerBg: true,
@@ -7617,14 +7617,31 @@ if (launchAtStartupToggle) {
 
 const closeToTrayToggle = document.getElementById('toggle-close-to-tray');
 if (closeToTrayToggle) {
-  closeToTrayToggle.checked = !!appSettings.closeToTray;
+  closeToTrayToggle.checked = appSettings.closeToTray !== false;
   if (window.electronAPI?.setCloseToTray)
-    window.electronAPI.setCloseToTray(!!appSettings.closeToTray);
+    window.electronAPI.setCloseToTray(appSettings.closeToTray !== false);
   closeToTrayToggle.addEventListener('change', () => {
     appSettings.closeToTray = closeToTrayToggle.checked;
     saveSettings();
     if (window.electronAPI?.setCloseToTray)
       window.electronAPI.setCloseToTray(closeToTrayToggle.checked);
+  });
+}
+
+if (window.electronAPI?.onPlayerAction) {
+  window.electronAPI.onPlayerAction(action => {
+    try {
+      if (action === 'play-pause') {
+        if (typeof togglePlay === 'function') togglePlay();
+        else if (audio) { if (audio.paused) audio.play(); else audio.pause(); }
+      } else if (action === 'next') {
+        if (typeof playNextTrack === 'function') playNextTrack();
+      } else if (action === 'prev') {
+        if (typeof playPreviousTrack === 'function') playPreviousTrack();
+      }
+    } catch (e) {
+      console.warn('Tray player action error:', e);
+    }
   });
 }
 
@@ -13279,7 +13296,9 @@ function initRedesignedSettings() {
     });
   });
   wireInput('toggle-launch-at-startup', 'launchAtStartup', false);
-  wireInput('toggle-close-to-tray', 'closeToTray', false);
+  wireInput('toggle-close-to-tray', 'closeToTray', true, '', null, val => {
+    if (window.electronAPI?.setCloseToTray) window.electronAPI.setCloseToTray(!!val);
+  });
   wireInput('toggle-restore-queue', 'restoreQueue', true);
 
   // --- 3. Аудио (gen-audio) ---
