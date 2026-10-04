@@ -3941,13 +3941,9 @@ function renderRecentArtists() {
 
   const section = document.getElementById('home-recent-artists-section');
   if (!recent.length) {
-    recent = [
-      { name: 'Стеклянный Оркестр', cover: DEFAULT_ARTIST_PHOTOS['стеклянный оркестр'] },
-      { name: 'Lida, СЕРЕГА ПИРАТ', cover: DEFAULT_ARTIST_PHOTOS['lida, серега пират'] },
-      { name: 'Кассетный Дом', cover: DEFAULT_ARTIST_PHOTOS['кассетный дом'] },
-      { name: 'Ночной Рейс', cover: DEFAULT_ARTIST_PHOTOS['ночной рейс'] },
-      { name: 'The Weeknd', cover: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop' },
-    ];
+    if (section) section.style.display = 'none';
+    if (container) container.innerHTML = '';
+    return;
   }
 
   if (section) section.style.display = 'block';
@@ -9854,22 +9850,11 @@ async function loadHomeContent() {
     if (continueContainer) renderTrackRows(continueContainer, history.slice(0, 6), { showAddButton: true });
     if (recentContainer) renderTrackRows(recentContainer, history.slice(0, 12), { showAddButton: true });
   } else {
-    try {
-      const res = await fetch('/api/search?q=' + encodeURIComponent('The Weeknd popular hits'));
-      const data = await res.json();
-      const realTracks = (data && data.tracks) ? data.tracks : [];
-      if (realTracks.length > 0) {
-        if (continueContainer) renderTrackRows(continueContainer, realTracks.slice(0, 6), { showAddButton: true });
-        if (recentContainer) renderTrackRows(recentContainer, realTracks.slice(0, 12), { showAddButton: true });
-      } else {
-        const mockTracks = (window.SPOTIFY_MOCK_DATA && window.SPOTIFY_MOCK_DATA.topTracks) ? window.SPOTIFY_MOCK_DATA.topTracks : [];
-        if (continueContainer) renderTrackRows(continueContainer, mockTracks.slice(0, 6), { showAddButton: true });
-        if (recentContainer) renderTrackRows(recentContainer, mockTracks, { showAddButton: true });
-      }
-    } catch (e) {
-      const mockTracks = (window.SPOTIFY_MOCK_DATA && window.SPOTIFY_MOCK_DATA.topTracks) ? window.SPOTIFY_MOCK_DATA.topTracks : [];
-      if (continueContainer) renderTrackRows(continueContainer, mockTracks.slice(0, 6), { showAddButton: true });
-      if (recentContainer) renderTrackRows(recentContainer, mockTracks, { showAddButton: true });
+    if (continueContainer) {
+      continueContainer.innerHTML = '<div class="empty-state" style="padding: 16px 0; color: var(--text-secondary); font-size: 13px;">Здесь появятся недавно прослушанные треки</div>';
+    }
+    if (recentContainer) {
+      recentContainer.innerHTML = '<div class="empty-state" style="padding: 16px 0; color: var(--text-secondary); font-size: 13px;">Здесь появятся недавно прослушанные треки</div>';
     }
   }
 
@@ -9998,9 +9983,28 @@ function addToListeningHistory(track) {
   scheduleCloudPush();
 }
 
+function showFloatingPlayer() {
+  const island = document.getElementById('floating-island');
+  if (island) {
+    island.classList.remove('player-island-hidden');
+    island.classList.add('player-island-visible');
+  }
+}
+
+function hideFloatingPlayer() {
+  const island = document.getElementById('floating-island');
+  if (island) {
+    island.classList.remove('player-island-visible');
+    island.classList.add('player-island-hidden');
+  }
+}
+window.showFloatingPlayer = showFloatingPlayer;
+window.hideFloatingPlayer = hideFloatingPlayer;
+
 async function playTrack(track) {
   if (!track) return;
   window.playTrack = playTrack;
+  showFloatingPlayer();
   isChangingTrack = true;
   let didStartPlayback = false;
   playRetryCount = 0;

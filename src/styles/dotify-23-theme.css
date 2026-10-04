@@ -3539,18 +3539,18 @@ body[data-player-slider-type="capsule"] .right-timeline-dot {
 .settings-modal,
 #settings-overlay .settings-modal {
   width: 90% !important;
-  max-width: 840px !important;
-  height: 85vh !important;
-  max-height: 740px !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 14%, rgba(16, 16, 20, 0.72)) !important;
-  background-color: color-mix(in srgb, var(--accent, #1db954) 14%, rgba(16, 16, 20, 0.72)) !important;
+  max-width: 860px !important;
+  height: 86vh !important;
+  max-height: 760px !important;
+  background: #111114 !important;
+  background-color: #111114 !important;
   color: var(--text-primary, #ffffff) !important;
-  backdrop-filter: blur(40px) saturate(220%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(220%) !important;
-  border: none !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   outline: none !important;
   border-radius: 24px !important;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.65) !important;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.75) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
@@ -3559,21 +3559,19 @@ body[data-player-slider-type="capsule"] .right-timeline-dot {
 
 body.transparency-enabled .dotify-23-settings-modal,
 body.transparency-enabled .settings-modal {
-  background: color-mix(in srgb, var(--accent, #1db954) 18%, rgba(12, 12, 16, calc(var(--window-opacity, 0.65)))) !important;
+  background: rgba(17, 17, 20, calc(var(--window-opacity, 0.85))) !important;
   backdrop-filter: blur(var(--glass-blur, 36px)) saturate(calc(120% + var(--glass-strength, 20%) * 2)) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur, 36px)) saturate(calc(120% + var(--glass-strength, 20%) * 2)) !important;
-  border: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   outline: none !important;
 }
 
-/* Ensure inner body, content & sections remain transparent with glass look */
+/* Settings modal internal panels */
 .dotify-23-settings-modal .settings-modal-body,
 .dotify-23-settings-modal .dotify-settings-body,
 .dotify-23-settings-modal .settings-right-content,
 .dotify-23-settings-modal .dotify-full-content,
-.dotify-23-settings-modal .settings-panel,
-.dotify-23-settings-modal .settings-section,
-.dotify-23-settings-modal .dotify-section {
+.dotify-23-settings-modal .settings-panel {
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
@@ -3583,9 +3581,9 @@ body.transparency-enabled .settings-modal {
 /* Light theme overrides for settings modal */
 body.light-theme .dotify-23-settings-modal,
 body[data-theme-mode="light"] .dotify-23-settings-modal {
-  background: color-mix(in srgb, var(--accent, #007aff) 12%, rgba(255, 255, 255, 0.85)) !important;
-  color: var(--text-primary, #121212) !important;
-  border: none !important;
+  background: #f5f5f7 !important;
+  color: #121212 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
   outline: none !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18) !important;
 }
@@ -3598,6 +3596,10 @@ body.light-theme .setting-toggle-label,
 body[data-theme-mode="light"] .setting-toggle-label,
 body.light-theme .slider-type-label,
 body[data-theme-mode="light"] .slider-type-label,
+body.light-theme .dotify-hk-title,
+body[data-theme-mode="light"] .dotify-hk-title {
+  color: var(--text-primary, #121212) !important;
+}
 body.light-theme .dotify-hk-title,
 body[data-theme-mode="light"] .dotify-hk-title {
   color: var(--text-primary, #121212) !important;
@@ -3669,10 +3671,10 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding: 16px 20px 12px 20px !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 9%, rgba(255, 255, 255, 0.03)) !important;
+  padding: 14px 20px !important;
+  background: #141417 !important;
   border: none !important;
-  border-bottom: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
 .dotify-settings-nav-container {
@@ -3680,7 +3682,7 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   min-width: 0 !important;
   overflow-x: auto !important;
   scrollbar-width: none !important;
-  padding: 4px 8px !important;
+  padding: 4px 6px !important;
 }
 
 .dotify-settings-nav-container::-webkit-scrollbar {
@@ -3691,10 +3693,10 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
   display: inline-flex !important;
   align-items: center !important;
   gap: 3px !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 12%, rgba(0, 0, 0, 0.35)) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
   padding: 3px 5px !important;
   border-radius: 999px !important;
-  border: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   outline: none !important;
   box-shadow: none !important;
   backdrop-filter: blur(16px) !important;
@@ -3707,17 +3709,17 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 .dotify-pill-tab {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 6px !important;
   height: 32px !important;
-  padding: 0 12px !important;
+  padding: 0 14px !important;
   border-radius: 999px !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.75) !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
+  color: #8E8E93 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
   cursor: pointer !important;
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
   white-space: nowrap !important;
@@ -3731,52 +3733,53 @@ body[data-theme-mode="light"] .dotify-pill-tab.active {
 
 .dotify-pill-tab:hover {
   color: #ffffff !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 22%, rgba(255, 255, 255, 0.12)) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .dotify-pill-tab.active,
 body.transparency-enabled .dotify-pill-tab.active {
-  background: var(--accent, #1db954) !important;
-  background-color: var(--accent, #1db954) !important;
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  box-shadow: none !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
   border: none !important;
   outline: none !important;
 }
 
 .dotify-pill-tab.active i {
-  color: #ffffff !important;
+  color: #000000 !important;
   opacity: 1 !important;
 }
 
 .dotify-settings-close {
-  width: 36px !important;
-  height: 36px !important;
+  width: 38px !important;
+  height: 38px !important;
   border-radius: 50% !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 14%, rgba(255, 255, 255, 0.08)) !important;
-  border: none !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   outline: none !important;
   box-shadow: none !important;
-  color: rgba(255, 255, 255, 0.85) !important;
+  color: #ffffff !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  transition: background 0.2s ease, transform 0.2s ease !important;
+  transition: background 0.2s ease, transform 0.15s ease !important;
   margin-left: 12px !important;
+  flex-shrink: 0 !important;
 }
 
 .dotify-settings-close:hover {
-  background: color-mix(in srgb, var(--accent, #1db954) 30%, rgba(255, 255, 255, 0.18)) !important;
+  background: rgba(255, 255, 255, 0.16) !important;
   color: #ffffff !important;
-  transform: scale(1.06) !important;
+  transform: scale(1.05) !important;
 }
 
 /* Body & Content */
 .dotify-settings-body {
   flex: 1 !important;
-  padding: 24px 28px !important;
+  padding: 20px 24px !important;
   overflow-y: auto !important;
 }
 
@@ -3793,11 +3796,14 @@ body.transparency-enabled .dotify-pill-tab.active {
   display: block !important;
 }
 
+/* Mobile-style Settings Cards */
 .dotify-section {
-  margin-bottom: 28px !important;
-  background: transparent !important;
-  padding: 0 !important;
-  border: none !important;
+  margin-bottom: 20px !important;
+  background: #18181b !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 18px !important;
+  padding: 16px 18px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
 }
 
 .dotify-section-title-wrap {
@@ -3805,15 +3811,17 @@ body.transparency-enabled .dotify-pill-tab.active {
 }
 
 .dotify-section-title {
-  font-size: 15px !important;
+  font-size: 12px !important;
   font-weight: 700 !important;
-  color: #ffffff !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: #8E8E93 !important;
   margin: 0 !important;
 }
 
 .dotify-section-subtitle {
-  font-size: 12px !important;
-  color: rgba(255, 255, 255, 0.45) !important;
+  font-size: 12.5px !important;
+  color: #636366 !important;
   margin-top: 3px !important;
 }
 
@@ -3821,8 +3829,8 @@ body.transparency-enabled .dotify-pill-tab.active {
 .dotify-segmented-pill-group {
   display: inline-flex !important;
   align-items: center !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 10%, rgba(0, 0, 0, 0.35)) !important;
-  border: none !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   padding: 3px !important;
   border-radius: 12px !important;
   gap: 3px !important;
@@ -3831,16 +3839,16 @@ body.transparency-enabled .dotify-pill-tab.active {
 }
 
 .dotify-segmented-btn {
-  height: 34px !important;
-  padding: 0 16px !important;
+  height: 32px !important;
+  padding: 0 14px !important;
   border-radius: 9px !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.75) !important;
+  color: #8E8E93 !important;
   font-size: 13px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -3851,16 +3859,17 @@ body.transparency-enabled .dotify-pill-tab.active {
 
 .dotify-segmented-btn:hover {
   color: #ffffff !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 18%, rgba(255, 255, 255, 0.08)) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .dotify-segmented-btn.active,
 body.transparency-enabled .dotify-segmented-btn.active {
-  background: color-mix(in srgb, var(--accent, #1db954) 45%, rgba(255, 255, 255, 0.15)) !important;
+  background: #ffffff !important;
   border: none !important;
   outline: none !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
 }
 
 .dotify-platform-group {
@@ -3876,14 +3885,12 @@ body.transparency-enabled .dotify-segmented-btn.active {
 .dotify-server-sync-card {
   display: flex !important;
   align-items: center !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 8%, rgba(255, 255, 255, 0.04)) !important;
-  border: none !important;
-  border-radius: 18px !important;
-  padding: 14px 20px !important;
-  margin-bottom: 28px !important;
+  background: #202024 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 14px !important;
+  padding: 14px 18px !important;
+  margin-bottom: 20px !important;
   position: relative !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
 }
 
 .dotify-sync-btn {
@@ -3904,7 +3911,7 @@ body.transparency-enabled .dotify-segmented-btn.active {
 }
 
 .dotify-sync-btn:hover {
-  background: color-mix(in srgb, var(--accent, #1db954) 16%, rgba(255, 255, 255, 0.08)) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
 }
 
 .dotify-sync-btn span.material-icons {
@@ -3937,25 +3944,44 @@ body.transparency-enabled .dotify-segmented-btn.active {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding: 14px 16px !important;
-  margin-bottom: 8px !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 6%, rgba(255, 255, 255, 0.03)) !important;
+  padding: 12px 0 !important;
+  margin-bottom: 0 !important;
+  background: transparent !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
-  border-radius: 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0 !important;
   transition: background 0.2s ease !important;
 }
 
+.dotify-toggle-row:last-child {
+  border-bottom: none !important;
+}
+
 .dotify-toggle-row:hover {
-  background: color-mix(in srgb, var(--accent, #1db954) 12%, rgba(255, 255, 255, 0.06)) !important;
+  background: transparent !important;
+}
+
+.setting-toggle-label {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+}
+
+.setting-toggle-desc {
+  font-size: 13px !important;
+  color: #8E8E93 !important;
+  margin-top: 2px !important;
+  line-height: 1.35 !important;
 }
 
 .dotify-switch {
   position: relative !important;
   display: inline-block !important;
-  width: 44px !important;
-  height: 24px !important;
+  width: 48px !important;
+  height: 28px !important;
+  flex-shrink: 0 !important;
 }
 
 .dotify-switch input {
@@ -3968,7 +3994,7 @@ body.transparency-enabled .dotify-segmented-btn.active {
   position: absolute !important;
   cursor: pointer !important;
   inset: 0 !important;
-  background-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: rgba(255, 255, 255, 0.16) !important;
   transition: 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
   border-radius: 999px !important;
   border: none !important;
@@ -3979,18 +4005,18 @@ body.transparency-enabled .dotify-segmented-btn.active {
 .dotify-switch-slider:before {
   position: absolute !important;
   content: "" !important;
-  height: 18px !important;
-  width: 18px !important;
+  height: 22px !important;
+  width: 22px !important;
   left: 3px !important;
   bottom: 3px !important;
   background-color: #ffffff !important;
   transition: 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
   border-radius: 50% !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dotify-switch input:checked + .dotify-switch-slider {
-  background-color: var(--accent, #1db954) !important;
+  background-color: #34C759 !important;
   box-shadow: none !important;
 }
 
@@ -4007,8 +4033,8 @@ body.transparency-enabled .dotify-segmented-btn.active {
 .dotify-mini-card {
   flex: 1 !important;
   height: 72px !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 8%, rgba(255, 255, 255, 0.05)) !important;
-  border: none !important;
+  background: #202024 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   outline: none !important;
   box-shadow: none !important;
   border-radius: 14px !important;
@@ -4017,13 +4043,11 @@ body.transparency-enabled .dotify-segmented-btn.active {
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
-  color: rgba(255, 255, 255, 0.75) !important;
+  color: #8E8E93 !important;
   font-size: 13px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 .dotify-mini-card-icon {
@@ -4031,25 +4055,26 @@ body.transparency-enabled .dotify-segmented-btn.active {
 }
 
 .dotify-mini-card:hover {
-  background: color-mix(in srgb, var(--accent, #1db954) 16%, rgba(255, 255, 255, 0.09)) !important;
+  background: #28282c !important;
   color: #ffffff !important;
   transform: translateY(-1px) !important;
 }
 
 .dotify-mini-card.active,
 body.transparency-enabled .dotify-mini-card.active {
-  background: color-mix(in srgb, var(--accent, #1db954) 35%, rgba(255, 255, 255, 0.15)) !important;
+  background: #ffffff !important;
   border: none !important;
   outline: none !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* Hotkey Items */
 .dotify-hotkeys-list {
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
+  gap: 8px !important;
 }
 
 .dotify-hotkey-item {
@@ -4057,13 +4082,11 @@ body.transparency-enabled .dotify-mini-card.active {
   align-items: center !important;
   justify-content: space-between !important;
   padding: 12px 16px !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 6%, rgba(255, 255, 255, 0.04)) !important;
-  border: none !important;
+  background: #202024 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   outline: none !important;
   box-shadow: none !important;
   border-radius: 14px !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 .dotify-hk-info {
@@ -4074,29 +4097,29 @@ body.transparency-enabled .dotify-mini-card.active {
 
 .dotify-hk-icon {
   font-size: 20px !important;
-  color: rgba(255, 255, 255, 0.6) !important;
+  color: #8E8E93 !important;
 }
 
 .dotify-hk-title {
-  font-size: 13px !important;
-  font-weight: 700 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
   color: #ffffff !important;
 }
 
 .dotify-hk-desc {
-  font-size: 11px !important;
-  color: rgba(255, 255, 255, 0.45) !important;
+  font-size: 12px !important;
+  color: #8E8E93 !important;
   margin-top: 1px !important;
 }
 
 .dotify-hk-assign-btn {
-  background: color-mix(in srgb, var(--accent, #1db954) 10%, rgba(255, 255, 255, 0.06)) !important;
-  border: none !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   outline: none !important;
   box-shadow: none !important;
-  color: rgba(255, 255, 255, 0.8) !important;
+  color: #ffffff !important;
   font-size: 12px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   cursor: pointer !important;
   padding: 6px 14px !important;
   border-radius: 8px !important;
@@ -4105,30 +4128,30 @@ body.transparency-enabled .dotify-mini-card.active {
 
 .dotify-hk-assign-btn:hover {
   color: #ffffff !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 25%, rgba(255, 255, 255, 0.12)) !important;
+  background: rgba(255, 255, 255, 0.16) !important;
 }
 
 /* Mode Icon Buttons (Moon, Sun, Computer) */
 .dotify-mode-icon-group {
   display: inline-flex !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 10%, rgba(0, 0, 0, 0.35)) !important;
-  border: none !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   outline: none !important;
   box-shadow: none !important;
-  padding: 4px !important;
+  padding: 3px !important;
   border-radius: 12px !important;
-  gap: 4px !important;
+  gap: 3px !important;
 }
 
 .dotify-mode-icon-btn {
   width: 44px !important;
-  height: 36px !important;
+  height: 34px !important;
   border-radius: 9px !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.6) !important;
+  color: #8E8E93 !important;
   cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
@@ -4138,16 +4161,16 @@ body.transparency-enabled .dotify-mini-card.active {
 
 .dotify-mode-icon-btn:hover {
   color: #ffffff !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 18%, rgba(255, 255, 255, 0.08)) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .dotify-mode-icon-btn.active,
 body.transparency-enabled .dotify-mode-icon-btn.active {
-  background: color-mix(in srgb, var(--accent, #1db954) 40%, rgba(255, 255, 255, 0.16)) !important;
+  background: #ffffff !important;
   border: none !important;
   outline: none !important;
-  box-shadow: none !important;
-  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  color: #000000 !important;
 }
 
 /* Theme Cards Grid with Dual Overlapping Circles */
@@ -4159,8 +4182,8 @@ body.transparency-enabled .dotify-mode-icon-btn.active {
 
 .dotify-theme-card {
   height: 72px !important;
-  background: color-mix(in srgb, var(--accent, #1db954) 8%, rgba(255, 255, 255, 0.05)) !important;
-  border: none !important;
+  background: #202024 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   outline: none !important;
   box-shadow: none !important;
   border-radius: 12px !important;
@@ -4169,27 +4192,25 @@ body.transparency-enabled .dotify-mode-icon-btn.active {
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
-  color: rgba(255, 255, 255, 0.75) !important;
+  color: #8E8E93 !important;
   font-size: 11px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 .dotify-theme-card:hover {
-  background: color-mix(in srgb, var(--accent, #1db954) 18%, rgba(255, 255, 255, 0.1)) !important;
+  background: #28282c !important;
+  color: #ffffff !important;
   transform: translateY(-2px) !important;
 }
 
 .dotify-theme-card.active,
 body.transparency-enabled .dotify-theme-card.active {
-  background: color-mix(in srgb, var(--accent, #1db954) 30%, rgba(255, 255, 255, 0.15)) !important;
-  border: none !important;
-  outline: none !important;
+  background: #2c2c32 !important;
+  border-color: #ffffff !important;
   color: #ffffff !important;
-  box-shadow: none !important;
+  box-shadow: 0 0 0 1.5px #ffffff !important;
 }
 
 .dotify-dual-circles {

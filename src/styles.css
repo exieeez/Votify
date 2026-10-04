@@ -439,17 +439,7 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   -webkit-app-region: no-drag;
 }
 .titlebar-logo {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: var(--text-primary);
-  padding: 0 8px;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: color 0.15s ease;
-}
-.titlebar-logo:hover {
-  color: var(--accent, #fff);
+  display: none !important;
 }
 .titlebar-center {
   flex: 1;
@@ -10510,6 +10500,27 @@ body[data-theme-mode="light"] .btn-danger:hover { background: rgba(220,38,38,0.1
   padding: 0 16px 0 8px !important;
   overflow: visible !important;
   pointer-events: auto !important;
+  transition: translate 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, box-shadow 0.3s ease !important;
+}
+
+.floating-island.player-island-hidden,
+#floating-island.player-island-hidden {
+  translate: -50% calc(100% + 48px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  transition: translate 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, visibility 0.45s !important;
+}
+
+.floating-island.player-island-visible,
+.floating-island:not(.player-island-hidden),
+#floating-island.player-island-visible,
+#floating-island:not(.player-island-hidden) {
+  translate: -50% 0 !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  transition: translate 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease !important;
 }
 
 body[data-mini-border="capsule"] .floating-island,
