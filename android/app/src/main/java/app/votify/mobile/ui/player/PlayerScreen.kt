@@ -52,21 +52,31 @@ import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FormatListBulleted
+import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Lyrics
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,6 +98,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.media3.common.Player
 import app.votify.mobile.R
@@ -155,8 +166,23 @@ fun PlayerScreen(
     onOpenArtist: (String) -> Unit,
     onShare: () -> Unit,
     onOpenMenu: () -> Unit,
+    onSetSpeed: (Float) -> Unit = {},
+    onSaveSpeedPreset: (Float) -> Unit = {},
 ) {
     val track = state.current
+    var showSpeedSheet by remember { mutableStateOf(false) }
+
+    if (showSpeedSheet) {
+        SpeedPresetBottomSheet(
+            currentSpeed = state.speed,
+            onSpeedChange = onSetSpeed,
+            onSavePreset = { speed ->
+                onSaveSpeedPreset(speed)
+                showSpeedSheet = false
+            },
+            onDismiss = { showSpeedSheet = false },
+        )
+    }
 
     // PC-style tinted background: dominant color of the current cover, fading to black.
     val palette = rememberArtworkPalette(
@@ -399,7 +425,19 @@ fun PlayerScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onToggleLyrics) {
-                        Icon(Icons.Outlined.Lyrics, stringResource(R.string.player_lyrics), tint = if (lyricsVisible) VotifyColors.TextPrimary else VotifyColors.TextSecondary)
+                        Icon(
+                            Icons.Outlined.Description,
+                            stringResource(R.string.player_lyrics),
+                            tint = if (lyricsVisible) VotifyColors.TextPrimary else VotifyColors.TextSecondary,
+                        )
+                    }
+                    IconButton(onClick = { showSpeedSheet = true }) {
+                        val isCustomSpeed = Math.abs(state.speed - 1.0f) > 0.02f
+                        Icon(
+                            Icons.Outlined.Speed,
+                            contentDescription = "Скорость воспроизведения",
+                            tint = if (isCustomSpeed) (palette?.accent ?: VotifyColors.Primary) else VotifyColors.TextSecondary,
+                        )
                     }
                     Box {
                         IconButton(onClick = onOpenQueue) { Icon(Icons.Outlined.FormatListBulleted, stringResource(R.string.player_queue), tint = VotifyColors.TextSecondary) }
@@ -940,4 +978,203 @@ private fun rememberArtworkPalette(coverUrl: String?, enabled: Boolean, isDark: 
     }
 
     return palette
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SpeedPresetBottomSheet(
+    currentSpeed: Float,
+    onSpeedChange: (Float) -> Unit,
+    onSavePreset: (Float) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var selectedSpeed by remember(currentSpeed) { mutableStateOf(currentSpeed) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color(0xFF141416),
+        scrimColor = Color.Black.copy(alpha = 0.65f),
+        dragHandle = {
+            Box(
+                Modifier
+                    .padding(top = 10.dp, bottom = 12.dp)
+                    .size(width = 38.dp, height = 4.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.22f)),
+            )
+        },
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // Top 3 presets matching reference: Slowed, Default, Speedup
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                val presets = listOf(
+                    Triple("Slowed", 0.85f, Icons.Outlined.GraphicEq),
+                    Triple("Default", 1.0f, Icons.Outlined.PlayCircle),
+                    Triple("Speedup", 1.25f, Icons.Outlined.Speed),
+                )
+
+                presets.forEach { (title, speed, icon) ->
+                    val isSelected = Math.abs(selectedSpeed - speed) < 0.03f
+                    Surface(
+                        onClick = {
+                            selectedSpeed = speed
+                            onSpeedChange(speed)
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) Color.White else Color(0xFF1C1C1E),
+                        contentColor = if (isSelected) Color(0xFF111113) else Color.White,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(96.dp),
+                    ) {
+                        Column(
+                            Modifier.fillMaxSize().padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(icon, contentDescription = title, modifier = Modifier.size(28.dp))
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // Custom speed header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.65f),
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Custom speed",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.65f),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    String.format(java.util.Locale.US, "%.2f×", selectedSpeed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // Ruler tick marks (matching reference image)
+            BoxWithConstraints(
+                Modifier
+                    .fillMaxWidth()
+                    .height(24.dp)
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                val tickCount = 31 // from 0.5 to 2.0 with step 0.05
+                val activeFraction = ((selectedSpeed - 0.5f) / 1.5f).coerceIn(0f, 1f)
+                val activeTickIndex = (activeFraction * (tickCount - 1)).toInt()
+
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    for (i in 0 until tickCount) {
+                        val isMajor = i % 5 == 0
+                        val isCurrent = i == activeTickIndex
+                        val isPassed = i <= activeTickIndex
+                        val tickHeight = if (isMajor) 18.dp else 10.dp
+                        val tickWidth = if (isMajor || isCurrent) 2.dp else 1.2.dp
+                        val tickColor = when {
+                            isCurrent -> Color.White
+                            isPassed -> Color.White.copy(alpha = 0.7f)
+                            else -> Color.White.copy(alpha = 0.22f)
+                        }
+                        Box(
+                            Modifier
+                                .width(tickWidth)
+                                .height(tickHeight)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(tickColor),
+                        )
+                    }
+                }
+            }
+
+            // Interactive slider right over/below ruler
+            Slider(
+                value = selectedSpeed,
+                onValueChange = { s ->
+                    val snapped = (Math.round(s * 20f) / 20f).coerceIn(0.5f, 2.0f)
+                    selectedSpeed = snapped
+                    onSpeedChange(snapped)
+                },
+                valueRange = 0.5f..2.0f,
+                steps = 29,
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.22f),
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+            )
+
+            Spacer(Modifier.height(28.dp))
+
+            // Wide pill button: [ Bookmark ] Запомнить
+            Button(
+                onClick = { onSavePreset(selectedSpeed) },
+                shape = RoundedCornerShape(26.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF111113),
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.BookmarkBorder,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Запомнить",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
 }

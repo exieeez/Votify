@@ -30,6 +30,7 @@ data class PlayerUiState(
     val durationMs: Long = 0,
     val shuffle: Boolean = false,
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
+    val speed: Float = 1.0f,
     val error: String? = null,
 ) {
     val progress: Float get() = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
@@ -306,7 +307,14 @@ class PlayerController(
                 durationMs = p.duration.coerceAtLeast(0),
                 shuffle = p.shuffleModeEnabled,
                 repeatMode = p.repeatMode,
+                speed = p.playbackParameters.speed,
             )
         }
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        val s = (Math.round(speed * 100f) / 100f).coerceIn(0.25f, 2.5f)
+        controller?.takeIf { it.isConnected }?.setPlaybackSpeed(s)
+        _state.update { it.copy(speed = s) }
     }
 }

@@ -36,6 +36,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -125,6 +126,7 @@ import app.votify.mobile.ui.settings.StorageSettingsScreen
 import app.votify.mobile.ui.settings.SwipeSettingsScreen
 import app.votify.mobile.ui.settings.SettingsViewModel
 import app.votify.mobile.data.parseCustomPrefs
+import app.votify.mobile.data.toJson
 import app.votify.mobile.ui.theme.VotifyColors
 import app.votify.mobile.ui.theme.parseWorkshopSpec
 import app.votify.mobile.ui.theme.VotifyTheme
@@ -336,6 +338,14 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     // "Show lyrics over artwork" preference: open the player straight into lyrics mode.
     LaunchedEffect(playerExpanded, settings.showLyricsOverArtwork) {
         if (playerExpanded && settings.showLyricsOverArtwork && !playerVm.lyricsVisible.value) playerVm.toggleLyrics()
+    }
+
+    // Apply saved playback speed preset when track changes or when preference changes.
+    val rootCp = parseCustomPrefs(settings.customPrefs)
+    LaunchedEffect(rootCp.playbackSpeed, playerState.current?.id) {
+        if (rootCp.playbackSpeed in 0.25f..2.5f && Math.abs(playerState.speed - rootCp.playbackSpeed) > 0.02f) {
+            player.setPlaybackSpeed(rootCp.playbackSpeed)
+        }
     }
 
     val statusBar = WindowInsets.statusBars.asPaddingValues()
@@ -766,6 +776,15 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 onOpenArtist = openArtist,
                 onShare = { playerState.current?.let(shareTrack) },
                 onOpenMenu = { playerState.current?.let(libraryVm::openMenu) },
+                onSetSpeed = player::setPlaybackSpeed,
+                onSaveSpeedPreset = { speed ->
+                    snackbarScope.launch {
+                        val cur = parseCustomPrefs(app.settings.settings.first().customPrefs)
+                        app.settings.setCustomPrefs(cur.copy(playbackSpeed = speed).toJson())
+                        player.setPlaybackSpeed(speed)
+                        snackbar.showSnackbar("Скорость сохранена: " + String.format(java.util.Locale.US, "%.2f×", speed))
+                    }
+                },
             )
         }
     }

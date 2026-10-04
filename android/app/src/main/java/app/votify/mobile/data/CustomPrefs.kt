@@ -30,6 +30,7 @@ data class CustomPrefs(
     val autoplay: Boolean = false,
     val similarToQueue: Boolean = true,
     val restoreQueue: Boolean = true,
+    val playbackSpeed: Float = 1.0f,
 
     // ---- Интерфейс ----
     val themeMode: String = "dark", // dark | light | system
