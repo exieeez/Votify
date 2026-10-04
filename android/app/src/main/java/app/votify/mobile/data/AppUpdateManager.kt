@@ -185,7 +185,9 @@ class AppUpdateManager(
             )
 
             var success = false
+            var alreadyLatest = false
             for (url in downloadUrls) {
+                if (alreadyLatest) break
                 _state.value = UpdateState.Downloading(info, 0f, 0L, -1L)
                 val ok = withContext(Dispatchers.IO) {
                     runCatching {
@@ -244,8 +246,7 @@ class AppUpdateManager(
                                     android.util.Log.w("AppUpdateManager", "Rejected stale/corrupted APK from $url: code=$apkVersionCode vs current=$curCode")
                                     tempFile.delete()
                                     if (pkgInfo != null && pkgInfo.packageName == context.packageName && apkVersionCode <= curCode && !isNewerSha) {
-                                        _state.value = UpdateState.Idle
-                                        return@launch
+                                        alreadyLatest = true
                                     }
                                     false
                                 }
@@ -255,6 +256,11 @@ class AppUpdateManager(
                             }
                         }
                     }.getOrDefault(false)
+                }
+
+                if (alreadyLatest) {
+                    _state.value = UpdateState.Idle
+                    return@launch
                 }
 
                 if (ok) {

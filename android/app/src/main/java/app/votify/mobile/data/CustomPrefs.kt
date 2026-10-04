@@ -31,6 +31,10 @@ data class CustomPrefs(
     val similarToQueue: Boolean = true,
     val restoreQueue: Boolean = true,
     val playbackSpeed: Float = 1.0f,
+    val playbackPitch: Float = 1.0f,
+    val pitchShiftLinked: Boolean = true,
+    val reverbPreset: String = "none", // none | hall | room | plate
+    val bassBoost: Boolean = false,
 
     // ---- Интерфейс ----
     val themeMode: String = "dark", // dark | light | system

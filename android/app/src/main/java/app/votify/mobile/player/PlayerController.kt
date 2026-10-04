@@ -17,6 +17,8 @@ import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -31,6 +33,10 @@ data class PlayerUiState(
     val shuffle: Boolean = false,
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
     val speed: Float = 1.0f,
+    val pitch: Float = 1.0f,
+    val pitchLinked: Boolean = true,
+    val reverbPreset: String = "none",
+    val bassBoost: Boolean = false,
     val error: String? = null,
 ) {
     val progress: Float get() = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
@@ -57,6 +63,21 @@ class PlayerController(
 
     private val _state = MutableStateFlow(PlayerUiState())
     val state: StateFlow<PlayerUiState> = _state
+
+    init {
+        scope.launch {
+            @OptIn(UnstableApi::class)
+            AudioEffectsManager.reverbPreset.collect { r ->
+                _state.update { it.copy(reverbPreset = r) }
+            }
+        }
+        scope.launch {
+            @OptIn(UnstableApi::class)
+            AudioEffectsManager.bassBoostEnabled.collect { b ->
+                _state.update { it.copy(bassBoost = b) }
+            }
+        }
+    }
 
     private var controller: MediaController? = null
     private var queueTracks: List<Track> = emptyList()
@@ -308,13 +329,42 @@ class PlayerController(
                 shuffle = p.shuffleModeEnabled,
                 repeatMode = p.repeatMode,
                 speed = p.playbackParameters.speed,
+                pitch = p.playbackParameters.pitch,
             )
         }
     }
 
-    fun setPlaybackSpeed(speed: Float) {
+    fun setPlaybackRemix(speed: Float, pitch: Float? = null, pitchLinked: Boolean = _state.value.pitchLinked) {
         val s = (Math.round(speed * 100f) / 100f).coerceIn(0.25f, 2.5f)
-        controller?.takeIf { it.isConnected }?.setPlaybackSpeed(s)
-        _state.update { it.copy(speed = s) }
+        val p = if (pitchLinked) s else ((Math.round((pitch ?: s) * 100f) / 100f).coerceIn(0.25f, 2.5f))
+        controller?.takeIf { it.isConnected }?.setPlaybackParameters(PlaybackParameters(s, p))
+        _state.update { it.copy(speed = s, pitch = p, pitchLinked = pitchLinked) }
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        setPlaybackRemix(speed = speed)
+    }
+
+    fun setPlaybackPitch(pitch: Float) {
+        setPlaybackRemix(speed = _state.value.speed, pitch = pitch, pitchLinked = false)
+    }
+
+    fun setPitchLinked(linked: Boolean) {
+        val s = _state.value.speed
+        val p = if (linked) s else _state.value.pitch
+        controller?.takeIf { it.isConnected }?.setPlaybackParameters(PlaybackParameters(s, p))
+        _state.update { it.copy(pitchLinked = linked, pitch = p) }
+    }
+
+    @OptIn(UnstableApi::class)
+    fun setReverb(preset: String) {
+        AudioEffectsManager.setReverb(preset)
+        _state.update { it.copy(reverbPreset = preset) }
+    }
+
+    @OptIn(UnstableApi::class)
+    fun setBassBoost(enabled: Boolean) {
+        AudioEffectsManager.setBassBoost(enabled)
+        _state.update { it.copy(bassBoost = enabled) }
     }
 }

@@ -340,12 +340,21 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
         if (playerExpanded && settings.showLyricsOverArtwork && !playerVm.lyricsVisible.value) playerVm.toggleLyrics()
     }
 
-    // Apply saved playback speed preset when track changes or when preference changes.
+    // Apply saved playback remix preset when track changes or when preference changes.
     val rootCp = parseCustomPrefs(settings.customPrefs)
-    LaunchedEffect(rootCp.playbackSpeed, playerState.current?.id) {
-        if (rootCp.playbackSpeed in 0.25f..2.5f && Math.abs(playerState.speed - rootCp.playbackSpeed) > 0.02f) {
-            player.setPlaybackSpeed(rootCp.playbackSpeed)
-        }
+    LaunchedEffect(
+        rootCp.playbackSpeed,
+        rootCp.playbackPitch,
+        rootCp.pitchShiftLinked,
+        rootCp.reverbPreset,
+        rootCp.bassBoost,
+        playerState.current?.id,
+    ) {
+        val s = if (rootCp.playbackSpeed in 0.25f..2.5f) rootCp.playbackSpeed else 1.0f
+        val p = if (rootCp.playbackPitch in 0.25f..2.5f) rootCp.playbackPitch else s
+        player.setPlaybackRemix(speed = s, pitch = p, pitchLinked = rootCp.pitchShiftLinked)
+        player.setReverb(rootCp.reverbPreset)
+        player.setBassBoost(rootCp.bassBoost)
     }
 
     val statusBar = WindowInsets.statusBars.asPaddingValues()
@@ -776,13 +785,32 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 onOpenArtist = openArtist,
                 onShare = { playerState.current?.let(shareTrack) },
                 onOpenMenu = { playerState.current?.let(libraryVm::openMenu) },
-                onSetSpeed = player::setPlaybackSpeed,
-                onSaveSpeedPreset = { speed ->
+                onSetRemix = { speed, pitch, linked, reverb, bass ->
+                    player.setPlaybackRemix(speed, pitch, linked)
+                    player.setReverb(reverb)
+                    player.setBassBoost(bass)
+                },
+                onSaveSpeedPreset = { speed, pitch, linked, reverb, bass ->
                     snackbarScope.launch {
                         val cur = parseCustomPrefs(app.settings.settings.first().customPrefs)
-                        app.settings.setCustomPrefs(cur.copy(playbackSpeed = speed).toJson())
-                        player.setPlaybackSpeed(speed)
-                        snackbar.showSnackbar("Скорость сохранена: " + String.format(java.util.Locale.US, "%.2f×", speed))
+                        val updated = cur.copy(
+                            playbackSpeed = speed,
+                            playbackPitch = pitch,
+                            pitchShiftLinked = linked,
+                            reverbPreset = reverb,
+                            bassBoost = bass,
+                        )
+                        app.settings.setCustomPrefs(updated.toJson())
+                        player.setPlaybackRemix(speed, pitch, linked)
+                        player.setReverb(reverb)
+                        player.setBassBoost(bass)
+                        val name = when {
+                            reverb != "none" && speed < 1f -> "Slowed + Reverb"
+                            linked && speed > 1.1f -> "Nightcore"
+                            reverb != "none" -> "Реверберация ($reverb)"
+                            else -> String.format(java.util.Locale.US, "%.2f×", speed)
+                        }
+                        snackbar.showSnackbar("Пресет ремикса сохранён: $name")
                     }
                 },
             )

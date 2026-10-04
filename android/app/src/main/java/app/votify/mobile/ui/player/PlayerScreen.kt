@@ -43,6 +43,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Pause
@@ -64,6 +66,7 @@ import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -166,8 +169,8 @@ fun PlayerScreen(
     onOpenArtist: (String) -> Unit,
     onShare: () -> Unit,
     onOpenMenu: () -> Unit,
-    onSetSpeed: (Float) -> Unit = {},
-    onSaveSpeedPreset: (Float) -> Unit = {},
+    onSetRemix: (speed: Float, pitch: Float, pitchLinked: Boolean, reverb: String, bass: Boolean) -> Unit = { _, _, _, _, _ -> },
+    onSaveSpeedPreset: (speed: Float, pitch: Float, pitchLinked: Boolean, reverb: String, bass: Boolean) -> Unit = { _, _, _, _, _ -> },
 ) {
     val track = state.current
     var showSpeedSheet by remember { mutableStateOf(false) }
@@ -175,9 +178,13 @@ fun PlayerScreen(
     if (showSpeedSheet) {
         SpeedPresetBottomSheet(
             currentSpeed = state.speed,
-            onSpeedChange = onSetSpeed,
-            onSavePreset = { speed ->
-                onSaveSpeedPreset(speed)
+            currentPitch = state.pitch,
+            currentPitchLinked = state.pitchLinked,
+            currentReverb = state.reverbPreset,
+            currentBass = state.bassBoost,
+            onRemixChange = onSetRemix,
+            onSavePreset = { speed, pitch, linked, reverb, bass ->
+                onSaveSpeedPreset(speed, pitch, linked, reverb, bass)
                 showSpeedSheet = false
             },
             onDismiss = { showSpeedSheet = false },
@@ -432,11 +439,14 @@ fun PlayerScreen(
                         )
                     }
                     IconButton(onClick = { showSpeedSheet = true }) {
-                        val isCustomSpeed = Math.abs(state.speed - 1.0f) > 0.02f
+                        val isRemixActive = Math.abs(state.speed - 1.0f) > 0.02f ||
+                                Math.abs(state.pitch - 1.0f) > 0.02f ||
+                                state.reverbPreset != "none" ||
+                                state.bassBoost
                         Icon(
                             Icons.Outlined.Speed,
-                            contentDescription = "Скорость воспроизведения",
-                            tint = if (isCustomSpeed) (palette?.accent ?: VotifyColors.Primary) else VotifyColors.TextSecondary,
+                            contentDescription = "Ремикс и скорость",
+                            tint = if (isRemixActive) (palette?.accent ?: VotifyColors.Primary) else VotifyColors.TextSecondary,
                         )
                     }
                     Box {
@@ -984,12 +994,37 @@ private fun rememberArtworkPalette(coverUrl: String?, enabled: Boolean, isDark: 
 @Composable
 private fun SpeedPresetBottomSheet(
     currentSpeed: Float,
-    onSpeedChange: (Float) -> Unit,
-    onSavePreset: (Float) -> Unit,
+    currentPitch: Float,
+    currentPitchLinked: Boolean,
+    currentReverb: String,
+    currentBass: Boolean,
+    onRemixChange: (speed: Float, pitch: Float, pitchLinked: Boolean, reverb: String, bass: Boolean) -> Unit,
+    onSavePreset: (speed: Float, pitch: Float, pitchLinked: Boolean, reverb: String, bass: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var selectedSpeed by remember(currentSpeed) { mutableStateOf(currentSpeed) }
+    var selectedPitch by remember(currentPitch) { mutableStateOf(currentPitch) }
+    var pitchLinked by remember(currentPitchLinked) { mutableStateOf(currentPitchLinked) }
+    var selectedReverb by remember(currentReverb) { mutableStateOf(currentReverb) }
+    var selectedBass by remember(currentBass) { mutableStateOf(currentBass) }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    fun applyChange(
+        speed: Float = selectedSpeed,
+        pitch: Float = selectedPitch,
+        linked: Boolean = pitchLinked,
+        reverb: String = selectedReverb,
+        bass: Boolean = selectedBass,
+    ) {
+        val actualPitch = if (linked) speed else pitch
+        selectedSpeed = speed
+        selectedPitch = actualPitch
+        pitchLinked = linked
+        selectedReverb = reverb
+        selectedBass = bass
+        onRemixChange(speed, actualPitch, linked, reverb, bass)
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1009,68 +1044,177 @@ private fun SpeedPresetBottomSheet(
         Column(
             Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Top 3 presets matching reference: Slowed, Default, Speedup
+            // Top 3 quick remix cards: Slowed (+ Reverb + Bass), Default, Speedup (Nightcore)
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                val presets = listOf(
-                    Triple("Slowed", 0.85f, Icons.Outlined.GraphicEq),
-                    Triple("Default", 1.0f, Icons.Outlined.PlayCircle),
-                    Triple("Speedup", 1.25f, Icons.Outlined.Speed),
-                )
+                val isSlowed = Math.abs(selectedSpeed - 0.85f) < 0.03f && selectedReverb == "hall"
+                val isDefault = Math.abs(selectedSpeed - 1.0f) < 0.03f && Math.abs(selectedPitch - 1.0f) < 0.03f && selectedReverb == "none" && !selectedBass
+                val isSpeedup = Math.abs(selectedSpeed - 1.25f) < 0.03f && Math.abs(selectedPitch - 1.25f) < 0.03f && selectedReverb == "none"
 
-                presets.forEach { (title, speed, icon) ->
-                    val isSelected = Math.abs(selectedSpeed - speed) < 0.03f
-                    Surface(
-                        onClick = {
-                            selectedSpeed = speed
-                            onSpeedChange(speed)
-                        },
-                        shape = RoundedCornerShape(20.dp),
-                        color = if (isSelected) Color.White else Color(0xFF1C1C1E),
-                        contentColor = if (isSelected) Color(0xFF111113) else Color.White,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(96.dp),
+                // Slowed card
+                Surface(
+                    onClick = {
+                        applyChange(speed = 0.85f, pitch = 0.85f, linked = true, reverb = "hall", bass = true)
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSlowed) Color.White else Color(0xFF1C1C1E),
+                    contentColor = if (isSlowed) Color(0xFF111113) else Color.White,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(96.dp),
+                ) {
+                    Column(
+                        Modifier.fillMaxSize().padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
                     ) {
-                        Column(
-                            Modifier.fillMaxSize().padding(10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Icon(icon, contentDescription = title, modifier = Modifier.size(28.dp))
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                title,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            )
-                        }
+                        Icon(Icons.Outlined.GraphicEq, contentDescription = "Slowed", modifier = Modifier.size(26.dp))
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Slowed",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = if (isSlowed) FontWeight.Bold else FontWeight.Medium,
+                        )
+                        Text(
+                            "0.85× • Зал",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSlowed) Color(0xFF555558) else Color.White.copy(alpha = 0.6f),
+                        )
+                    }
+                }
+
+                // Default card
+                Surface(
+                    onClick = {
+                        applyChange(speed = 1.0f, pitch = 1.0f, linked = true, reverb = "none", bass = false)
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isDefault) Color.White else Color(0xFF1C1C1E),
+                    contentColor = if (isDefault) Color(0xFF111113) else Color.White,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(96.dp),
+                ) {
+                    Column(
+                        Modifier.fillMaxSize().padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(Icons.Outlined.PlayCircle, contentDescription = "Default", modifier = Modifier.size(26.dp))
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Default",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = if (isDefault) FontWeight.Bold else FontWeight.Medium,
+                        )
+                        Text(
+                            "1.0× • Чистый",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isDefault) Color(0xFF555558) else Color.White.copy(alpha = 0.6f),
+                        )
+                    }
+                }
+
+                // Speedup / Nightcore card
+                Surface(
+                    onClick = {
+                        applyChange(speed = 1.25f, pitch = 1.25f, linked = true, reverb = "none", bass = false)
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSpeedup) Color.White else Color(0xFF1C1C1E),
+                    contentColor = if (isSpeedup) Color(0xFF111113) else Color.White,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(96.dp),
+                ) {
+                    Column(
+                        Modifier.fillMaxSize().padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(Icons.Outlined.Speed, contentDescription = "Speedup", modifier = Modifier.size(26.dp))
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Speedup",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = if (isSpeedup) FontWeight.Bold else FontWeight.Medium,
+                        )
+                        Text(
+                            "1.25× • Nightcore",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSpeedup) Color(0xFF555558) else Color.White.copy(alpha = 0.6f),
+                        )
                     }
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
+
+            // Speed & Pitch link switch chip
+            Surface(
+                onClick = { applyChange(linked = !pitchLinked) },
+                shape = RoundedCornerShape(16.dp),
+                color = if (pitchLinked) Color(0xFF26262A) else Color(0xFF1C1C1E),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            if (pitchLinked) Icons.Outlined.Lock else Icons.Outlined.Tune,
+                            contentDescription = null,
+                            tint = if (pitchLinked) Color.White else Color.White.copy(alpha = 0.65f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                "Питч как в ремиксах",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                            Text(
+                                if (pitchLinked) "Тональность меняется вместе со скоростью" else "Ручная настройка тональности",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.55f),
+                            )
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (pitchLinked) Color.White else Color(0xFF333336),
+                    ) {
+                        Text(
+                            if (pitchLinked) "Вкл" else "Выкл",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (pitchLinked) Color(0xFF111113) else Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
 
             // Custom speed header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {
-                Icon(
-                    Icons.Outlined.Lock,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.65f),
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
                 Text(
-                    "Custom speed",
+                    "Скорость / Темп",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.65f),
                 )
@@ -1083,13 +1227,13 @@ private fun SpeedPresetBottomSheet(
                 )
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // Ruler tick marks (matching reference image)
+            // Ruler tick marks
             BoxWithConstraints(
                 Modifier
                     .fillMaxWidth()
-                    .height(24.dp)
+                    .height(22.dp)
                     .padding(horizontal = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1106,7 +1250,7 @@ private fun SpeedPresetBottomSheet(
                         val isMajor = i % 5 == 0
                         val isCurrent = i == activeTickIndex
                         val isPassed = i <= activeTickIndex
-                        val tickHeight = if (isMajor) 18.dp else 10.dp
+                        val tickHeight = if (isMajor) 16.dp else 9.dp
                         val tickWidth = if (isMajor || isCurrent) 2.dp else 1.2.dp
                         val tickColor = when {
                             isCurrent -> Color.White
@@ -1124,13 +1268,12 @@ private fun SpeedPresetBottomSheet(
                 }
             }
 
-            // Interactive slider right over/below ruler
+            // Interactive slider for speed
             Slider(
                 value = selectedSpeed,
                 onValueChange = { s ->
                     val snapped = (Math.round(s * 20f) / 20f).coerceIn(0.5f, 2.0f)
-                    selectedSpeed = snapped
-                    onSpeedChange(snapped)
+                    applyChange(speed = snapped)
                 },
                 valueRange = 0.5f..2.0f,
                 steps = 29,
@@ -1144,11 +1287,145 @@ private fun SpeedPresetBottomSheet(
                     .padding(horizontal = 4.dp),
             )
 
-            Spacer(Modifier.height(28.dp))
+            // Independent pitch slider if decoupled
+            if (!pitchLinked) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        "Тональность (Питч)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.65f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        String.format(java.util.Locale.US, "%.2f×", selectedPitch),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
+                Slider(
+                    value = selectedPitch,
+                    onValueChange = { p ->
+                        val snapped = (Math.round(p * 20f) / 20f).coerceIn(0.5f, 1.5f)
+                        applyChange(pitch = snapped)
+                    },
+                    valueRange = 0.5f..1.5f,
+                    steps = 19,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color.White,
+                        activeTrackColor = Color.White,
+                        inactiveTrackColor = Color.White.copy(alpha = 0.22f),
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Reverb presets section
+            Column(Modifier.fillMaxWidth()) {
+                Text(
+                    "Атмосфера (Reverb)",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val reverbOptions = listOf(
+                        "none" to "Выкл",
+                        "hall" to "Зал",
+                        "room" to "Клуб",
+                        "plate" to "Эхо",
+                    )
+                    reverbOptions.forEach { (code, label) ->
+                        val isSelected = selectedReverb == code
+                        Surface(
+                            onClick = { applyChange(reverb = code) },
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isSelected) Color.White else Color(0xFF1C1C1E),
+                            contentColor = if (isSelected) Color(0xFF111113) else Color.White,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // Bass boost toggle row
+            Surface(
+                onClick = { applyChange(bass = !selectedBass) },
+                shape = RoundedCornerShape(16.dp),
+                color = if (selectedBass) Color(0xFF26262A) else Color(0xFF1C1C1E),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Outlined.GraphicEq,
+                            contentDescription = null,
+                            tint = if (selectedBass) Color.White else Color.White.copy(alpha = 0.65f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                "Глубокий бас (Bass Boost)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                            Text(
+                                "Плотное клубное звучание низких частот",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.55f),
+                            )
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (selectedBass) Color.White else Color(0xFF333336),
+                    ) {
+                        Text(
+                            if (selectedBass) "Вкл" else "Выкл",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedBass) Color(0xFF111113) else Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
 
             // Wide pill button: [ Bookmark ] Запомнить
             Button(
-                onClick = { onSavePreset(selectedSpeed) },
+                onClick = { onSavePreset(selectedSpeed, selectedPitch, pitchLinked, selectedReverb, selectedBass) },
                 shape = RoundedCornerShape(26.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
@@ -1169,7 +1446,7 @@ private fun SpeedPresetBottomSheet(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "Запомнить",
+                        "Запомнить пресет",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )

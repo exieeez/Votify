@@ -60,6 +60,13 @@ class PlaybackService : MediaSessionService() {
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
 
+        player.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                AudioEffectsManager.onAudioSessionIdChanged(audioSessionId)
+            }
+        })
+        AudioEffectsManager.attachPlayer(player)
+
         val openApp = PendingIntent.getActivity(
             this,
             0,
@@ -143,6 +150,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        AudioEffectsManager.detachPlayer()
         session?.run {
             player.release()
             release()
