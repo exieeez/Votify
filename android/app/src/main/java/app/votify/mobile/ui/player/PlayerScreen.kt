@@ -645,41 +645,49 @@ fun Scrubber(
                     Modifier
                         .fillMaxWidth()
                         .height(28.dp)
-                        .padding(horizontal = 4.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures { pos ->
-                                onSeek((pos.x / maxWidth.toPx()).coerceIn(0f, 1f))
-                            }
-                        }
-                        .pointerInput(Unit) {
-                            detectHorizontalDragGestures(
-                                onDragStart = { offset -> dragging = (offset.x / maxWidth.toPx()).coerceIn(0f, 1f) },
-                                onDragEnd = {
-                                    dragging?.let(onSeek)
-                                    dragging = null
-                                },
-                                onDragCancel = { dragging = null },
-                                onHorizontalDrag = { change, _ ->
-                                    dragging = (change.position.x / maxWidth.toPx()).coerceIn(0f, 1f)
-                                }
-                            )
-                        },
+                        .padding(horizontal = 4.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
+                    val width = maxWidth
                     Box(
                         Modifier
                             .fillMaxWidth()
-                            .height(10.dp)
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(VotifyColors.SurfaceContainerHigh),
+                            .fillMaxHeight()
+                            .pointerInput(Unit) {
+                                detectTapGestures { pos ->
+                                    onSeek((pos.x / width.toPx()).coerceIn(0f, 1f))
+                                }
+                            }
+                            .pointerInput(Unit) {
+                                detectHorizontalDragGestures(
+                                    onDragStart = { offset -> dragging = (offset.x / width.toPx()).coerceIn(0f, 1f) },
+                                    onDragEnd = {
+                                        dragging?.let(onSeek)
+                                        dragging = null
+                                    },
+                                    onDragCancel = { dragging = null },
+                                    onHorizontalDrag = { change, _ ->
+                                        dragging = (change.position.x / width.toPx()).coerceIn(0f, 1f)
+                                    }
+                                )
+                            },
+                        contentAlignment = Alignment.CenterStart,
                     ) {
                         Box(
                             Modifier
-                                .fillMaxWidth(value)
-                                .fillMaxHeight()
+                                .fillMaxWidth()
+                                .height(10.dp)
                                 .clip(RoundedCornerShape(5.dp))
-                                .background(accent),
-                        )
+                                .background(VotifyColors.SurfaceContainerHigh),
+                        ) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth(value)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(accent),
+                            )
+                        }
                     }
                 }
             }
@@ -689,25 +697,7 @@ fun Scrubber(
                     Modifier
                         .fillMaxWidth()
                         .height(28.dp)
-                        .padding(horizontal = 4.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures { pos ->
-                                onSeek((pos.x / maxWidth.toPx()).coerceIn(0f, 1f))
-                            }
-                        }
-                        .pointerInput(Unit) {
-                            detectHorizontalDragGestures(
-                                onDragStart = { offset -> dragging = (offset.x / maxWidth.toPx()).coerceIn(0f, 1f) },
-                                onDragEnd = {
-                                    dragging?.let(onSeek)
-                                    dragging = null
-                                },
-                                onDragCancel = { dragging = null },
-                                onHorizontalDrag = { change, _ ->
-                                    dragging = (change.position.x / maxWidth.toPx()).coerceIn(0f, 1f)
-                                }
-                            )
-                        },
+                        .padding(horizontal = 4.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     val width = maxWidth
@@ -716,27 +706,52 @@ fun Scrubber(
                     Box(
                         Modifier
                             .fillMaxWidth()
-                            .height(3.dp)
-                            .clip(CircleShape)
-                            .background(VotifyColors.SurfaceContainerHigh),
+                            .fillMaxHeight()
+                            .pointerInput(Unit) {
+                                detectTapGestures { pos ->
+                                    onSeek((pos.x / width.toPx()).coerceIn(0f, 1f))
+                                }
+                            }
+                            .pointerInput(Unit) {
+                                detectHorizontalDragGestures(
+                                    onDragStart = { offset -> dragging = (offset.x / width.toPx()).coerceIn(0f, 1f) },
+                                    onDragEnd = {
+                                        dragging?.let(onSeek)
+                                        dragging = null
+                                    },
+                                    onDragCancel = { dragging = null },
+                                    onHorizontalDrag = { change, _ ->
+                                        dragging = (change.position.x / width.toPx()).coerceIn(0f, 1f)
+                                    }
+                                )
+                            },
+                        contentAlignment = Alignment.CenterStart,
                     ) {
                         Box(
                             Modifier
-                                .fillMaxWidth(value)
-                                .fillMaxHeight()
+                                .fillMaxWidth()
+                                .height(3.dp)
                                 .clip(CircleShape)
-                                .background(accent),
+                                .background(VotifyColors.SurfaceContainerHigh),
+                        ) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth(value)
+                                    .fillMaxHeight()
+                                    .clip(CircleShape)
+                                    .background(accent),
+                            )
+                        }
+                        val dotOffset = ((width * value) - dotRadius).coerceIn(0.dp, width - dotSize)
+                        Box(
+                            Modifier
+                                .offset(x = dotOffset)
+                                .size(dotSize)
+                                .clip(CircleShape)
+                                .background(VotifyColors.TextPrimary)
+                                .shadow(2.dp, CircleShape),
                         )
                     }
-                    val dotOffset = ((width * value) - dotRadius).coerceIn(0.dp, width - dotSize)
-                    Box(
-                        Modifier
-                            .offset(x = dotOffset)
-                            .size(dotSize)
-                            .clip(CircleShape)
-                            .background(VotifyColors.TextPrimary)
-                            .shadow(2.dp, CircleShape),
-                    )
                 }
             }
             "wave" -> {
