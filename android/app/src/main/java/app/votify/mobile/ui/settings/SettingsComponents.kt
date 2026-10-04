@@ -64,7 +64,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -145,18 +147,23 @@ fun SettingsScaffold(
     }
 }
 
-/** UPPERCASE gray section label. */
+/** UPPERCASE readable section label with crisp contrast and tight spacing. */
 @Composable
 fun SettingsSectionLabel(text: String) {
     Text(
         text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontSize = 11.5.sp,
+        style = MaterialTheme.typography.labelMedium.copy(
+            fontSize = 12.5.sp,
             letterSpacing = 0.8.sp,
+            shadow = Shadow(
+                color = Color.Black.copy(alpha = 0.65f),
+                offset = Offset(0f, 1f),
+                blurRadius = 4f,
+            ),
         ),
-        color = Color(0xFF8E8E93),
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 20.dp, bottom = 6.dp),
+        color = VotifyColors.TextSecondary,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 4.dp),
     )
 }
 
@@ -171,7 +178,7 @@ fun SettingsCard(
     val shape = RoundedCornerShape(18.dp)
     val cardBg = Color(0xFF141416)
     val base = modifier
-        .padding(horizontal = 14.dp, vertical = 3.dp)
+        .padding(horizontal = 14.dp, vertical = 2.dp)
         .fillMaxWidth()
         .clip(shape)
         .background(cardBg)
