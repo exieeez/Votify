@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -127,6 +128,7 @@ data class PlayerVisuals(
     val accentFromArt: Boolean = false,
     val swipeNavigation: Boolean = true,
     val iosSlider: Boolean = true,
+    val sliderStyle: String = "ios",
 )
 
 @Composable
@@ -331,6 +333,7 @@ fun PlayerScreen(
                     visuals.accentFromArt -> palette?.accent ?: VotifyColors.Primary
                     else -> VotifyColors.Primary
                 },
+                sliderStyle = visuals.sliderStyle,
                 ios = visuals.iosSlider,
             )
 
@@ -623,58 +626,191 @@ private fun LyricsList(lyrics: LyricsModel, positionMs: Long, onSeekToMs: (Long)
 }
 
 @Composable
-fun Scrubber(state: PlayerUiState, onSeek: (Float) -> Unit, accent: Color, ios: Boolean = true) {
+fun Scrubber(
+    state: PlayerUiState,
+    onSeek: (Float) -> Unit,
+    accent: Color,
+    sliderStyle: String = "ios",
+    ios: Boolean = true,
+) {
     var dragging by remember { mutableStateOf<Float?>(null) }
     val value = dragging ?: state.progress
+    val style = if (sliderStyle.isNotBlank()) sliderStyle.lowercase() else if (ios) "ios" else "classic"
+
     Column(Modifier.fillMaxWidth()) {
-        if (ios) {
-            // iOS-style: 10dp pill track with a white knob, times inside the row.
-            BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 10.dp)) {
-                val width = maxWidth
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(VotifyColors.SurfaceContainerHigh)
-                        .pointerInput(Unit) {
-                            detectTapGestures { pos ->
-                                onSeek((pos.x / width.toPx()).coerceIn(0f, 1f))
-                            }
-                        },
-                ) {
+        when (style) {
+            "ios" -> {
+                // iOS-style: 10dp pill track with a white knob
+                BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {
+                    val width = maxWidth
                     Box(
                         Modifier
-                            .fillMaxWidth(value)
-                            .fillMaxHeight()
+                            .fillMaxWidth()
+                            .height(10.dp)
                             .clip(RoundedCornerShape(5.dp))
-                            .background(accent),
+                            .background(VotifyColors.SurfaceContainerHigh)
+                            .pointerInput(Unit) {
+                                detectTapGestures { pos ->
+                                    onSeek((pos.x / width.toPx()).coerceIn(0f, 1f))
+                                }
+                            }
+                            .pointerInput(Unit) {
+                                detectHorizontalDragGestures(
+                                    onDragStart = { offset -> dragging = (offset.x / width.toPx()).coerceIn(0f, 1f) },
+                                    onDragEnd = {
+                                        dragging?.let(onSeek)
+                                        dragging = null
+                                    },
+                                    onDragCancel = { dragging = null },
+                                    onHorizontalDrag = { change, _ ->
+                                        dragging = (change.position.x / width.toPx()).coerceIn(0f, 1f)
+                                    }
+                                )
+                            },
+                    ) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth(value)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(5.dp))
+                                .background(accent),
+                        )
+                    }
+                    Box(
+                        Modifier
+                            .offset(x = (width - 14.dp) * value)
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(VotifyColors.TextPrimary)
+                            .shadow(2.dp, CircleShape),
                     )
                 }
-                Box(
-                    Modifier
-                        .offset(x = (width - 14.dp) * value)
-                        .size(14.dp)
-                        .clip(CircleShape)
-                        .background(VotifyColors.TextPrimary)
-                        .border(1.dp, VotifyColors.BorderProminent, CircleShape),
+            }
+            "thin" -> {
+                // Minimalist thin style: 3dp line with sleek subtle dot
+                BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 10.dp)) {
+                    val width = maxWidth
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .clip(CircleShape)
+                            .background(VotifyColors.SurfaceContainerHigh)
+                            .pointerInput(Unit) {
+                                detectTapGestures { pos ->
+                                    onSeek((pos.x / width.toPx()).coerceIn(0f, 1f))
+                                }
+                            }
+                            .pointerInput(Unit) {
+                                detectHorizontalDragGestures(
+                                    onDragStart = { offset -> dragging = (offset.x / width.toPx()).coerceIn(0f, 1f) },
+                                    onDragEnd = {
+                                        dragging?.let(onSeek)
+                                        dragging = null
+                                    },
+                                    onDragCancel = { dragging = null },
+                                    onHorizontalDrag = { change, _ ->
+                                        dragging = (change.position.x / width.toPx()).coerceIn(0f, 1f)
+                                    }
+                                )
+                            },
+                    ) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth(value)
+                                .fillMaxHeight()
+                                .clip(CircleShape)
+                                .background(accent),
+                        )
+                    }
+                    Box(
+                        Modifier
+                            .offset(x = (width - 8.dp) * value)
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(VotifyColors.TextPrimary),
+                    )
+                }
+            }
+            "wave" -> {
+                // Wave style: audio soundwave bars scrubber
+                BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp)) {
+                    val width = maxWidth
+                    val barCount = 42
+                    val activeBars = (barCount * value).toInt()
+                    val waveHeights = remember {
+                        floatArrayOf(
+                            0.25f, 0.4f, 0.65f, 0.85f, 0.55f, 0.35f, 0.6f, 0.8f,
+                            0.95f, 0.7f, 0.45f, 0.3f, 0.55f, 0.8f, 1.0f, 0.75f,
+                            0.5f, 0.65f, 0.85f, 0.7f, 0.45f, 0.35f, 0.6f, 0.9f,
+                            0.8f, 0.55f, 0.35f, 0.5f, 0.75f, 0.95f, 0.7f, 0.45f,
+                            0.3f, 0.55f, 0.75f, 0.9f, 0.65f, 0.4f, 0.55f, 0.7f, 0.45f, 0.25f
+                        )
+                    }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(26.dp)
+                            .pointerInput(Unit) {
+                                detectTapGestures { pos ->
+                                    onSeek((pos.x / width.toPx()).coerceIn(0f, 1f))
+                                }
+                            }
+                            .pointerInput(Unit) {
+                                detectHorizontalDragGestures(
+                                    onDragStart = { offset -> dragging = (offset.x / width.toPx()).coerceIn(0f, 1f) },
+                                    onDragEnd = {
+                                        dragging?.let(onSeek)
+                                        dragging = null
+                                    },
+                                    onDragCancel = { dragging = null },
+                                    onHorizontalDrag = { change, _ ->
+                                        dragging = (change.position.x / width.toPx()).coerceIn(0f, 1f)
+                                    }
+                                )
+                            },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        for (i in 0 until barCount) {
+                            val h = waveHeights.getOrElse(i) { 0.5f }
+                            val isActive = i <= activeBars
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 0.8.dp)
+                                    .fillMaxHeight(h)
+                                    .clip(RoundedCornerShape(1.5.dp))
+                                    .background(if (isActive) accent else VotifyColors.SurfaceContainerHigh),
+                            )
+                        }
+                    }
+                    Box(
+                        Modifier
+                            .offset(x = (width - 12.dp) * value)
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(VotifyColors.TextPrimary)
+                            .shadow(3.dp, CircleShape),
+                    )
+                }
+            }
+            else -> { // "classic"
+                Slider(
+                    value = value,
+                    onValueChange = { dragging = it },
+                    onValueChangeFinished = {
+                        dragging?.let(onSeek)
+                        dragging = null
+                    },
+                    colors = SliderDefaults.colors(
+                        thumbColor = accent,
+                        activeTrackColor = accent,
+                        inactiveTrackColor = VotifyColors.SurfaceContainerHigh,
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(24.dp),
                 )
             }
-        } else {
-        Slider(
-            value = value,
-            onValueChange = { dragging = it },
-            onValueChangeFinished = {
-                dragging?.let(onSeek)
-                dragging = null
-            },
-            colors = SliderDefaults.colors(
-                thumbColor = accent,
-                activeTrackColor = accent,
-                inactiveTrackColor = VotifyColors.SurfaceContainerHigh,
-            ),
-            modifier = Modifier.fillMaxWidth().height(24.dp),
-        )
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             val shown = if (dragging != null) (state.durationMs * value).toLong() else state.positionMs

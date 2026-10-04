@@ -1,16 +1,18 @@
 package app.votify.mobile.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
@@ -395,6 +398,7 @@ fun ChoiceBottomSheet(
 ) {
     val haptic = rememberVotifyHaptic()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var currentSelected by remember(selected) { mutableStateOf(selected) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -420,54 +424,20 @@ fun ChoiceBottomSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Slider preview card as shown in user's Screenshot 4
+            // Dynamic slider preview card accurately matching the selected slider style
             if (title.contains("слайдер", ignoreCase = true) || title.contains("slider", ignoreCase = true)) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFF1C1C1E),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                ) {
-                    Column(Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.22f)),
-                        ) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth(0.38f)
-                                    .height(4.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White),
-                            )
-                            Box(
-                                Modifier
-                                    .align(Alignment.CenterStart)
-                                    .padding(start = 110.dp)
-                                    .size(14.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White),
-                            )
-                        }
-                        Spacer(Modifier.height(14.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("1:24", style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = Color(0xFF8E8E93))
-                            Text("3:45", style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = Color(0xFF8E8E93))
-                        }
-                    }
-                }
+                SliderStylePreview(style = currentSelected ?: "ios")
             }
 
             options.forEach { option ->
-                val isSelected = option.key == selected || option.label == selected
+                val isSelected = option.key == currentSelected || option.label == currentSelected
                 val icon = option.icon ?: resolveChoiceIcon(option.key, option.label)
                 val subtitle = option.subtitle ?: resolveChoiceSubtitle(option.key, option.label)
 
                 Surface(
                     onClick = {
                         haptic()
+                        currentSelected = option.key
                         onPick(option.key)
                     },
                     shape = RoundedCornerShape(16.dp),
@@ -536,6 +506,185 @@ fun ChoiceBottomSheet(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SliderStylePreview(style: String) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFF1C1C1E),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+    ) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+            val normalized = when (style.lowercase()) {
+                "ios" -> "ios"
+                "thin", "тонкий" -> "thin"
+                "wave", "волновой" -> "wave"
+                "classic", "стандартный" -> "classic"
+                else -> "ios"
+            }
+
+            when (normalized) {
+                "ios" -> {
+                    // Authentic iOS pill scrubber preview: 10dp pill track with white knob
+                    BoxWithConstraints(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(24.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        val width = maxWidth
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(10.dp)
+                                .clip(RoundedCornerShape(5.dp))
+                                .background(Color.White.copy(alpha = 0.22f)),
+                        ) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth(0.38f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(Color.White),
+                            )
+                        }
+                        Box(
+                            Modifier
+                                .offset(x = (width - 14.dp) * 0.38f)
+                                .size(14.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .shadow(2.dp, CircleShape),
+                        )
+                    }
+                }
+                "thin" -> {
+                    // Minimalist thin scrubber preview: 3dp line with subtle dot
+                    BoxWithConstraints(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(24.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        val width = maxWidth
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(3.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.22f)),
+                        ) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth(0.38f)
+                                    .fillMaxHeight()
+                                    .clip(CircleShape)
+                                    .background(Color.White),
+                            )
+                        }
+                        Box(
+                            Modifier
+                                .offset(x = (width - 7.dp) * 0.38f)
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(Color.White),
+                        )
+                    }
+                }
+                "wave" -> {
+                    // Waveform equalizer bars scrubber preview
+                    BoxWithConstraints(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(26.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        val width = maxWidth
+                        val barCount = 36
+                        val activeBars = (barCount * 0.38f).toInt()
+                        val waveHeights = remember {
+                            floatArrayOf(
+                                0.3f, 0.45f, 0.7f, 0.9f, 0.6f, 0.4f, 0.65f, 0.85f,
+                                1.0f, 0.75f, 0.5f, 0.35f, 0.6f, 0.8f, 0.95f, 0.7f,
+                                0.45f, 0.6f, 0.85f, 0.75f, 0.5f, 0.4f, 0.65f, 0.9f,
+                                0.8f, 0.55f, 0.35f, 0.5f, 0.75f, 0.9f, 0.7f, 0.45f,
+                                0.35f, 0.55f, 0.4f, 0.3f
+                            )
+                        }
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(26.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            for (i in 0 until barCount) {
+                                val hFraction = waveHeights.getOrElse(i) { 0.5f }
+                                val isActive = i <= activeBars
+                                Box(
+                                    Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 1.dp)
+                                        .fillMaxHeight(hFraction)
+                                        .clip(RoundedCornerShape(1.5.dp))
+                                        .background(if (isActive) Color.White else Color.White.copy(alpha = 0.22f)),
+                                )
+                            }
+                        }
+                        Box(
+                            Modifier
+                                .offset(x = (width - 10.dp) * 0.38f)
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .shadow(3.dp, CircleShape),
+                        )
+                    }
+                }
+                else -> { // "classic" / standard
+                    // Standard Material 3 slider preview with 4dp track and 18dp thumb
+                    BoxWithConstraints(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(24.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        val width = maxWidth
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.22f)),
+                        ) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth(0.38f)
+                                    .fillMaxHeight()
+                                    .clip(CircleShape)
+                                    .background(Color.White),
+                            )
+                        }
+                        Box(
+                            Modifier
+                                .offset(x = (width - 18.dp) * 0.38f)
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .shadow(3.dp, CircleShape),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("1:24", style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = Color(0xFF8E8E93))
+                Text("3:45", style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = Color(0xFF8E8E93))
             }
         }
     }
