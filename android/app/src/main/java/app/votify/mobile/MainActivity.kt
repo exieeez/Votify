@@ -12,6 +12,9 @@ import androidx.core.content.ContextCompat
 import app.votify.mobile.data.AppIcons
 import app.votify.mobile.data.parseCustomPrefs
 import app.votify.mobile.ui.VotifyRoot
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -20,8 +23,22 @@ class MainActivity : ComponentActivity() {
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* optional */ }
 
+    var openPlayerRequested by mutableStateOf(false)
+        internal set
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra("open_player", false)) {
+            openPlayerRequested = true
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent?.getBooleanExtra("open_player", false) == true) {
+            openPlayerRequested = true
+        }
         enableEdgeToEdge()
         enableHighRefreshRate()
         requestNotificationPermissionIfNeeded()

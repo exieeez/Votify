@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="140dp"
+    android:minHeight="48dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal"
+    android:widgetCategory="home_screen"
+    android:initialLayout="@layout/widget_remix_launcher_2x1"
+    android:previewLayout="@layout/widget_remix_launcher_2x1"
+    android:description="@string/widget_remix_2x1_desc"
+    android:updatePeriodMillis="0" />

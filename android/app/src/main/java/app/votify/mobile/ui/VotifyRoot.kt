@@ -200,6 +200,14 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     var playerExpanded by remember { mutableStateOf(false) }
     BackHandler(enabled = playerExpanded) { playerExpanded = false }
 
+    val mainActivity = context as? app.votify.mobile.MainActivity
+    LaunchedEffect(mainActivity?.openPlayerRequested) {
+        if (mainActivity?.openPlayerRequested == true) {
+            playerExpanded = true
+            mainActivity.openPlayerRequested = false
+        }
+    }
+
     val snackbar = remember { SnackbarHostState() }
     val snackbarScope = androidx.compose.runtime.rememberCoroutineScope()
     LaunchedEffect(playerState.error) {

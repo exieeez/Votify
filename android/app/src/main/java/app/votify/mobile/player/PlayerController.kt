@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.util.UnstableApi
+import app.votify.mobile.widget.WidgetUpdateHelper
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -85,8 +86,9 @@ class PlayerController(
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             syncFromPlayer(player)
-            if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED)) {
+            if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_PLAYBACK_PARAMETERS_CHANGED)) {
                 reportStartedIfNeeded(player)
+                WidgetUpdateHelper.updateAll(appContext)
             }
         }
 

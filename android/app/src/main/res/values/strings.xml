@@ -2,6 +2,15 @@
 <resources>
     <string name="app_name">Votify</string>
 
+    <string name="widget_player_3x2_name">Votify Плеер (3×2)</string>
+    <string name="widget_player_3x2_desc">Большой виджет плеера с обложкой, управлением и лайком</string>
+    <string name="widget_playlist_2x2_name">Votify Очередь (2×2)</string>
+    <string name="widget_playlist_2x2_desc">Скроллируемый список очереди воспроизведения с быстрым запуском</string>
+    <string name="widget_compact_4x1_name">Votify Мини-бар (4×1)</string>
+    <string name="widget_compact_4x1_desc">Компактная строка управления музыкой</string>
+    <string name="widget_remix_2x1_name">Votify Ремикс-пульт (2×1)</string>
+    <string name="widget_remix_2x1_desc">Быстрое переключение пресетов Slowed, 1.0× и Nightcore</string>
+
     <string name="nav_home">Главная</string>
     <string name="nav_search">Поиск</string>
     <string name="nav_library">Коллекция</string>

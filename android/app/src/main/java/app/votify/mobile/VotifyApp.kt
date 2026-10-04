@@ -83,6 +83,7 @@ class VotifyApp : Application(), coil.ImageLoaderFactory {
         )
         updateManager = app.votify.mobile.data.AppUpdateManager(this, appScope)
         updateManager.checkForUpdate()
+        app.votify.mobile.widget.WidgetUpdateHelper.updateAll(this)
 
         // Initial restore check if signed in and local library is empty
         appScope.launch(Dispatchers.IO) {

@@ -132,5 +132,73 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- Home Screen Widgets -->
+        <receiver
+            android:name=".widget.WidgetActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="app.votify.mobile.widget.ACTION_PLAY_PAUSE" />
+                <action android:name="app.votify.mobile.widget.ACTION_NEXT" />
+                <action android:name="app.votify.mobile.widget.ACTION_PREV" />
+                <action android:name="app.votify.mobile.widget.ACTION_TOGGLE_FAVORITE" />
+                <action android:name="app.votify.mobile.widget.ACTION_PLAY_INDEX" />
+                <action android:name="app.votify.mobile.widget.ACTION_SHUFFLE" />
+                <action android:name="app.votify.mobile.widget.ACTION_SET_REMIX" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".widget.PlayerWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_player_3x2_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_player_3x2_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.PlaylistWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_playlist_2x2_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_playlist_2x2_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.CompactPlayerWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_compact_4x1_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_player_compact_4x1_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.RemixWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_remix_2x1_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_remix_launcher_2x1_info" />
+        </receiver>
+
+        <service
+            android:name=".widget.PlaylistRemoteViewsService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
     </application>
 </manifest>

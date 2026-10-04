@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_playlist_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Header bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="8dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_votify_logo" />
+
+        <TextView
+            android:id="@+id/widget_playlist_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:text="Очередь треков"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/widget_playlist_btn_shuffle"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/widget_button_round_dark"
+            android:padding="5dp"
+            android:src="@drawable/ic_widget_shuffle" />
+    </LinearLayout>
+
+    <!-- Scrollable ListView -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ListView
+            android:id="@+id/widget_playlist_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@null"
+            android:dividerHeight="4dp"
+            android:scrollbars="none" />
+
+        <TextView
+            android:id="@+id/widget_playlist_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="Очередь пуста\nЗапустите музыку в Votify"
+            android:textColor="#66FFFFFF"
+            android:textSize="12sp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+</LinearLayout>
