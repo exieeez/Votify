@@ -13,10 +13,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import app.votify.mobile.ui.components.liquidGlass
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -926,7 +924,6 @@ private fun VotifyNavBar(
     val alphaFraction = (cp.navBarAlpha.coerceIn(0, 100)) / 100f
     val isIsland = cp.navBarIsland
     val blurDp = cp.navBarBlur.coerceIn(0, 60)
-    val isGlass = blurDp > 0 || cp.navBarLiquidGlass || cp.liquidGlass
 
     val shape = if (isIsland) RoundedCornerShape(32.dp) else RoundedCornerShape(0.dp)
     val outerModifier = if (isIsland) {
@@ -944,15 +941,10 @@ private fun VotifyNavBar(
         modifier = outerModifier
             .clip(shape)
             .then(
-                if (isIsland || alphaFraction < 1f || isGlass) {
+                if (isIsland || alphaFraction < 1f) {
                     Modifier.border(
                         1.dp,
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = (0.30f * (1f - alphaFraction * 0.25f)).coerceIn(0.12f, 0.40f)),
-                                Color.White.copy(alpha = 0.05f),
-                            )
-                        ),
+                        VotifyColors.BorderSubtle.copy(alpha = 0.5f),
                         shape,
                     )
                 } else Modifier
@@ -984,21 +976,6 @@ private fun VotifyNavBar(
                     )
                 )
         )
-
-        if (isGlass) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = (0.13f * (blurDp / 30f).coerceIn(0.4f, 1.2f)).coerceIn(0.06f, 0.18f)),
-                                Color.White.copy(alpha = 0.02f),
-                            )
-                        )
-                    )
-            )
-        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
