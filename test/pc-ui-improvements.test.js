@@ -73,3 +73,26 @@ test('Desktop settings modal is redesigned with mobile-style Stitch cards and ty
   // Toggle switch has iOS-style clean green active slider
   assert.match(themeCss, /\.dotify-switch input:checked \+ \.dotify-switch-slider\s*\{[\s\S]*background-color:\s*#34C759/);
 });
+
+test('Favorites card on Home is redesigned with custom Votify hero styling, not Spotify', () => {
+  const html = read('src/index.html');
+  const themeCss = read('src/styles/dotify-23-theme.css');
+  const main = read('src/main.js');
+
+  // Spotify purple-to-mint gradient icon is completely removed
+  assert.doesNotMatch(html, /linear-gradient\(135deg,\s*#450af5,\s*#c4efd9\)/);
+
+  // Votify hero card structure is present with heart svg and quick play button
+  assert.match(html, /class="votify-fav-hero-card"[^>]*id="tile-liked"/);
+  assert.match(html, /class="fav-hero-heart-svg"/);
+  assert.match(html, /id="tile-liked-play-btn"/);
+
+  // CSS defines sleek rounded hero card styles
+  assert.match(themeCss, /\.votify-fav-hero-card\s*\{[\s\S]*border-radius:\s*18px/);
+  assert.match(themeCss, /\.fav-hero-icon-wrap\s*\{[\s\S]*border-radius:\s*14px/);
+
+  // main.js wires quick play button and updates subtitle count
+  assert.match(main, /safeClick\('tile-liked-play-btn'/);
+  assert.match(main, /document\.getElementById\('fav-subtitle'\)/);
+});
+

@@ -9869,6 +9869,24 @@ async function loadHomeContent() {
     window.renderMobileFriendsList('mobile-friends-list');
   }
 
+  const favTracks = (playlists && (playlists['Избранное'] || playlists['Любимые треки'])) || [];
+  const favSubtitle = document.getElementById('fav-subtitle');
+  if (favSubtitle) {
+    if (favTracks.length > 0) {
+      const count = favTracks.length;
+      const mod10 = count % 10;
+      const mod100 = count % 100;
+      let word = 'треков';
+      if (mod100 < 11 || mod100 > 19) {
+        if (mod10 === 1) word = 'трек';
+        else if (mod10 >= 2 && mod10 <= 4) word = 'трека';
+      }
+      favSubtitle.textContent = `${count} ${word}`;
+    } else {
+      favSubtitle.textContent = 'Сохранённые треки';
+    }
+  }
+
   loadForYouContent();
 }
 
@@ -9890,6 +9908,18 @@ safeClick('tile-history', () => {
 
 safeClick('tile-liked', () => {
   openPlaylist('Избранное');
+});
+
+safeClick('tile-liked-play-btn', e => {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const favs = (playlists && (playlists['Избранное'] || playlists['Любимые треки'])) || [];
+  if (favs.length > 0) {
+    currentPlaylist = favs;
+    currentTrackIndex = 0;
+    playTrack(favs[0]);
+  } else {
+    openPlaylist('Избранное');
+  }
 });
 
 // Home play wave button — custom wave from playlists + recent

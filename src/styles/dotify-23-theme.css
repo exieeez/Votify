@@ -1977,36 +1977,125 @@ body {
 }
 
 /* --- QUICK ACCESS TOP TILES (2 COLUMNS) --- */
+/* --- VOTIFY FAVORITES HERO CARD (Not Spotify) --- */
 .home-quick-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-  margin: 16px 0 32px;
+  margin: 16px 0 26px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
-.quick-tile-card {
+
+.votify-fav-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 440px;
+  padding: 14px 18px;
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.votify-fav-hero-card:hover {
+  background: #202024;
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+}
+
+.fav-hero-left {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  height: 56px;
-  transition: background 0.15s ease, transform 0.15s ease;
+  min-width: 0;
 }
-.quick-tile-card:hover {
-  background: rgba(255, 255, 255, 0.12);
-  transform: translateY(-2px);
+
+.fav-hero-icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(255, 64, 87, 0.12);
+  border: 1px solid rgba(255, 64, 87, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
-.quick-tile-card img {
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
+
+.votify-fav-hero-card:hover .fav-hero-icon-wrap {
+  background: rgba(255, 64, 87, 0.18);
+  transform: scale(1.05);
 }
-.quick-tile-name {
-  font-size: 14px;
+
+.fav-hero-heart-svg {
+  color: #ff4757;
+  filter: drop-shadow(0 2px 6px rgba(255, 71, 87, 0.35));
+}
+
+.fav-hero-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fav-hero-badge {
+  font-size: 10.5px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8E8E93;
+  margin-bottom: 2px;
+}
+
+.fav-hero-title {
+  font-size: 15.5px;
+  font-weight: 600;
   color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fav-hero-subtitle {
+  font-size: 12.5px;
+  color: #8E8E93;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fav-hero-play-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.2s ease;
+}
+
+.fav-hero-play-btn:hover {
+  transform: scale(1.08);
+  background: #f0f0f0;
+}
+
+.fav-hero-play-btn svg {
+  margin-left: 2px;
 }
 
 /* --- HOME ALBUMS & RADIO STATIONS GRIDS --- */
