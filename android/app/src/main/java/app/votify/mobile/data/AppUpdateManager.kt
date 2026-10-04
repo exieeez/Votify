@@ -62,6 +62,7 @@ class AppUpdateManager(
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val state: StateFlow<UpdateState> = _state.asStateFlow()
 
+    private val prefs = context.getSharedPreferences("votify_app_updates", Context.MODE_PRIVATE)
     private var dismissed = false
 
     init {
@@ -90,7 +91,17 @@ class AppUpdateManager(
                     !curSha.startsWith(info.shortSha.ifBlank { info.sha.take(7) }) &&
                     !info.sha.startsWith(curSha)
 
-            if (isNewerCode || isNewerSha) {
+            // An update is considered newer if remote code > curCode,
+            // or if codes match and remote commit sha is newer.
+            val isNewer = isNewerCode || (isNewerSha && (info.versionCode <= 0 || info.versionCode >= curCode))
+
+            val dismissedSha = prefs.getString("dismissed_sha", null)
+            if (!force && (dismissed || (info.sha.isNotBlank() && info.sha == dismissedSha))) {
+                _state.value = UpdateState.Idle
+                return@launch
+            }
+
+            if (isNewer) {
                 val cachedApk = getUpdateApkFile()
                 val metaFile = getUpdateMetaFile()
                 val cachedSha = if (metaFile.exists()) runCatching { metaFile.readText().trim() }.getOrNull() else null
@@ -108,7 +119,7 @@ class AppUpdateManager(
                         cachedSha == info.sha &&
                         pkgInfo != null &&
                         pkgInfo.packageName == context.packageName &&
-                        cachedVersionCode > curCode
+                        (cachedVersionCode > curCode || (cachedVersionCode == curCode && isNewerSha))
 
                 if (isCachedValid) {
                     _state.value = UpdateState.Ready(info, cachedApk)
@@ -158,6 +169,12 @@ class AppUpdateManager(
             val apkFile = getUpdateApkFile()
             apkFile.parentFile?.mkdirs()
             if (apkFile.exists()) apkFile.delete()
+
+            val curCode = BuildConfig.VERSION_CODE
+            val curSha = BuildConfig.BUILD_SHA
+            val isNewerSha = info.sha.isNotBlank() && curSha != "dev" &&
+                    !curSha.startsWith(info.shortSha.ifBlank { info.sha.take(7) }) &&
+                    !info.sha.startsWith(curSha)
 
             val downloadUrls = listOfNotNull(
                 info.mirrorUrl.ifBlank { null },
@@ -215,7 +232,7 @@ class AppUpdateManager(
 
                                 val isLegitNewerApk = pkgInfo != null &&
                                     pkgInfo.packageName == context.packageName &&
-                                    apkVersionCode > BuildConfig.VERSION_CODE &&
+                                    (apkVersionCode > curCode || (apkVersionCode == curCode && isNewerSha)) &&
                                     (info.versionCode <= 0 || apkVersionCode >= info.versionCode)
 
                                 if (isLegitNewerApk) {
@@ -224,8 +241,12 @@ class AppUpdateManager(
                                     runCatching { getUpdateMetaFile().writeText(info.sha) }
                                     true
                                 } else {
-                                    android.util.Log.w("AppUpdateManager", "Rejected stale/corrupted APK from $url: code=$apkVersionCode vs current=${BuildConfig.VERSION_CODE}")
+                                    android.util.Log.w("AppUpdateManager", "Rejected stale/corrupted APK from $url: code=$apkVersionCode vs current=$curCode")
                                     tempFile.delete()
+                                    if (pkgInfo != null && pkgInfo.packageName == context.packageName && apkVersionCode <= curCode && !isNewerSha) {
+                                        _state.value = UpdateState.Idle
+                                        return@launch
+                                    }
                                     false
                                 }
                             } else {
@@ -243,7 +264,7 @@ class AppUpdateManager(
                 }
             }
 
-            if (!success) {
+            if (!success && _state.value is UpdateState.Downloading) {
                 _state.value = UpdateState.Error("Не удалось скачать обновление", info)
             }
         }
@@ -294,6 +315,10 @@ class AppUpdateManager(
             }
             context.startActivity(intent)
             dismissed = true
+            val info = (_state.value as? UpdateState.Ready)?.info
+            if (info != null && info.sha.isNotBlank()) {
+                prefs.edit().putString("dismissed_sha", info.sha).apply()
+            }
             _state.value = UpdateState.Idle
         }.onFailure { e ->
             _state.value = UpdateState.Error("Ошибка запуска установщика: ${e.message}")
@@ -304,6 +329,16 @@ class AppUpdateManager(
 
     fun dismiss() {
         dismissed = true
+        val info = when (val s = _state.value) {
+            is UpdateState.Available -> s.info
+            is UpdateState.Ready -> s.info
+            is UpdateState.Error -> s.info
+            is UpdateState.Downloading -> s.info
+            else -> null
+        }
+        if (info != null && info.sha.isNotBlank()) {
+            prefs.edit().putString("dismissed_sha", info.sha).apply()
+        }
         _state.value = UpdateState.Idle
     }
 

@@ -38,7 +38,7 @@ jobs:
       # Kept under the permanent Votify-debug.apk release link.
       - name: Build release APK (OriginOS island package)
         run: |
-          ./gradlew --no-daemon --console=plain assembleRelease -PvotifyIslandPackage=com.hiby.music
+          ./gradlew --no-daemon --console=plain assembleRelease -PvotifyIslandPackage=com.hiby.music -PvotifyRunNumber=${{ github.run_number }}
           cp app/build/outputs/apk/release/app-release.apk Votify-debug.apk
 
       # Постоянное зеркало: APK кладётся в отдельную ветку «apk». Оттуда он качается
@@ -76,8 +76,8 @@ jobs:
             echo
             echo "Сборка: ${GITHUB_SHA}"
           } > README.md
-          V_CODE=$(grep -oE 'versionCode\s*=\s*[0-9]+' "$GITHUB_WORKSPACE/android/app/build.gradle.kts" | grep -oE '[0-9]+' || echo "1")
-          V_NAME=$(grep -oE 'versionName\s*=\s*"[^"]+"' "$GITHUB_WORKSPACE/android/app/build.gradle.kts" | cut -d'"' -f2 || echo "1.0.0")
+          V_CODE=${{ github.run_number }}
+          V_NAME="1.1.5"
           cat <<EOF > version.json
           {
             "versionCode": $V_CODE,
