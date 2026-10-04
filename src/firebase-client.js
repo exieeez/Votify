@@ -1976,6 +1976,7 @@
         if (state.user && !state.user.isAnonymous) {
           await pushState().catch(() => {});
         }
+        await publishPlaylistsToPublic().catch(() => {});
         ['pc-playlists-sync-sub', 'page-playlists-sync-sub'].forEach(id => {
           const sub = document.getElementById(id);
           if (sub) sub.textContent = 'Все изменения опубликованы';
@@ -2403,6 +2404,110 @@
     }
   };
 
+  async function searchPublicPlaylists(query) {
+    const list = [];
+    try {
+      const res = await fetch(`/api/playlists?q=${encodeURIComponent(query || '')}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.playlists)) {
+          list.push(...data.playlists);
+        }
+      }
+    } catch (e) {
+      console.warn('[searchPublicPlaylists] server api error:', e);
+    }
+
+    if (state.db && query && query.length >= 2) {
+      try {
+        const snap = await state.db.collection('publicPlaylists').limit(30).get();
+        const qLower = query.toLowerCase();
+        snap.forEach(doc => {
+          const d = doc.data();
+          const matchTitle = (d.title || '').toLowerCase().includes(qLower);
+          const matchAuthor = (d.author || '').toLowerCase().includes(qLower);
+          const matchTrack = Array.isArray(d.tracks) && d.tracks.some(t =>
+            (t.title && t.title.toLowerCase().includes(qLower)) ||
+            (t.artist && t.artist.toLowerCase().includes(qLower))
+          );
+          if (matchTitle || matchAuthor || matchTrack) {
+            const alreadyInList = list.some(p =>
+              p.id === doc.id ||
+              ((p.title || p.name || '').toLowerCase() === (d.title || '').toLowerCase() &&
+               (p.author || '').toLowerCase() === (d.author || '').toLowerCase())
+            );
+            if (!alreadyInList) {
+              list.push({ id: doc.id, ...d });
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('[searchPublicPlaylists] firestore query error:', e);
+      }
+    }
+    return list;
+  }
+
+  async function publishPlaylistsToPublic(playlistsObj, authorName) {
+    const pls = playlistsObj || window.playlists || {};
+    const author = authorName || state.user?.displayName || 'Пользователь Votify';
+    const playlistArray = Object.keys(pls)
+      .filter(k => k !== '__OFFLINE__' && k !== 'Избранное' && k !== 'Любимые треки')
+      .map(name => {
+        const tracks = Array.isArray(pls[name]) ? pls[name] : (pls[name]?.tracks || []);
+        return {
+          title: name,
+          name,
+          author,
+          cover: pls[name]?.cover || (tracks[0] && tracks[0].cover) || '',
+          tracks: tracks.map(t => ({
+            id: t.id || '',
+            title: t.title || t.name || 'Без названия',
+            artist: t.artist || t.artistName || 'Неизвестный исполнитель',
+            cover: t.cover || '',
+            duration: t.duration || 180,
+            album: t.album || ''
+          }))
+        };
+      })
+      .filter(p => p.tracks.length > 0);
+
+    if (!playlistArray.length) return { ok: true, count: 0 };
+
+    try {
+      await fetch('/api/playlists/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playlists: playlistArray })
+      });
+    } catch (e) {
+      console.warn('[playlists] publish server error:', e);
+    }
+
+    if (state.db && state.user && !state.user.isAnonymous) {
+      try {
+        const batch = state.db.batch();
+        playlistArray.forEach(pl => {
+          const docId = `${state.user.uid}_${encodeURIComponent(pl.title).replace(/%/g, '_')}`;
+          const ref = state.db.collection('publicPlaylists').doc(docId);
+          batch.set(ref, {
+            title: pl.title,
+            author,
+            ownerId: state.user.uid,
+            cover: pl.cover,
+            trackCount: pl.tracks.length,
+            tracks: pl.tracks.slice(0, 100),
+            updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        });
+        await batch.commit();
+      } catch (e) {
+        console.warn('[firestore] publicPlaylists error:', e);
+      }
+    }
+    return { ok: true, count: playlistArray.length };
+  }
+
   window.VotifyCloud = {
     whenReady: () => ready,
     isAvailable: () => state.available,
@@ -2434,6 +2539,8 @@
     searchUsers,
     addFriend,
     getFriends,
+    searchPublicPlaylists,
+    publishPlaylistsToPublic,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireUi);

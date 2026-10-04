@@ -12,6 +12,7 @@ const {
 } = require('./routes/utils.js');
 const { handleAuthRoutes } = require('./routes/auth.js');
 const { handleMusicRoutes } = require('./routes/music.js');
+const { handlePlaylistRoutes } = require('./routes/playlists.js');
 const { handleSmtpRoutes } = require('./routes/smtp.js');
 const { handleSyncRoutes } = require('./routes/sync.js');
 
@@ -185,6 +186,9 @@ const server = http.createServer(async (req, res) => {
 
     // --- SMTP CONFIG ---
     if (await handleSmtpRoutes(req, res, u)) return;
+
+    // --- PUBLIC PLAYLISTS ---
+    if (await handlePlaylistRoutes(req, res, u)) return;
 
     // --- MUSIC ENDPOINTS ---
     if (await handleMusicRoutes(req, res, u)) return;

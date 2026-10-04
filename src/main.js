@@ -1250,6 +1250,9 @@ function savePlaylists() {
     try { window.renderPins(true); } catch (e) {}
   }
   scheduleCloudPush();
+  if (typeof publishLocalPlaylistsToPublic === 'function') {
+    publishLocalPlaylistsToPublic();
+  }
 }
 function saveSettings() {
   try {
@@ -2977,7 +2980,8 @@ if (typeof on === 'function') {
   });
 }
 
-function openPlaylist(name) {
+function openPlaylist(playlistArg, customTracks, customAuthor, customCover) {
+  let name = typeof playlistArg === 'string' ? playlistArg : (playlistArg?.title || playlistArg?.name || 'Избранное');
   if (!name) name = 'Избранное';
   currentActiveLibItem = name;
 
@@ -3001,19 +3005,34 @@ function openPlaylist(name) {
 
   let rawData = null;
   let title = name;
+  let author = '';
+  let customCoverUrl = '';
+  let isPublicCommunity = false;
 
-  if (name === 'Избранное' || name === 'Любимые треки') {
+  if (playlistArg && typeof playlistArg === 'object') {
+    title = playlistArg.title || playlistArg.name || name;
+    author = playlistArg.author || customAuthor || '';
+    customCoverUrl = playlistArg.cover || customCover || '';
+    rawData = playlistArg.tracks || customTracks || [];
+    isPublicCommunity = !playlistArg.isLocal && (!playlists || !playlists[title]);
+  } else if (name === 'Избранное' || name === 'Любимые треки') {
     rawData = playlists['Избранное'] || playlists['Любимые треки'] || [];
     title = 'Любимые треки';
   } else if (name === '__OFFLINE__') {
     rawData = state.offlineTracks || [];
     title = 'Скачанные треки';
+  } else if (playlists && playlists[name]) {
+    rawData = playlists[name];
+    title = name;
+  } else if (customTracks && Array.isArray(customTracks)) {
+    rawData = customTracks;
+    title = name;
+    author = customAuthor || '';
+    customCoverUrl = customCover || '';
+    isPublicCommunity = true;
   } else if (Array.isArray(playlists)) {
     const found = playlists.find(p => p && (p.name === name || p.title === name));
     rawData = found || [];
-    title = name;
-  } else if (playlists && playlists[name]) {
-    rawData = playlists[name];
     title = name;
   } else {
     rawData = [];
@@ -3023,7 +3042,7 @@ function openPlaylist(name) {
   let tracks = getPlaylistTracks(rawData);
   let validTracks = (tracks || []).map(t => normalizeTrackObject(t)).filter(Boolean);
 
-  if (validTracks.length === 0) {
+  if (validTracks.length === 0 && !isPublicCommunity) {
     validTracks = mockTracks.map(t => normalizeTrackObject(t)).filter(Boolean);
   }
 
@@ -3064,12 +3083,13 @@ function openPlaylist(name) {
   const metaEl = document.getElementById('pl-screen-meta');
   if (titleEl) titleEl.textContent = title;
   if (metaEl) {
+    const authorPrefix = author ? `${author} • ` : '';
     metaEl.textContent = totalSec > 0
-      ? `Плейлист • ${validTracks.length} треков • ${formattedTime}`
-      : `Плейлист • ${validTracks.length} треков`;
+      ? `${authorPrefix}Плейлист • ${validTracks.length} треков • ${formattedTime}`
+      : `${authorPrefix}Плейлист • ${validTracks.length} треков`;
   }
 
-  let coverUrl = getPlaylistCover(rawData);
+  let coverUrl = customCoverUrl || getPlaylistCover(rawData);
   if ((!coverUrl || coverUrl === 'assets/logo.png') && validTracks.length > 0 && validTracks[0].cover && validTracks[0].cover !== 'assets/logo.png') {
     coverUrl = validTracks[0].cover;
   }
@@ -3169,6 +3189,34 @@ function openPlaylist(name) {
       switchScreen('folders-screen', 'nav-folders-btn');
     }
   });
+
+  // Save to Library button for public community playlists
+  let saveBtn = document.getElementById('pl-screen-save-btn');
+  const deleteBtn = document.getElementById('pl-screen-delete-btn');
+  if (!saveBtn && deleteBtn && deleteBtn.parentNode) {
+    saveBtn = document.createElement('button');
+    saveBtn.className = 'lib-action-circle-btn secondary';
+    saveBtn.id = 'pl-screen-save-btn';
+    saveBtn.title = 'Добавить в мою медиатеку';
+    saveBtn.innerHTML = '<i class="material-icons">bookmark_add</i>';
+    deleteBtn.parentNode.insertBefore(saveBtn, deleteBtn);
+  }
+  if (saveBtn) {
+    saveBtn.style.display = isPublicCommunity ? 'inline-flex' : 'none';
+    saveBtn.onclick = () => {
+      if (!playlists || typeof playlists !== 'object') playlists = {};
+      playlists[title] = validTracks;
+      writeStoredJson('votify-playlists', playlists);
+      if (typeof renderDesktopPlaylists === 'function') renderDesktopPlaylists();
+      if (typeof showToast === 'function') showToast(`Плейлист «${title}» добавлен в медиатеку!`);
+      saveBtn.innerHTML = '<i class="material-icons" style="color:var(--accent,#1db954)">bookmark_added</i>';
+      saveBtn.title = 'Сохранено в медиатеку';
+      if (typeof publishLocalPlaylistsToPublic === 'function') publishLocalPlaylistsToPublic();
+    };
+  }
+  if (deleteBtn) {
+    deleteBtn.style.display = isPublicCommunity ? 'none' : 'inline-flex';
+  }
 
   safeClick('pl-screen-delete-btn', async () => {
     await deletePlaylist(name);
@@ -9179,6 +9227,123 @@ function setLoadingState(isLoading, textKey = '') {
 }
 window.setLoadingState = setLoadingState;
 
+// Public & Local Playlists Search
+let lastSearchFoundPlaylists = [];
+
+async function searchAllPlaylists(query) {
+  const qLower = (query || '').trim().toLowerCase();
+  const foundMap = new Map();
+
+  // 1. Local user playlists
+  try {
+    const localPls = playlists || readStoredJson('votify-playlists', {});
+    Object.keys(localPls || {}).forEach(name => {
+      if (name === '__OFFLINE__') return;
+      const list = Array.isArray(localPls[name]) ? localPls[name] : (localPls[name]?.tracks || []);
+      const titleMatch = name.toLowerCase().includes(qLower);
+      const trackMatch = list.some(t => {
+        const tName = (t.title || t.name || t.t || '').toLowerCase();
+        const tArtist = (t.artist || t.artistName || t.a || '').toLowerCase();
+        return tName.includes(qLower) || tArtist.includes(qLower);
+      });
+      if (titleMatch || trackMatch || !qLower) {
+        foundMap.set(name.toLowerCase(), {
+          id: `local-${name}`,
+          title: name,
+          name,
+          author: 'Моя медиатека',
+          isLocal: true,
+          cover: localPls[name]?.cover || (list[0] && list[0].cover) || '',
+          trackCount: list.length,
+          tracks: list
+        });
+      }
+    });
+  } catch (e) {
+    console.warn('[searchAllPlaylists] local error:', e);
+  }
+
+  // 2. Cloud and public playlists from /api/playlists or Firebase
+  try {
+    let cloudList = [];
+    if (window.VotifyCloud && typeof window.VotifyCloud.searchPublicPlaylists === 'function') {
+      cloudList = await window.VotifyCloud.searchPublicPlaylists(query);
+    } else {
+      const res = await fetch(`/api/playlists?q=${encodeURIComponent(query || '')}`);
+      if (res.ok) {
+        const data = await res.json();
+        cloudList = data.playlists || [];
+      }
+    }
+    cloudList.forEach(pl => {
+      const key = (pl.title || pl.name || '').toLowerCase();
+      if (!foundMap.has(key)) {
+        foundMap.set(key, {
+          id: pl.id || `pub-${key}`,
+          title: pl.title || pl.name,
+          name: pl.title || pl.name,
+          author: pl.author || 'Пользователь Votify',
+          isLocal: false,
+          cover: pl.cover || (pl.tracks && pl.tracks[0] && pl.tracks[0].cover) || '',
+          trackCount: (pl.tracks && pl.tracks.length) || pl.trackCount || 0,
+          tracks: pl.tracks || []
+        });
+      }
+    });
+  } catch (e) {
+    console.warn('[searchAllPlaylists] remote error:', e);
+  }
+
+  return Array.from(foundMap.values());
+}
+window.searchAllPlaylists = searchAllPlaylists;
+
+async function publishLocalPlaylistsToPublic() {
+  try {
+    const pls = playlists || readStoredJson('votify-playlists', {});
+    const author = (window.VotifyCloud && typeof window.VotifyCloud.getCurrentUser === 'function')
+      ? (window.VotifyCloud.getCurrentUser()?.displayName || 'Пользователь Votify')
+      : 'Пользователь Votify';
+
+    if (window.VotifyCloud && typeof window.VotifyCloud.publishPlaylistsToPublic === 'function') {
+      await window.VotifyCloud.publishPlaylistsToPublic(pls, author);
+      return;
+    }
+
+    const playlistArray = Object.keys(pls || {})
+      .filter(k => k !== '__OFFLINE__' && k !== 'Избранное' && k !== 'Любимые треки')
+      .map(name => {
+        const tracks = Array.isArray(pls[name]) ? pls[name] : (pls[name]?.tracks || []);
+        return {
+          title: name,
+          name,
+          author,
+          cover: pls[name]?.cover || (tracks[0] && tracks[0].cover) || '',
+          tracks: tracks.map(t => ({
+            id: t.id || '',
+            title: t.title || t.name || 'Без названия',
+            artist: t.artist || t.artistName || 'Неизвестный исполнитель',
+            cover: t.cover || '',
+            duration: t.duration || 180,
+            album: t.album || ''
+          }))
+        };
+      })
+      .filter(p => p.tracks.length > 0);
+
+    if (!playlistArray.length) return;
+
+    await fetch('/api/playlists/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playlists: playlistArray })
+    });
+  } catch (e) {
+    console.warn('[publishLocalPlaylistsToPublic] error:', e);
+  }
+}
+window.publishLocalPlaylistsToPublic = publishLocalPlaylistsToPublic;
+
 // Do search
 async function doSearch(customQuery) {
   const mainInput = document.getElementById('search-input');
@@ -9217,31 +9382,40 @@ async function doSearch(customQuery) {
   setLoadingState(true, 'loader-search');
 
   try {
-    let data = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=50`, {
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        break;
-      } catch (e) {
-        if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-        else throw e;
-      }
-    }
-    const tracks = data?.tracks || [];
+    const [tracksRes, playlistsRes] = await Promise.allSettled([
+      (async () => {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=50`, {
+              signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            return data?.tracks || [];
+          } catch (e) {
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            else throw e;
+          }
+        }
+        return [];
+      })(),
+      searchAllPlaylists(query)
+    ]);
+
+    const tracks = (tracksRes.status === 'fulfilled' && tracksRes.value) ? tracksRes.value : [];
+    const foundPlaylists = (playlistsRes.status === 'fulfilled' && playlistsRes.value) ? playlistsRes.value : [];
+    lastSearchFoundPlaylists = foundPlaylists;
+
     if (statusMessage) {
       const lang = (appSettings && appSettings.lang && translations[appSettings.lang]) ? appSettings.lang : 'ru';
       const prefix = translations[lang]?.['search-found-prefix'] || 'Найдено: ';
-      statusMessage.innerText = `${prefix}${tracks.length}`;
+      statusMessage.innerText = `${prefix}${tracks.length + foundPlaylists.length}`;
     }
     addToSearchHistory(query);
-    renderSearchResults(tracks, query);
+    renderSearchResults(tracks, query, foundPlaylists);
   } catch (error) {
     if (statusMessage)
       statusMessage.innerText =
@@ -9280,19 +9454,20 @@ function extractAlbumsFromTracks(tracks) {
   return Array.from(albumsMap.values());
 }
 
-function renderSearchResults(tracks, query) {
+function renderSearchResults(tracks, query, foundPlaylistsArg) {
   if (!resultsContainer) return;
   resultsContainer.innerHTML = '';
+  const foundPlaylists = (Array.isArray(foundPlaylistsArg) ? foundPlaylistsArg : lastSearchFoundPlaylists) || [];
   if (tracks && tracks.length > 0 && typeof preloadTrackStreams === 'function') {
     preloadTrackStreams(tracks.slice(0, 4));
   }
 
-  if (!tracks || !tracks.length) {
+  if ((!tracks || !tracks.length) && (!foundPlaylists || !foundPlaylists.length)) {
     resultsContainer.innerHTML =
       '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 0;color:var(--text-secondary);font-size:14px;"><i class="material-icons" style="font-size:48px;opacity:0.4;margin-bottom:8px;">search_off</i>Ничего не найдено</div>';
     return;
   }
-  const albums = extractAlbumsFromTracks(tracks);
+  const albums = extractAlbumsFromTracks(tracks || []);
 
   if (activeSearchFilter === 'albums') {
     if (!albums.length) {
@@ -9330,9 +9505,7 @@ function renderSearchResults(tracks, query) {
   }
 
   if (activeSearchFilter === 'playlists') {
-    const matchingPls = Object.keys(playlists || {}).filter(name =>
-      name.toLowerCase().includes((query || '').toLowerCase())
-    );
+    const matchingPls = foundPlaylists || [];
     if (!matchingPls.length) {
       resultsContainer.innerHTML = '<p class="empty-msg">Плейлистов не найдено</p>';
       return;
@@ -9344,13 +9517,13 @@ function renderSearchResults(tracks, query) {
       <div class="artist-albums-grid">
         ${matchingPls
           .map(
-            name => `
-          <div class="album-card" data-search-pl="${escapeHtml(name)}">
-            <div class="album-cover-wrap" style="display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, var(--accent, #1db954) 15%, rgba(255,255,255,0.06));border-radius:12px;">
-              <i class="material-icons" style="font-size:48px;color:var(--accent, #1db954)">queue_music</i>
+            (pl, idx) => `
+          <div class="album-card" data-search-pl-idx="${idx}" style="cursor:pointer;">
+            <div class="album-cover-wrap" style="position:relative;border-radius:12px;overflow:hidden;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;">
+              ${pl.cover ? `<img src="${escapeHtml(pl.cover)}" alt="${escapeHtml(pl.title || pl.name)}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="material-icons" style="font-size:48px;color:var(--accent, #1db954)">queue_music</i>`}
             </div>
-            <div class="album-title">${escapeHtml(name)}</div>
-            <div class="album-meta-text">${(playlists[name] || []).length} треков</div>
+            <div class="album-title" style="font-size:14px;font-weight:600;margin-top:8px;">${escapeHtml(pl.title || pl.name)}</div>
+            <div class="album-meta-text" style="font-size:12px;color:var(--text-secondary);">${escapeHtml(pl.author || 'Votify')} • ${pl.tracks?.length || pl.trackCount || 0} треков</div>
           </div>
         `
           )
@@ -9358,10 +9531,10 @@ function renderSearchResults(tracks, query) {
       </div>
     `;
     resultsContainer.appendChild(plSection);
-    plSection.querySelectorAll('[data-search-pl]').forEach(card => {
+    plSection.querySelectorAll('[data-search-pl-idx]').forEach(card => {
       card.onclick = () => {
-        const plName = card.getAttribute('data-search-pl');
-        if (plName) openPlaylist(plName);
+        const idx = Number(card.getAttribute('data-search-pl-idx'));
+        if (matchingPls[idx]) openPlaylist(matchingPls[idx]);
       };
     });
     return;
@@ -9369,7 +9542,7 @@ function renderSearchResults(tracks, query) {
 
   if (activeSearchFilter === 'art') {
     const artistMap = new Map();
-    for (const t of tracks) {
+    for (const t of (tracks || [])) {
       if (!t || !t.artist) continue;
       const a = t.artist.trim();
       if (!artistMap.has(a.toLowerCase())) {
@@ -9413,7 +9586,40 @@ function renderSearchResults(tracks, query) {
     return;
   }
 
-  // If filter is "all", render Albums section first if any
+  // If filter is "all", render Playlists section first if any
+  if (activeSearchFilter === 'all' && foundPlaylists && foundPlaylists.length > 0) {
+    const plSection = document.createElement('div');
+    plSection.className = 'artist-section';
+    plSection.style.marginBottom = '24px';
+    plSection.innerHTML = `
+      <h3 class="artist-section-title" style="margin-bottom:12px;"><i class="material-icons">queue_music</i> Плейлисты</h3>
+      <div class="artist-albums-grid">
+        ${foundPlaylists
+          .slice(0, 6)
+          .map(
+            (pl, idx) => `
+          <div class="album-card" data-search-all-pl-idx="${idx}" style="cursor:pointer;">
+            <div class="album-cover-wrap" style="position:relative;border-radius:12px;overflow:hidden;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;">
+              ${pl.cover ? `<img src="${escapeHtml(pl.cover)}" alt="${escapeHtml(pl.title || pl.name)}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="material-icons" style="font-size:48px;color:var(--accent, #1db954)">queue_music</i>`}
+            </div>
+            <div class="album-title" style="font-size:14px;font-weight:600;margin-top:8px;">${escapeHtml(pl.title || pl.name)}</div>
+            <div class="album-meta-text" style="font-size:12px;color:var(--text-secondary);">${escapeHtml(pl.author || 'Votify')} • ${pl.tracks?.length || pl.trackCount || 0} треков</div>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+    `;
+    resultsContainer.appendChild(plSection);
+    plSection.querySelectorAll('[data-search-all-pl-idx]').forEach(card => {
+      card.onclick = () => {
+        const idx = Number(card.getAttribute('data-search-all-pl-idx'));
+        if (foundPlaylists[idx]) openPlaylist(foundPlaylists[idx]);
+      };
+    });
+  }
+
+  // If filter is "all", render Albums section next if any
   if (activeSearchFilter === 'all' && albums.length > 0) {
     const albumsSection = document.createElement('div');
     albumsSection.className = 'artist-section';
@@ -9888,6 +10094,9 @@ async function loadHomeContent() {
   }
 
   loadForYouContent();
+  if (typeof publishLocalPlaylistsToPublic === 'function') {
+    publishLocalPlaylistsToPublic();
+  }
 }
 
 // Home tiles
