@@ -323,38 +323,44 @@ function findBestLyricsMatch(results, expectedTitle, expectedArtist, expectedDur
 }
 
 const lyricsDataCache = new Map();
+const lyricsInFlightFetches = new Map();
+
 async function fetchLyricsData(rawTitle, rawArtist) {
-  const cacheKey = `${rawTitle || ''}::${rawArtist || ''}`;
+  const cacheKey = `${(rawTitle || '').trim().toLowerCase()}::${(rawArtist || '').trim().toLowerCase()}`;
   if (lyricsDataCache.has(cacheKey)) return lyricsDataCache.get(cacheKey);
+  if (lyricsInFlightFetches.has(cacheKey)) return lyricsInFlightFetches.get(cacheKey);
 
-  let title = cleanLyricsQuery(rawTitle);
-  let artist = cleanLyricsQuery(rawArtist);
+  const fetchPromise = (async () => {
+    let title = cleanLyricsQuery(rawTitle);
+    let artist = cleanLyricsQuery(rawArtist);
 
-  // Parse "Artist - Title" if title contains a separator
-  if (title.includes(' - ') || title.includes(' — ') || title.includes(' – ') || title.includes(' -- ')) {
-    const parts = title.split(/\s*(?:--|[-–—])\s*/);
-    if (parts.length >= 2) {
-      const p0 = parts[0].trim();
-      const p1 = parts.slice(1).join(' ').trim();
-      if (!artist || artist.toLowerCase().includes(p0.toLowerCase()) || p0.toLowerCase().includes(artist.toLowerCase())) {
-        artist = p0;
-        title = p1;
+    let extractedArtist = '';
+    let extractedTitle = title;
+
+    // Parse "Artist - Title" if title contains a separator
+    if (title.includes(' - ') || title.includes(' — ') || title.includes(' – ') || title.includes(' -- ')) {
+      const parts = title.split(/\s*(?:--|[-–—])\s*/);
+      if (parts.length >= 2) {
+        extractedArtist = parts[0].trim();
+        extractedTitle = parts.slice(1).join(' ').trim();
+        if (!artist || artist.toLowerCase().includes(extractedArtist.toLowerCase()) || extractedArtist.toLowerCase().includes(artist.toLowerCase())) {
+          artist = extractedArtist;
+          title = extractedTitle;
+        }
       }
     }
-  }
-  // Remove leading artist name if duplicated in title
-  if (artist && title.toLowerCase().startsWith(artist.toLowerCase())) {
-    title = title.slice(artist.length).replace(/^[\s\-–—:]+/, '').trim();
-  }
+    // Remove leading artist name if duplicated in title
+    if (artist && title.toLowerCase().startsWith(artist.toLowerCase())) {
+      title = title.slice(artist.length).replace(/^[\s\-–—:]+/, '').trim();
+    }
 
-  let result = null;
+    let result = null;
 
-  if (title) {
-    // 1) Exact-match endpoint
+    // 1) Primary: Query local backend proxy /api/lyrics with rawTitle & rawArtist (it has full multi-stage resolution)
     try {
-      const q = encodeURIComponent(title);
-      const a = artist ? '&artist_name=' + encodeURIComponent(artist) : '';
-      const res = await fetch(`https://lrclib.net/api/get?track_name=${q}${a}`);
+      const qTrack = encodeURIComponent(rawTitle || title || '');
+      const qArtist = encodeURIComponent(rawArtist || artist || '');
+      const res = await fetch(`/api/lyrics?track=${qTrack}&artist=${qArtist}`);
       if (res.ok) {
         const data = await res.json();
         if (data && (data.syncedLyrics || data.plainLyrics)) {
@@ -362,55 +368,97 @@ async function fetchLyricsData(rawTitle, rawArtist) {
         }
       }
     } catch (e) {
-      /* ignore */
+      /* ignore and try fallbacks */
     }
 
-    // 2) Search with track_name and artist_name params
-    if (!result && artist) {
+    // 2) Secondary: If raw failed, try cleaned title & artist with backend proxy
+    if (!result && (title !== rawTitle || artist !== rawArtist)) {
       try {
-        const url = `https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
-        const res = await fetch(url);
+        const qTrack = encodeURIComponent(title);
+        const qArtist = encodeURIComponent(artist || extractedArtist || '');
+        const res = await fetch(`/api/lyrics?track=${qTrack}&artist=${qArtist}`);
         if (res.ok) {
-          const results = await res.json();
-          result = findBestLyricsMatch(results, title, artist) || (Array.isArray(results) && results.find(r => r.syncedLyrics || r.plainLyrics)) || null;
+          const data = await res.json();
+          if (data && (data.syncedLyrics || data.plainLyrics)) {
+            result = data;
+          }
         }
       } catch (e) {
         /* ignore */
       }
     }
 
-    // 3) Fuzzy search with artist + title
-    if (!result) {
-      try {
-        const q = encodeURIComponent(`${artist} ${title}`.trim());
-        const res = await fetch(`https://lrclib.net/api/search?q=${q}`);
-        if (res.ok) {
-          const results = await res.json();
-          result = findBestLyricsMatch(results, title, artist) || (Array.isArray(results) && results.find(r => r.syncedLyrics || r.plainLyrics)) || null;
+    // 3) Fallback: Direct LRCLIB request if local proxy is offline/standalone
+    if (!result && title) {
+      const searchArtist = artist || extractedArtist || '';
+      // 3a) Exact-match endpoint
+      if (searchArtist) {
+        try {
+          const q = encodeURIComponent(extractedTitle || title);
+          const a = '&artist_name=' + encodeURIComponent(searchArtist);
+          const res = await fetch(`https://lrclib.net/api/get?track_name=${q}${a}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && (data.syncedLyrics || data.plainLyrics)) {
+              result = data;
+            }
+          }
+        } catch (e) {
+          /* ignore */
         }
-      } catch (e) {
-        /* ignore */
+      }
+
+      // 3b) Search with track_name and artist_name params
+      if (!result && searchArtist) {
+        try {
+          const url = `https://lrclib.net/api/search?track_name=${encodeURIComponent(extractedTitle || title)}&artist_name=${encodeURIComponent(searchArtist)}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const results = await res.json();
+            result = findBestLyricsMatch(results, extractedTitle || title, searchArtist) || (Array.isArray(results) && results.find(r => r.syncedLyrics || r.plainLyrics)) || null;
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      // 3c) Fuzzy search with artist + title
+      if (!result) {
+        try {
+          const q = encodeURIComponent(`${searchArtist} ${extractedTitle || title}`.trim());
+          const res = await fetch(`https://lrclib.net/api/search?q=${q}`);
+          if (res.ok) {
+            const results = await res.json();
+            result = findBestLyricsMatch(results, extractedTitle || title, searchArtist) || (Array.isArray(results) && results.find(r => r.syncedLyrics || r.plainLyrics)) || null;
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      // 3d) Fallback with raw title query
+      if (!result && rawTitle) {
+        try {
+          const cleanRaw = rawTitle.replace(/\(.*?\)|\[.*?\]/g, '').trim();
+          const q = encodeURIComponent(cleanRaw);
+          const res = await fetch(`https://lrclib.net/api/search?q=${q}`);
+          if (res.ok) {
+            const results = await res.json();
+            result = (Array.isArray(results) && results.find(r => r.syncedLyrics || r.plainLyrics)) || null;
+          }
+        } catch (e) {
+          /* ignore */
+        }
       }
     }
 
-    // 4) Fallback with raw title if sanitized stripped too much
-    if (!result && rawTitle && rawTitle !== title) {
-      try {
-        const cleanRaw = rawTitle.replace(/\(.*?\)|\[.*?\]/g, '').trim();
-        const q = encodeURIComponent(cleanRaw);
-        const res = await fetch(`https://lrclib.net/api/search?q=${q}`);
-        if (res.ok) {
-          const results = await res.json();
-          result = (Array.isArray(results) && results.find(r => r.syncedLyrics || r.plainLyrics)) || null;
-        }
-      } catch (e) {
-        /* ignore */
-      }
-    }
-  }
+    lyricsDataCache.set(cacheKey, result);
+    lyricsInFlightFetches.delete(cacheKey);
+    return result;
+  })();
 
-  lyricsDataCache.set(cacheKey, result);
-  return result;
+  lyricsInFlightFetches.set(cacheKey, fetchPromise);
+  return fetchPromise;
 }
 
 // ==========================================
@@ -588,6 +636,21 @@ function populateAllLyricsContainers() {
   rightLyricsData = lines || [];
 }
 
+function scrollActiveLyricToCenter(scrollContainer, activeEl, smooth = true) {
+  if (!scrollContainer || !activeEl) return;
+  if (scrollContainer.clientHeight <= 0) return;
+  const cRect = scrollContainer.getBoundingClientRect();
+  const eRect = activeEl.getBoundingClientRect();
+  // Exact coordinate of the lyric element relative to container's scroll canvas
+  const elementTopInContainer = (eRect.top - cRect.top) + scrollContainer.scrollTop;
+  // Center active lyric at ~38% from top for perfect reading context (matches Android compose)
+  const targetTop = Math.max(0, elementTopInContainer - (cRect.height * 0.38) + (eRect.height / 2));
+  scrollContainer.scrollTo({
+    top: targetTop,
+    behavior: smooth ? 'smooth' : 'auto'
+  });
+}
+
 function scrollAllActiveLyricsToCenter(smooth = true) {
   const targets = [
     { bodyId: 'fs-lyrics-body', scrollId: 'fs-player-lyrics' },
@@ -602,11 +665,7 @@ function scrollAllActiveLyricsToCenter(smooth = true) {
     const activeEl = body.querySelector('.lyrics-line.active');
     if (!activeEl) return;
     const scrollContainer = document.getElementById(t.scrollId) || body;
-    const targetTop = activeEl.offsetTop - (scrollContainer.clientHeight / 2) + (activeEl.clientHeight / 2);
-    scrollContainer.scrollTo({
-      top: Math.max(0, targetTop),
-      behavior: smooth ? 'smooth' : 'auto'
-    });
+    scrollActiveLyricToCenter(scrollContainer, activeEl, smooth);
   });
 }
 
@@ -637,6 +696,10 @@ function updateAllLyrics(rawTime) {
   fsLyricsLastLine = idx;
   currentLyricIndex = idx;
 
+  // Track progressed to a new lyric line: unlock user scroll so lyrics continuously follow song
+  lyricsUserScrolling = false;
+  if (lyricsScrollLockTimer) clearTimeout(lyricsScrollLockTimer);
+
   const targets = [
     { bodyId: 'fs-lyrics-body', scrollId: 'fs-player-lyrics' },
     { bodyId: 'page-player-lyrics-body', scrollId: 'page-player-lyrics-panel' },
@@ -659,15 +722,18 @@ function updateAllLyrics(rawTime) {
       if (isActive) activeEl = el;
     });
 
-    if (activeEl && !lyricsUserScrolling) {
+    if (activeEl) {
       const scrollContainer = document.getElementById(t.scrollId) || body;
-      const targetTop = activeEl.offsetTop - (scrollContainer.clientHeight / 2) + (activeEl.clientHeight / 2);
-      scrollContainer.scrollTo({
-        top: Math.max(0, targetTop),
-        behavior: 'smooth'
-      });
+      scrollActiveLyricToCenter(scrollContainer, activeEl, true);
     }
   });
+}
+
+function getTrackLyricsKey(t) {
+  if (!t) return '';
+  const title = (t.title || '').trim().toLowerCase();
+  const artist = (t.artist || '').trim().toLowerCase();
+  return `${title}::${artist}`;
 }
 
 async function loadActiveLyricsForTrack(track) {
@@ -678,7 +744,7 @@ async function loadActiveLyricsForTrack(track) {
     return;
   }
 
-  const trackKey = (track.id || track.title || '') + '::' + (track.artist || '');
+  const trackKey = getTrackLyricsKey(track);
   if (currentActiveLyrics && currentActiveLyrics.trackKey === trackKey && currentActiveLyrics.lines.length > 0) {
     populateAllLyricsContainers();
     currentActiveLyrics.lastActiveIndex = -2;
@@ -693,8 +759,8 @@ async function loadActiveLyricsForTrack(track) {
     const data = await fetchLyricsData(track.title, track.artist);
     // Guard against race condition if track changed during fetch
     if (state.currentTrack) {
-      const curKey = (state.currentTrack.id || state.currentTrack.title || '') + '::' + (state.currentTrack.artist || '');
-      if (curKey !== trackKey) return;
+      const curKey = getTrackLyricsKey(state.currentTrack);
+      if (curKey && curKey !== trackKey) return;
     }
 
     if (!data) {
@@ -711,10 +777,29 @@ async function loadActiveLyricsForTrack(track) {
     }
 
     const parsed = parseLrcTimings(lrc);
+    let finalLines = parsed.lines;
+    let finalSynced = parsed.synced;
+
+    // Fallback for unsynced plain lyrics:
+    // If no LRC timestamps exist, distribute lines across song duration
+    // so lyrics smoothly follow playback and center instead of freezing!
+    if (!finalSynced && finalLines.length > 0) {
+      const dur = (state.duration > 15 ? state.duration : (audio.duration > 15 ? audio.duration : 160));
+      const intro = Math.min(10, Math.max(2, dur * 0.05));
+      const outro = Math.min(15, Math.max(3, dur * 0.08));
+      const vocalDur = Math.max(10, dur - intro - outro);
+      const step = vocalDur / finalLines.length;
+      finalLines = finalLines.map((l, i) => ({
+        time: Math.round((intro + i * step) * 100) / 100,
+        text: l.text
+      }));
+      finalSynced = true;
+    }
+
     currentActiveLyrics = {
       trackKey,
-      synced: parsed.synced,
-      lines: parsed.lines,
+      synced: finalSynced,
+      lines: finalLines,
       lastActiveIndex: -2
     };
 
@@ -758,7 +843,7 @@ function initLyricsScrollListeners() {
   ['fs-player-lyrics', 'page-player-lyrics-panel', 'right-player-lyrics', 'full-lyrics-scroll'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      ['wheel', 'touchmove', 'touchstart', 'pointerdown'].forEach(evt => {
+      ['wheel', 'touchmove'].forEach(evt => {
         el.addEventListener(evt, handleLyricsUserScroll, { passive: true });
       });
     }
@@ -5618,12 +5703,15 @@ function openFullLyrics() {
   if (!overlay) return;
   const track = state.currentTrack;
   if (track) {
-    document.getElementById('full-lyrics-title').textContent = track.title || 'Текст песни';
-    document.getElementById('full-lyrics-artist').textContent = track.artist || '—';
+    const titleEl = document.getElementById('full-lyrics-title');
+    const artistEl = document.getElementById('full-lyrics-artist');
+    if (titleEl) titleEl.textContent = track.title || 'Текст песни';
+    if (artistEl) artistEl.textContent = track.artist || '—';
     if (track.cover) overlay.style.setProperty('--lyrics-cover', `url("${track.cover}")`);
   }
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden', 'false');
+  document.getElementById('fi-lyrics')?.classList.add('active');
   renderFullLyrics();
 }
 
@@ -5632,27 +5720,49 @@ function closeFullLyrics() {
   if (!overlay) return;
   overlay.classList.remove('open');
   overlay.setAttribute('aria-hidden', 'true');
+  document.getElementById('fi-lyrics')?.classList.remove('active');
 }
+
+function toggleFullLyrics() {
+  const overlay = document.getElementById('full-lyrics-overlay');
+  if (overlay && overlay.classList.contains('open')) {
+    closeFullLyrics();
+  } else {
+    openFullLyrics();
+  }
+}
+window.openFullLyrics = openFullLyrics;
+window.closeFullLyrics = closeFullLyrics;
+window.toggleFullLyrics = toggleFullLyrics;
 
 function renderFullLyrics() {
   const body = document.getElementById('full-lyrics-body');
   if (!body) return;
-  if (!rightLyricsData.length) {
+  const lines = currentActiveLyrics?.lines || [];
+  if (!lines.length) {
     body.innerHTML = '<div class="lyrics-placeholder">Текст песни не найден</div>';
+    if (state.currentTrack && state.currentTrack.title) {
+      loadActiveLyricsForTrack(state.currentTrack);
+    }
     return;
   }
-  body.innerHTML = rightLyricsData
-    .map((line, i) => {
-      const text = typeof line === 'string' ? line : line.text;
-      return `<div class="full-lyrics-line" data-idx="${i}">${escapeHtml(text || '') || '&nbsp;'}</div>`;
-    })
-    .join('');
+  body.innerHTML = renderLyricsLinesHtml(lines, true);
+  bindContainerLyricClicks(body);
+  currentActiveLyrics.lastActiveIndex = -2;
+  updateAllLyrics(audio.currentTime);
+  setTimeout(() => scrollAllActiveLyricsToCenter(false), 50);
 }
 
 document.getElementById('full-lyrics-close')?.addEventListener('click', closeFullLyrics);
 document.getElementById('full-lyrics-backdrop')?.addEventListener('click', closeFullLyrics);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeFullLyrics();
+  if ((e.key === 'l' || e.key === 'L' || e.key === 'д' || e.key === 'Д') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const tag = (document.activeElement?.tagName || '').toLowerCase();
+    if (tag !== 'input' && tag !== 'textarea' && !document.activeElement?.isContentEditable) {
+      toggleFullLyrics();
+    }
+  }
 });
 
 // ==========================================
@@ -5669,10 +5779,13 @@ document.addEventListener('keydown', e => {
   const fiEq = document.getElementById('fi-eq');
   const fiAddPl = document.getElementById('fi-add-playlist');
   const fiSidePlayer = document.getElementById('fi-side-player');
+  const fiLyrics = document.getElementById('fi-lyrics');
   const fiMute = document.getElementById('fi-mute');
   const fiVolume = document.getElementById('fi-volume');
   const fiVolIcon = document.getElementById('fi-vol-icon');
   const fiCover = document.getElementById('fi-cover');
+  const fiCoverWrap = document.getElementById('fi-cover-wrap');
+  const fiCoverExpandBtn = document.getElementById('fi-cover-expand-btn');
   const fiTitle = document.getElementById('fi-title');
   const fiArtist = document.getElementById('fi-artist');
 
@@ -5896,12 +6009,29 @@ document.addEventListener('keydown', e => {
     if (fiVolIcon) fiVolIcon.setAttribute('data-muted', v === 0 ? 'true' : 'false');
   };
 
+  // --- Lyrics Button ---
+  if (fiLyrics) {
+    fiLyrics.addEventListener('click', e => {
+      e.stopPropagation();
+      if (typeof toggleFullLyrics === 'function') toggleFullLyrics();
+    });
+  }
+
   // --- Click on cover opens fullscreen ---
+  const handleCoverExpand = e => {
+    if (e) e.stopPropagation();
+    if (typeof openFullscreenPlayer === 'function') openFullscreenPlayer();
+  };
   if (fiCover) {
     fiCover.style.cursor = 'pointer';
-    fiCover.addEventListener('click', () => {
-      if (typeof openFullscreenPlayer === 'function') openFullscreenPlayer();
-    });
+    fiCover.addEventListener('click', handleCoverExpand);
+  }
+  if (fiCoverWrap) {
+    fiCoverWrap.style.cursor = 'pointer';
+    fiCoverWrap.addEventListener('click', handleCoverExpand);
+  }
+  if (fiCoverExpandBtn) {
+    fiCoverExpandBtn.addEventListener('click', handleCoverExpand);
   }
 
   // --- Click on artist name opens artist page ---
@@ -10159,18 +10289,19 @@ audio.onended = () => {
 
 // Time update
 audio.ontimeupdate = () => {
-  if (isNaN(audio.duration)) return;
+  const dur = audio.duration;
+  const hasDur = typeof dur === 'number' && !isNaN(dur) && dur > 0;
   if (abLoopActive && abLoopStart != null && abLoopEnd != null && audio.currentTime >= abLoopEnd) {
     audio.currentTime = abLoopStart;
   }
-  const pct = (audio.currentTime / audio.duration) * 100;
+  const pct = hasDur ? (audio.currentTime / dur) * 100 : 0;
   if (progressBar) {
     progressBar.value = pct;
     progressBar.style.setProperty('--r', pct + '%');
   }
   const arcFill = document.getElementById('fi-cover-arc-fill');
-  if (arcFill && audio.duration > 0) {
-    const ratio = Math.max(0, Math.min(1, audio.currentTime / audio.duration));
+  if (arcFill && hasDur) {
+    const ratio = Math.max(0, Math.min(1, audio.currentTime / dur));
     const circumference = 289;
     arcFill.style.strokeDasharray = `${circumference}`;
     arcFill.style.strokeDashoffset = (circumference * (1 - ratio)).toFixed(2);
@@ -10193,6 +10324,13 @@ audio.ontimeupdate = () => {
   }
   updateLyricsLine();
 };
+
+// Continuous lyrics sync ticker for fluid updates
+setInterval(() => {
+  if (audio && !audio.paused && typeof audio.currentTime === 'number') {
+    updateAllLyrics(audio.currentTime);
+  }
+}, 150);
 
 audio.onloadedmetadata = () => {
   if (totalTimeEl) totalTimeEl.innerText = formatTime(audio.duration);
@@ -10683,9 +10821,9 @@ async function loadFsLyrics(title, artist) {
 
 // User interaction listeners for fullscreen lyrics auto-return
 if (fsPlayerLyrics) {
-  ['wheel', 'touchmove', 'touchstart', 'pointerdown'].forEach(evt => {
+  ['wheel', 'touchmove'].forEach(evt => {
     fsPlayerLyrics.addEventListener(evt, () => {
-      handleFsUserInteraction();
+      handleLyricsUserScroll();
     }, { passive: true });
   });
 }

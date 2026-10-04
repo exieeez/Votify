@@ -187,6 +187,12 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  mainWindow.webContents.on('console-message', (event, level, message) => {
+    if (level >= 1 || message.includes('error') || message.includes('Lyrics') || message.includes('lyrics')) {
+      console.log(`[renderer:${level}]`, message);
+    }
+  });
+
   mainWindow.webContents.on('render-process-gone', () => {
     discordPresence.clear();
   });

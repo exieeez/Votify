@@ -297,56 +297,134 @@ async function handleMusicRoutes(req, res, u) {
 
   // --- LYRICS ---
   if (u.pathname === '/api/lyrics') {
-    const track = u.searchParams.get('track')?.trim();
-    const artist = u.searchParams.get('artist')?.trim();
-    if (!track || !artist) {
-      sendJson(res, 400, { error: 'track and artist required' });
+    const rawTrack = u.searchParams.get('track')?.trim() || '';
+    const rawArtist = u.searchParams.get('artist')?.trim() || '';
+    if (!rawTrack) {
+      sendJson(res, 400, { error: 'track required' });
       return true;
     }
     try {
       const normStr = s => (s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
-      const lrclibUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`;
-      const lyricsData = await httpGet(lrclibUrl, 8000);
-      if (lyricsData && typeof lyricsData === 'object' && !lyricsData.message && (lyricsData.syncedLyrics || lyricsData.plainLyrics)) {
-        const expT = normStr(track);
-        const resT = normStr(lyricsData.trackName);
-        if (resT === expT || (resT.length >= 3 && expT.includes(resT))) {
-          sendJson(res, 200, {
-            syncedLyrics: lyricsData.syncedLyrics || null,
-            plainLyrics: lyricsData.plainLyrics || null,
-            track: lyricsData.trackName || track,
-            artist: lyricsData.artistName || artist,
-          });
-          return true;
+      const stripJunk = s => (s || '')
+        .replace(/\((?:official\s*(?:video|audio|music\s*video|lyric\s*video|clip|hd|hq)|audio|remix|official|video|clip|lyrics|visualizer|slowed|reverb)\)/gi, '')
+        .replace(/\[(?:official\s*(?:video|audio|music\s*video|lyric\s*video|clip|hd|hq)|audio|remix|official|video|clip|lyrics|visualizer|slowed|reverb)\]/gi, '')
+        .replace(/\s*--\s*|\s*—\s*|\s*–\s*/g, ' - ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const cleanTrack = stripJunk(rawTrack);
+      const cleanArtist = stripJunk(rawArtist);
+
+      let extractedArtist = '';
+      let extractedTitle = cleanTrack;
+      if (cleanTrack.includes(' - ')) {
+        const parts = cleanTrack.split(' - ');
+        if (parts.length >= 2) {
+          extractedArtist = parts[0].trim();
+          extractedTitle = stripJunk(parts.slice(1).join(' - ').trim());
         }
       }
-      const searchUrl = `https://lrclib.net/api/search?track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`;
-      const searchResults = await httpGet(searchUrl, 8000);
-      if (Array.isArray(searchResults) && searchResults.length > 0) {
-        const expT = normStr(track);
-        const expA = normStr(artist);
-        const best = searchResults.find(r => {
-          if (!r || (!r.syncedLyrics && !r.plainLyrics)) return false;
-          const resT = normStr(r.trackName);
-          const resA = normStr(r.artistName);
-          const titleMatch = resT === expT || (resT.length >= 4 && expT.includes(resT)) || (expT.length >= 4 && resT.includes(expT));
-          const artistMatch = !expA || resA === expA || (resA.length >= 3 && expA.includes(resA)) || (expA.length >= 3 && resA.includes(expA));
-          return titleMatch && artistMatch;
+
+      const primaryArtist = a => (a || '').split(/,|&|\bfeat\.?|\bft\.?/i)[0].trim();
+      const pExtractedArtist = primaryArtist(extractedArtist);
+      const pCleanArtist = primaryArtist(cleanArtist);
+
+      let plainFallback = null;
+      const savePlain = d => {
+        if (!plainFallback && d && typeof d === 'object' && d.plainLyrics && d.plainLyrics.trim().length > 0) {
+          plainFallback = {
+            syncedLyrics: null,
+            plainLyrics: d.plainLyrics,
+            track: d.trackName || rawTrack,
+            artist: d.artistName || rawArtist,
+          };
+        }
+      };
+
+      const sendSynced = d => {
+        sendJson(res, 200, {
+          syncedLyrics: d.syncedLyrics,
+          plainLyrics: d.plainLyrics || null,
+          track: d.trackName || rawTrack,
+          artist: d.artistName || rawArtist,
         });
-        if (best) {
-          sendJson(res, 200, {
-            syncedLyrics: best.syncedLyrics || null,
-            plainLyrics: best.plainLyrics || null,
-            track: best.trackName || track,
-            artist: best.artistName || artist,
-          });
+      };
+
+      const hasSynced = d => Boolean(d && typeof d === 'object' && !d.message && d.syncedLyrics && d.syncedLyrics.trim().length > 0);
+
+      // Attempt 1: Exact get with extracted artist and title
+      if (pExtractedArtist && extractedTitle) {
+        const url1 = `https://lrclib.net/api/get?track_name=${encodeURIComponent(extractedTitle)}&artist_name=${encodeURIComponent(pExtractedArtist)}`;
+        const res1 = await httpGet(url1, 6000);
+        if (hasSynced(res1)) {
+          sendSynced(res1);
           return true;
         }
+        savePlain(res1);
       }
-      sendJson(res, 200, { syncedLyrics: null, plainLyrics: null, track, artist });
+
+      // Attempt 2: Exact get with provided clean artist and track
+      if (pCleanArtist && cleanTrack) {
+        const url2 = `https://lrclib.net/api/get?track_name=${encodeURIComponent(cleanTrack)}&artist_name=${encodeURIComponent(pCleanArtist)}`;
+        const res2 = await httpGet(url2, 6000);
+        if (hasSynced(res2)) {
+          sendSynced(res2);
+          return true;
+        }
+        savePlain(res2);
+      }
+
+      // Attempt 3: Structured search with extracted metadata
+      const searchTrack = extractedTitle || cleanTrack;
+      const searchArtist = pExtractedArtist || pCleanArtist;
+      if (searchTrack) {
+        const url3 = `https://lrclib.net/api/search?track_name=${encodeURIComponent(searchTrack)}${searchArtist ? '&artist_name=' + encodeURIComponent(searchArtist) : ''}`;
+        const res3 = await httpGet(url3, 6000);
+        if (Array.isArray(res3) && res3.length > 0) {
+          const syncedMatch = res3.find(r => r && r.syncedLyrics && r.syncedLyrics.trim().length > 0);
+          if (syncedMatch) {
+            sendSynced(syncedMatch);
+            return true;
+          }
+          res3.forEach(savePlain);
+        }
+      }
+
+      // Attempt 4: Search queries (prioritizing synced results)
+      const queries = [
+        pExtractedArtist && extractedTitle ? `${pExtractedArtist} ${extractedTitle}` : '',
+        pCleanArtist && cleanTrack ? `${pCleanArtist} ${cleanTrack}` : '',
+        extractedTitle,
+        cleanTrack,
+        rawTrack,
+      ].filter(Boolean);
+
+      const seenQ = new Set();
+      for (const q of queries) {
+        if (seenQ.has(q)) continue;
+        seenQ.add(q);
+        const urlQ = `https://lrclib.net/api/search?q=${encodeURIComponent(q)}`;
+        const resQ = await httpGet(urlQ, 6000);
+        if (Array.isArray(resQ) && resQ.length > 0) {
+          const syncedMatchQ = resQ.find(r => r && r.syncedLyrics && r.syncedLyrics.trim().length > 0);
+          if (syncedMatchQ) {
+            sendSynced(syncedMatchQ);
+            return true;
+          }
+          resQ.forEach(savePlain);
+        }
+      }
+
+      // If no synced lyrics were found, return plain fallback if available
+      if (plainFallback) {
+        sendJson(res, 200, plainFallback);
+        return true;
+      }
+
+      sendJson(res, 200, { syncedLyrics: null, plainLyrics: null, track: rawTrack, artist: rawArtist });
       return true;
     } catch (e) {
-      sendJson(res, 200, { syncedLyrics: null, plainLyrics: null, track, artist });
+      sendJson(res, 200, { syncedLyrics: null, plainLyrics: null, track: rawTrack, artist: rawArtist });
       return true;
     }
   }
