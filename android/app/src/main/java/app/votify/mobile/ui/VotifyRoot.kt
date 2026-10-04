@@ -13,7 +13,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import app.votify.mobile.ui.components.liquidGlass
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -750,6 +752,8 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         }
                     },
                     cp = cp,
+                    bgUrl = workshopBgUrl,
+                    artworkUrl = playerState.current?.cover,
                 )
             }
         }
@@ -908,14 +912,21 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
 
 /** Nav bar: base dock or floating island with customizable height, alpha transparency and frosted blur. */
 @Composable
-private fun VotifyNavBar(selected: Tab, onSelect: (Tab) -> Unit, cp: app.votify.mobile.data.CustomPrefs) {
+private fun VotifyNavBar(
+    selected: Tab,
+    onSelect: (Tab) -> Unit,
+    cp: app.votify.mobile.data.CustomPrefs,
+    bgUrl: String = "",
+    artworkUrl: String? = null,
+) {
     val view = androidx.compose.ui.platform.LocalView.current
     val context = androidx.compose.ui.platform.LocalContext.current
 
     val heightDp = cp.navBarHeight.coerceIn(48, 80).dp
     val alphaFraction = (cp.navBarAlpha.coerceIn(0, 100)) / 100f
     val isIsland = cp.navBarIsland
-    val isGlass = cp.navBarLiquidGlass || cp.navBarBlur > 0 || cp.liquidGlass
+    val blurDp = cp.navBarBlur.coerceIn(0, 60)
+    val isGlass = blurDp > 0 || cp.navBarLiquidGlass || cp.liquidGlass
 
     val shape = if (isIsland) RoundedCornerShape(32.dp) else RoundedCornerShape(0.dp)
     val outerModifier = if (isIsland) {
@@ -927,37 +938,67 @@ private fun VotifyNavBar(selected: Tab, onSelect: (Tab) -> Unit, cp: app.votify.
         Modifier.fillMaxWidth()
     }
 
-    val barModifier = if (isGlass) {
-        outerModifier
+    val displayImage = if (bgUrl.isNotBlank()) bgUrl else (artworkUrl ?: "")
+
+    Box(
+        modifier = outerModifier
             .clip(shape)
-            .background(
-                Color(0xFF141416).copy(alpha = (alphaFraction * 0.72f).coerceIn(0.12f, 0.88f))
-            )
-            .liquidGlass(
-                shape = shape,
-                backgroundColor = Color.White.copy(alpha = (0.12f * (1f - alphaFraction * 0.25f)).coerceIn(0.06f, 0.18f)),
-                borderColor = Color.White.copy(alpha = 0.35f),
-                borderWidth = 1.dp,
-            )
-    } else {
-        outerModifier
-            .clip(shape)
-            .background((if (isIsland) VotifyColors.SurfaceContainer else VotifyColors.SurfaceBase).copy(alpha = alphaFraction))
             .then(
-                if (isIsland || alphaFraction < 1f) {
+                if (isIsland || alphaFraction < 1f || isGlass) {
                     Modifier.border(
                         1.dp,
-                        VotifyColors.BorderSubtle.copy(alpha = (alphaFraction * 0.7f).coerceAtLeast(0.25f)),
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = (0.30f * (1f - alphaFraction * 0.25f)).coerceIn(0.12f, 0.40f)),
+                                Color.White.copy(alpha = 0.05f),
+                            )
+                        ),
                         shape,
                     )
                 } else Modifier
-            )
-    }
-
-    Box(
-        modifier = barModifier,
+            ),
         contentAlignment = Alignment.Center,
     ) {
+        if (blurDp > 0 && displayImage.isNotBlank()) {
+            coil.compose.AsyncImage(
+                model = displayImage,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.BottomCenter,
+                modifier = Modifier
+                    .matchParentSize()
+                    .blur(blurDp.dp),
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    (if (isIsland) Color(0xFF141416) else Color(0xFF101012)).copy(
+                        alpha = if (blurDp > 0 && displayImage.isNotBlank()) {
+                            (alphaFraction * 0.65f).coerceIn(0.20f, 0.85f)
+                        } else {
+                            alphaFraction
+                        }
+                    )
+                )
+        )
+
+        if (isGlass) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = (0.13f * (blurDp / 30f).coerceIn(0.4f, 1.2f)).coerceIn(0.06f, 0.18f)),
+                                Color.White.copy(alpha = 0.02f),
+                            )
+                        )
+                    )
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()

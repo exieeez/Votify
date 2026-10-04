@@ -107,15 +107,16 @@ fun InterfaceSettingsScreen(
                     onValueChange = { v -> viewModel.updatePrefs { it.copy(navBarAlpha = v.toInt()) } },
                 )
                 SettingsDivider()
-                SettingsToggleRow(
-                    title = "Размытие (Liquid Glass)",
-                    subtitle = "Эффект жидкого стекла с зеркальным бликом",
-                    checked = prefs.navBarLiquidGlass || prefs.navBarBlur > 0,
-                    onChange = { v ->
+                SettingsSliderRow(
+                    title = "Размытие фона (блюр)",
+                    value = prefs.navBarBlur.toFloat(),
+                    range = 0f..60f,
+                    unit = " dp",
+                    onValueChange = { v ->
                         viewModel.updatePrefs {
                             it.copy(
-                                navBarLiquidGlass = v,
-                                navBarBlur = if (v) 20 else 0,
+                                navBarBlur = v.toInt(),
+                                navBarLiquidGlass = v > 0,
                             )
                         }
                     },
