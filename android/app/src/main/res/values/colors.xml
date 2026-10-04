@@ -2,7 +2,7 @@
 <resources>
     <color name="surface_base">#121212</color>
     <color name="pitch_black">#000000</color>
-    <color name="ic_launcher_background">#645495</color>
-    <color name="ic_launcher_purple">#645495</color>
+    <color name="ic_launcher_background">#3F337E</color>
+    <color name="ic_launcher_purple">#3F337E</color>
     <color name="ic_launcher_bw_background">#2e2e33</color>
 </resources>
