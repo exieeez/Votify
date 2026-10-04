@@ -22,6 +22,8 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -292,6 +294,7 @@ fun PlaylistVinylHeader(
     onBack: () -> Unit,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
+    onDownloadAll: (() -> Unit)? = null,
     trailingActions: @Composable () -> Unit,
 ) {
     val totalSeconds = remember(tracks) {
@@ -481,22 +484,25 @@ fun PlaylistVinylHeader(
 
         Spacer(Modifier.height(18.dp))
 
-        // Action Buttons Row (Heart, 3-dots, Shuffle, Big Play Button)
+        // Action Buttons Row (Download button, Shuffle, Rounded Grey Play Triangle)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Favorite icon
-            Icon(
-                Icons.Default.Favorite,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.85f),
-                modifier = Modifier
-                    .padding(8.dp)
-                    .size(24.dp),
-            )
+            // Download button (replaces favorite heart)
+            IconButton(
+                onClick = { onDownloadAll?.invoke() },
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Download,
+                    contentDescription = stringResource(R.string.action_download_playlist),
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
 
             Spacer(Modifier.weight(1f))
 
@@ -513,22 +519,18 @@ fun PlaylistVinylHeader(
                 )
             }
 
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
 
-            // Big Round Play Button
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .clickable { onPlayAll() },
-                contentAlignment = Alignment.Center,
+            // Play Button: grey rounded triangle with rounded corners, like translucent white but grey
+            IconButton(
+                onClick = onPlayAll,
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
-                    imageVector = if (spinning) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    imageVector = if (spinning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = stringResource(if (spinning) R.string.player_pause else R.string.player_play),
-                    tint = Color.Black,
-                    modifier = Modifier.size(30.dp),
+                    tint = Color(0xFFAAAAAA),
+                    modifier = Modifier.size(40.dp),
                 )
             }
         }
@@ -646,6 +648,11 @@ fun PlaylistScreen(
                     },
                     onShuffle = {
                         if (tracks.isNotEmpty()) onPlay(tracks.shuffled(), 0)
+                    },
+                    onDownloadAll = {
+                        if (tracks.isNotEmpty()) {
+                            viewModel.downloadPlaylist(tracks)
+                        }
                     },
                     trailingActions = {
                         Box {
