@@ -9883,7 +9883,7 @@ async function loadHomeContent() {
       }
       favSubtitle.textContent = `${count} ${word}`;
     } else {
-      favSubtitle.textContent = 'Сохранённые треки';
+      favSubtitle.textContent = 'Плейлист';
     }
   }
 
@@ -9908,18 +9908,6 @@ safeClick('tile-history', () => {
 
 safeClick('tile-liked', () => {
   openPlaylist('Избранное');
-});
-
-safeClick('tile-liked-play-btn', e => {
-  if (e && e.stopPropagation) e.stopPropagation();
-  const favs = (playlists && (playlists['Избранное'] || playlists['Любимые треки'])) || [];
-  if (favs.length > 0) {
-    currentPlaylist = favs;
-    currentTrackIndex = 0;
-    playTrack(favs[0]);
-  } else {
-    openPlaylist('Избранное');
-  }
 });
 
 // Home play wave button — custom wave from playlists + recent

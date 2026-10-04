@@ -74,7 +74,7 @@ test('Desktop settings modal is redesigned with mobile-style Stitch cards and ty
   assert.match(themeCss, /\.dotify-switch input:checked \+ \.dotify-switch-slider\s*\{[\s\S]*background-color:\s*#34C759/);
 });
 
-test('Favorites card on Home is redesigned with custom Votify hero styling, not Spotify', () => {
+test('Favorites card on Home is redesigned matching mobile QuickTile (solid dark, no play button)', () => {
   const html = read('src/index.html');
   const themeCss = read('src/styles/dotify-23-theme.css');
   const main = read('src/main.js');
@@ -82,17 +82,23 @@ test('Favorites card on Home is redesigned with custom Votify hero styling, not 
   // Spotify purple-to-mint gradient icon is completely removed
   assert.doesNotMatch(html, /linear-gradient\(135deg,\s*#450af5,\s*#c4efd9\)/);
 
-  // Votify hero card structure is present with heart svg and quick play button
-  assert.match(html, /class="votify-fav-hero-card"[^>]*id="tile-liked"/);
-  assert.match(html, /class="fav-hero-heart-svg"/);
-  assert.match(html, /id="tile-liked-play-btn"/);
+  // Votify QuickTile structure matching mobile HomeScreen
+  assert.match(html, /class="votify-quick-tile"[^>]*id="tile-liked"/);
+  assert.match(html, /class="votify-quick-tile-icon"/);
+  assert.match(html, /class="votify-quick-tile-title"/);
+  assert.match(html, /id="fav-subtitle"/);
 
-  // CSS defines sleek rounded hero card styles
-  assert.match(themeCss, /\.votify-fav-hero-card\s*\{[\s\S]*border-radius:\s*18px/);
-  assert.match(themeCss, /\.fav-hero-icon-wrap\s*\{[\s\S]*border-radius:\s*14px/);
+  // Play button is removed from the card
+  assert.doesNotMatch(html, /id="tile-liked-play-btn"/);
 
-  // main.js wires quick play button and updates subtitle count
-  assert.match(main, /safeClick\('tile-liked-play-btn'/);
+  // CSS defines solid dark surface with 18px radius and anti-transparency rule
+  assert.match(themeCss, /\.votify-quick-tile[\s\S]*background:\s*#161618\s*!important/);
+  assert.match(themeCss, /\.votify-quick-tile[\s\S]*border-radius:\s*18px\s*!important/);
+  assert.match(themeCss, /body\.transparency-enabled\s+#home-screen\s+\.votify-quick-tile/);
+
+  // main.js updates subtitle count and opens favorites on tile click
+  assert.match(main, /safeClick\('tile-liked'/);
   assert.match(main, /document\.getElementById\('fav-subtitle'\)/);
+  assert.doesNotMatch(main, /safeClick\('tile-liked-play-btn'/);
 });
 
