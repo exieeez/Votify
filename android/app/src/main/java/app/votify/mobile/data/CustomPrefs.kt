@@ -51,6 +51,7 @@ data class CustomPrefs(
     // ---- Нижняя панель навигации ----
     val navBarAlpha: Int = 100, // 0..100 (%)
     val navBarBlur: Int = 0, // 0..30 (dp)
+    val navBarLiquidGlass: Boolean = false,
     val navBarHeight: Int = 64, // 48..80 (dp)
     val navBarIsland: Boolean = false,
 

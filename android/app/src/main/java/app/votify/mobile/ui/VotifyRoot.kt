@@ -428,78 +428,15 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
             LocalLiquidGlass provides bgPrefs.liquidGlass
         ) {
             Scaffold(
-                containerColor = if (workshopBgUrl.isNotBlank() || bgPrefs.liquidGlass) androidx.compose.ui.graphics.Color.Transparent else VotifyColors.SurfaceBase,
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            snackbarHost = { SnackbarHost(snackbar) },
-            bottomBar = {
-                Column {
-                    UpdateBanner(
-                        updateManager = app.updateManager,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                    )
-                    AnimatedVisibility(visible = hasMini, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
-                        MiniPlayer(
-                            state = playerState,
-                            isFavorite = currentIsFavorite,
-                            onClick = { playerExpanded = true },
-                            onPlayPause = player::togglePlayPause,
-                            onToggleFavorite = { playerState.current?.let(libraryVm::toggleFavorite) },
-                            onSwipeLeft = {
-                                when (cp.miniSwipeLeft) {
-                                    "previous" -> player.previous()
-                                    "queue" -> libraryVm.openQueue()
-                                    else -> player.next()
-                                }
-                            },
-                            onSwipeRight = {
-                                when (cp.miniSwipeRight) {
-                                    "next" -> player.next()
-                                    "queue" -> libraryVm.openQueue()
-                                    else -> player.previous()
-                                }
-                            },
-                            onDismiss = {
-                                player.dismiss()
-                            },
-                            style = MiniStyle(
-                                pillShape = cp.miniCorners == "pill",
-                                cornerRadiusDp = when (cp.miniCorners) {
-                                    "none" -> 0.dp
-                                    "soft" -> 8.dp
-                                    "rounded" -> 16.dp
-                                    else -> 28.dp
-                                },
-                                roundCover = cp.miniCoverShape == "circle",
-                                ringProgress = cp.miniProgress == "ring",
-                                barProgress = cp.miniProgress == "bar",
-                                showLike = cp.miniButtons == "both",
-                                filledPlay = cp.miniButtonStyle != "outline" && cp.miniButtonStyle != "minimal",
-                                artworkTint = cp.miniBg == "artwork",
-                            ),
-                        )
-                    }
-                    if (hasMini) Spacer(Modifier.height(8.dp))
-                    VotifyNavBar(
-                        selected = Tab.entries.firstOrNull { t -> currentDestination?.hierarchy?.any { it.route == t.route } == true } ?: Tab.Home,
-                        onSelect = { tab ->
-                            // No saveState/restoreState: a saved stack could contain pushed
-                            // settings screens, and tapping the tab would drop the user right
-                            // back into them. Always return to the clean tab root instead.
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = false }
-                                launchSingleTop = true
-                                restoreState = false
-                            }
-                        },
-                        cp = cp,
-                    )
-                }
-            },
-        ) { _ ->
-            NavHost(
-                navController,
-                startDestination = Tab.Home.route,
-                modifier = Modifier.fillMaxSize(),
+                containerColor = if (workshopBgUrl.isNotBlank() || bgPrefs.liquidGlass || cp.navBarAlpha < 100 || cp.navBarIsland || cp.navBarLiquidGlass || cp.navBarBlur > 0) androidx.compose.ui.graphics.Color.Transparent else VotifyColors.SurfaceBase,
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                snackbarHost = { SnackbarHost(snackbar) },
+            ) { _ ->
+                Box(Modifier.fillMaxSize()) {
+                    NavHost(
+                        navController,
+                        startDestination = Tab.Home.route,
+                        modifier = Modifier.fillMaxSize(),
                 enterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) },
                 exitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(120)) },
                 popEnterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) },
@@ -751,8 +688,73 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                     )
                 }
             }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+            ) {
+                UpdateBanner(
+                    updateManager = app.updateManager,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+                AnimatedVisibility(visible = hasMini, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
+                    MiniPlayer(
+                        state = playerState,
+                        isFavorite = currentIsFavorite,
+                        onClick = { playerExpanded = true },
+                        onPlayPause = player::togglePlayPause,
+                        onToggleFavorite = { playerState.current?.let(libraryVm::toggleFavorite) },
+                        onSwipeLeft = {
+                            when (cp.miniSwipeLeft) {
+                                "previous" -> player.previous()
+                                "queue" -> libraryVm.openQueue()
+                                else -> player.next()
+                            }
+                        },
+                        onSwipeRight = {
+                            when (cp.miniSwipeRight) {
+                                "next" -> player.next()
+                                "queue" -> libraryVm.openQueue()
+                                else -> player.previous()
+                            }
+                        },
+                        onDismiss = {
+                            player.dismiss()
+                        },
+                        style = MiniStyle(
+                            pillShape = cp.miniCorners == "pill",
+                            cornerRadiusDp = when (cp.miniCorners) {
+                                "none" -> 0.dp
+                                "soft" -> 8.dp
+                                "rounded" -> 16.dp
+                                else -> 28.dp
+                            },
+                            roundCover = cp.miniCoverShape == "circle",
+                            ringProgress = cp.miniProgress == "ring",
+                            barProgress = cp.miniProgress == "bar",
+                            showLike = cp.miniButtons == "both",
+                            filledPlay = cp.miniButtonStyle != "outline" && cp.miniButtonStyle != "minimal",
+                            artworkTint = cp.miniBg == "artwork",
+                        ),
+                    )
+                }
+                if (hasMini) Spacer(Modifier.height(8.dp))
+                VotifyNavBar(
+                    selected = Tab.entries.firstOrNull { t -> currentDestination?.hierarchy?.any { it.route == t.route } == true } ?: Tab.Home,
+                    onSelect = { tab ->
+                        navController.navigate(tab.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = false }
+                            launchSingleTop = true
+                            restoreState = false
+                        }
+                    },
+                    cp = cp,
+                )
+            }
         }
-        }
+    }
+}
 
         AnimatedVisibility(
             visible = playerExpanded && playerState.current != null,
@@ -913,7 +915,7 @@ private fun VotifyNavBar(selected: Tab, onSelect: (Tab) -> Unit, cp: app.votify.
     val heightDp = cp.navBarHeight.coerceIn(48, 80).dp
     val alphaFraction = (cp.navBarAlpha.coerceIn(0, 100)) / 100f
     val isIsland = cp.navBarIsland
-    val isGlass = cp.navBarBlur > 0 || cp.liquidGlass
+    val isGlass = cp.navBarLiquidGlass || cp.navBarBlur > 0 || cp.liquidGlass
 
     val shape = if (isIsland) RoundedCornerShape(32.dp) else RoundedCornerShape(0.dp)
     val outerModifier = if (isIsland) {
@@ -926,12 +928,17 @@ private fun VotifyNavBar(selected: Tab, onSelect: (Tab) -> Unit, cp: app.votify.
     }
 
     val barModifier = if (isGlass) {
-        outerModifier.liquidGlass(
-            shape = shape,
-            backgroundColor = (if (isIsland) Color(0xFF1C1C1F) else Color(0xFF101012)).copy(alpha = alphaFraction.coerceAtMost(0.85f)),
-            borderColor = Color.White.copy(alpha = (0.12f + (cp.navBarBlur / 100f) * 0.22f).coerceAtMost(0.35f)),
-            borderWidth = 1.dp,
-        )
+        outerModifier
+            .clip(shape)
+            .background(
+                Color(0xFF141416).copy(alpha = (alphaFraction * 0.72f).coerceIn(0.12f, 0.88f))
+            )
+            .liquidGlass(
+                shape = shape,
+                backgroundColor = Color.White.copy(alpha = (0.12f * (1f - alphaFraction * 0.25f)).coerceIn(0.06f, 0.18f)),
+                borderColor = Color.White.copy(alpha = 0.35f),
+                borderWidth = 1.dp,
+            )
     } else {
         outerModifier
             .clip(shape)
