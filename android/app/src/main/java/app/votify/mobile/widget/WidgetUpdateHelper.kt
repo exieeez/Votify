@@ -43,7 +43,7 @@ object WidgetUpdateHelper {
         val state = app.player.state.value
         val track = state.current
         val isPlaying = state.isPlaying
-        val isFavorite = track?.let { app.library.isFavorite(it.id).first() } ?: false
+        val isFavorite = track?.let { app.library.favoriteIds.first().contains(it.id) } ?: false
 
         val badgeText = when {
             state.reverbPreset != "none" && state.speed < 1f -> "Slowed • Зал"

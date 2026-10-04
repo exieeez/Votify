@@ -98,7 +98,7 @@ class PlaylistRemoteViewsFactory(private val context: Context) : RemoteViewsServ
                 .transformations(RoundedCornersTransformation(16f))
                 .allowHardware(false)
                 .build()
-            val drawable = Coil.imageLoader(context).execute(request).drawable
+            val drawable = runBlocking { Coil.imageLoader(context).execute(request).drawable }
             drawable?.toBitmap(96, 96)
         }.getOrNull()
     }

@@ -13,7 +13,7 @@ class WidgetActionReceiver : BroadcastReceiver() {
 
         when (intent.action) {
             WidgetActions.ACTION_PLAY_PAUSE -> {
-                player.playPause()
+                player.togglePlayPause()
             }
             WidgetActions.ACTION_NEXT -> {
                 player.next()
