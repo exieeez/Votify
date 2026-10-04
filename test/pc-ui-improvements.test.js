@@ -74,8 +74,9 @@ test('Desktop settings modal is redesigned with mobile-style Stitch cards and ty
   assert.match(themeCss, /\.dotify-switch input:checked \+ \.dotify-switch-slider\s*\{[\s\S]*background-color:\s*#34C759/);
 });
 
-test('Favorites card on Home is redesigned matching mobile QuickTile (solid dark, no play button)', () => {
+test('Favorites card on Home is redesigned matching mobile QuickTile and other objects transparency', () => {
   const html = read('src/index.html');
+  const css = read('src/styles.css');
   const themeCss = read('src/styles/dotify-23-theme.css');
   const main = read('src/main.js');
 
@@ -91,10 +92,13 @@ test('Favorites card on Home is redesigned matching mobile QuickTile (solid dark
   // Play button is removed from the card
   assert.doesNotMatch(html, /id="tile-liked-play-btn"/);
 
-  // CSS defines solid dark surface with 18px radius and anti-transparency rule
-  assert.match(themeCss, /\.votify-quick-tile[\s\S]*background:\s*#161618\s*!important/);
-  assert.match(themeCss, /\.votify-quick-tile[\s\S]*border-radius:\s*18px\s*!important/);
-  assert.match(themeCss, /body\.transparency-enabled\s+#home-screen\s+\.votify-quick-tile/);
+  // CSS defines surface with 18px radius
+  assert.match(themeCss, /\.votify-quick-tile[\s\S]*border-radius:\s*18px/);
+
+  // Both styles.css and dotify-23-theme.css style votify-quick-tile in the same transparency style as other objects
+  assert.match(css, /body\.transparency-enabled\s+#home-screen\s+\.votify-quick-tile/);
+  assert.match(themeCss, /body\.transparency-enabled\s+#home-screen\s+\.votify-quick-tile[\s\S]*color-mix\(in srgb,\s*var\(--bg-surface/);
+  assert.match(themeCss, /body\.transparency-enabled\s+#home-screen\s+\.votify-quick-tile[\s\S]*backdrop-filter:\s*blur/);
 
   // main.js updates subtitle count and opens favorites on tile click
   assert.match(main, /safeClick\('tile-liked'/);

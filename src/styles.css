@@ -6749,6 +6749,8 @@ body[data-theme-mode="dark"] {
   background: transparent !important;
 }
 
+body.transparency-enabled #home-screen .votify-quick-tile,
+body.transparency-enabled #home-screen #tile-liked,
 body.transparency-enabled #home-screen .quick-tile-card,
 body.transparency-enabled #home-screen .home-quick-tiles .quick-tile-card,
 body.transparency-enabled #home-screen .track-card,
@@ -6785,6 +6787,8 @@ body.transparency-enabled .home-section-header h2 {
   color: #ffffff !important;
 }
 
+body.transparency-enabled #home-screen .votify-quick-tile:hover,
+body.transparency-enabled #home-screen #tile-liked:hover,
 body.transparency-enabled #home-screen .quick-tile-card:hover,
 body.transparency-enabled #home-screen .track-card:hover,
 body.transparency-enabled #home-screen .track-item:hover,
