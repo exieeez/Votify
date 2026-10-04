@@ -51,6 +51,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -58,6 +59,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -301,6 +303,53 @@ fun SettingsToggleRow(
                 uncheckedThumbColor = Color(0xFF8E8E93),
                 uncheckedTrackColor = Color(0xFF242426),
                 uncheckedBorderColor = Color(0xFF38383A),
+            ),
+        )
+    }
+}
+
+/** Title with value label and a slider row. */
+@Composable
+fun SettingsSliderRow(
+    title: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    unit: String = "",
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var current by remember(value) { mutableFloatStateOf(value.coerceIn(range.start, range.endInclusive)) }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                color = Color.White,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = "${current.toInt()}$unit",
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                color = Color(0xFF8E8E93),
+            )
+        }
+        Slider(
+            value = current,
+            onValueChange = { current = it },
+            onValueChangeFinished = { onValueChange(current) },
+            valueRange = range,
+            colors = androidx.compose.material3.SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = Color.White,
+                inactiveTrackColor = Color(0xFF2C2C2E),
             ),
         )
     }

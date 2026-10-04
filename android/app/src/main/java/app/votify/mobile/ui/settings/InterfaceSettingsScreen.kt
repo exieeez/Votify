@@ -84,16 +84,35 @@ fun InterfaceSettingsScreen(
 
             SettingsSectionLabel(stringResource(R.string.settings_navigation))
             SettingsCard {
-                SettingsValueRow(
-                    title = stringResource(R.string.settings_tab_style),
-                    subtitle = null,
-                    value = prefs.tabStyle,
-                    trailing = Icons.Outlined.GridView,
-                    options = listOf(
-                        "standard" to stringResource(R.string.settings_tab_standard),
-                        "compact" to stringResource(R.string.settings_tab_compact),
-                    ),
-                    onPick = { v -> viewModel.updatePrefs { it.copy(tabStyle = v) } },
+                SettingsToggleRow(
+                    title = "Стиль «Остров»",
+                    subtitle = "Плавающая закруглённая панель с отступами",
+                    checked = prefs.navBarIsland,
+                    onChange = { v -> viewModel.updatePrefs { it.copy(navBarIsland = v) } },
+                )
+                SettingsDivider()
+                SettingsSliderRow(
+                    title = "Размер панели (высота)",
+                    value = prefs.navBarHeight.toFloat(),
+                    range = 48f..80f,
+                    unit = " dp",
+                    onValueChange = { v -> viewModel.updatePrefs { it.copy(navBarHeight = v.toInt()) } },
+                )
+                SettingsDivider()
+                SettingsSliderRow(
+                    title = "Прозрачность фона",
+                    value = prefs.navBarAlpha.toFloat(),
+                    range = 0f..100f,
+                    unit = "%",
+                    onValueChange = { v -> viewModel.updatePrefs { it.copy(navBarAlpha = v.toInt()) } },
+                )
+                SettingsDivider()
+                SettingsSliderRow(
+                    title = "Блюр при прозрачности",
+                    value = prefs.navBarBlur.toFloat(),
+                    range = 0f..30f,
+                    unit = " dp",
+                    onValueChange = { v -> viewModel.updatePrefs { it.copy(navBarBlur = v.toInt()) } },
                 )
             }
 

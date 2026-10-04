@@ -10,6 +10,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import app.votify.mobile.ui.components.liquidGlass
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -368,9 +373,11 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     val statusBar = WindowInsets.statusBars.asPaddingValues()
     val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-    // Content must clear: nav bar (72) + mini-player (64 + 8 gap) + gesture inset.
+    // Content must clear: nav bar (height + island) + mini-player (64 + 8 gap) + gesture inset.
     val hasMini = playerState.current != null
-    val bottomClearance = 72.dp + (if (hasMini) 72.dp else 0.dp) + navBarInset
+    val navHeightDp = cp.navBarHeight.coerceIn(48, 80).dp
+    val islandExtra = if (cp.navBarIsland) 12.dp else 0.dp
+    val bottomClearance = navHeightDp + islandExtra + (if (hasMini) 72.dp else 0.dp) + navBarInset
     val contentPadding = PaddingValues(top = statusBar.calculateTopPadding(), bottom = bottomClearance)
 
     val play: (List<Track>, Int) -> Unit = { tracks, i -> player.play(tracks, i) }
@@ -485,6 +492,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                                 restoreState = false
                             }
                         },
+                        cp = cp,
                     )
                 }
             },
@@ -897,20 +905,58 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     }
 }
 
-/** 72dp nav bar: base trough with spring-animated icons and tactile haptic feedback. */
+/** Nav bar: base dock or floating island with customizable height, alpha transparency and frosted blur. */
 @Composable
-private fun VotifyNavBar(selected: Tab, onSelect: (Tab) -> Unit) {
+private fun VotifyNavBar(selected: Tab, onSelect: (Tab) -> Unit, cp: app.votify.mobile.data.CustomPrefs) {
     val view = androidx.compose.ui.platform.LocalView.current
     val context = androidx.compose.ui.platform.LocalContext.current
-    Surface(
-        color = VotifyColors.SurfaceBase,
-        modifier = Modifier.fillMaxWidth(),
+
+    val heightDp = cp.navBarHeight.coerceIn(48, 80).dp
+    val alphaFraction = (cp.navBarAlpha.coerceIn(0, 100)) / 100f
+    val isIsland = cp.navBarIsland
+    val isGlass = cp.navBarBlur > 0 || cp.liquidGlass
+
+    val shape = if (isIsland) RoundedCornerShape(32.dp) else RoundedCornerShape(0.dp)
+    val outerModifier = if (isIsland) {
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 6.dp)
+    } else {
+        Modifier.fillMaxWidth()
+    }
+
+    val barModifier = if (isGlass) {
+        outerModifier.liquidGlass(
+            shape = shape,
+            backgroundColor = (if (isIsland) Color(0xFF1C1C1F) else Color(0xFF101012)).copy(alpha = alphaFraction.coerceAtMost(0.85f)),
+            borderColor = Color.White.copy(alpha = (0.12f + (cp.navBarBlur / 100f) * 0.22f).coerceAtMost(0.35f)),
+            borderWidth = 1.dp,
+        )
+    } else {
+        outerModifier
+            .clip(shape)
+            .background((if (isIsland) VotifyColors.SurfaceContainer else VotifyColors.SurfaceBase).copy(alpha = alphaFraction))
+            .then(
+                if (isIsland || alphaFraction < 1f) {
+                    Modifier.border(
+                        1.dp,
+                        VotifyColors.BorderSubtle.copy(alpha = (alphaFraction * 0.7f).coerceAtLeast(0.25f)),
+                        shape,
+                    )
+                } else Modifier
+            )
+    }
+
+    Box(
+        modifier = barModifier,
+        contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                .height(64.dp),
+                .then(if (!isIsland) Modifier.windowInsetsPadding(NavigationBarDefaults.windowInsets) else Modifier)
+                .height(heightDp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Tab.entries.forEach { tab ->

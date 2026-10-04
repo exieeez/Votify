@@ -48,6 +48,12 @@ data class CustomPrefs(
     val fontFamily: String = "system", // system | serif | mono | rounded
     val fontScale: String = "normal", // small | normal | large
 
+    // ---- Нижняя панель навигации ----
+    val navBarAlpha: Int = 100, // 0..100 (%)
+    val navBarBlur: Int = 0, // 0..30 (dp)
+    val navBarHeight: Int = 64, // 48..80 (dp)
+    val navBarIsland: Boolean = false,
+
     // ---- Плеер ----
     val playerStyle: String = "vinyl", // vinyl | square | blur  (maps ArtworkStyle)
     val titleAlign: String = "center", // center | left
