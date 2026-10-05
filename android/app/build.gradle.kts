@@ -106,7 +106,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.8.2")
-    implementation("dev.chrisbanes.haze:haze:1.7.3")
+    implementation("dev.chrisbanes.haze:haze:0.7.3")
 
     // Media playback (ExoPlayer + background session)
     implementation("androidx.media3:media3-exoplayer:1.4.1")

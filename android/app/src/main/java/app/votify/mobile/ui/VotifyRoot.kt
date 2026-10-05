@@ -62,7 +62,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import androidx.lifecycle.ViewModel
@@ -957,7 +956,7 @@ private fun VotifyNavBar(
             state = hazeState,
             shape = shape,
             style = HazeStyle(
-                tint = HazeTint(baseColor.copy(alpha = alphaFraction)),
+                tint = baseColor.copy(alpha = alphaFraction),
                 blurRadius = blurDp.dp,
             ),
         )
