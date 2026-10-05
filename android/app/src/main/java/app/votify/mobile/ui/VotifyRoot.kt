@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.Box
@@ -428,7 +429,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
             LocalLiquidGlass provides bgPrefs.liquidGlass
         ) {
             Scaffold(
-                containerColor = if (workshopBgUrl.isNotBlank() || bgPrefs.liquidGlass || cp.navBarAlpha < 100 || cp.navBarIsland || cp.navBarLiquidGlass || cp.navBarBlur > 0) androidx.compose.ui.graphics.Color.Transparent else VotifyColors.SurfaceBase,
+                containerColor = Color.Transparent,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 snackbarHost = { SnackbarHost(snackbar) },
             ) { _ ->
@@ -750,8 +751,6 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         }
                     },
                     cp = cp,
-                    bgUrl = workshopBgUrl,
-                    artworkUrl = playerState.current?.cover,
                 )
             }
         }
@@ -914,8 +913,6 @@ private fun VotifyNavBar(
     selected: Tab,
     onSelect: (Tab) -> Unit,
     cp: app.votify.mobile.data.CustomPrefs,
-    bgUrl: String = "",
-    artworkUrl: String? = null,
 ) {
     val view = androidx.compose.ui.platform.LocalView.current
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -935,7 +932,7 @@ private fun VotifyNavBar(
         Modifier.fillMaxWidth()
     }
 
-    val displayImage = if (bgUrl.isNotBlank()) bgUrl else (artworkUrl ?: "")
+    val baseColor = if (isIsland) Color(0xFF141416) else Color(0xFF101012)
 
     Box(
         modifier = outerModifier
@@ -943,38 +940,36 @@ private fun VotifyNavBar(
             .then(
                 if (isIsland || alphaFraction < 1f) {
                     Modifier.border(
-                        1.dp,
-                        VotifyColors.BorderSubtle.copy(alpha = 0.5f),
-                        shape,
+                        width = 0.5.dp,
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = (0.22f * (1f - alphaFraction * 0.4f)).coerceIn(0.08f, 0.25f)),
+                                Color.White.copy(alpha = 0.03f),
+                            ),
+                        ),
+                        shape = shape,
                     )
                 } else Modifier
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (blurDp > 0 && displayImage.isNotBlank()) {
-            coil.compose.AsyncImage(
-                model = displayImage,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                alignment = Alignment.BottomCenter,
-                modifier = Modifier
-                    .matchParentSize()
-                    .blur(blurDp.dp),
-            )
-        }
-
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .background(
-                    (if (isIsland) Color(0xFF141416) else Color(0xFF101012)).copy(
-                        alpha = if (blurDp > 0 && displayImage.isNotBlank()) {
-                            (alphaFraction * 0.65f).coerceIn(0.20f, 0.85f)
-                        } else {
-                            alphaFraction
-                        }
-                    )
-                )
+                    if (cp.navBarLiquidGlass || blurDp > 0) {
+                        Brush.verticalGradient(
+                            listOf(
+                                (if (isIsland) Color(0xFF222226) else Color(0xFF1C1C20)).copy(
+                                    alpha = (alphaFraction * 1.15f).coerceAtMost(1f),
+                                ),
+                                baseColor.copy(alpha = alphaFraction),
+                            ),
+                        )
+                    } else {
+                        androidx.compose.ui.graphics.SolidColor(baseColor.copy(alpha = alphaFraction))
+                    }
+                ),
         )
         Row(
             modifier = Modifier
