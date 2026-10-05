@@ -137,7 +137,7 @@ class HomeViewModel(
                     // For You tracks: recommended tracks
                     val forYouTracks = if (wave.size > 8) wave.drop(8) else wave
 
-                    // Playlists: user playlists from DB + curated aesthetic playlists
+                    // Playlists: only real playlists created by users from DB
                     val localPlaylists = runCatching { library.playlists.first() }.getOrDefault(emptyList())
                     val playlistItems = localPlaylists.map { pl ->
                         HomePlaylistItem(
@@ -147,7 +147,7 @@ class HomeViewModel(
                             cover = pl.cover,
                             isLocal = true,
                         )
-                    } + curatedPlaylists
+                    }
 
                     // Artists: user top artists + underground favorites
                     val userArtists = artistSeeds.map { name ->
@@ -188,7 +188,7 @@ class HomeViewModel(
                         it.copy(
                             isLoading = false,
                             error = e.message ?: "error",
-                            forYouPlaylists = curatedPlaylists,
+                            forYouPlaylists = emptyList(),
                             forYouArtists = curatedArtists,
                             forYouReleases = curatedReleases,
                         )
@@ -207,28 +207,6 @@ class HomeViewModel(
     }
 
     companion object {
-        private val curatedPlaylists = listOf(
-            HomePlaylistItem(
-                name = "🤍🖤🤍",
-                subtitle = "homie",
-                cover = "https://i.scdn.co/image/ab67616d0000b2738a0f9b6b801a61c56b7c9360",
-            ),
-            HomePlaylistItem(
-                name = "Магнит",
-                subtitle = "курящих нет",
-                cover = "https://i.scdn.co/image/ab67616d0000b273d6b0521e1d3550e5033c46e3",
-            ),
-            HomePlaylistItem(
-                name = "жост...",
-                subtitle = "Milly",
-                cover = "https://i.scdn.co/image/ab67616d0000b27361be526c8b9d31198fb9622d",
-            ),
-            HomePlaylistItem(
-                name = "DARK DRIFT",
-                subtitle = "Votify",
-                cover = "https://i.scdn.co/image/ab67616d0000b27376c764a2c5b367fc9b03ef88",
-            ),
-        )
 
         private val curatedArtists = listOf(
             HomeArtistItem(

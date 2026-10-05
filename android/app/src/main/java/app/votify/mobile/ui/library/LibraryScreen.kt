@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -165,7 +166,7 @@ fun LibraryScreen(
             }
         }
 
-        if (filter == LibraryFilter.All || filter == LibraryFilter.Playlists) {
+        if (filter == LibraryFilter.All) {
             item {
                 SectionHeader(
                     title = stringResource(R.string.library_playlists),
@@ -194,6 +195,57 @@ fun LibraryScreen(
                         }
                         item {
                             NewPlaylistCard(onClick = { creating = true })
+                        }
+                    }
+                }
+            }
+            item { Spacer(Modifier.height(16.dp)) }
+        }
+
+        if (filter == LibraryFilter.Playlists) {
+            item {
+                SectionHeader(
+                    title = stringResource(R.string.library_playlists),
+                    action = stringResource(R.string.library_new_playlist),
+                    onAction = { creating = true },
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+            }
+            if (playlists.isEmpty()) {
+                item {
+                    EmptyHint(
+                        text = stringResource(R.string.library_playlists_empty),
+                        icon = Icons.Outlined.QueueMusic,
+                        actionLabel = stringResource(R.string.action_create),
+                        onAction = { creating = true },
+                    )
+                }
+            } else {
+                val gridItems: List<LibraryPlaylistItem> = listOf(LibraryPlaylistItem.Create) + playlists.map { LibraryPlaylistItem.Playlist(it) }
+                items(gridItems.chunked(2)) { rowItems ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        rowItems.forEach { item ->
+                            when (item) {
+                                is LibraryPlaylistItem.Create -> {
+                                    NewPlaylistGridCard(
+                                        onClick = { creating = true },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                                is LibraryPlaylistItem.Playlist -> {
+                                    PlaylistGridCard(
+                                        p = item.summary,
+                                        onClick = { onOpenPlaylist(item.summary.id) },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            }
+                        }
+                        if (rowItems.size == 1) {
+                            Spacer(Modifier.weight(1f))
                         }
                     }
                 }
@@ -347,45 +399,202 @@ private fun FavoritesHero(favorites: List<Track>, onOpen: () -> Unit, onPlay: ()
     }
 }
 
+private sealed interface LibraryPlaylistItem {
+    data object Create : LibraryPlaylistItem
+    data class Playlist(val summary: PlaylistSummary) : LibraryPlaylistItem
+}
+
 @Composable
-private fun PlaylistCard(p: PlaylistSummary, onClick: () -> Unit) {
-    Column(Modifier.width(140.dp).clickable(onClick = onClick)) {
+private fun PlaylistGridCard(
+    p: PlaylistSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF1A1A1A))
+            .clickable(onClick = onClick),
+    ) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(16.dp))
-                .background(VotifyColors.SurfaceContainer)
-                .border(1.dp, VotifyColors.BorderSubtle, RoundedCornerShape(16.dp)),
+                .background(VotifyColors.SurfaceContainer),
             contentAlignment = Alignment.Center,
         ) {
             if (p.cover.isNullOrBlank()) {
-                Icon(Icons.Outlined.QueueMusic, null, tint = VotifyColors.TextMuted, modifier = Modifier.size(40.dp))
+                Icon(
+                    Icons.Outlined.QueueMusic,
+                    null,
+                    tint = VotifyColors.TextMuted.copy(alpha = 0.5f),
+                    modifier = Modifier.size(44.dp),
+                )
             } else {
-                Artwork(p.cover.orEmpty(), size = 140.dp, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxSize())
+                Artwork(
+                    p.cover.orEmpty(),
+                    size = 180.dp,
+                    shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(p.name, style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextPrimary, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(pluralTracks(p.trackCount), style = MaterialTheme.typography.bodySmall, color = VotifyColors.TextMuted)
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+        ) {
+            Text(
+                p.name,
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                pluralTracks(p.trackCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = VotifyColors.TextMuted,
+            )
+        }
+    }
+}
+
+@Composable
+private fun NewPlaylistGridCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF1A1A1A))
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .background(VotifyColors.SurfaceContainerHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.Add,
+                null,
+                tint = VotifyColors.TextSecondary,
+                modifier = Modifier.size(40.dp),
+            )
+        }
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+        ) {
+            Text(
+                stringResource(R.string.library_new_playlist),
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.action_create),
+                style = MaterialTheme.typography.bodySmall,
+                color = VotifyColors.TextMuted,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlaylistCard(p: PlaylistSummary, onClick: () -> Unit) {
+    Column(
+        Modifier
+            .width(148.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF1A1A1A))
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .background(VotifyColors.SurfaceContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (p.cover.isNullOrBlank()) {
+                Icon(
+                    Icons.Outlined.QueueMusic,
+                    null,
+                    tint = VotifyColors.TextMuted.copy(alpha = 0.5f),
+                    modifier = Modifier.size(36.dp),
+                )
+            } else {
+                Artwork(
+                    p.cover.orEmpty(),
+                    size = 148.dp,
+                    shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        Column(Modifier.fillMaxWidth().padding(10.dp)) {
+            Text(
+                p.name,
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                pluralTracks(p.trackCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = VotifyColors.TextMuted,
+            )
+        }
     }
 }
 
 @Composable
 private fun NewPlaylistCard(onClick: () -> Unit) {
-    Column(Modifier.width(140.dp).clickable(onClick = onClick)) {
+    Column(
+        Modifier
+            .width(148.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF1A1A1A))
+            .clickable(onClick = onClick),
+    ) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(16.dp))
-                .border(1.dp, VotifyColors.BorderProminent, RoundedCornerShape(16.dp)),
+                .background(VotifyColors.SurfaceContainerHigh),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Outlined.Add, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(32.dp))
+            Icon(Icons.Outlined.Add, null, tint = VotifyColors.TextSecondary, modifier = Modifier.size(36.dp))
         }
-        Spacer(Modifier.height(8.dp))
-        Text(stringResource(R.string.library_new_playlist), style = MaterialTheme.typography.titleSmall, color = VotifyColors.TextSecondary, maxLines = 1)
+        Column(Modifier.fillMaxWidth().padding(10.dp)) {
+            Text(
+                stringResource(R.string.library_new_playlist),
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                stringResource(R.string.action_create),
+                style = MaterialTheme.typography.bodySmall,
+                color = VotifyColors.TextMuted,
+            )
+        }
     }
 }
 

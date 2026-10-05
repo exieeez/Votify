@@ -617,11 +617,6 @@ private fun PlaylistCard(
                 contentDescription = playlist.name,
                 modifier = Modifier.fillMaxSize(),
             )
-            PlaylistBadge(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp),
-            )
         }
         Spacer(Modifier.height(8.dp))
         Text(
@@ -789,31 +784,6 @@ private fun SpotifyBadge(modifier: Modifier = Modifier) {
                 quadraticTo(w * 0.52f, h * 0.64f, w * 0.70f, h * 0.70f)
             }
             drawPath(p3, Color.Black, style = stroke)
-        }
-    }
-}
-
-/** Playlist badge (3 horizontal queue lines). */
-@Composable
-private fun PlaylistBadge(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(24.dp)
-            .clip(CircleShape)
-            .background(Color(0xFF181818))
-            .border(0.5.dp, Color.White.copy(alpha = 0.25f), CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(modifier = Modifier.size(12.dp)) {
-            val stroke = Stroke(
-                width = 1.6.dp.toPx(),
-                cap = StrokeCap.Round,
-            )
-            val w = size.width
-            val h = size.height
-            drawLine(Color.White, Offset(w * 0.15f, h * 0.25f), Offset(w * 0.85f, h * 0.25f), strokeWidth = stroke.width, cap = stroke.cap)
-            drawLine(Color.White, Offset(w * 0.15f, h * 0.50f), Offset(w * 0.85f, h * 0.50f), strokeWidth = stroke.width, cap = stroke.cap)
-            drawLine(Color.White, Offset(w * 0.15f, h * 0.75f), Offset(w * 0.60f, h * 0.75f), strokeWidth = stroke.width, cap = stroke.cap)
         }
     }
 }
