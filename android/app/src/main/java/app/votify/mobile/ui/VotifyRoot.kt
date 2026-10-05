@@ -60,6 +60,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -425,6 +430,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 ),
             )
         }
+        val hazeState = remember { HazeState() }
         CompositionLocalProvider(
             LocalLiquidGlass provides bgPrefs.liquidGlass
         ) {
@@ -437,7 +443,9 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                     NavHost(
                         navController,
                         startDestination = Tab.Home.route,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .haze(hazeState),
                 enterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) },
                 exitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(120)) },
                 popEnterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) },
@@ -751,6 +759,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                         }
                     },
                     cp = cp,
+                    hazeState = hazeState,
                 )
             }
         }
@@ -913,6 +922,7 @@ private fun VotifyNavBar(
     selected: Tab,
     onSelect: (Tab) -> Unit,
     cp: app.votify.mobile.data.CustomPrefs,
+    hazeState: HazeState,
 ) {
     val view = androidx.compose.ui.platform.LocalView.current
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -934,43 +944,34 @@ private fun VotifyNavBar(
 
     val baseColor = if (isIsland) Color(0xFF141416) else Color(0xFF101012)
 
+    val borderModifier = if (isIsland || alphaFraction < 1f) {
+        Modifier.border(
+            width = 0.5.dp,
+            color = Color.White.copy(alpha = (0.20f * (1f - alphaFraction * 0.5f)).coerceIn(0.06f, 0.20f)),
+            shape = shape,
+        )
+    } else Modifier
+
+    val blurSurfaceModifier = if (blurDp > 0) {
+        Modifier.hazeChild(
+            state = hazeState,
+            shape = shape,
+            style = HazeStyle(
+                tint = HazeTint(baseColor.copy(alpha = alphaFraction)),
+                blurRadius = blurDp.dp,
+            ),
+        )
+    } else {
+        Modifier.background(baseColor.copy(alpha = alphaFraction))
+    }
+
     Box(
         modifier = outerModifier
             .clip(shape)
-            .then(
-                if (isIsland || alphaFraction < 1f) {
-                    Modifier.border(
-                        width = 0.5.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = (0.22f * (1f - alphaFraction * 0.4f)).coerceIn(0.08f, 0.25f)),
-                                Color.White.copy(alpha = 0.03f),
-                            ),
-                        ),
-                        shape = shape,
-                    )
-                } else Modifier
-            ),
+            .then(borderModifier)
+            .then(blurSurfaceModifier),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    if (cp.navBarLiquidGlass || blurDp > 0) {
-                        Brush.verticalGradient(
-                            listOf(
-                                (if (isIsland) Color(0xFF222226) else Color(0xFF1C1C20)).copy(
-                                    alpha = (alphaFraction * 1.15f).coerceAtMost(1f),
-                                ),
-                                baseColor.copy(alpha = alphaFraction),
-                            ),
-                        )
-                    } else {
-                        androidx.compose.ui.graphics.SolidColor(baseColor.copy(alpha = alphaFraction))
-                    }
-                ),
-        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
