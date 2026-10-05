@@ -8958,15 +8958,19 @@ let searchCurrentLimit = 0;
 let searchLoadingMore = false;
 let searchAllTracks = [];
 let searchDisplayedCount = 0;
-let activeSearchFilter = 'all';
+let activeSearchFilter = 'music';
 
 // Filter pills
 document.querySelectorAll('.filter-pill').forEach(pill => {
   pill.addEventListener('click', () => {
     document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
     pill.classList.add('active');
-    activeSearchFilter = pill.getAttribute('data-filter');
-    if (searchInput?.value.trim()) doSearch();
+    activeSearchFilter = pill.getAttribute('data-filter') || 'music';
+    if (searchCurrentQuery && (lastSearchTracks?.length || lastSearchFoundPlaylists?.length)) {
+      renderSearchResults(lastSearchTracks, searchCurrentQuery, lastSearchFoundPlaylists);
+    } else if (searchInput?.value.trim()) {
+      doSearch();
+    }
   });
 });
 
@@ -9228,6 +9232,7 @@ function setLoadingState(isLoading, textKey = '') {
 window.setLoadingState = setLoadingState;
 
 // Public & Local Playlists Search
+let lastSearchTracks = [];
 let lastSearchFoundPlaylists = [];
 
 async function searchAllPlaylists(query) {
@@ -9407,6 +9412,7 @@ async function doSearch(customQuery) {
 
     const tracks = (tracksRes.status === 'fulfilled' && tracksRes.value) ? tracksRes.value : [];
     const foundPlaylists = (playlistsRes.status === 'fulfilled' && playlistsRes.value) ? playlistsRes.value : [];
+    lastSearchTracks = tracks;
     lastSearchFoundPlaylists = foundPlaylists;
 
     if (statusMessage) {
@@ -9454,12 +9460,59 @@ function extractAlbumsFromTracks(tracks) {
   return Array.from(albumsMap.values());
 }
 
-function renderSearchResults(tracks, query, foundPlaylistsArg) {
+function renderSearchResults(tracksArg, query, foundPlaylistsArg) {
   if (!resultsContainer) return;
   resultsContainer.innerHTML = '';
+  const tracks = Array.isArray(tracksArg) ? tracksArg : (lastSearchTracks || []);
   const foundPlaylists = (Array.isArray(foundPlaylistsArg) ? foundPlaylistsArg : lastSearchFoundPlaylists) || [];
   if (tracks && tracks.length > 0 && typeof preloadTrackStreams === 'function') {
     preloadTrackStreams(tracks.slice(0, 4));
+  }
+
+  const isPlaylistsFilter = activeSearchFilter === 'playlists';
+  const isMusicFilter = activeSearchFilter === 'music' || activeSearchFilter === 'tracks';
+
+  if (isPlaylistsFilter) {
+    const matchingPls = foundPlaylists || [];
+    if (!matchingPls.length) {
+      resultsContainer.innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 0;color:var(--text-secondary);font-size:14px;"><i class="material-icons" style="font-size:48px;opacity:0.4;margin-bottom:8px;">queue_music</i>Плейлистов не найдено</div>';
+      return;
+    }
+    const plSection = document.createElement('div');
+    plSection.className = 'artist-section';
+    plSection.innerHTML = `
+      <h3 class="artist-section-title"><i class="material-icons">queue_music</i> Найденные плейлисты (${matchingPls.length})</h3>
+      <div class="artist-albums-grid">
+        ${matchingPls
+          .map(
+            (pl, idx) => `
+          <div class="album-card" data-search-pl-idx="${idx}" style="cursor:pointer;">
+            <div class="album-cover-wrap" style="position:relative;border-radius:12px;overflow:hidden;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;">
+              ${pl.cover ? `<img src="${escapeHtml(pl.cover)}" alt="${escapeHtml(pl.title || pl.name)}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="material-icons" style="font-size:48px;color:var(--accent, #1db954)">queue_music</i>`}
+            </div>
+            <div class="album-title" style="font-size:14px;font-weight:600;margin-top:8px;">${escapeHtml(pl.title || pl.name)}</div>
+            <div class="album-meta-text" style="font-size:12px;color:var(--text-secondary);">${escapeHtml(pl.author || 'Votify')} • ${pl.tracks?.length || pl.trackCount || 0} треков</div>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+    `;
+    resultsContainer.appendChild(plSection);
+    plSection.querySelectorAll('[data-search-pl-idx]').forEach(card => {
+      card.onclick = () => {
+        const idx = Number(card.getAttribute('data-search-pl-idx'));
+        if (matchingPls[idx]) openPlaylist(matchingPls[idx]);
+      };
+    });
+    return;
+  }
+
+  if (isMusicFilter && (!tracks || !tracks.length)) {
+    resultsContainer.innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 0;color:var(--text-secondary);font-size:14px;"><i class="material-icons" style="font-size:48px;opacity:0.4;margin-bottom:8px;">music_off</i>Музыка не найдена</div>';
+    return;
   }
 
   if ((!tracks || !tracks.length) && (!foundPlaylists || !foundPlaylists.length)) {
@@ -9499,42 +9552,6 @@ function renderSearchResults(tracks, query, foundPlaylistsArg) {
       card.onclick = () => {
         const idx = Number(card.getAttribute('data-search-album-idx'));
         if (albums[idx]) openAlbumPage(albums[idx]);
-      };
-    });
-    return;
-  }
-
-  if (activeSearchFilter === 'playlists') {
-    const matchingPls = foundPlaylists || [];
-    if (!matchingPls.length) {
-      resultsContainer.innerHTML = '<p class="empty-msg">Плейлистов не найдено</p>';
-      return;
-    }
-    const plSection = document.createElement('div');
-    plSection.className = 'artist-section';
-    plSection.innerHTML = `
-      <h3 class="artist-section-title"><i class="material-icons">queue_music</i> Найденные плейлисты (${matchingPls.length})</h3>
-      <div class="artist-albums-grid">
-        ${matchingPls
-          .map(
-            (pl, idx) => `
-          <div class="album-card" data-search-pl-idx="${idx}" style="cursor:pointer;">
-            <div class="album-cover-wrap" style="position:relative;border-radius:12px;overflow:hidden;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;">
-              ${pl.cover ? `<img src="${escapeHtml(pl.cover)}" alt="${escapeHtml(pl.title || pl.name)}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="material-icons" style="font-size:48px;color:var(--accent, #1db954)">queue_music</i>`}
-            </div>
-            <div class="album-title" style="font-size:14px;font-weight:600;margin-top:8px;">${escapeHtml(pl.title || pl.name)}</div>
-            <div class="album-meta-text" style="font-size:12px;color:var(--text-secondary);">${escapeHtml(pl.author || 'Votify')} • ${pl.tracks?.length || pl.trackCount || 0} треков</div>
-          </div>
-        `
-          )
-          .join('')}
-      </div>
-    `;
-    resultsContainer.appendChild(plSection);
-    plSection.querySelectorAll('[data-search-pl-idx]').forEach(card => {
-      card.onclick = () => {
-        const idx = Number(card.getAttribute('data-search-pl-idx'));
-        if (matchingPls[idx]) openPlaylist(matchingPls[idx]);
       };
     });
     return;
