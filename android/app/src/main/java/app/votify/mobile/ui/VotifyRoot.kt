@@ -930,6 +930,11 @@ private fun VotifyNavBar(
     val alphaFraction = (cp.navBarAlpha.coerceIn(0, 100)) / 100f
     val isIsland = cp.navBarIsland
     val blurDp = cp.navBarBlur.coerceIn(0, 60)
+    val effectiveBlurDp = when {
+        blurDp > 0 -> blurDp
+        alphaFraction < 1f || cp.navBarLiquidGlass -> 24
+        else -> 0
+    }
 
     val shape = if (isIsland) RoundedCornerShape(32.dp) else RoundedCornerShape(0.dp)
     val outerModifier = if (isIsland) {
@@ -951,13 +956,13 @@ private fun VotifyNavBar(
         )
     } else Modifier
 
-    val blurSurfaceModifier = if (blurDp > 0) {
+    val blurSurfaceModifier = if (effectiveBlurDp > 0) {
         Modifier.hazeChild(
             state = hazeState,
             shape = shape,
             style = HazeStyle(
                 tint = baseColor.copy(alpha = alphaFraction),
-                blurRadius = blurDp.dp,
+                blurRadius = effectiveBlurDp.dp,
             ),
         )
     } else {
@@ -967,8 +972,8 @@ private fun VotifyNavBar(
     Box(
         modifier = outerModifier
             .clip(shape)
-            .then(borderModifier)
-            .then(blurSurfaceModifier),
+            .then(blurSurfaceModifier)
+            .then(borderModifier),
         contentAlignment = Alignment.Center,
     ) {
         Row(
