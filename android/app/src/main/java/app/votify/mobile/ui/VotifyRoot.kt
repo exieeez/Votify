@@ -412,23 +412,6 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
     // imePadding: with edge-to-edge the keyboard would cover the bottom nav — on the search
     // screen that made it impossible to return to Home without the system back gesture.
     Box(Modifier.fillMaxSize().imePadding().background(VotifyColors.SurfaceBase)) {
-        if (workshopBgUrl.isNotBlank()) {
-            coil.compose.AsyncImage(
-                model = workshopBgUrl,
-                contentDescription = null,
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                alignment = androidx.compose.ui.Alignment.Center,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(bgBlurDp.dp),
-            )
-            // Dim the background so text on cards stays readable (Настройки → Фон → Затемнение).
-            Box(
-                Modifier.fillMaxSize().background(
-                    androidx.compose.ui.graphics.Color.Black.copy(alpha = bgDimAlpha),
-                ),
-            )
-        }
         val hazeState = remember { HazeState() }
         CompositionLocalProvider(
             LocalLiquidGlass provides bgPrefs.liquidGlass
@@ -439,12 +422,33 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                 snackbarHost = { SnackbarHost(snackbar) },
             ) { _ ->
                 Box(Modifier.fillMaxSize()) {
-                    NavHost(
-                        navController,
-                        startDestination = Tab.Home.route,
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .haze(hazeState),
+                    ) {
+                        Box(Modifier.fillMaxSize().background(VotifyColors.SurfaceBase))
+                        if (workshopBgUrl.isNotBlank()) {
+                            coil.compose.AsyncImage(
+                                model = workshopBgUrl,
+                                contentDescription = null,
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                alignment = androidx.compose.ui.Alignment.Center,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(bgBlurDp.dp),
+                            )
+                            // Dim the background so text on cards stays readable (Настройки → Фон → Затемнение).
+                            Box(
+                                Modifier.fillMaxSize().background(
+                                    androidx.compose.ui.graphics.Color.Black.copy(alpha = bgDimAlpha),
+                                ),
+                            )
+                        }
+                        NavHost(
+                            navController,
+                            startDestination = Tab.Home.route,
+                            modifier = Modifier.fillMaxSize(),
                 enterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) },
                 exitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(120)) },
                 popEnterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) },
@@ -696,6 +700,7 @@ private fun VotifyScaffold(app: VotifyApp, settings: Settings) {
                     )
                 }
             }
+        }
 
             Column(
                 modifier = Modifier
@@ -931,8 +936,8 @@ private fun VotifyNavBar(
     val isIsland = cp.navBarIsland
     val blurDp = cp.navBarBlur.coerceIn(0, 60)
     val effectiveBlurDp = when {
-        blurDp > 0 -> blurDp
-        alphaFraction < 1f || cp.navBarLiquidGlass -> 24
+        blurDp > 0 -> (blurDp * 1.25f).toInt().coerceIn(32, 80)
+        alphaFraction < 1f || cp.navBarLiquidGlass -> 44
         else -> 0
     }
 
