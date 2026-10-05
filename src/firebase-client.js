@@ -2418,7 +2418,7 @@
       console.warn('[searchPublicPlaylists] server api error:', e);
     }
 
-    if (state.db && query && query.length >= 2) {
+    if (state.db && state.user && query && query.length >= 2) {
       try {
         const snap = await state.db.collection('publicPlaylists').limit(30).get();
         const qLower = query.toLowerCase();
@@ -2442,7 +2442,7 @@
           }
         });
       } catch (e) {
-        console.warn('[searchPublicPlaylists] firestore query error:', e);
+        // Silently fallback to server /api/playlists results
       }
     }
     return list;
