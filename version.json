@@ -1,0 +1,10 @@
+{
+  "versionCode": 228,
+  "versionName": "1.1.5",
+  "sha": "42d71c294ca892a454e1f0b06aa94edcade0fc12",
+  "shortSha": "42d71c2",
+  "mirrorUrl": "https://litter.catbox.moe/a732yu.apk",
+  "downloadUrl": "https://raw.githubusercontent.com/exieeez/Votify/apk/Votify-debug.apk",
+  "cdnUrl": "https://cdn.jsdelivr.net/gh/exieeez/Votify@apk/Votify-debug.apk",
+  "releaseUrl": "https://github.com/exieeez/Votify/releases/download/android-debug/Votify-debug.apk"
+}
